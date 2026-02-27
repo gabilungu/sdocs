@@ -1,0 +1,119 @@
+<script lang="ts">
+	import NavTree from './index.js';
+	import NavTreeRoot from './NavTree.svelte';
+	import { Icon } from '../Icon/index.js';
+
+	export const meta = {
+		component: NavTreeRoot,
+		title: 'NavTree',
+		description: 'A composable tree navigation with Item and Group subcomponents.',
+	};
+</script>
+
+{#snippet Default()}
+	<NavTree>
+		<NavTree.Group label="Components">
+			<NavTree.Item label="UI" expanded>
+				{#snippet left()}<Icon name="folder-open" --w="14px" --h="14px" --fill="var(--color-base-400)" />{/snippet}
+				<NavTree.Item label="Button" expanded --font-weight="500">
+					{#snippet left()}<Icon name="component" --w="14px" --h="14px" --fill="var(--color-component-500)" />{/snippet}
+					<NavTree.Item label="Docs" href="#/ui/button/docs" --font-weight="400">
+						{#snippet left()}<Icon name="file-code" --w="14px" --h="14px" --fill="var(--color-docs-500)" />{/snippet}
+					</NavTree.Item>
+					<NavTree.Item label="Primary" href="#/ui/button/primary" active --font-weight="400">
+						{#snippet left()}<Icon name="bookmark" --w="14px" --h="14px" --fill="var(--color-example-600)" />{/snippet}
+					</NavTree.Item>
+					<NavTree.Item label="Outlined" href="#/ui/button/outlined" --font-weight="400">
+						{#snippet left()}<Icon name="bookmark" --w="14px" --h="14px" --fill="var(--color-example-600)" />{/snippet}
+					</NavTree.Item>
+				</NavTree.Item>
+				<NavTree.Item label="Icon" --font-weight="500">
+					{#snippet left()}<Icon name="component" --w="14px" --h="14px" --fill="var(--color-component-500)" />{/snippet}
+					<NavTree.Item label="Docs" href="#/ui/icon/docs" --font-weight="400">
+						{#snippet left()}<Icon name="file-code" --w="14px" --h="14px" --fill="var(--color-docs-500)" />{/snippet}
+					</NavTree.Item>
+					<NavTree.Item label="Sizes" href="#/ui/icon/sizes" --font-weight="400">
+						{#snippet left()}<Icon name="bookmark" --w="14px" --h="14px" --fill="var(--color-example-600)" />{/snippet}
+					</NavTree.Item>
+				</NavTree.Item>
+				<NavTree.Item label="Frame" --font-weight="500">
+					{#snippet left()}<Icon name="component" --w="14px" --h="14px" --fill="var(--color-component-500)" />{/snippet}
+					<NavTree.Item label="Docs" href="#/ui/frame/docs" --font-weight="400">
+						{#snippet left()}<Icon name="file-code" --w="14px" --h="14px" --fill="var(--color-docs-500)" />{/snippet}
+					</NavTree.Item>
+				</NavTree.Item>
+			</NavTree.Item>
+			<NavTree.Item label="Card" expanded --font-weight="500">
+				{#snippet left()}<Icon name="component" --w="14px" --h="14px" --fill="var(--color-component-500)" />{/snippet}
+				<NavTree.Item label="Docs" href="#/card/docs" --font-weight="400">
+					{#snippet left()}<Icon name="file-code" --w="14px" --h="14px" --fill="var(--color-docs-500)" />{/snippet}
+				</NavTree.Item>
+				<NavTree.Item label="WithImage" href="#/card/with-image" --font-weight="400">
+					{#snippet left()}<Icon name="bookmark" --w="14px" --h="14px" --fill="var(--color-example-600)" />{/snippet}
+				</NavTree.Item>
+			</NavTree.Item>
+			<NavTree.Item label="Badge" --font-weight="500">
+				{#snippet left()}<Icon name="component" --w="14px" --h="14px" --fill="var(--color-component-500)" />{/snippet}
+				<NavTree.Item label="Docs" href="#/badge/docs" --font-weight="400">
+					{#snippet left()}<Icon name="file-code" --w="14px" --h="14px" --fill="var(--color-docs-500)" />{/snippet}
+				</NavTree.Item>
+				<NavTree.Item label="Status" href="#/badge/status" --font-weight="400">
+					{#snippet left()}<Icon name="bookmark" --w="14px" --h="14px" --fill="var(--color-example-600)" />{/snippet}
+				</NavTree.Item>
+			</NavTree.Item>
+		</NavTree.Group>
+		<NavTree.Group label="Pages">
+			<NavTree.Item label="Getting Started" href="#/pages/getting-started" --font-weight="500">
+				{#snippet left()}<Icon name="file-text" --w="14px" --h="14px" --fill="var(--color-page-550)" />{/snippet}
+			</NavTree.Item>
+			<NavTree.Item label="Changelog" href="#/pages/changelog" --font-weight="500">
+				{#snippet left()}<Icon name="file-text" --w="14px" --h="14px" --fill="var(--color-page-550)" />{/snippet}
+			</NavTree.Item>
+		</NavTree.Group>
+		<NavTree.Group label="Layouts">
+			<NavTree.Item label="LoginForm" href="#/layouts/login-form" --font-weight="500">
+				{#snippet left()}<Icon name="panels-top-left" --w="14px" --h="14px" --fill="var(--color-layout-500)" />{/snippet}
+			</NavTree.Item>
+			<NavTree.Item label="Dashboard" href="#/layouts/dashboard" --font-weight="500">
+				{#snippet left()}<Icon name="panels-top-left" --w="14px" --h="14px" --fill="var(--color-layout-500)" />{/snippet}
+			</NavTree.Item>
+		</NavTree.Group>
+	</NavTree>
+{/snippet}
+
+{#snippet WithSlots()}
+	<NavTree>
+		<NavTree.Group label="Files">
+			<NavTree.Item label="index.ts" href="#/index">
+				{#snippet left()}<Icon name="folder" --w="14px" --h="14px" />{/snippet}
+				{#snippet right()}<span style="font-size: 11px; color: #9ca3af;">2.4kb</span>{/snippet}
+			</NavTree.Item>
+			<NavTree.Item label="utils.ts" href="#/utils">
+				{#snippet left()}<Icon name="folder" --w="14px" --h="14px" />{/snippet}
+				{#snippet right()}<span style="font-size: 11px; color: tomato;">54kb</span>{/snippet}
+			</NavTree.Item>
+			<NavTree.Item label="config.ts" href="#/config">
+				{#snippet left()}<Icon name="folder-open" --w="14px" --h="14px" --fill="var(--color-base-400)" />{/snippet}
+				{#snippet right()}<span style="font-size: 11px; color: #9ca3af;">1.1kb</span>{/snippet}
+			</NavTree.Item>
+		</NavTree.Group>
+	</NavTree>
+{/snippet}
+
+{#snippet NestedFolders()}
+	<NavTree>
+		<NavTree.Item label="src" expanded>
+			<NavTree.Item label="lib" expanded>
+				<NavTree.Item label="ui">
+					<NavTree.Item label="Frame.svelte" />
+					<NavTree.Item label="index.ts" />
+				</NavTree.Item>
+				<NavTree.Item label="server">
+					<NavTree.Item label="config.ts" />
+					<NavTree.Item label="cli.ts" />
+				</NavTree.Item>
+			</NavTree.Item>
+			<NavTree.Item label="app.ts" />
+		</NavTree.Item>
+	</NavTree>
+{/snippet}

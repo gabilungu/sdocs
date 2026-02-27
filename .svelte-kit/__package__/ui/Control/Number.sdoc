@@ -1,0 +1,17 @@
+<script lang="ts">
+	import Number from './Number.svelte';
+
+	export const meta = {
+		component: Number,
+		title: 'UI / Control / Number',
+		description: 'A numeric input control.',
+		args: {
+			label: 'Count',
+			value: 42,
+		},
+	};
+</script>
+
+{#snippet Default(args)}
+	<Number {...args} onchange={(v) => console.log('changed:', v)} />
+{/snippet}

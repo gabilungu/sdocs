@@ -1,0 +1,70 @@
+<script lang="ts">
+	import Item from './Item.svelte';
+	import NavTree from './NavTree.svelte';
+	import { Icon } from '../Icon/index.js';
+
+	export const meta = {
+		component: Item,
+		title: 'NavTree / NavTree.Item',
+		description: 'A tree node that acts as a leaf (link/button) or expandable folder when children are provided. Supports left and right snippet slots for custom content.',
+		args:{
+			label:"Label"
+		}
+	};
+</script>
+
+{#snippet Default({...args})}
+	<NavTree>
+		<Item {...args} >
+		<Item {...args} >
+
+		</Item>
+		<Item {...args} >
+
+		</Item>
+
+		</Item>
+	</NavTree>
+{/snippet}
+
+{#snippet LeftSlot()}
+	<NavTree>
+		<Item label="Home" href="#/home">
+			{#snippet left()}<Icon name="folder" --w="14px" --h="14px" />{/snippet}
+		</Item>
+		<Item label="Documents" href="#/docs">
+			{#snippet left()}<Icon name="folder-open" --w="14px" --h="14px" />{/snippet}
+		</Item>
+	</NavTree>
+{/snippet}
+
+{#snippet RightSlot()}
+	<NavTree>
+		<Item label="bundle.js" href="#/bundle">
+			{#snippet right()}<span style="font-size: 11px; color: tomato;">54kb</span>{/snippet}
+		</Item>
+		<Item label="style.css" href="#/style">
+			{#snippet right()}<span style="font-size: 11px; color: #9ca3af;">3.2kb</span>{/snippet}
+		</Item>
+	</NavTree>
+{/snippet}
+
+{#snippet Expandable()}
+	<NavTree>
+		<Item label="Controls" expanded>
+			<Item label="Text" href="#/text" />
+			<Item label="Number" href="#/number" />
+		</Item>
+		<Item label="Layout">
+			<Item label="Frame" href="#/frame" />
+		</Item>
+	</NavTree>
+{/snippet}
+
+{#snippet ActiveState()}
+	<NavTree>
+		<Item label="Regular item" href="#/one" />
+		<Item label="Active item" href="#/two" active />
+		<Item label="Another item" href="#/three" />
+	</NavTree>
+{/snippet}

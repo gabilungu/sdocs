@@ -1,0 +1,73 @@
+<script lang="ts">
+	import bookmarkSvg from './icons/bookmark.svg?raw';
+	import chevronDownSvg from './icons/chevron-down.svg?raw';
+	import chevronLeftSvg from './icons/chevron-left.svg?raw';
+	import chevronRightSvg from './icons/chevron-right.svg?raw';
+	import chevronUpSvg from './icons/chevron-up.svg?raw';
+	import codeSvg from './icons/code.svg?raw';
+	import componentSvg from './icons/component.svg?raw';
+	import copySvg from './icons/copy.svg?raw';
+	import diamondSvg from './icons/diamond.svg?raw';
+	import fileCodeSvg from './icons/file-code.svg?raw';
+	import fileTextSvg from './icons/file-text.svg?raw';
+	import folderOpenSvg from './icons/folder-open.svg?raw';
+	import folderSvg from './icons/folder.svg?raw';
+	import panelsTopLeftSvg from './icons/panels-top-left.svg?raw';
+	import sdocsSvg from './icons/sdocs.svg?raw';
+
+	const icons: Record<string, string> = {
+		'bookmark': bookmarkSvg,
+		'chevron-down': chevronDownSvg,
+		'chevron-left': chevronLeftSvg,
+		'chevron-right': chevronRightSvg,
+		'chevron-up': chevronUpSvg,
+		'code': codeSvg,
+		'component': componentSvg,
+		'copy': copySvg,
+		'diamond': diamondSvg,
+		'file-code': fileCodeSvg,
+		'file-text': fileTextSvg,
+		'folder-open': folderOpenSvg,
+		'folder': folderSvg,
+		'panels-top-left': panelsTopLeftSvg,
+		'sdocs': sdocsSvg,
+	};
+
+	/**
+	 * @cssvar {length} --w - Icon width (default: 24px)
+	 * @cssvar {length} --h - Icon height (default: 24px)
+	 * @cssvar {color} --fill - Icon color, inherited via currentColor (default: currentColor)
+	 */
+	interface Props {
+		/** Icon name matching a filename in the icons folder (e.g. "chevron-right") */
+		name: string;
+		/** Additional CSS class names */
+		class?: string;
+	}
+
+	let { name, class: className = '' }: Props = $props();
+
+	const svg = $derived(icons[name] ?? '');
+
+	export { icons };
+</script>
+
+<span class="Icon {className}" aria-hidden="true">
+	{@html svg}
+</span>
+
+<style>
+	.Icon {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: var(--w, 24px);
+		height: var(--h, 24px);
+		color: var(--fill, currentColor);
+		line-height: 0;
+	}
+	.Icon :global(svg) {
+		width: 100%;
+		height: 100%;
+	}
+</style>

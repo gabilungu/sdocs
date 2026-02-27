@@ -83,15 +83,11 @@
 
 <style>
 	.sdocs-preview-frame {
-		border: 1px solid var(--color-base-200);
-		border-radius: 6px;
 		overflow: hidden;
 		background: var(--color-base-0);
 	}
 	.sdocs-preview-frame.full-height {
 		flex: 1;
-		border: none;
-		border-radius: 0;
 	}
 	.sdocs-iframe {
 		width: 100%;

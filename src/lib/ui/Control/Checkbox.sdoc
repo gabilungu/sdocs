@@ -1,0 +1,17 @@
+<script lang="ts">
+	import Checkbox from './Checkbox.svelte';
+
+	export const meta = {
+		component: Checkbox,
+		title: 'Control / Checkbox',
+		description: 'A checkbox control for boolean values.',
+		args: {
+			label: 'Enabled',
+			value: true,
+		},
+	};
+</script>
+
+{#snippet Default(args)}
+	<Checkbox {...args} onchange={(v) => console.log('changed:', v)} />
+{/snippet}

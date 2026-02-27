@@ -1,18 +1,13 @@
-// Main component
-export { default as Sdocs } from './Sdocs.svelte';
-
-// Types
+export { sdocsPlugin } from './vite.js';
 export type {
-	ControlType,
-	ArgType,
-	ArgTypes,
-	CssPropType,
-	CssProps,
-	DocMeta,
-	Example,
-	DocFile,
-	SdocsProps
+	SdocsConfig,
+	ResolvedSdocsConfig,
+	SdocMeta,
+	DocEntry,
+	ParsedProp,
+	ParsedMethod,
+	ParsedState,
+	ParsedCssProp,
+	ComponentData,
+	ExtractedSnippet,
 } from './types.js';
-
-// Note: Vite plugin is exported separately from 'sdocs/vite'
-// to avoid bundling Node.js code into client builds

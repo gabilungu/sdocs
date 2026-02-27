@@ -1,0 +1,46 @@
+<script lang="ts">
+	import Group from './Group.svelte';
+	import Item from './Item.svelte';
+	import NavTree from './NavTree.svelte';
+
+	export const meta = {
+		component: Group,
+		title: 'NavTree / NavTree.Group',
+		description: 'A collapsible section header with uppercase label. Used to organize items into named categories.',
+	};
+</script>
+
+{#snippet Default()}
+	<NavTree>
+		<Group label="Components">
+			<Item label="Button" href="#/button" />
+			<Item label="Icon" href="#/icon" />
+			<Item label="Card" href="#/card" />
+		</Group>
+	</NavTree>
+{/snippet}
+
+{#snippet Collapsed()}
+	<NavTree>
+		<Group label="Advanced" expanded={false}>
+			<Item label="Tree" href="#/tree" />
+			<Item label="Table" href="#/table" />
+		</Group>
+	</NavTree>
+{/snippet}
+
+{#snippet MultipleGroups()}
+	<NavTree>
+		<Group label="Components">
+			<Item label="Button" href="#/button" />
+			<Item label="Input" href="#/input" />
+		</Group>
+		<Group label="Pages">
+			<Item label="About" href="#/about" />
+			<Item label="Changelog" href="#/changelog" />
+		</Group>
+		<Group label="Layouts">
+			<Item label="Dashboard" href="#/dashboard" />
+		</Group>
+	</NavTree>
+{/snippet}

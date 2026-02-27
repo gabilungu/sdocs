@@ -2,44 +2,40 @@
 	import type { Snippet } from 'svelte';
 
 	/**
-	 * A flexible Stack layout component for arranging elements vertically or horizontally.
+	 * @cssvar {string} --direction - Flex direction (row | column)
+	 * @cssvar {length} --gap - Gap between items
+	 * @cssvar {string} --align - Align items
+	 * @cssvar {string} --justify - Justify content
+	 * @cssvar {string} --wrap - Flex wrap
+	 * @cssvar {shorthand} --p - Padding
+	 * @cssvar {color} --bg - Background color
+	 * @cssvar {length} --r - Border radius
+	 * @cssvar {shorthand} --b - Border
 	 */
 	interface Props {
-		/** Stack direction (CSS flex-direction) */
-		direction?: 'row' | 'column' | 'row-reverse' | 'column-reverse';
-		/** Gap between items (any CSS dimension) */
-		gap?: string;
-		/** Padding (any CSS dimension) */
-		padding?: string;
-		/** Background color (any CSS color) */
-		bg?: string;
-		/** Children content */
-		children?: Snippet;
+		children: Snippet;
+		class?: string;
 	}
 
-	let {
-		direction = 'column',
-		gap = '0',
-		padding = '0',
-		bg,
-		children
-	}: Props = $props();
+	let { children, class: className = '' }: Props = $props();
 </script>
 
-<div
-	class="Stack"
-	style:flex-direction={direction}
-	style:gap
-	style:padding
-	style:background={bg}
->
-	{#if children}
-		{@render children()}
-	{/if}
+<div class="Stack {className}">
+	{@render children()}
 </div>
 
 <style>
 	.Stack {
 		display: flex;
+		flex-direction: var(--direction, column);
+		gap: var(--gap, 0px);
+		align-items: var(--align, stretch);
+		justify-content: var(--justify, flex-start);
+		flex-wrap: var(--wrap, nowrap);
+		padding: var(--p, 0);
+		background: var(--bg, transparent);
+		border-radius: var(--r, 0);
+		border: var(--b, none);
+		box-sizing: border-box;
 	}
 </style>

@@ -1,0 +1,17 @@
+<script lang="ts">
+	import Color from './Color.svelte';
+
+	export const meta = {
+		component: Color,
+		title: 'UI / Control / Color',
+		description: 'A color picker control.',
+		args: {
+			label: 'Background',
+			value: '#3b82f6',
+		},
+	};
+</script>
+
+{#snippet Default(args)}
+	<Color {...args} onchange={(v) => console.log('changed:', v)} />
+{/snippet}

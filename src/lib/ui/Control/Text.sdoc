@@ -1,0 +1,17 @@
+<script lang="ts">
+	import Text from './Text.svelte';
+
+	export const meta = {
+		component: Text,
+		title: 'UI / Control / Text',
+		description: 'A text input control for string values.',
+		args: {
+			label: 'Name',
+			value: 'Hello',
+		},
+	};
+</script>
+
+{#snippet Default(args)}
+	<Text {...args} onchange={(v) => console.log('changed:', v)} />
+{/snippet}

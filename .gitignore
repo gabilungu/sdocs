@@ -1,24 +1,8 @@
-test-results
 node_modules
-
-# Output
-.output
-.vercel
-.netlify
-.wrangler
-/.svelte-kit
-/build
-/dist
-
-# OS
+dist
+.sdocs
 .DS_Store
-Thumbs.db
-
-# Env
-.env
-.env.*
-!.env.example
-!.env.test
+package-lock.json
 
 # Vite
 vite.config.js.timestamp-*

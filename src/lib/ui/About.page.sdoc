@@ -5,7 +5,7 @@
 	};
 </script>
 
-<div style="max-width: 640px; padding: 32px; font-family: system-ui, sans-serif; line-height: 1.6; color: #1e293b;">
+<div style="max-width: 640px; padding: 32px;">
 	<h1>About sdocs</h1>
 	<p>
 		sdocs is a lightweight documentation tool for Svelte 5 components.

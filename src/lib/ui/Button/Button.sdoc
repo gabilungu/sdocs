@@ -15,7 +15,7 @@
 
 {#snippet WithLeftIcon()}
 	<Button onclick={() => alert('Settings')}>
-		{#snippet left()}<Icon name="settings" --w="14px" --h="14px" />{/snippet}
+		{#snippet left()}<Icon name="folder" --w="14px" --h="14px" />{/snippet}
 		Settings
 	</Button>
 {/snippet}

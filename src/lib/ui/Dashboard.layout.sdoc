@@ -5,7 +5,7 @@
 	};
 </script>
 
-<div style="display: flex; flex-direction: column; height: 100vh; font-family: system-ui, sans-serif;">
+<div style="display: flex; flex-direction: column; height: 100vh; ">
 	<header style="padding: 12px 24px; background: #1e293b; color: white; display: flex; align-items: center; justify-content: space-between;">
 		<span style="font-weight: 700; font-size: 16px;">Dashboard</span>
 		<nav style="display: flex; gap: 16px; font-size: 14px;">

@@ -8,7 +8,7 @@
 	import LayoutView from './views/LayoutView.svelte';
 	import HomePage from './views/HomePage.svelte';
 	import { onMount } from 'svelte';
-	import '../ui/styles/theme.css';
+	import '../ui/styles/sdocs.css';
 
 	type ThemeMode = 'light' | 'dark';
 

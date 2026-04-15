@@ -1,0 +1,16 @@
+@import '../lib/ui/styles/fonts/fonts.css';
+@import '../lib/ui/styles/theme.css';
+
+/* demo styles — for iframe component previews
+ *
+ * Used as the `css:` value in sdocs.config.js.
+ * Applies fonts globally so previewed components render correctly.
+ */
+
+html,
+body {
+	font-family: var(--sans);
+	margin: 0;
+	font-family: var(--sans);
+	color: var(--color-base-900);
+}

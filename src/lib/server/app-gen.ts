@@ -37,6 +37,7 @@ function generateIndexHtml(title: string): string {
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<link rel="icon" type="image/png" href="./client/favicon.png">
 	<title>${title}</title>
+	<style>body { margin: 0; }</style>
 </head>
 <body>
 	<div id="app"></div>

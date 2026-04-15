@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { Icon } from '../../ui/Icon/index.js';
 
 	interface Props {
 		title: string;
@@ -12,9 +13,11 @@
 </script>
 
 <div class="sdocs-panel">
-	<button class="sdocs-panel-header" onclick={() => expanded = !expanded}>
-		<span class="sdocs-panel-arrow" class:expanded>&#9654;</span>
+	<button class="sdocs-panel-header" onclick={() => (expanded = !expanded)}>
 		<span class="sdocs-panel-title">{title}</span>
+		<span class="sdocs-panel-chevron">
+			<Icon name={expanded ? 'chevron-down' : 'chevron-right'} --w="14px" --h="14px" />
+		</span>
 	</button>
 	{#if expanded}
 		<div class="sdocs-panel-body">
@@ -25,39 +28,36 @@
 
 <style>
 	.sdocs-panel {
-		border: 1px solid var(--color-base-200);
-		border-radius: 8px;
+		/* border: 1px solid var(--color-base-200); */
+		/* border-radius: 8px; */
 		overflow: hidden;
+		background: var(--color-base-0);
 	}
 	.sdocs-panel-header {
 		display: flex;
 		align-items: center;
 		gap: 8px;
 		width: 100%;
-		padding: 10px 14px;
+		padding: 6px 8px 6px 12px;
 		border: none;
 		background: var(--color-base-50);
 		font: inherit;
 		font-size: 13px;
 		font-weight: 600;
-		color: var(--color-base-900);
+		color: var(--color-base-700);
 		cursor: pointer;
 		text-align: left;
 	}
 	.sdocs-panel-header:hover {
 		background: var(--color-base-100);
 	}
-	.sdocs-panel-arrow {
-		font-size: 8px;
-		transition: transform 0.15s;
-		display: inline-block;
-		width: 10px;
-	}
-	.sdocs-panel-arrow.expanded {
-		transform: rotate(90deg);
+	.sdocs-panel-chevron {
+		margin-left: auto;
+		display: flex;
+		align-items: center;
 	}
 	.sdocs-panel-body {
 		padding: 14px;
-		border-top: 1px solid var(--color-base-200);
+		border-top: 1px solid var(--color-base-100);
 	}
 </style>

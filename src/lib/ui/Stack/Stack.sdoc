@@ -9,6 +9,14 @@
 	};
 </script>
 
+{#snippet Default()}
+	<Stack>
+		<Button>One</Button>
+		<Button>Two</Button>
+		<Button>Three</Button>
+	</Stack>
+{/snippet}
+
 {#snippet Column()}
 	<Stack --gap="8px">
 		<Button>One</Button>

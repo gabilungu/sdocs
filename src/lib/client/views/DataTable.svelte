@@ -74,5 +74,6 @@
 		color: var(--color-base-400);
 		font-size: 13px;
 		font-style: italic;
+		margin: 0;
 	}
 </style>

@@ -40,7 +40,7 @@ export function extractSnippets(source: string): ExtractedSnippet[] {
 		}
 
 		if (depth === 0) {
-			const body = markup.slice(bodyStart, i).trim();
+			const body = dedent(markup.slice(bodyStart, i).trim());
 			snippets.push({ name, body });
 			searchFrom = i + '{/snippet}'.length;
 		} else {
@@ -49,6 +49,17 @@ export function extractSnippets(source: string): ExtractedSnippet[] {
 	}
 
 	return snippets;
+}
+
+/** Remove common leading whitespace from all lines */
+function dedent(text: string): string {
+	const lines = text.split('\n');
+	// Skip first line (already trimmed) when computing minimum indent
+	const rest = lines.slice(1).filter((l) => l.trim().length > 0);
+	const indents = rest.map((l) => l.match(/^(\s*)/)?.[1].length ?? 0);
+	const min = indents.length > 0 ? Math.min(...indents) : 0;
+	if (min === 0) return text;
+	return [lines[0], ...lines.slice(1).map((l) => l.slice(min))].join('\n');
 }
 
 /** Check if a Default snippet exists or needs auto-generation */

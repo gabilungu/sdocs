@@ -1,5 +1,7 @@
 ---
 title: Page Docs
+parent: Writing Docs
+nav_order: 2
 ---
 
 # Page docs (`.page.sdoc`)

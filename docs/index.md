@@ -1,5 +1,6 @@
 ---
-title: sdocs
+title: Home
+nav_order: 1
 ---
 
 # sdocs

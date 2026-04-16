@@ -1,5 +1,7 @@
 ---
 title: Configuration
+parent: Usage
+nav_order: 3
 ---
 
 # Configuration

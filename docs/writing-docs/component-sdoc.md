@@ -1,5 +1,7 @@
 ---
 title: Component Docs
+parent: Writing Docs
+nav_order: 1
 ---
 
 # Component docs (`.sdoc`)

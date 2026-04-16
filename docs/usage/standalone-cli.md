@@ -1,5 +1,7 @@
 ---
 title: Standalone CLI
+parent: Usage
+nav_order: 1
 ---
 
 # Standalone CLI

@@ -1,5 +1,7 @@
 ---
 title: Sidebar
+parent: Features
+nav_order: 4
 ---
 
 # Sidebar

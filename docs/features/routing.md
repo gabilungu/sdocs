@@ -1,5 +1,7 @@
 ---
 title: Routing
+parent: Features
+nav_order: 5
 ---
 
 # Routing

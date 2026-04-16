@@ -1,5 +1,7 @@
 ---
 title: Prop Extraction
+parent: Features
+nav_order: 1
 ---
 
 # Prop extraction

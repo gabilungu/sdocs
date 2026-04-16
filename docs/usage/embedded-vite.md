@@ -1,5 +1,7 @@
 ---
 title: Embedded in Vite / SvelteKit
+parent: Usage
+nav_order: 2
 ---
 
 # Embedded in Vite / SvelteKit

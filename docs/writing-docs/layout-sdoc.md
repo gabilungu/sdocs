@@ -1,5 +1,7 @@
 ---
 title: Layout Docs
+parent: Writing Docs
+nav_order: 3
 ---
 
 # Layout docs (`.layout.sdoc`)

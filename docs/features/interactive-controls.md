@@ -1,5 +1,7 @@
 ---
 title: Interactive Controls
+parent: Features
+nav_order: 2
 ---
 
 # Interactive controls

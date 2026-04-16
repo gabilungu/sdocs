@@ -1,5 +1,7 @@
 ---
-title: Theming & CSS switching
+title: Theming
+parent: Features
+nav_order: 3
 ---
 
 # Theming & CSS switching

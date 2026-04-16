@@ -36,6 +36,7 @@ The plugin:
 
 ## 2. Create a page that mounts the app
 
+{% raw %}
 ```svelte
 <!-- src/routes/docs/+page.svelte -->
 <script>
@@ -53,6 +54,7 @@ The plugin:
   }}
 />
 ```
+{% endraw %}
 
 Your docs are now available at whatever route you mounted the page on (e.g. `/docs`).
 

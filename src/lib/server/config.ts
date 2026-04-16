@@ -47,12 +47,21 @@ function resolveCssPaths(
 	return resolved;
 }
 
+/** Load the raw config from file (unresolved) */
+export async function loadRawConfig(root: string): Promise<SdocsConfig> {
+	const configPath = findConfigFile(root);
+	if (!configPath) return {};
+	return importConfig(configPath);
+}
+
 /** Load and resolve the sdocs config with defaults */
 export async function loadConfig(root: string): Promise<ResolvedSdocsConfig> {
-	const configPath = findConfigFile(root);
-	if (!configPath) return { ...DEFAULTS };
+	const rawConfig = await loadRawConfig(root);
+	return resolveAndFinalize(rawConfig, root);
+}
 
-	const userConfig = await importConfig(configPath);
+/** Resolve config and finalize paths */
+export function resolveAndFinalize(userConfig: SdocsConfig, root: string): ResolvedSdocsConfig {
 	const resolved = resolveConfig(userConfig);
 	resolved.include = resolveIncludePatterns(resolved.include, root);
 	resolved.css = resolveCssPaths(resolved.css, root);

@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { loadConfig, resolveConfig } from './server/config.js';
+import { loadRawConfig, resolveAndFinalize } from './server/config.js';
 import { discoverDocFiles, getSdocKind } from './server/discovery.js';
 import { parseDocSource } from './server/meta-parser.js';
 import { parseComponent } from './server/prop-parser.js';
@@ -22,12 +22,9 @@ export function sdocsPlugin(userConfig) {
         name: 'sdocs',
         async configResolved(resolvedConfig) {
             root = resolvedConfig.root;
-            if (userConfig) {
-                config = resolveConfig(userConfig);
-            }
-            else {
-                config = await loadConfig(root);
-            }
+            const fileConfig = await loadRawConfig(root);
+            const merged = { ...fileConfig, ...userConfig };
+            config = resolveAndFinalize(merged, root);
         },
         configureServer(devServer) {
             server = devServer;

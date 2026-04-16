@@ -1,15 +1,14 @@
-import type { Snippet } from 'svelte';
-/**
- * A flexible layout component with slots for top, bottom, left, right, and center content.
- */
-interface Props {
-    top?: Snippet;
-    bottom?: Snippet;
-    left?: Snippet;
-    right?: Snippet;
-    children?: Snippet;
-    class?: string;
+import { SvelteComponentTyped } from "svelte";
+declare const __propDef: {
+    props: Record<string, never>;
+    events: {
+        [evt: string]: CustomEvent<any>;
+    };
+    slots: {};
+};
+export type FrameProps = typeof __propDef.props;
+export type FrameEvents = typeof __propDef.events;
+export type FrameSlots = typeof __propDef.slots;
+export default class Frame extends SvelteComponentTyped<FrameProps, FrameEvents, FrameSlots> {
 }
-declare const Frame: import("svelte").Component<Props, {}, "">;
-type Frame = ReturnType<typeof Frame>;
-export default Frame;
+export {};

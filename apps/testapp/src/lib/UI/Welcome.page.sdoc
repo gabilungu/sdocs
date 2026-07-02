@@ -1,0 +1,22 @@
+<script lang="ts">
+	export const meta = {
+		title: ':Pages / Welcome',
+		description: 'What this test app exercises.',
+	};
+</script>
+
+<div style="max-width: 640px; padding: 32px;">
+	<h1>testapp</h1>
+	<p>
+		This app exercises the local <code>sdocs</code> workspace package end to end,
+		embedded in a SvelteKit app via <code>sdocs/vite</code> and <code>sdocs/client</code>.
+	</p>
+
+	<h2>What it covers</h2>
+	<ul>
+		<li><strong>Component docs</strong> — <code>Button.sdoc</code> with meta args and snippets</li>
+		<li><strong>Pages</strong> — this <code>.page.sdoc</code> file</li>
+		<li><strong>Layouts</strong> — <code>Demo.layout.sdoc</code></li>
+		<li><strong>Embedded mode</strong> — the explorer mounted at <code>/docs</code></li>
+	</ul>
+</div>

@@ -7,15 +7,17 @@
 	"license": "MIT",
 	"workspaces": [
 		"packages/sdocs",
-		"examples/*"
+		"apps/*"
 	],
 	"scripts": {
 		"build": "npm run build -w sdocs",
 		"dev": "npm run dev -w sdocs",
 		"check": "npm run check -w sdocs",
 		"test": "npm run test -w sdocs",
-		"example:dev": "npm run dev -w testproj",
-		"example:build": "npm run build -w testproj",
+		"site:dev": "npm run dev -w site",
+		"site:build": "npm run build -w site",
+		"testapp:dev": "npm run dev -w testapp",
+		"testapp:build": "npm run build -w testapp",
 		"vscode:build": "npm run compile --prefix packages/vscode",
 		"vscode:package": "npm run package --prefix packages/vscode"
 	}

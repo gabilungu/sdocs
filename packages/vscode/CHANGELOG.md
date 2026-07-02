@@ -11,13 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **sdocs view in the activity bar.** Lists the sdocs projects in your
-  workspace — folders with an `sdocs.config` file or `.sdoc` files, plus any
-  added via the new `sdocs.scopes` setting (handy in monorepos). Click a
-  project to start `sdocs run` there and browse the docs inside the editor;
-  stop and restart from the view. Uses the project's own sdocs install when
-  present, `npx sdocs` otherwise. Server logs stream to the "sdocs" output
-  channel.
+- **sdocs view in the activity bar.** Project cards for every sdocs project
+  in the workspace — folders with an `sdocs.config` file or `.sdoc` files,
+  plus any added via the new `sdocs.scopes` setting (handy in monorepos).
+  Each card shows the folder name, path, live status, and port, with
+  Run / Open / Browser / Stop actions. Running docs open in an editor tab —
+  one per project, re-focused instead of duplicated. Uses the project's own
+  sdocs install when present, `npx sdocs` otherwise. Server logs stream to
+  the "sdocs" output channel.
 
 ## [0.0.15] - 2026-07-02
 

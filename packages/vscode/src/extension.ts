@@ -1,9 +1,11 @@
 import * as vscode from 'vscode';
+import * as path from 'node:path';
 import { MetaCompletionProvider } from './MetaCompletionProvider';
 import { SdocDiagnostics } from './SdocDiagnostics';
 import { newComponentDoc } from './newComponentDoc';
 import { SdocsRunner } from './SdocsRunner';
-import { ScopesProvider, type Scope } from './ScopesProvider';
+import { SdocsPanels } from './SdocsPanels';
+import { ScopesWebview } from './ScopesWebview';
 
 export function activate(context: vscode.ExtensionContext) {
 	// .sdoc files are registered as the `svelte` language (see contributes.languages),
@@ -11,7 +13,8 @@ export function activate(context: vscode.ExtensionContext) {
 	// formatting. This extension only adds sdocs-specific extras on top, scoped
 	// by file pattern so plain .svelte files are untouched.
 	const runner = new SdocsRunner();
-	const scopes = new ScopesProvider(runner);
+	const panels = new SdocsPanels();
+	const scopesView = new ScopesWebview(runner, panels);
 
 	context.subscriptions.push(
 		vscode.languages.registerCompletionItemProvider(
@@ -20,14 +23,11 @@ export function activate(context: vscode.ExtensionContext) {
 		),
 		new SdocDiagnostics(),
 		runner,
-		vscode.window.registerTreeDataProvider('sdocsScopes', scopes),
+		panels,
+		vscode.window.registerWebviewViewProvider('sdocsScopes', scopesView),
+		runner.onReady(({ dir, url }) => panels.open(dir, url, path.basename(dir))),
 		vscode.commands.registerCommand('sdocs.newComponentDoc', newComponentDoc),
-		vscode.commands.registerCommand('sdocs.openScope', (scope: Scope) => runner.open(scope.dir)),
-		vscode.commands.registerCommand('sdocs.openScopeExternal', (scope: Scope) =>
-			runner.openExternal(scope.dir),
-		),
-		vscode.commands.registerCommand('sdocs.stopScope', (scope: Scope) => runner.stop(scope.dir)),
-		vscode.commands.registerCommand('sdocs.refreshScopes', () => scopes.refresh()),
+		vscode.commands.registerCommand('sdocs.refreshScopes', () => scopesView.refresh()),
 	);
 
 	// Versions up to 0.0.13 formatted via scratch files under

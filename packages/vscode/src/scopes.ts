@@ -1,12 +1,13 @@
 import * as vscode from 'vscode';
 import * as path from 'node:path';
-import type { SdocsRunner } from './SdocsRunner';
 
 export interface Scope {
 	/** Absolute directory sdocs runs in */
 	dir: string;
-	/** Label shown in the tree (workspace-relative) */
+	/** Folder name (card title) */
 	label: string;
+	/** Workspace-relative parent path (card subtitle) */
+	relPath: string;
 }
 
 /** Find sdocs scopes: configured ones, sdocs.config.* locations, and .sdoc clusters. */
@@ -42,7 +43,11 @@ export async function detectScopes(): Promise<Scope[]> {
 		}
 	}
 
-	return [...dirs].sort().map((dir) => ({ dir, label: path.basename(dir) }));
+	return [...dirs].sort().map((dir) => ({
+		dir,
+		label: path.basename(dir),
+		relPath: workspaceLabel(dir),
+	}));
 }
 
 async function nearestPackageDir(fromDir: string): Promise<string | null> {
@@ -66,48 +71,5 @@ function workspaceLabel(dir: string): string {
 	const folder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(dir));
 	if (!folder) return dir;
 	const rel = path.relative(folder.uri.fsPath, dir);
-	return rel === '' ? folder.name : `${folder.name}/${rel}`;
-}
-
-export class ScopesProvider implements vscode.TreeDataProvider<Scope> {
-	private emitter = new vscode.EventEmitter<void>();
-	readonly onDidChangeTreeData = this.emitter.event;
-	private scopes: Scope[] = [];
-
-	constructor(private runner: SdocsRunner) {
-		runner.onDidChange(() => this.emitter.fire());
-	}
-
-	refresh() {
-		this.emitter.fire();
-	}
-
-	async getChildren(element?: Scope): Promise<Scope[]> {
-		if (element) return [];
-		this.scopes = await detectScopes();
-		return this.scopes;
-	}
-
-	getTreeItem(scope: Scope): vscode.TreeItem {
-		const status = this.runner.status(scope.dir);
-		const item = new vscode.TreeItem(scope.label);
-		item.id = scope.dir;
-		item.description =
-			status === 'running'
-				? this.runner.url(scope.dir)?.replace(/^https?:\/\//, '').replace(/\/$/, '')
-				: status === 'starting'
-					? 'starting'
-					: workspaceLabel(path.dirname(scope.dir));
-		item.contextValue = status === 'stopped' ? 'sdocs-scope' : 'sdocs-scope-running';
-		item.iconPath = new vscode.ThemeIcon(
-			status === 'running' ? 'vm-running' : status === 'starting' ? 'loading~spin' : 'book',
-		);
-		item.tooltip = scope.dir;
-		item.command = {
-			command: 'sdocs.openScope',
-			title: 'Open in sdocs',
-			arguments: [scope],
-		};
-		return item;
-	}
+	return rel === '' ? folder.name : rel;
 }

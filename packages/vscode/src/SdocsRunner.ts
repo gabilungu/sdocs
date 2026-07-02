@@ -16,7 +16,11 @@ export class SdocsRunner implements vscode.Disposable {
 	private scopes = new Map<string, RunningScope>();
 	private output = vscode.window.createOutputChannel('sdocs');
 	private emitter = new vscode.EventEmitter<void>();
+	private readyEmitter = new vscode.EventEmitter<{ dir: string; url: string }>();
+	/** Fires on any status change. */
 	readonly onDidChange = this.emitter.event;
+	/** Fires when a scope's server URL is known (or requested again while running). */
+	readonly onReady = this.readyEmitter.event;
 
 	status(scopeDir: string): ScopeStatus {
 		return this.scopes.get(scopeDir)?.status ?? 'stopped';
@@ -26,14 +30,14 @@ export class SdocsRunner implements vscode.Disposable {
 		return this.scopes.get(scopeDir)?.url;
 	}
 
-	/** Start sdocs in the scope (no-op if already running) and open it. */
+	/** Start sdocs in the scope; announces readiness via onReady. */
 	async open(scopeDir: string): Promise<void> {
 		const existing = this.scopes.get(scopeDir);
 		if (existing?.status === 'running' && existing.url) {
-			await this.show(existing.url);
+			this.readyEmitter.fire({ dir: scopeDir, url: existing.url });
 			return;
 		}
-		if (existing) return; // starting — the URL handler will open it
+		if (existing) return; // starting — onReady will fire when the URL appears
 
 		const [command, args] = this.launchCommand(scopeDir);
 		this.output.appendLine(`[${scopeDir}] ${command} ${args.join(' ')}`);
@@ -60,7 +64,7 @@ export class SdocsRunner implements vscode.Disposable {
 					scope.status = 'running';
 					this.output.appendLine(`[${scopeDir}] ready at ${scope.url}`);
 					this.emitter.fire();
-					void this.show(scope.url);
+					this.readyEmitter.fire({ dir: scopeDir, url: scope.url });
 				}
 			}
 		};
@@ -75,15 +79,6 @@ export class SdocsRunner implements vscode.Disposable {
 
 	stop(scopeDir: string): void {
 		this.scopes.get(scopeDir)?.process.kill('SIGTERM');
-	}
-
-	private async show(url: string): Promise<void> {
-		try {
-			await vscode.commands.executeCommand('simpleBrowser.show', url);
-		} catch {
-			// Simple Browser unavailable — use the system browser instead.
-			await vscode.env.openExternal(vscode.Uri.parse(url));
-		}
 	}
 
 	/** Open a running scope in the system browser. */
@@ -111,5 +106,6 @@ export class SdocsRunner implements vscode.Disposable {
 		this.scopes.clear();
 		this.output.dispose();
 		this.emitter.dispose();
+		this.readyEmitter.dispose();
 	}
 }

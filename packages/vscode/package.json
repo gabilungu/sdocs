@@ -40,24 +40,6 @@
 				"title": "New Component Doc"
 			},
 			{
-				"command": "sdocs.openScope",
-				"category": "sdocs",
-				"title": "Open in sdocs",
-				"icon": "$(play)"
-			},
-			{
-				"command": "sdocs.stopScope",
-				"category": "sdocs",
-				"title": "Stop",
-				"icon": "$(debug-stop)"
-			},
-			{
-				"command": "sdocs.openScopeExternal",
-				"category": "sdocs",
-				"title": "Open in Browser",
-				"icon": "$(link-external)"
-			},
-			{
 				"command": "sdocs.refreshScopes",
 				"category": "sdocs",
 				"title": "Refresh Projects",
@@ -76,18 +58,13 @@
 		"views": {
 			"sdocs": [
 				{
+					"type": "webview",
 					"id": "sdocsScopes",
 					"name": "Projects",
 					"icon": "icons/activity.svg"
 				}
 			]
 		},
-		"viewsWelcome": [
-			{
-				"view": "sdocsScopes",
-				"contents": "No sdocs projects found in this workspace.\nA project is a folder with an sdocs.config file or .sdoc files.\n[Learn more](https://gabilungu.github.io/sdocs/)"
-			}
-		],
 		"configuration": {
 			"title": "sdocs",
 			"properties": {
@@ -113,18 +90,6 @@
 				{
 					"command": "sdocs.newComponentDoc",
 					"when": "resourceExtname == .svelte"
-				},
-				{
-					"command": "sdocs.openScope",
-					"when": "false"
-				},
-				{
-					"command": "sdocs.stopScope",
-					"when": "false"
-				},
-				{
-					"command": "sdocs.openScopeExternal",
-					"when": "false"
 				}
 			],
 			"view/title": [
@@ -132,23 +97,6 @@
 					"command": "sdocs.refreshScopes",
 					"when": "view == sdocsScopes",
 					"group": "navigation"
-				}
-			],
-			"view/item/context": [
-				{
-					"command": "sdocs.openScope",
-					"when": "view == sdocsScopes && viewItem == sdocs-scope",
-					"group": "inline@1"
-				},
-				{
-					"command": "sdocs.openScopeExternal",
-					"when": "view == sdocsScopes && viewItem == sdocs-scope-running",
-					"group": "inline@1"
-				},
-				{
-					"command": "sdocs.stopScope",
-					"when": "view == sdocsScopes && viewItem == sdocs-scope-running",
-					"group": "inline@2"
 				}
 			]
 		}

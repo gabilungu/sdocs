@@ -12,7 +12,7 @@ export async function buildCommand(): Promise<void> {
 
 	console.log('[sdocs] Building static site...');
 
-	// Generate .sdocs/ with entry + preview HTML files
+	// Generate the staging directory (in the OS temp dir) with entry + preview HTML files
 	const { sdocsDir, inputs } = await generateBuildFiles(config, cwd);
 	const inputCount = Object.keys(inputs).length;
 	console.log(`[sdocs] Generated ${inputCount} page(s) (1 main + ${inputCount - 1} previews)`);
@@ -42,6 +42,6 @@ export async function buildCommand(): Promise<void> {
 
 		console.log(`[sdocs] Build complete → dist/`);
 	} finally {
-		await cleanBuildFiles(cwd);
+		await cleanBuildFiles(sdocsDir);
 	}
 }

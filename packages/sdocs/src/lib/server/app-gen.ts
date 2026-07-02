@@ -1,4 +1,6 @@
-import { mkdir, writeFile, rm, readFile, copyFile, readdir } from 'node:fs/promises';
+import { mkdir, mkdtemp, writeFile, rm, readFile, copyFile, readdir } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ResolvedSdocsConfig } from '../types.js';
@@ -17,6 +19,37 @@ function getClientSourceDir(): string {
 async function copyClientApp(sdocsDir: string): Promise<void> {
 	await copyDir(getClientSourceDir(), resolve(sdocsDir, 'client'));
 	await copyDir(resolve(__dirname, '../ui'), resolve(sdocsDir, 'ui'));
+}
+
+/** Nearest node_modules walking up from dir (mirrors Node's resolution) */
+function findNearestNodeModules(dir: string): string | null {
+	let current = resolve(dir);
+	for (;;) {
+		const candidate = join(current, 'node_modules');
+		if (existsSync(candidate)) return candidate;
+		const parent = dirname(current);
+		if (parent === current) return null;
+		current = parent;
+	}
+}
+
+/**
+ * Create a unique staging directory for the generated app. It lives inside
+ * node_modules/.cache — never a tracked file in the user's project — and being
+ * physically inside node_modules keeps the full walk-up resolution chain for
+ * bare imports (svelte, ...) intact, including hoisted monorepo setups. When
+ * no node_modules exists anywhere (running via npx in a bare folder), sdocs'
+ * own tree provides one; the OS temp dir is the last resort.
+ */
+async function createStagingDir(cwd: string): Promise<string> {
+	const nodeModules =
+		findNearestNodeModules(cwd) ?? findNearestNodeModules(resolve(__dirname, '..'));
+	if (nodeModules) {
+		const cacheDir = join(nodeModules, '.cache');
+		await mkdir(cacheDir, { recursive: true });
+		return mkdtemp(join(cacheDir, 'sdocs-'));
+	}
+	return mkdtemp(join(tmpdir(), 'sdocs-'));
 }
 
 /** Copy a directory recursively */
@@ -151,15 +184,14 @@ async function discoverSnippets(
 	return results;
 }
 
-/** Generate .sdocs/ directory with entry files for dev mode */
+/** Generate the staging directory with entry files for dev mode */
 export async function generateDevFiles(
 	config: ResolvedSdocsConfig,
 	cwd: string,
 ): Promise<string> {
-	const sdocsDir = resolve(cwd, '.sdocs');
-	await mkdir(sdocsDir, { recursive: true });
+	const sdocsDir = await createStagingDir(cwd);
 
-	// Copy client components into .sdocs/client/ so they're compiled outside node_modules
+	// Copy client components into the staging dir so they're compiled outside node_modules
 	await copyClientApp(sdocsDir);
 
 	await writeFile(resolve(sdocsDir, 'index.html'), generateIndexHtml(config.logo));
@@ -168,15 +200,14 @@ export async function generateDevFiles(
 	return sdocsDir;
 }
 
-/** Generate .sdocs/ directory with entry + preview HTML files for build mode */
+/** Generate the staging directory with entry + preview HTML files for build mode */
 export async function generateBuildFiles(
 	config: ResolvedSdocsConfig,
 	cwd: string,
 ): Promise<{ sdocsDir: string; inputs: Record<string, string> }> {
-	const sdocsDir = resolve(cwd, '.sdocs');
-	await mkdir(sdocsDir, { recursive: true });
+	const sdocsDir = await createStagingDir(cwd);
 
-	// Copy client components into .sdocs/client/
+	// Copy client components into the staging dir
 	await copyClientApp(sdocsDir);
 
 	await writeFile(resolve(sdocsDir, 'index.html'), generateIndexHtml(config.logo));
@@ -207,8 +238,7 @@ export async function generateBuildFiles(
 	return { sdocsDir, inputs };
 }
 
-/** Remove the .sdocs/ temp directory */
-export async function cleanBuildFiles(cwd: string): Promise<void> {
-	const sdocsDir = resolve(cwd, '.sdocs');
-	await rm(sdocsDir, { recursive: true, force: true });
+/** Remove a staging directory created by generateDevFiles/generateBuildFiles */
+export async function cleanBuildFiles(stagingDir: string): Promise<void> {
+	await rm(stagingDir, { recursive: true, force: true });
 }

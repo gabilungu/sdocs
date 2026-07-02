@@ -35,10 +35,10 @@ export async function devCommand(): Promise<void> {
 
 	console.log('[sdocs] Starting dev server...');
 
-	// Generate .sdocs/ temp directory with entry files
+	// Generate the staging directory (in the OS temp dir) with entry files
 	const sdocsDir = await generateDevFiles(config, cwd);
 
-	// Resolve include patterns to absolute paths (relative to cwd, not .sdocs/)
+	// Resolve include patterns to absolute paths (relative to cwd, not the staging dir)
 	const absoluteIncludes = config.include.map((p) => resolve(cwd, p));
 
 	const server = await createServer({
@@ -55,9 +55,10 @@ export async function devCommand(): Promise<void> {
 			port: config.port,
 			open: config.open,
 			fs: {
-				// The project, plus sdocs' own dependency tree (the npx cache
-				// when running without a local install).
-				allow: [cwd, resolve(sdocsPackageRoot(), '..')],
+				// The staging dir (an explicit allow list replaces Vite's implicit
+				// root allowance), the project, and sdocs' own dependency tree
+				// (the npx cache when running without a local install).
+				allow: [sdocsDir, cwd, resolve(sdocsPackageRoot(), '..')],
 			},
 		},
 	});
@@ -68,7 +69,7 @@ export async function devCommand(): Promise<void> {
 	// Cleanup on exit
 	const cleanup = async () => {
 		await server.close();
-		await cleanBuildFiles(cwd);
+		await cleanBuildFiles(sdocsDir);
 		process.exit(0);
 	};
 

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.28] - 2026-07-03
+
+### Changed
+
+- **`sdocs dev`/`run`/`build` no longer write a `.sdocs/` directory into the
+  project.** The generated app is staged in a unique directory under
+  `node_modules/.cache/` (imports resolve exactly as before) and removed on
+  exit. This also fixes `sdocs build` breaking a concurrently running dev
+  server — they previously shared the same staging directory.
+
 ## [0.0.27] - 2026-07-03
 
 ### Added

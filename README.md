@@ -1,280 +1,30 @@
 # sdocs
 
-A lightweight documentation tool for Svelte 5 components. Discover `.sdoc` files in your project and get an interactive component explorer with live previews, prop controls, and code highlighting.
+A lightweight documentation tool for Svelte 5 components. This repository is an npm-workspaces monorepo.
 
-## Quick Start
+## Packages
 
-```bash
-# Initialize config
-npx sdocs init
+| Path | Description |
+|------|-------------|
+| [packages/sdocs](packages/sdocs) | The `sdocs` npm package — CLI, Vite plugin, and Svelte UI |
+| [packages/vscode](packages/vscode) | VS Code extension — `.sdoc` language support |
+| [examples/testproj](examples/testproj) | Sample SvelteKit app consuming the local package |
 
-# Start dev server
-npx sdocs dev
-```
-
-## Installation
+## Development
 
 ```bash
-npm install sdocs
+npm install            # install all workspaces
+npm run build          # build the sdocs library
+npm run dev            # sdocs dev server (dogfoods its own docs)
+npm run example:dev    # run the example app against local sdocs
+npm run vscode:build   # build the VS Code extension
 ```
 
-**Requirements:** Svelte 5, Vite 6+, `@sveltejs/vite-plugin-svelte` 5+
+The VS Code extension is a self-contained package built with esbuild. It is intentionally kept
+out of the npm workspace graph so it can keep the npm `name` `sdocs` and preserve its Marketplace
+identity (`gabilungu.sdocs`); build it with `npm run vscode:build`.
 
-## Usage
-
-sdocs can be used in two ways: as a **standalone CLI tool** or **embedded in your existing project**.
-
-### Standalone (CLI)
-
-Run sdocs as its own dev server:
-
-```bash
-npx sdocs dev      # Start dev server with HMR
-npx sdocs build    # Build static documentation site
-npx sdocs preview  # Preview the built site locally
-npx sdocs init     # Scaffold a sdocs.config.js file
-```
-
-### Embedded in a SvelteKit / Vite Project
-
-Use sdocs as a Vite plugin inside your existing project. This way sdocs runs alongside your app without needing a separate server.
-
-**1. Add the Vite plugin**
-
-```js
-// vite.config.js
-import { sveltekit } from '@sveltejs/kit/vite';
-import { sdocsPlugin } from 'sdocs/vite';
-
-export default {
-  plugins: [
-    sveltekit(),
-    sdocsPlugin({
-      include: ['./src/lib/**/*.sdoc'],
-      css: './src/styles/global.css',
-      logo: 'My Design System',
-    })
-  ],
-};
-```
-
-The plugin discovers `.sdoc` files and exposes them via a `virtual:sdocs` module.
-
-**2. Create a page that mounts the sdocs app**
-
-```svelte
-<!-- src/routes/docs/+page.svelte -->
-<script>
-  import App from 'sdocs/client';
-  import { docs, cssNames } from 'virtual:sdocs';
-</script>
-
-<App
-  {docs}
-  {cssNames}
-  logo="My Design System"
-  sidebarConfig={{
-    order: { root: ['Components', '*'] },
-    open: ['Components'],
-  }}
-/>
-```
-
-**3. Add the virtual module type declaration** (optional, for TypeScript)
-
-```ts
-// src/app.d.ts or any .d.ts file
-declare module 'virtual:sdocs' {
-  import type { DocEntry } from 'sdocs';
-  export const docs: DocEntry[];
-  export const cssNames: string[];
-  export default docs;
-}
-```
-
-That's it — your docs page lives at `/docs` inside your existing app.
-
-## Writing Docs
-
-sdocs supports three types of doc files:
-
-### Component Docs (`.sdoc`)
-
-Document a Svelte component with interactive controls and examples.
-
-```svelte
-<!-- Button.sdoc -->
-<script lang="ts">
-  import Button from './Button.svelte';
-
-  export const meta = {
-    component: Button,
-    title: 'Components / Button',
-    description: 'A flexible button component.',
-    args: {
-      label: 'Click me',
-      size: 'md',
-      disabled: false,
-    },
-  };
-</script>
-
-{#snippet Default()}
-  <Button {...args} />
-{/snippet}
-
-{#snippet WithIcon()}
-  <Button>
-    <Icon name="settings" /> Settings
-  </Button>
-{/snippet}
-```
-
-- **`component`** — the Svelte component to document (auto-extracts props, events, snippets, methods, state, CSS custom properties)
-- **`title`** — slash-separated path for sidebar navigation (e.g. `'Components / Button'`)
-- **`args`** — default prop values, used as initial values for interactive controls
-- **`Default` snippet** — gets live interactive controls. Auto-generated as `<Component {...args} />` if omitted.
-- **Named snippets** — static examples listed in the sidebar
-
-### Page Docs (`.page.sdoc`)
-
-Freeform content pages with auto-generated table of contents.
-
-```svelte
-<!-- GettingStarted.page.sdoc -->
-<script lang="ts">
-  export const meta = {
-    title: 'Docs / Getting Started',
-    description: 'How to set up sdocs.',
-  };
-</script>
-
-<h1>Getting Started</h1>
-<p>Install sdocs and create your first doc file.</p>
-
-<h2>Installation</h2>
-<p>Run <code>npm install sdocs</code>...</p>
-```
-
-Table of contents is auto-generated from `<h2>`, `<h3>`, and `<h4>` headings.
-
-### Layout Docs (`.layout.sdoc`)
-
-Component compositions rendered in an isolated iframe.
-
-```svelte
-<!-- LoginForm.layout.sdoc -->
-<script lang="ts">
-  import Card from './Card.svelte';
-  import Input from './Input.svelte';
-  import Button from './Button.svelte';
-
-  export const meta = {
-    title: 'Patterns / Login Form',
-    description: 'A login form combining multiple components.',
-    settings: { padding: '24px' },
-  };
-</script>
-
-<Card padding="24px">
-  <Input label="Email" type="email" />
-  <Input label="Password" type="password" />
-  <Button>Sign in</Button>
-</Card>
-```
-
-## Prop Extraction
-
-sdocs automatically extracts from your Svelte components:
-
-| What | Source |
-|------|--------|
-| **Props** | `$props()` destructuring + `interface Props {}` |
-| **Events** | Callback props (`onclick`, `onchange`, etc.) |
-| **Snippets** | Props typed as `Snippet` or `Snippet<[...]>` |
-| **Methods** | Exported functions |
-| **State** | Exported `$state` / `$derived` values |
-| **CSS Custom Properties** | `var(--name)` usages in `<style>` |
-
-JSDoc comments on props are picked up as descriptions.
-
-## Interactive Controls
-
-The Default snippet gets live controls based on prop types:
-
-| Prop Type | Control |
-|-----------|---------|
-| `string` | Text input |
-| `number` | Number input |
-| `boolean` | Checkbox |
-| Color (`#hex`) | Color picker |
-| Dimension (`16px`) | Number + unit |
-
-## Configuration
-
-Create `sdocs.config.js` in your project root (or run `npx sdocs init`):
-
-```js
-/** @type {import('sdocs').SdocsConfig} */
-export default {
-  // Glob pattern(s) to find .sdoc files
-  include: ['./src/**/*.sdoc'],
-
-  // Dev server port
-  port: 3000,
-
-  // Open browser on start
-  open: true,
-
-  // Sidebar logo text
-  logo: 'My Design System',
-
-  // CSS loaded in preview iframes
-  css: './src/styles/global.css',
-
-  // Sidebar ordering
-  sidebar: {
-    order: {
-      root: ['Components', '*', 'Documentation'],
-    },
-    open: ['Components'],
-  },
-};
-```
-
-### CSS Stylesheet Switching
-
-Provide named stylesheets to let users switch between them (e.g. light/dark themes):
-
-```js
-css: {
-  light: './src/styles/light.css',
-  dark: './src/styles/dark.css',
-}
-```
-
-### Sidebar Ordering
-
-Control the order of items in the sidebar with `sidebar.order`. Use `'*'` as a wildcard for remaining items in alphabetical order:
-
-```js
-sidebar: {
-  order: {
-    root: ['Getting Started', 'Components', '*'],
-    Components: ['Button', 'Input', '*'],
-  },
-  open: ['Components'],
-}
-```
-
-## Package Exports
-
-| Export | Description |
-|--------|-------------|
-| `sdocs` | Main entry — `sdocsPlugin` + types |
-| `sdocs/vite` | Vite plugin function |
-| `sdocs/client` | App.svelte UI component |
-| `sdocs/ui` | Reusable UI components (Button, Frame, Icon, Control, NavTree, Stack) |
+See [docs/](docs/) for the published documentation site.
 
 ## License
 

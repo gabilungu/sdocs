@@ -1,0 +1,137 @@
+{
+	"name": "sdocs",
+	"displayName": "sdocs",
+	"description": "Language support for sdocs — Svelte component documentation (.sdoc)",
+	"version": "0.0.13",
+	"publisher": "gabilungu",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/gabilungu/sdocs",
+		"directory": "packages/vscode"
+	},
+	"icon": "icons/sdocs-icon.png",
+	"engines": {
+		"vscode": "^1.90.0"
+	},
+	"categories": [
+		"Programming Languages"
+	],
+	"extensionDependencies": [
+		"svelte.svelte-vscode"
+	],
+	"activationEvents": [],
+	"main": "./dist/extension.js",
+	"contributes": {
+		"languages": [
+			{
+				"id": "sdoc",
+				"aliases": [
+					"sdoc"
+				],
+				"extensions": [
+					".sdoc"
+				],
+				"configuration": "./sdoc-language-configuration.json",
+				"icon": {
+					"light": "./icons/sdoc-light.svg",
+					"dark": "./icons/sdoc-dark.svg"
+				}
+			},
+			{
+				"id": "sdoc-page",
+				"aliases": [
+					"sdoc (page)"
+				],
+				"filenamePatterns": [
+					"*.page.sdoc"
+				],
+				"configuration": "./sdoc-language-configuration.json",
+				"icon": {
+					"light": "./icons/sdoc-page-light.svg",
+					"dark": "./icons/sdoc-page-dark.svg"
+				}
+			},
+			{
+				"id": "sdoc-layout",
+				"aliases": [
+					"sdoc (layout)"
+				],
+				"filenamePatterns": [
+					"*.layout.sdoc"
+				],
+				"configuration": "./sdoc-language-configuration.json",
+				"icon": {
+					"light": "./icons/sdoc-layout-light.svg",
+					"dark": "./icons/sdoc-layout-dark.svg"
+				}
+			},
+			{
+				"id": "sdocs-config",
+				"aliases": [
+					"sdocs config"
+				],
+				"filenames": [
+					"sdocs.config.js",
+					"sdocs.config.ts",
+					"sdocs.config.mjs"
+				],
+				"icon": {
+					"light": "./icons/sdocs-config.svg",
+					"dark": "./icons/sdocs-config.svg"
+				}
+			}
+		],
+		"configurationDefaults": {
+			"[sdoc]": {
+				"editor.defaultFormatter": "gabilungu.sdocs"
+			},
+			"[sdoc-page]": {
+				"editor.defaultFormatter": "gabilungu.sdocs"
+			},
+			"[sdoc-layout]": {
+				"editor.defaultFormatter": "gabilungu.sdocs"
+			}
+		},
+		"grammars": [
+			{
+				"language": "sdoc",
+				"scopeName": "source.sdoc",
+				"path": "./syntaxes/sdoc.tmLanguage.json",
+				"embeddedLanguages": {
+					"source.ts": "typescript",
+					"source.js": "javascript",
+					"source.css": "css"
+				}
+			},
+			{
+				"language": "sdoc-page",
+				"scopeName": "source.sdoc.page",
+				"path": "./syntaxes/sdoc-page.tmLanguage.json"
+			},
+			{
+				"language": "sdoc-layout",
+				"scopeName": "source.sdoc.layout",
+				"path": "./syntaxes/sdoc-layout.tmLanguage.json"
+			},
+			{
+				"language": "sdocs-config",
+				"scopeName": "source.sdocs-config",
+				"path": "./syntaxes/sdocs-config.tmLanguage.json"
+			}
+		]
+	},
+	"scripts": {
+		"compile": "node esbuild.js",
+		"watch": "node esbuild.js --watch",
+		"package": "node esbuild.js --production",
+		"vscode:prepublish": "npm run package"
+	},
+	"devDependencies": {
+		"@types/node": "^20.19.43",
+		"@types/vscode": "^1.90.0",
+		"@vscode/vsce": "^3.0.0",
+		"esbuild": "^0.24.0",
+		"typescript": "^5.7.0"
+	}
+}

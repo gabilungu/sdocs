@@ -1,10 +1,38 @@
-node_modules
-dist
-.sdocs
-.svelte-kit
-.DS_Store
-package-lock.json
+# Dependencies
+node_modules/
 
-# Vite
+# Build output (rebuilt from source; never committed)
+dist/
+build/
+.svelte-kit/
+.output/
+.vercel/
+.netlify/
+.wrangler/
+
+# sdocs temp dir
+.sdocs/
+
+# Caches
+.vite/
+
+# VS Code extension packages
+*.vsix
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.*
+!.env.example
+!.env.test
+
+# Vite timestamp temp files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Local agent / MCP config (not committed)
+.mcp.json
+CLAUDE.md

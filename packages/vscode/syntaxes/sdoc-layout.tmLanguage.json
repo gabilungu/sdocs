@@ -1,0 +1,4 @@
+{
+	"scopeName": "source.sdoc.layout",
+	"patterns": [{ "include": "source.sdoc" }]
+}

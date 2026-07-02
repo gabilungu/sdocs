@@ -1,56 +1,22 @@
 {
-  "name": "sdocs",
-  "version": "0.0.23",
-  "description": "A lightweight documentation tool for Svelte 5 components",
-  "type": "module",
-  "license": "MIT",
-  "bin": {
-    "sdocs": "./bin/sdocs.js"
-  },
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "svelte": "./dist/index.js"
-    },
-    "./vite": {
-      "types": "./dist/vite.d.ts",
-      "default": "./dist/vite.js"
-    },
-    "./client": {
-      "svelte": "./dist/client/App.svelte"
-    },
-    "./ui": {
-      "types": "./dist/ui/index.d.ts",
-      "svelte": "./dist/ui/index.js"
-    }
-  },
-  "files": [
-    "dist",
-    "bin"
-  ],
-  "peerDependencies": {
-    "@sveltejs/vite-plugin-svelte": "*",
-    "svelte": "*",
-    "vite": "*"
-  },
-  "devDependencies": {
-    "@sveltejs/package": "^2.5.7",
-    "@sveltejs/vite-plugin-svelte": "^6.2.4",
-    "svelte": "^5.50.0",
-    "svelte-check": "^4.0.0",
-    "typescript": "^5.7.0",
-    "vite": "^7.3.1",
-    "vitest": "^3.0.0"
-  },
-  "scripts": {
-    "dev": "vite",
-    "build": "svelte-package -i src/lib -o dist",
-    "check": "svelte-check --tsconfig ./tsconfig.json",
-    "test": "vitest run"
-  },
-  "dependencies": {
-    "shiki": "^3.22.0",
-    "tinyglobby": "^0.2.15",
-    "typescript": "^5.7.0"
-  }
+	"name": "sdocs-monorepo",
+	"private": true,
+	"type": "module",
+	"version": "0.0.0",
+	"description": "Monorepo for sdocs — a lightweight documentation tool for Svelte 5 components",
+	"license": "MIT",
+	"workspaces": [
+		"packages/sdocs",
+		"examples/*"
+	],
+	"scripts": {
+		"build": "npm run build -w sdocs",
+		"dev": "npm run dev -w sdocs",
+		"check": "npm run check -w sdocs",
+		"test": "npm run test -w sdocs",
+		"example:dev": "npm run dev -w testproj",
+		"example:build": "npm run build -w testproj",
+		"vscode:build": "npm run compile --prefix packages/vscode",
+		"vscode:package": "npm run package --prefix packages/vscode"
+	}
 }

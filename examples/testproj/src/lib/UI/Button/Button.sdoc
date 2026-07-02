@@ -1,0 +1,27 @@
+<script lang="ts">
+	import Button from './Button.svelte';
+
+	export const meta = {
+		component: Button,
+		title: 'UI / Button',
+		description: 'A flexible button component.',
+		args: {
+			label: 'Click me',
+			variant: 'primary',
+			size: 'md',
+			disabled: false,
+		},
+	};
+</script>
+
+{#snippet Secondary()}
+	<Button label="Secondary" variant="secondary" />
+{/snippet}
+
+{#snippet Ghost()}
+	<Button label="Ghost" variant="ghost" />
+{/snippet}
+
+{#snippet Disabled()}
+	<Button label="Disabled" disabled />
+{/snippet}

@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Per-variant file icons are back.** `.sdoc`, `.page.sdoc`, `.layout.sdoc`,
+  and `sdocs.config.*` files show their own icons in the explorer again
+  (removed in 0.0.14 when `.sdoc` moved to the `svelte` language id). The
+  icon-bearing language ids are contributed for the static file mapping, and
+  each document is switched to `svelte` (or `javascript`/`typescript` for
+  config files) as it opens, so the language server experience is unchanged.
+- The docs preview tab shows the sdocs mascot instead of the generic
+  webview icon.
+
+### Changed
+
+- The activity bar icon is now the sdocs mascot silhouette instead of a
+  generic book.
+
 ## [0.0.16] - 2026-07-03
 
 ### Added

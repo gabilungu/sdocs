@@ -9,6 +9,8 @@ interface Entry {
 export class SdocsPanels implements vscode.Disposable {
 	private panels = new Map<string, Entry>();
 
+	constructor(private extensionUri: vscode.Uri) {}
+
 	open(scopeDir: string, url: string, title: string): void {
 		const existing = this.panels.get(scopeDir);
 		if (existing) {
@@ -26,6 +28,7 @@ export class SdocsPanels implements vscode.Disposable {
 			vscode.ViewColumn.Active,
 			{ enableScripts: true, retainContextWhenHidden: true },
 		);
+		panel.iconPath = vscode.Uri.joinPath(this.extensionUri, 'icons', 'sdocs-icon.png');
 		panel.webview.html = iframeHtml(url);
 		panel.onDidDispose(() => this.panels.delete(scopeDir));
 		this.panels.set(scopeDir, { panel, url });

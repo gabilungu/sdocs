@@ -7,16 +7,41 @@ import { SdocsRunner } from './SdocsRunner';
 import { SdocsPanels } from './SdocsPanels';
 import { ScopesWebview } from './ScopesWebview';
 
+// The sdoc/sdoc-page/sdoc-layout/sdocs-config language contributions exist so
+// the explorer shows per-variant file icons — but the Svelte and TS language
+// servers only serve documents whose language id is `svelte`/`javascript`/
+// `typescript`. Flipping each document as it opens keeps both: the static
+// file-to-language mapping (which drives explorer icons) stays ours, while
+// open documents get the real language service.
+function flipTarget(doc: vscode.TextDocument): string | undefined {
+	switch (doc.languageId) {
+		case 'sdoc':
+		case 'sdoc-page':
+		case 'sdoc-layout':
+			return 'svelte';
+		case 'sdocs-config':
+			return doc.fileName.endsWith('.ts') ? 'typescript' : 'javascript';
+	}
+	return undefined;
+}
+
 export function activate(context: vscode.ExtensionContext) {
-	// .sdoc files are registered as the `svelte` language (see contributes.languages),
-	// so the Svelte language server provides completion, hover, diagnostics, and
+	// .sdoc files run as the `svelte` language (via flipTarget above), so the
+	// Svelte language server provides completion, hover, diagnostics, and
 	// formatting. This extension only adds sdocs-specific extras on top, scoped
 	// by file pattern so plain .svelte files are untouched.
+	const flip = (doc: vscode.TextDocument) => {
+		const target = flipTarget(doc);
+		if (target) void vscode.languages.setTextDocumentLanguage(doc, target);
+	};
+	vscode.workspace.textDocuments.forEach(flip);
+
 	const runner = new SdocsRunner();
-	const panels = new SdocsPanels();
+	const panels = new SdocsPanels(context.extensionUri);
 	const scopesView = new ScopesWebview(runner, panels);
 
 	context.subscriptions.push(
+		vscode.workspace.onDidOpenTextDocument(flip),
 		vscode.languages.registerCompletionItemProvider(
 			{ language: 'svelte', pattern: '**/*.sdoc' },
 			new MetaCompletionProvider(),

@@ -21,16 +21,68 @@
 		"svelte.svelte-vscode"
 	],
 	"activationEvents": [
-		"onLanguage:svelte"
+		"onLanguage:svelte",
+		"onLanguage:sdoc",
+		"onLanguage:sdoc-page",
+		"onLanguage:sdoc-layout",
+		"onLanguage:sdocs-config"
 	],
 	"main": "./dist/extension.js",
 	"contributes": {
 		"languages": [
 			{
-				"id": "svelte",
+				"id": "sdoc",
+				"aliases": [
+					"sdoc"
+				],
 				"extensions": [
 					".sdoc"
-				]
+				],
+				"icon": {
+					"light": "./icons/sdoc-light.svg",
+					"dark": "./icons/sdoc-dark.svg"
+				}
+			},
+			{
+				"id": "sdoc-page",
+				"aliases": [
+					"sdoc (page)"
+				],
+				"filenamePatterns": [
+					"*.page.sdoc"
+				],
+				"icon": {
+					"light": "./icons/sdoc-page-light.svg",
+					"dark": "./icons/sdoc-page-dark.svg"
+				}
+			},
+			{
+				"id": "sdoc-layout",
+				"aliases": [
+					"sdoc (layout)"
+				],
+				"filenamePatterns": [
+					"*.layout.sdoc"
+				],
+				"icon": {
+					"light": "./icons/sdoc-layout-light.svg",
+					"dark": "./icons/sdoc-layout-dark.svg"
+				}
+			},
+			{
+				"id": "sdocs-config",
+				"aliases": [
+					"sdocs config"
+				],
+				"filenames": [
+					"sdocs.config.js",
+					"sdocs.config.ts",
+					"sdocs.config.mjs"
+				],
+				"icon": {
+					"light": "./icons/sdocs-config.svg",
+					"dark": "./icons/sdocs-config.svg"
+				}
 			}
 		],
 		"commands": [
@@ -51,7 +103,7 @@
 				{
 					"id": "sdocs",
 					"title": "sdocs",
-					"icon": "icons/activity.svg"
+					"icon": "icons/monster.svg"
 				}
 			]
 		},
@@ -61,7 +113,7 @@
 					"type": "webview",
 					"id": "sdocsScopes",
 					"name": "Projects",
-					"icon": "icons/activity.svg"
+					"icon": "icons/monster.svg"
 				}
 			]
 		},

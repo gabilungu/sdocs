@@ -109,12 +109,28 @@ function generateCssLinks(css: string | Record<string, string> | null): string {
 		.join('\n\t');
 }
 
-/** Generate the HTML page served inside the iframe */
-export function generatePreviewHtml(
-	iframeComponentId: string,
-	css: string | Record<string, string> | null,
-): string {
-	const cssLinks = generateCssLinks(css);
+/** The JS that boots a preview page: mount the wrapper + parent-frame messaging. */
+export function generateMountScript(iframeComponentId: string): string {
+	return `import { mount } from 'svelte';
+import App from '${iframeComponentId}';
+mount(App, { target: document.getElementById('app') });
+
+// Listen for sdocs messages from the parent frame
+window.addEventListener('message', (e) => {
+	if (e.data?.type === 'sdocs:update-stylesheet') {
+		const name = e.data.name;
+		document.querySelectorAll('link[data-sdocs-stylesheet]').forEach((link) => {
+			link.disabled = link.dataset.sdocsStylesheet !== name;
+		});
+	}
+	if (e.data?.type === 'sdocs:scroll-to') {
+		const el = document.getElementById(e.data.id);
+		if (el) el.scrollIntoView({ behavior: 'smooth' });
+	}
+});`;
+}
+
+function previewHtmlShell(cssLinks: string, script: string): string {
 	return `<!DOCTYPE html>
 <html>
 <head>
@@ -125,27 +141,42 @@ export function generatePreviewHtml(
 </head>
 <body>
 	<div id="app"></div>
-	<script type="module">
-		import { mount } from 'svelte';
-		import App from '${iframeComponentId}';
-		mount(App, { target: document.getElementById('app') });
-
-		// Listen for sdocs messages from the parent frame
-		window.addEventListener('message', (e) => {
-			if (e.data?.type === 'sdocs:update-stylesheet') {
-				const name = e.data.name;
-				document.querySelectorAll('link[data-sdocs-stylesheet]').forEach((link) => {
-					link.disabled = link.dataset.sdocsStylesheet !== name;
-				});
-			}
-			if (e.data?.type === 'sdocs:scroll-to') {
-				const el = document.getElementById(e.data.id);
-				if (el) el.scrollIntoView({ behavior: 'smooth' });
-			}
-		});
-	</script>
+	${script}
 </body>
 </html>`;
+}
+
+/** Generate the HTML page served inside the iframe (dev / CLI-build inputs) */
+export function generatePreviewHtml(
+	iframeComponentId: string,
+	css: string | Record<string, string> | null,
+): string {
+	return previewHtmlShell(
+		generateCssLinks(css),
+		`<script type="module">
+${generateMountScript(iframeComponentId)}
+	</script>`,
+	);
+}
+
+export interface StaticCssLink {
+	href: string;
+	name?: string;
+	disabled?: boolean;
+}
+
+/** Generate the HTML page for a preview emitted into a host app's build. */
+export function generateStaticPreviewHtml(
+	scriptSrc: string,
+	cssLinks: StaticCssLink[],
+): string {
+	const links = cssLinks
+		.map(({ href, name, disabled }) => {
+			const named = name ? ` data-sdocs-stylesheet="${name}"` : '';
+			return `<link rel="stylesheet" href="${href}"${named}${disabled ? ' disabled' : ''}>`;
+		})
+		.join('\n\t');
+	return previewHtmlShell(links, `<script type="module" src="${scriptSrc}"></script>`);
 }
 
 /** Build the virtual module ID for an iframe wrapper component */
@@ -161,6 +192,21 @@ export function previewUrl(docFilePath: string, snippetName: string): string {
 /** Build the preview URL for static build output */
 export function buildPreviewUrl(docFilePath: string, snippetName: string): string {
 	return `/previews/${base64urlEncode(docFilePath)}/${snippetName}.html`;
+}
+
+/** Virtual module ID for a preview's mount script (embedded production builds) */
+export function mountVirtualId(docFilePath: string, snippetName: string): string {
+	return `/@sdocs/mount/${base64urlEncode(docFilePath)}/${snippetName}.js`;
+}
+
+/** Parse a mount virtual ID back into its parts */
+export function parseMountId(id: string): { docFilePath: string; snippetName: string } | null {
+	const match = id.match(/^\/@sdocs\/mount\/([^/]+)\/(\w+)\.js$/);
+	if (!match) return null;
+	return {
+		docFilePath: base64urlDecode(match[1]),
+		snippetName: match[2],
+	};
 }
 
 /** Parse an iframe virtual ID back into its parts */

@@ -8,9 +8,15 @@ import { base64urlEncode } from './snippet-compiler.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-/** Source client directory in the installed package */
+/** Source client directory in the installed package (dist/client, next to dist/server) */
 function getClientSourceDir(): string {
-	return resolve(__dirname, 'client');
+	return resolve(__dirname, '../client');
+}
+
+/** Copy the client app plus the ui/ tree it imports (styles, fonts, components) */
+async function copyClientApp(sdocsDir: string): Promise<void> {
+	await copyDir(getClientSourceDir(), resolve(sdocsDir, 'client'));
+	await copyDir(resolve(__dirname, '../ui'), resolve(sdocsDir, 'ui'));
 }
 
 /** Copy a directory recursively */
@@ -154,7 +160,7 @@ export async function generateDevFiles(
 	await mkdir(sdocsDir, { recursive: true });
 
 	// Copy client components into .sdocs/client/ so they're compiled outside node_modules
-	await copyDir(getClientSourceDir(), resolve(sdocsDir, 'client'));
+	await copyClientApp(sdocsDir);
 
 	await writeFile(resolve(sdocsDir, 'index.html'), generateIndexHtml(config.logo));
 	await writeFile(resolve(sdocsDir, 'entry.js'), generateEntryJs(config));
@@ -171,7 +177,7 @@ export async function generateBuildFiles(
 	await mkdir(sdocsDir, { recursive: true });
 
 	// Copy client components into .sdocs/client/
-	await copyDir(getClientSourceDir(), resolve(sdocsDir, 'client'));
+	await copyClientApp(sdocsDir);
 
 	await writeFile(resolve(sdocsDir, 'index.html'), generateIndexHtml(config.logo));
 	await writeFile(resolve(sdocsDir, 'entry.js'), generateEntryJs(config));

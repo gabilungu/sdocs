@@ -169,13 +169,20 @@
 		return generateFallbackCode(componentName, propValues, cssValues);
 	});
 
-	// Highlighted usage code via server-side Shiki
+	// Highlighted usage code via server-side Shiki. The endpoint is dev-server
+	// middleware; in a production build it doesn't exist, so after the first
+	// failure stop asking and fall back to plain code.
 	let highlightedUsageHtml = $state('');
 	let highlightTimer: ReturnType<typeof setTimeout> | undefined;
+	let highlightAvailable = true;
 
 	$effect(() => {
 		const code = usageCode;
 		clearTimeout(highlightTimer);
+		if (!highlightAvailable) {
+			highlightedUsageHtml = '';
+			return;
+		}
 		highlightTimer = setTimeout(async () => {
 			try {
 				const res = await fetch('/__sdocs/highlight', {
@@ -186,9 +193,13 @@
 				if (res.ok) {
 					const { html } = await res.json();
 					highlightedUsageHtml = html;
+				} else {
+					highlightAvailable = false;
+					highlightedUsageHtml = '';
 				}
 			} catch {
-				// Fallback: leave previous value
+				highlightAvailable = false;
+				highlightedUsageHtml = '';
 			}
 		}, 150);
 	});

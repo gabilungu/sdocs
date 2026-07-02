@@ -14,13 +14,19 @@ import { highlight, disposeHighlighter } from './server/highlighter.js';
 import { extractTocFromHtml } from './server/toc-extractor.js';
 import {
 	parseIframeId,
+	parseMountId,
 	parsePreviewUrl,
 	resolveImportsToAbsolute,
 	generateIframeComponent,
+	generateMountScript,
 	generatePreviewHtml,
+	generateStaticPreviewHtml,
 	iframeVirtualId,
+	mountVirtualId,
 	previewUrl,
 	buildPreviewUrl,
+	base64urlEncode,
+	type StaticCssLink,
 } from './server/snippet-compiler.js';
 import type {
 	SdocsConfig,
@@ -33,6 +39,12 @@ const VIRTUAL_MODULE_ID = 'virtual:sdocs';
 const RESOLVED_VIRTUAL_ID = '\0virtual:sdocs';
 const IFRAME_PREFIX = '/@sdocs/iframe/';
 const PREVIEW_PREFIX = '/@sdocs/preview/';
+const MOUNT_PREFIX = '/@sdocs/mount/';
+
+interface PlannedPreview {
+	jsFileName: string;
+	htmlFileName: string;
+}
 
 export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean }): Plugin {
 	let config: ResolvedSdocsConfig;
@@ -41,12 +53,19 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 	let docEntries: Map<string, DocEntry> = new Map();
 	let docImportsCache: Map<string, string[]> = new Map();
 	const buildMode = (userConfig as any)?._buildMode ?? false;
+	let isBuild = false;
+	let isSsrBuild = false;
+	// Previews planned for emission into a host app's build (embedded mode)
+	let plannedPreviews: PlannedPreview[] = [];
+	let emittedCssLinks: StaticCssLink[] = [];
 
 	return {
 		name: 'sdocs',
 
 		async configResolved(resolvedConfig) {
 			root = resolvedConfig.root;
+			isBuild = resolvedConfig.command === 'build';
+			isSsrBuild = !!resolvedConfig.build?.ssr;
 			const fileConfig = await loadRawConfig(root);
 			const merged = { ...fileConfig, ...userConfig };
 			config = resolveAndFinalize(merged, root);
@@ -159,11 +178,87 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 					server.watcher.add(dir);
 				}
 			}
+
+			// Embedded production build: emit each preview as its own chunk so the
+			// host app's build output contains working static preview pages. (The
+			// standalone CLI build passes _buildMode and provides HTML inputs itself;
+			// the SSR half of an app build has no use for browser preview pages.)
+			if (isBuild && !buildMode && !isSsrBuild) {
+				plannedPreviews = [];
+				emittedCssLinks = [];
+
+				const css = config.css;
+				if (typeof css === 'string') {
+					emittedCssLinks.push({ href: await emitCssAsset(this, css, 'preview') });
+				} else if (css) {
+					for (const [i, name] of Object.keys(css).entries()) {
+						emittedCssLinks.push({
+							href: await emitCssAsset(this, css[name], name),
+							name,
+							disabled: i > 0,
+						});
+					}
+				}
+
+				for (const entry of docEntries.values()) {
+					const encoded = base64urlEncode(entry.filePath);
+					for (const snippet of entry.snippets) {
+						const jsFileName = `previews/${encoded}/${snippet.name}.js`;
+						this.emitFile({
+							type: 'chunk',
+							id: mountVirtualId(entry.filePath, snippet.name),
+							fileName: jsFileName,
+						});
+						plannedPreviews.push({
+							jsFileName,
+							htmlFileName: `previews/${encoded}/${snippet.name}.html`,
+						});
+					}
+				}
+				console.log(`[sdocs] Emitting ${plannedPreviews.length} static preview page(s)`);
+			}
+		},
+
+		generateBundle(_options, bundle) {
+			for (const preview of plannedPreviews) {
+				const chunk = bundle[preview.jsFileName];
+				if (!chunk || chunk.type !== 'chunk') continue;
+
+				// Collect CSS emitted for this chunk and everything it imports.
+				const cssFiles = new Set<string>();
+				const queue = [preview.jsFileName];
+				const seen = new Set<string>();
+				while (queue.length) {
+					const fileName = queue.pop()!;
+					if (seen.has(fileName)) continue;
+					seen.add(fileName);
+					const mod = bundle[fileName];
+					if (!mod || mod.type !== 'chunk') continue;
+					for (const css of mod.viteMetadata?.importedCss ?? []) cssFiles.add(css);
+					queue.push(...mod.imports);
+				}
+
+				// The HTML sits at previews/<doc>/<name>.html — two levels deep.
+				const cssLinks: StaticCssLink[] = [
+					...emittedCssLinks,
+					...[...cssFiles].map((file) => ({ href: `../../${file}` })),
+				];
+				this.emitFile({
+					type: 'asset',
+					fileName: preview.htmlFileName,
+					source: generateStaticPreviewHtml(
+						`./${preview.jsFileName.split('/').pop()}`,
+						cssLinks,
+					),
+				});
+			}
+			plannedPreviews = [];
 		},
 
 		resolveId(id) {
 			if (id === VIRTUAL_MODULE_ID) return RESOLVED_VIRTUAL_ID;
 			if (id.startsWith(IFRAME_PREFIX)) return '\0' + id;
+			if (id.startsWith(MOUNT_PREFIX)) return '\0' + id;
 		},
 
 		load(id) {
@@ -185,6 +280,15 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 
 				const absoluteImports = docImportsCache.get(parsed.docFilePath) ?? [];
 				return generateIframeComponent(absoluteImports, snippet.body);
+			}
+
+			// Virtual mount script for an emitted preview page
+			if (id.startsWith('\0' + MOUNT_PREFIX)) {
+				const parsed = parseMountId(id.slice(1));
+				if (!parsed) return null;
+				return generateMountScript(
+					iframeVirtualId(parsed.docFilePath, parsed.snippetName),
+				);
 			}
 		},
 
@@ -277,7 +381,9 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				name: s.name,
 				body: s.body,
 				highlightedHtml: s.highlightedHtml,
-				previewUrl: buildMode ? buildPreviewUrl(e.filePath, s.name) : previewUrl(e.filePath, s.name),
+				previewUrl: buildMode || isBuild
+					? buildPreviewUrl(e.filePath, s.name)
+					: previewUrl(e.filePath, s.name),
 			})),
 			highlightedSource: e.highlightedSource,
 			toc: e.toc,
@@ -318,6 +424,19 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 
 	function isDocFile(filePath: string): boolean {
 		return filePath.endsWith('.sdoc');
+	}
+
+	/** Emit a user stylesheet as a build asset; returns its href relative to a preview page. */
+	async function emitCssAsset(
+		ctx: { emitFile: (file: { type: 'asset'; fileName: string; source: string }) => string },
+		href: string,
+		name: string,
+	): Promise<string> {
+		if (href.startsWith('http')) return href;
+		const source = await readFile(href, 'utf-8');
+		const fileName = `previews/_css/${name}.css`;
+		ctx.emitFile({ type: 'asset', fileName, source });
+		return `../../${fileName}`;
 	}
 
 	function isComponentReferencedByDoc(filePath: string): boolean {

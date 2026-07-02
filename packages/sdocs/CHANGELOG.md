@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.26] - 2026-07-03
+
+### Fixed
+
+- **Embedded production builds now include working previews.** The Vite
+  plugin emits each preview as a static page (plus your `css` stylesheets)
+  into the host app's client build under `previews/`, and `virtual:sdocs`
+  references those pages — preview iframes no longer 404 in deployed apps.
+- The standalone CLI (`sdocs dev`/`sdocs build`) failed from an installed
+  package: the client app was staged from a wrong path, and its `ui/` styles
+  and fonts were not staged at all.
+- The docs UI stops calling the dev-only highlight endpoint after the first
+  failure in production and falls back to plain code.
+
 ## [0.0.25] - 2026-07-02
 
 ### Added

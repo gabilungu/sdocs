@@ -78,6 +78,16 @@ The `App` component from `sdocs/client` accepts:
 
 See [types](/docs/api/types) for `DocEntry`.
 
+## Production builds
+
+When the host app is built for production, the plugin emits each preview as a
+static page under `previews/` in the build output, and `virtual:sdocs` points
+the preview iframes there — embedded docs work in the deployed app, not just
+in dev. Your `css` stylesheets are bundled into the preview pages as well.
+
+Preview URLs are root-absolute (`/previews/...`), so if the app is deployed
+under a sub-path, previews currently need it to be served at the domain root.
+
 ## virtual:sdocs
 
 The plugin exposes a virtual module containing all discovered docs. Import from it anywhere in your app:

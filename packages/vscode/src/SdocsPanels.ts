@@ -28,7 +28,7 @@ export class SdocsPanels implements vscode.Disposable {
 			vscode.ViewColumn.Active,
 			{ enableScripts: true, retainContextWhenHidden: true },
 		);
-		panel.iconPath = vscode.Uri.joinPath(this.extensionUri, 'icons', 'sdocs-icon.png');
+		panel.iconPath = vscode.Uri.joinPath(this.extensionUri, 'icons', 'mascot.svg');
 		panel.webview.html = iframeHtml(url);
 		panel.onDidDispose(() => this.panels.delete(scopeDir));
 		this.panels.set(scopeDir, { panel, url });

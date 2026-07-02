@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The docs preview tab icon is now an SVG mascot, crisp at any zoom level.
+
 ## [0.0.16] - 2026-07-03
 
 ### Added

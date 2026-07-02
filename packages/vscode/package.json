@@ -103,7 +103,7 @@
 				{
 					"id": "sdocs",
 					"title": "sdocs",
-					"icon": "icons/monster.svg"
+					"icon": "icons/mascot_mono.svg"
 				}
 			]
 		},
@@ -113,7 +113,7 @@
 					"type": "webview",
 					"id": "sdocsScopes",
 					"name": "Projects",
-					"icon": "icons/monster.svg"
+					"icon": "icons/mascot_mono.svg"
 				}
 			]
 		},

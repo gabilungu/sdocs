@@ -17,6 +17,9 @@ server, so they get the full `.svelte` editing experience:
   plus imported-component suggestions after `component:`.
 - **New Component Doc** — right-click a `.svelte` file → *New Component Doc*
   scaffolds an `.sdoc` next to it, ready to fill in.
+- **sdocs view** — the activity-bar icon lists the sdocs projects in your
+  workspace; click one to run its docs and browse them inside the editor.
+  Add extra folders with the `sdocs.scopes` setting.
 - **sdocs lint** — warnings for missing/incomplete `meta`, an unimported
   `component` reference, and duplicate snippet names.
 

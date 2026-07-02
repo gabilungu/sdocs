@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.16] - 2026-07-03
+
+### Added
+
+- **sdocs view in the activity bar.** Lists the sdocs projects in your
+  workspace — folders with an `sdocs.config` file or `.sdoc` files, plus any
+  added via the new `sdocs.scopes` setting (handy in monorepos). Click a
+  project to start `sdocs run` there and browse the docs inside the editor;
+  stop and restart from the view. Uses the project's own sdocs install when
+  present, `npx sdocs` otherwise. Server logs stream to the "sdocs" output
+  channel.
+
 ## [0.0.15] - 2026-07-02
 
 ### Added

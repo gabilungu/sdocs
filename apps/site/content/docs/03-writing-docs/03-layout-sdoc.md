@@ -31,7 +31,7 @@ Layout docs demonstrate a composition of multiple components — a login form, a
 ```ts
 {
   title: string;                     // required — sidebar path
-  description?: string;              // optional subtitle
+  description?: string;              // accepted but not displayed (layouts render full-page)
   settings?: Record<string, any>;    // reserved for preview settings
 }
 ```

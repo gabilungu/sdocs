@@ -54,7 +54,7 @@ A prop is classified as an event when:
 interface Props {
   onclick?: (e: MouseEvent) => void;   // → event
   onchange?: (value: string) => void;  // → event
-  oneTime?: boolean;                   // → prop (starts with "one", not "on" followed by a word)
+  oneTime?: boolean;                   // → prop (starts with "on" but the type isn't a function)
 }
 ```
 
@@ -117,15 +117,18 @@ This extracts two CSS vars: `--bg` (default `#333`) and `--padding` (default `8p
 
 ### `@cssvar` annotations
 
-To give a CSS var a type and description — and upgrade its control in the panel — add a JSDoc comment with `@cssvar`:
+To give a CSS var a type and description — and upgrade its control in the panel — add `@cssvar` annotations in a JSDoc block inside the `<script>`, one per line:
 
-```css
-/** @cssvar {color} --bg Button background */
-background: var(--bg, #333);
-
-/** @cssvar {dimension} --radius Corner radius */
-border-radius: var(--radius, 4px);
+```svelte
+<script lang="ts">
+  /**
+   * @cssvar {color} --bg - Button background (default: #333)
+   * @cssvar {dimension} --radius - Corner radius (default: 4px)
+   */
+</script>
 ```
+
+The description runs to the end of the line; an optional trailing `(default: …)` sets the default shown in the docs (merged with any default found in `var()` usages).
 
 The supported types are `color` (→ color picker) and `dimension` (→ number + px unit). See [interactive controls](/docs/features/interactive-controls).
 

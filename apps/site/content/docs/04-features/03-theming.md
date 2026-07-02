@@ -9,7 +9,7 @@ sdocs has two independent theming systems:
 
 ## App theme (light/dark)
 
-The sdocs UI has a light/dark toggle in the sidebar header. The choice is persisted to `localStorage` under `sdocs-theme` and applied by setting `data-sdocs-theme="light"` or `"dark"` on the root element.
+The sdocs UI has a light/dark toggle in the sidebar header. The choice is persisted to `localStorage` under `sdocs-theme` and applied by setting `data-sdocs-theme="light"` or `"dark"` on the app's own root element (the `.sdocs-app` container, not `<html>`).
 
 If you're styling the app shell, target these attributes:
 
@@ -40,7 +40,7 @@ css: {
 }
 ```
 
-With named stylesheets, sdocs shows a dropdown in the sidebar letting users switch between them. Only one is active at a time — switching disables the others.
+With more than one named stylesheet, sdocs shows a dropdown in the sidebar letting users switch between them. Only one is active at a time — switching disables the others.
 
 This is useful for:
 

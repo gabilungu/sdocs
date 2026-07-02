@@ -14,6 +14,10 @@ Checked in order:
 
 First one found is used. Missing config is fine — sdocs applies defaults.
 
+A `.ts` config loads only on Node versions with native TypeScript type
+stripping; on older Node it throws. Since `.ts` is checked first, prefer `.js`
+or `.mjs` unless your Node supports it.
+
 ## Full schema
 
 ```ts
@@ -50,11 +54,11 @@ Dev server port.
 - **Type:** `number`
 - **Default:** `3000`
 
-Only used by the standalone CLI (`sdocs dev`). Ignored when embedded as a Vite plugin.
+Only used by the standalone CLI (`sdocs dev` and `sdocs preview`). Ignored when embedded as a Vite plugin.
 
 ### `open`
 
-Whether to open the browser on `sdocs dev` start.
+Whether to open the browser when `sdocs dev` or `sdocs preview` starts.
 
 - **Type:** `boolean`
 - **Default:** `false`
@@ -94,7 +98,7 @@ Text shown in the sidebar header.
 
 ### `sidebar.order`
 
-Per-folder ordering overrides. Key is the folder name (use `'root'` for top level). Value is an array of labels.
+Per-folder ordering overrides. Key is the folder *path* from the root, slash-joined for nested folders — `'root'` for the top level, `'Components'` for a top-level folder, `'Components/Forms'` for a nested one. Value is an array of labels.
 
 - **Type:** `Record<string, string[]>`
 - **Default:** `{}`

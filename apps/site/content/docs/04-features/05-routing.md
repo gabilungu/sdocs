@@ -43,7 +43,7 @@ Because everything is in the hash, any URL can be bookmarked, shared, or linked 
 <a href="/docs/#/Components/Button">See the Button docs</a>
 ```
 
-The page loads, the sidebar auto-expands the path, and the selected doc renders.
+The page loads and the selected doc renders, highlighted in the sidebar. (Folders keep their default expand state — deep-linking doesn't auto-expand the path to the entry.)
 
 ## Home page
 

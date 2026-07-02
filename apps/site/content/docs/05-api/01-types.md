@@ -16,8 +16,12 @@ import type {
   ParsedState,
   ParsedCssProp,
   ExtractedSnippet,
+  TocHeading,
 } from 'sdocs';
 ```
+
+Fields that can be absent are typed as required-but-nullable (`string | null`),
+not TypeScript-optional — check for `null`, not for the key's presence.
 
 ## `SdocsConfig`
 
@@ -81,13 +85,20 @@ Each discovered `.sdoc` file becomes one `DocEntry`. These are what `virtual:sdo
 
 ```ts
 interface DocEntry {
-  id: string;                      // unique ID (usually the file path hash)
   kind: 'component' | 'page' | 'layout';
-  path: string;                    // absolute source file path
+  filePath: string;                     // absolute path to the .sdoc file
+  componentPath: string | null;         // absolute path to the documented component
   meta: SdocMeta;
-  component?: ComponentData;       // for kind === 'component'
-  snippets: ExtractedSnippet[];    // Default + named
-  toc?: { id: string; text: string; level: number }[]; // for kind === 'page'
+  componentData: ComponentData | null;  // for kind === 'component'
+  snippets: ExtractedSnippet[];         // Default + named
+  highlightedSource: string | null;     // highlighted component source HTML
+  toc?: TocHeading[];                   // for kind === 'page'
+}
+
+interface TocHeading {
+  text: string;
+  level: number;
+  id: string;
 }
 ```
 
@@ -97,37 +108,37 @@ The extracted public API of a Svelte component.
 
 ```ts
 interface ComponentData {
-  name: string;
   props: ParsedProp[];
-  events: ParsedProp[];
-  snippets: ParsedProp[];
   methods: ParsedMethod[];
   state: ParsedState[];
   cssProps: ParsedCssProp[];
 }
 ```
 
+Events and snippets are not separate arrays — they live in `props`, tagged by
+`ParsedProp.category`, and are split out at render time.
+
 ## `ParsedProp`
 
 ```ts
 interface ParsedProp {
   name: string;
-  type?: string;
-  default?: string;
-  description?: string;
-  optional?: boolean;
+  type: string | null;
+  default: string | null;
+  description: string | null;
+  required: boolean;
+  category: 'prop' | 'event' | 'snippet';
 }
 ```
-
-Used for props, events, and snippets.
 
 ## `ParsedMethod`
 
 ```ts
 interface ParsedMethod {
   name: string;
-  signature?: string;
-  description?: string;
+  params: string;              // parameter list source
+  returnType: string | null;
+  description: string | null;
 }
 ```
 
@@ -136,9 +147,8 @@ interface ParsedMethod {
 ```ts
 interface ParsedState {
   name: string;
-  type?: string;
-  kind: 'state' | 'derived';
-  description?: string;
+  type: string | null;
+  description: string | null;
 }
 ```
 
@@ -146,10 +156,10 @@ interface ParsedState {
 
 ```ts
 interface ParsedCssProp {
-  name: string;           // e.g. "--bg"
-  type?: string;          // from @cssvar, e.g. "color" or "dimension"
-  default?: string;
-  description?: string;
+  name: string;             // e.g. "--bg"
+  type: string | null;      // from @cssvar, e.g. "color" or "dimension"
+  default: string | null;
+  description: string | null;
 }
 ```
 
@@ -157,9 +167,10 @@ interface ParsedCssProp {
 
 ```ts
 interface ExtractedSnippet {
-  name: string;      // "Default" or a named snippet
-  body: string;      // snippet source
-  params?: string;   // parameter list, e.g. "(args)"
+  name: string;             // "Default" or a named snippet
+  body: string;             // snippet body source (signature stripped)
+  highlightedHtml?: string; // highlighted body HTML
+  previewUrl?: string;      // preview iframe URL (added by the virtual module)
 }
 ```
 

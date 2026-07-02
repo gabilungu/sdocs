@@ -7,8 +7,7 @@ sdocs is a documentation tool for Svelte 5 components. This page walks you throu
 ## Requirements
 
 - Svelte 5
-- Vite 6+
-- `@sveltejs/vite-plugin-svelte` 5+
+- Vite with `@sveltejs/vite-plugin-svelte`
 
 ## Install
 
@@ -22,14 +21,21 @@ npm install sdocs
 npx sdocs init
 ```
 
-This creates `sdocs.config.js` at the project root with sensible defaults. Adjust `include` to point at where your `.sdoc` files live.
+This creates `sdocs.config.js` at the project root with every option present
+but commented out — the defaults already work with zero config. Uncomment and
+adjust `include` if your `.sdoc` files live somewhere other than `./src`:
 
 ```js
 /** @type {import('sdocs').SdocsConfig} */
 export default {
-  include: ['./src/**/*.sdoc'],
-  port: 3000,
-  logo: 'My Design System',
+  // Glob pattern(s) to find sdoc files
+  // include: ['./src/**/*.sdoc'],
+
+  // Dev server port (default: 3000)
+  // port: 3000,
+
+  // Sidebar logo text (default: 'sdocs')
+  // logo: 'sdocs',
 };
 ```
 
@@ -54,7 +60,7 @@ Given a Svelte component `src/lib/Button.svelte`, create `src/lib/Button.sdoc` n
   };
 </script>
 
-{#snippet Default()}
+{#snippet Default(args)}
   <Button {...args} />
 {/snippet}
 ```
@@ -69,7 +75,7 @@ See [writing component docs](/docs/writing-docs/component-sdoc) for named snippe
 npx sdocs dev
 ```
 
-Opens at `http://localhost:3000` by default. Your `.sdoc` files appear in the sidebar grouped by their `title` path.
+Serves at `http://localhost:3000` by default (set `open: true` in the config to auto-open the browser). Your `.sdoc` files appear in the sidebar grouped by their `title` path.
 
 ## Build a static site
 

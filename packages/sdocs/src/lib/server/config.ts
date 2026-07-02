@@ -68,7 +68,7 @@ export function resolveAndFinalize(userConfig: SdocsConfig, root: string): Resol
 	return resolved;
 }
 
-/** Import a config file (supports .js, .mjs, .ts via Vite) */
+/** Import a config file (.js/.mjs; .ts only on Node with native type stripping) */
 async function importConfig(configPath: string): Promise<SdocsConfig> {
 	// Use dynamic import with file:// URL for ESM compatibility
 	const mod = await import(pathToFileURL(configPath).href);

@@ -55,7 +55,7 @@ Heading IDs are slugified: lowercased, non-word characters stripped, spaces repl
 <h3>Installation Steps</h3>    <!-- id: "installation-steps" -->
 ```
 
-`<h1>` headings are not included in the TOC (treated as the page title).
+`<h1>` headings are not included in the TOC — it lists `h2`–`h4` only. The title shown in the page header comes from `meta.title`, not from the markup.
 
 ## When to use pages vs. component docs
 

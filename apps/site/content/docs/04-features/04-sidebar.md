@@ -24,13 +24,13 @@ Forms
 
 ## Groups (`:` prefix)
 
-A title segment prefixed with `:` is rendered as a bold group header — always expanded, visually separated:
+A *first* title segment prefixed with `:` is rendered as a bold group header — expanded by default, visually separated:
 
 ```js
 title: ':Design System / Components / Button'
 ```
 
-The group behaves as a section heading rather than a collapsible folder. Use groups to carve the sidebar into major areas (`:Docs`, `:Components`, `:Patterns`).
+The group reads as a section heading but is still collapsible like any folder. The `:` prefix only works on the first segment. Use groups to carve the sidebar into major areas (`:Docs`, `:Components`, `:Patterns`).
 
 ## Ordering
 
@@ -45,7 +45,7 @@ sidebar: {
 }
 ```
 
-- Keys are folder names, with `'root'` for the top level
+- Keys are folder paths from the root, with `'root'` for the top level (nested folders are slash-joined, e.g. `'Components/Forms'`)
 - `'*'` is a wildcard — any items not listed by name go here, alphabetically
 - Items not matched by any rule fall back to alphabetical
 

@@ -17,19 +17,18 @@ export default {
     sdocsPlugin({
       include: ['./src/lib/**/*.sdoc'],
       css: './src/styles/global.css',
-      logo: 'My Design System',
     }),
   ],
 };
 ```
 
-The plugin accepts the same options as [`sdocs.config.js`](/docs/usage/configuration). Options passed here override any config file.
+The plugin reads the same [`sdocs.config.js`](/docs/usage/configuration) if present; options passed here override it. In embedded mode only `include` and `css` matter — UI options like `logo` and `sidebarConfig` are props on the `App` component (below), and `port`/`open` apply only to the standalone CLI.
 
 The plugin:
 
 - Discovers `.sdoc` files and parses them
 - Exposes them as the `virtual:sdocs` module
-- Watches for file changes and triggers HMR
+- Watches for file changes and triggers a full reload
 - Adds a middleware endpoint for syntax highlighting
 
 ## 2. Create a page that mounts the app

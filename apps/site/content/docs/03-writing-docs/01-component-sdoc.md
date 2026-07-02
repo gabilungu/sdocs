@@ -47,7 +47,7 @@ title: 'Components / Button'           // → Components ▸ Button
 title: 'Forms / Inputs / TextInput'    // → Forms ▸ Inputs ▸ TextInput
 ```
 
-A segment prefixed with `:` is rendered as a bold group header (always expanded, styled differently):
+A first segment prefixed with `:` is rendered as a bold group header (expanded by default, still collapsible, styled differently). Later segments don't support the prefix:
 
 ```js
 title: ':Design System / Components / Button'
@@ -132,15 +132,15 @@ Named snippets are static — they don't receive `args` and don't get interactiv
 
 ## What appears on the page
 
-For each component doc, the rendered page contains:
+For each component doc, the rendered page contains, in order:
 
 1. **Title & description** from `meta`
 2. **Preview** — live render of the `Default` snippet in an iframe
-3. **Controls panel** — auto-generated from component props
-4. **Code** — snippet source with props patched to reflect current control values
-5. **Props table** — extracted from the component
-6. **Events, snippets, methods, state, CSS vars** — each in its own section if present
-7. **Named snippet examples** — each as its own sub-page
+3. **Preview Code** — collapsible panel with the snippet source, props patched to reflect current control values (collapsed by default)
+4. **Controls panel** — auto-generated from component props
+5. **Props, CSS Props, Events, Snippets, Methods, State** — one table each; sections always render, showing "None" when empty
+6. **Examples** — the named snippets, rendered inline (each is also its own sub-page in the sidebar)
+7. **Component Source** — collapsible panel with the component's highlighted source
 
 ## File placement
 

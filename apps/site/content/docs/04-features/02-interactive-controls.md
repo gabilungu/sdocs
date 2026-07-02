@@ -52,15 +52,19 @@ interface Props {
 
 ## CSS custom property controls
 
-For CSS variables, the control type is chosen from an `@cssvar` JSDoc annotation:
+For CSS variables, the control type is chosen from `@cssvar` JSDoc annotations, written one per line in a JSDoc block inside the `<script>`:
 
 ```svelte
+<script lang="ts">
+  /**
+   * @cssvar {color} --bg - Button background
+   * @cssvar {dimension} --radius - Border radius
+   */
+</script>
+
 <style>
   .button {
-    /** @cssvar {color} --bg Button background */
     background: var(--bg, #333);
-
-    /** @cssvar {dimension} --radius Border radius */
     border-radius: var(--radius, 4px);
   }
 </style>
@@ -100,7 +104,7 @@ The controls panel has a **Reset** button that restores all controls to the valu
 
 ## Unsupported types
 
-Props with types sdocs can't classify (e.g. `Record<string, unknown>`, imported interfaces, complex generics) show up in the controls panel as read-only rows — the name, type, and default, but no editor.
+Props with types sdocs can't classify (e.g. `Record<string, unknown>`, imported interfaces, complex generics) show up in the controls panel as read-only rows — the name and type, but no editor.
 
 This is intentional: rather than guessing and misrendering, sdocs surfaces the prop so you know it exists but skips the control.
 

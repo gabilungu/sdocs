@@ -42,7 +42,7 @@ export async function detectScopes(): Promise<Scope[]> {
 		}
 	}
 
-	return [...dirs].sort().map((dir) => ({ dir, label: workspaceLabel(dir) }));
+	return [...dirs].sort().map((dir) => ({ dir, label: path.basename(dir) }));
 }
 
 async function nearestPackageDir(fromDir: string): Promise<string | null> {
@@ -97,7 +97,7 @@ export class ScopesProvider implements vscode.TreeDataProvider<Scope> {
 				? this.runner.url(scope.dir)?.replace(/^https?:\/\//, '').replace(/\/$/, '')
 				: status === 'starting'
 					? 'starting'
-					: '';
+					: workspaceLabel(path.dirname(scope.dir));
 		item.contextValue = status === 'stopped' ? 'sdocs-scope' : 'sdocs-scope-running';
 		item.iconPath = new vscode.ThemeIcon(
 			status === 'running' ? 'vm-running' : status === 'starting' ? 'loading~spin' : 'book',

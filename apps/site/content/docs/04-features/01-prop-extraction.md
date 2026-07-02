@@ -43,6 +43,40 @@ interface Props {
 }
 ```
 
+## Plain JS components (JSDoc)
+
+Components without TypeScript get the same extraction through JSDoc. Two forms
+are supported on the `$props()` declaration:
+
+An inline object annotation (types and optionality):
+
+```svelte
+<script>
+  /** @type {{ label?: string, tone?: 'info' | 'success' }} */
+  let { label = 'Badge', tone = 'info' } = $props();
+</script>
+```
+
+Or `@typedef` with `@property` tags — this form also carries descriptions:
+
+```svelte
+<script>
+  /**
+   * @typedef {Object} Props
+   * @property {string} [label] - Badge text
+   * @property {'info' | 'success'} [tone] - Color tone
+   * @property {() => void} [ondismiss] - Called when dismissed
+   */
+
+  /** @type {Props} */
+  let { label = 'Badge', tone = 'info', ondismiss } = $props();
+</script>
+```
+
+Bracketed names (`[label]`) mark a prop optional. Defaults still come from the
+destructuring. Event and snippet classification work the same as in TypeScript
+(including `import('svelte').Snippet`).
+
 ## Events
 
 A prop is classified as an event when:
@@ -136,7 +170,7 @@ Without the annotation, the var is still extracted and gets a plain text input.
 
 ## Limitations
 
-- **Plain JS `$props()`** — if you don't type the destructuring or provide a `Props` interface, sdocs can't infer types.
+- **Untyped `$props()`** — with no `Props` interface and no JSDoc annotation, only prop names and defaults are extracted (no types).
 - **Non-`on*` event props** — `handleClick: () => void` is classified as a prop, not an event. Use the `on*` naming convention.
 - **Complex TypeScript types** — conditional types, deep generics, or types imported from other files may not be fully understood. They show up in the props table but may not get the best control.
 - **External types** — if a prop references a type from another file, only the type name is shown; sdocs doesn't follow the import.

@@ -33,9 +33,16 @@ export function parseComponentSource(source: string): ComponentData {
 		);
 
 		const interfaceProps = parseInterfaceProps(tsAst);
+		const jsdocTypeProps = parseJsdocTypeProps(tsAst);
 		const destructuredProps = parsePropsDestructuring(tsAst);
 		const jsdocData = parseJsdocComments(tsAst);
-		props = mergeProps(interfaceProps, destructuredProps, jsdocData);
+		// TS interface wins over JSDoc types when both exist (they shouldn't).
+		const interfaceNames = new Set(interfaceProps.map((p) => p.name));
+		const typedProps = [
+			...interfaceProps,
+			...jsdocTypeProps.filter((p) => !interfaceNames.has(p.name)),
+		];
+		props = mergeProps(typedProps, destructuredProps, jsdocData);
 		methods = parseExportedFunctions(tsAst);
 		state = parseExportedState(tsAst);
 	}
@@ -85,6 +92,81 @@ function parseInterfaceProps(sourceFile: ts.SourceFile): InterfaceProp[] {
 		}
 	});
 
+	return props;
+}
+
+// ─── JSDoc-typed props (plain JS components) ───
+
+/** Props typed via JSDoc: `@type {{ ... }}` on the $props() declaration, or
+ * `@type {Props}` referencing a `@typedef {Object} Props` with `@property` tags. */
+function parseJsdocTypeProps(sourceFile: ts.SourceFile): InterfaceProp[] {
+	const props: InterfaceProp[] = [];
+
+	function fromTypeLiteral(literal: ts.TypeLiteralNode) {
+		for (const member of literal.members) {
+			if (ts.isPropertySignature(member) && member.name) {
+				props.push({
+					name: member.name.getText(sourceFile),
+					type: member.type ? member.type.getText(sourceFile) : 'unknown',
+					optional: !!member.questionToken,
+					description: null,
+				});
+			}
+		}
+	}
+
+	function fromTypedef(name: string) {
+		function visit(node: ts.Node) {
+			// ts.getJSDocTags only surfaces the last JSDoc comment on a node;
+			// a standalone @typedef block above the @type one needs the raw list.
+			const jsDocs = (node as ts.Node & { jsDoc?: ts.JSDoc[] }).jsDoc ?? [];
+			for (const tag of jsDocs.flatMap((jd) => [...(jd.tags ?? [])])) {
+				if (
+					ts.isJSDocTypedefTag(tag) &&
+					tag.name?.getText(sourceFile) === name &&
+					tag.typeExpression &&
+					ts.isJSDocTypeLiteral(tag.typeExpression)
+				) {
+					for (const propTag of tag.typeExpression.jsDocPropertyTags ?? []) {
+						const comment = ts.getTextOfJSDocComment(propTag.comment);
+						props.push({
+							name: propTag.name.getText(sourceFile),
+							type: propTag.typeExpression
+								? propTag.typeExpression.type.getText(sourceFile)
+								: 'unknown',
+							optional: propTag.isBracketed,
+							description: comment ? comment.replace(/^-\s*/, '').trim() : null,
+						});
+					}
+				}
+			}
+			ts.forEachChild(node, visit);
+		}
+		visit(sourceFile);
+	}
+
+	function visit(node: ts.Node) {
+		if (
+			ts.isVariableDeclaration(node) &&
+			node.initializer &&
+			ts.isCallExpression(node.initializer) &&
+			node.initializer.expression.getText(sourceFile) === '$props' &&
+			ts.isObjectBindingPattern(node.name)
+		) {
+			// The @type tag sits on the enclosing statement; getJSDocType finds it.
+			const typeNode =
+				ts.getJSDocType(node) ?? ts.getJSDocType(node.parent?.parent ?? node);
+			if (typeNode) {
+				if (ts.isTypeLiteralNode(typeNode)) fromTypeLiteral(typeNode);
+				else if (ts.isTypeReferenceNode(typeNode)) {
+					fromTypedef(typeNode.typeName.getText(sourceFile));
+				}
+			}
+		}
+		ts.forEachChild(node, visit);
+	}
+
+	visit(sourceFile);
 	return props;
 }
 
@@ -233,7 +315,8 @@ function classifyProp(
 	type: string | null,
 ): 'prop' | 'event' | 'snippet' {
 	if (name.startsWith('on') && type?.includes('=>')) return 'event';
-	if (type?.startsWith('Snippet')) return 'snippet';
+	// Matches `Snippet`, `Snippet<[...]>`, and `import('svelte').Snippet`
+	if (type && /(^|\.)Snippet\b/.test(type)) return 'snippet';
 	return 'prop';
 }
 

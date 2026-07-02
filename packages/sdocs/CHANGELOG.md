@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.25] - 2026-07-02
+
+### Added
+
+- **JSDoc prop extraction for plain-JS components.** Both `@type {{ ... }}`
+  object annotations and `@typedef {Object} Props` with `@property` tags on
+  the `$props()` declaration are parsed — types, optionality (bracketed
+  names), and descriptions all flow into the docs and interactive controls.
+- A prop-parser test suite; `npm test` now runs it.
+
+### Fixed
+
+- Props typed as `import('svelte').Snippet` are classified as snippets.
+
 ## [0.0.24] - 2026-07-02
 
 ### Changed

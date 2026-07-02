@@ -26,7 +26,8 @@
   },
   "files": [
     "dist",
-    "bin"
+    "bin",
+    "CHANGELOG.md"
   ],
   "peerDependencies": {
     "@sveltejs/vite-plugin-svelte": "*",

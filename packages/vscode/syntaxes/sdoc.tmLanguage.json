@@ -1,6 +1,0 @@
-{
-	"scopeName": "source.sdoc",
-	"patterns": [
-		{ "include": "source.svelte" }
-	]
-}

@@ -1,4 +1,0 @@
-{
-	"scopeName": "source.sdocs-config",
-	"patterns": [{ "include": "source.js" }]
-}

@@ -1,4 +1,0 @@
-{
-	"scopeName": "source.sdoc.page",
-	"patterns": [{ "include": "source.sdoc" }]
-}

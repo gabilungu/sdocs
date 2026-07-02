@@ -35,7 +35,8 @@ export function generateIframeComponent(
 	const importBlock = absoluteImports.length > 0
 		? absoluteImports.join('\n') + '\n'
 		: '';
-	return `<script>
+	// lang="ts" so lifted imports may carry type-only syntax (Svelte 5 erases it natively)
+	return `<script lang="ts">
 	${importBlock}import { onMount } from 'svelte';
 
 	let args = $state({});
@@ -78,7 +79,10 @@ export function generateIframeComponent(
 </script>
 
 <div id="sdocs-preview">
-	${snippetBody}
+	{#snippet SdocsPreview(args)}
+		${snippetBody}
+	{/snippet}
+	{@render SdocsPreview(args)}
 </div>`;
 }
 

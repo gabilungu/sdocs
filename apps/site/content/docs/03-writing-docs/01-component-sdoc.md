@@ -84,15 +84,26 @@ Component docs recognize two kinds of snippets:
 This snippet gets the interactive controls. Its `args` parameter is bound to the current control values:
 
 ```svelte
-{#snippet Default()}
+{#snippet Default(args)}
   <Button {...args} />
 {/snippet}
 ```
 
+With `<script lang="ts">`, type the parameter and `args` gets prop
+autocompletion for your component:
+
+```svelte
+{#snippet Default(args: ComponentProps<typeof Button>)}
+  <Button {...args} />
+{/snippet}
+```
+
+(`ComponentProps` comes from `import type { ComponentProps } from 'svelte'`.)
+
 If you omit the `Default` snippet, sdocs auto-generates `<Component {...args} />`. Define it explicitly when you need to wrap the component, provide child content, or set props that shouldn't be editable:
 
 ```svelte
-{#snippet Default()}
+{#snippet Default(args)}
   <div style="max-width: 400px;">
     <Button {...args}>
       {args.label}

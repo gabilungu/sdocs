@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { ComponentProps } from 'svelte';
 	import Button from './Button.svelte';
 	import { Icon } from '../Icon/index.js';
 
@@ -9,7 +10,7 @@
 	};
 </script>
 
-{#snippet Default()}
+{#snippet Default(args: ComponentProps<typeof Button>)}
 	<Button {...args}>Click me</Button>
 {/snippet}
 

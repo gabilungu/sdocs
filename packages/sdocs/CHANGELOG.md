@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.24] - 2026-07-02
+
+### Changed
+
+- Snippets receive `args` as a real snippet parameter: write
+  `{#snippet Default(args)}`. Previews render snippets through `{@render}`,
+  so `args` is an explicit, editor-visible binding instead of a value injected
+  into scope. Parameterless snippets keep working unchanged.
+
 ## [0.0.23] - 2026-04-16
 
 First documented release. `sdocs` is a lightweight documentation tool for Svelte 5

@@ -1,0 +1,64 @@
+name: Publish sdocs to npm
+
+# Publishes packages/sdocs when the version on main is bumped past the one
+# on the registry. Pushes that don't change the version are skipped, so a
+# release is just: bump the version + changelog, commit, push.
+#
+# One-time setup: on npmjs.com, add a trusted publisher for the sdocs
+# package (package Settings → Trusted publisher → GitHub Actions) pointing
+# at this repository and this workflow file. No token or secret needed.
+
+on:
+  push:
+    branches: main
+    paths:
+      - packages/sdocs/package.json
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      # Trusted publishing requires npm 11.5+
+      - name: Update npm
+        run: npm install -g npm@11
+
+      - name: Skip if this version is already published
+        id: version
+        run: |
+          LOCAL=$(node -p "require('./packages/sdocs/package.json').version")
+          if [ -n "$(npm view "sdocs@$LOCAL" version 2>/dev/null)" ]; then
+            echo "sdocs@$LOCAL is already on the registry — nothing to do"
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install dependencies
+        if: steps.version.outputs.publish == 'true'
+        run: npm ci
+
+      - name: Test
+        if: steps.version.outputs.publish == 'true'
+        run: npm test -w sdocs
+
+      - name: Build
+        if: steps.version.outputs.publish == 'true'
+        run: npm run build
+
+      - name: Publish
+        if: steps.version.outputs.publish == 'true'
+        working-directory: packages/sdocs
+        run: npm publish --provenance --access public

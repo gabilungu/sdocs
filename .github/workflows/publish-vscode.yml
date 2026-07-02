@@ -1,0 +1,54 @@
+name: Publish VS Code extension
+
+# Publishes packages/vscode to the Visual Studio Marketplace when the
+# version on main is bumped past the published one. Pushes that don't
+# change the version are skipped.
+#
+# One-time setup: create an Azure DevOps personal access token with the
+# Marketplace → Manage scope for the gabilungu publisher, and store it as
+# the VSCE_PAT repository secret.
+
+on:
+  push:
+    branches: main
+    paths:
+      - packages/vscode/package.json
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/vscode
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: packages/vscode/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Skip if this version is already published
+        id: version
+        run: |
+          LOCAL=$(node -p "require('./package.json').version")
+          PUBLISHED=$(npx vsce show gabilungu.sdocs --json | jq -r '.versions[0].version' || echo none)
+          if [ "$LOCAL" = "$PUBLISHED" ]; then
+            echo "gabilungu.sdocs@$LOCAL is already on the marketplace — nothing to do"
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish
+        if: steps.version.outputs.publish == 'true'
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: npx vsce publish --pat "$VSCE_PAT"

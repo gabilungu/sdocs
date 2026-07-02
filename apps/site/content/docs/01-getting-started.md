@@ -15,6 +15,10 @@ sdocs is a documentation tool for Svelte 5 components. This page walks you throu
 npm install sdocs
 ```
 
+Or skip the install entirely — once you have `.sdoc` files,
+`npx sdocs run` starts the docs server with nothing added to your
+project. See [the CLI page](/docs/usage/standalone-cli) for details.
+
 ## Scaffold a config
 
 ```bash

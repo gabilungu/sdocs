@@ -10,6 +10,7 @@ Run sdocs as its own dev server, no host app required.
 |---|---|
 | `npx sdocs init` | Scaffold a `sdocs.config.js` file in the current directory |
 | `npx sdocs dev` | Start the dev server with live reload |
+| `npx sdocs run` | Same as `dev` — works without installing sdocs (see below) |
 | `npx sdocs build` | Build a static documentation site to `dist/` |
 | `npx sdocs preview` | Preview the built site locally |
 
@@ -53,6 +54,23 @@ Starts a Vite dev server on the configured port (default `3000`). Watches:
 Any change triggers a full reload. The config file itself is read once at
 startup — restart the server after editing it. See
 [configuration](/docs/usage/configuration) for options like `open`, `css`, and `logo`.
+
+## `sdocs run` — no install needed
+
+Try sdocs in any project without adding it as a dependency:
+
+```bash
+npx sdocs run
+```
+
+npm fetches sdocs (and its tooling) into the npx cache and starts the dev
+server against the `.sdoc` files in the current project. Your components'
+dependencies — Tailwind, three.js, anything in the project's `node_modules` —
+resolve from the project as usual, and when the project has its own `svelte`,
+previews use it rather than the cached copy.
+
+You still need `.sdoc` files for it to have something to show; see
+[getting started](/docs/getting-started).
 
 ## `sdocs build`
 

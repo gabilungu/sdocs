@@ -4,6 +4,7 @@ import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { loadConfig } from '../server/config.js';
 import { sdocsPlugin } from '../vite.js';
 import { generateBuildFiles, cleanBuildFiles } from '../server/app-gen.js';
+import { svelteDedupe } from './dev.js';
 
 export async function buildCommand(): Promise<void> {
 	const cwd = process.cwd();
@@ -23,6 +24,9 @@ export async function buildCommand(): Promise<void> {
 		await build({
 			configFile: false,
 			root: sdocsDir,
+			resolve: {
+				dedupe: svelteDedupe(cwd),
+			},
 			plugins: [
 				svelte(),
 				sdocsPlugin({ ...config, include: absoluteIncludes, _buildMode: true } as any),

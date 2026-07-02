@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.27] - 2026-07-03
+
+### Added
+
+- **`sdocs run`** — same as `dev`, built for `npx sdocs run`: works with no
+  local install. The dev server allows sdocs' own files from the npx cache,
+  and when the project has its own `svelte`, previews dedupe onto it, so
+  components and their dependencies always resolve from the project.
+
+### Changed
+
+- `sdocs build` applies the same svelte dedupe as the dev server.
+
 ## [0.0.26] - 2026-07-03
 
 ### Fixed

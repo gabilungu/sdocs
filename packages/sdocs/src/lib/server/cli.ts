@@ -20,7 +20,8 @@ Usage:
   sdocs <command>
 
 Commands:
-  dev       Start development server with HMR
+  dev       Start development server with live reload
+  run       Same as dev — works with npx and no local install
   build     Build static documentation site
   preview   Serve built site locally
   init      Scaffold sdocs.config.js
@@ -45,7 +46,8 @@ async function main() {
 	}
 
 	switch (command) {
-		case 'dev': {
+		case 'dev':
+		case 'run': {
 			const { devCommand } = await import('../commands/dev.js');
 			await devCommand();
 			break;

@@ -1,41 +1,27 @@
 import * as vscode from 'vscode';
 import { MetaCompletionProvider } from './MetaCompletionProvider';
-import { SdocFormatProvider } from './SdocFormatProvider';
-
-const SDOC_LANGUAGES = ['sdoc', 'sdoc-page', 'sdoc-layout'];
 
 export function activate(context: vscode.ExtensionContext) {
-	// Autocomplete: meta fields in .sdoc files
+	// .sdoc files are registered as the `svelte` language (see contributes.languages),
+	// so the Svelte language server provides completion, hover, diagnostics, and
+	// formatting. This extension only adds sdocs-specific extras on top, scoped
+	// by file pattern so plain .svelte files are untouched.
 	context.subscriptions.push(
 		vscode.languages.registerCompletionItemProvider(
-			{ language: 'sdoc' },
+			{ language: 'svelte', pattern: '**/*.sdoc' },
 			new MetaCompletionProvider(),
 		),
 	);
 
-	// Formatting: delegate to the installed Svelte formatter so .sdoc files
-	// format exactly like .svelte files — and keep doing so as Svelte evolves,
-	// since this extension ships no copy of the Svelte compiler/formatter.
-	const output = vscode.window.createOutputChannel('sdocs');
-	const formatter = new SdocFormatProvider(output, context.globalStorageUri);
-	context.subscriptions.push(
-		output,
-		formatter,
-		vscode.languages.registerDocumentFormattingEditProvider(
-			SDOC_LANGUAGES.map((language) => ({ language })),
-			formatter,
-		),
-	);
-
-	// Warm up the Svelte server as soon as an .sdoc is in view, so the first
-	// format isn't a dud while the server is still starting (no-op after once).
-	const warmUp = (editor: vscode.TextEditor | undefined) => {
-		if (editor && SDOC_LANGUAGES.includes(editor.document.languageId)) {
-			formatter.warmUp(editor.document);
-		}
-	};
-	warmUp(vscode.window.activeTextEditor);
-	context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(warmUp));
+	// Versions up to 0.0.13 formatted via scratch files under
+	// node_modules/.cache/sdocs-format; sweep any leftovers from crashed sessions.
+	for (const folder of vscode.workspace.workspaceFolders ?? []) {
+		const dir = vscode.Uri.joinPath(folder.uri, 'node_modules', '.cache', 'sdocs-format');
+		vscode.workspace.fs.delete(dir, { recursive: true, useTrash: false }).then(
+			undefined,
+			() => {},
+		);
+	}
 }
 
 export function deactivate() {}

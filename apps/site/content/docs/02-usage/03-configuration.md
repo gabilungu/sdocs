@@ -27,6 +27,7 @@ interface SdocsConfig {
   open?: boolean;
   css?: string | Record<string, string>;
   logo?: string;
+  icon?: string | false;
   sidebar?: {
     order?: Record<string, string[]>;
     open?: string[];
@@ -95,6 +96,21 @@ Text shown in the sidebar header.
 
 - **Type:** `string`
 - **Default:** `'sdocs'`
+
+### `icon`
+
+Icon shown next to the logo text in the sidebar header.
+
+- **Type:** `string | false`
+- **Default:** `'sdocs'`
+
+`'sdocs'` shows the built-in sdocs mascot. Any other string is used as an
+image URL (`/logo.svg` from your static assets, or a full `http(s)://` URL).
+`false` hides the icon.
+
+```js
+icon: '/acme-logo.svg'
+```
 
 ### `sidebar.order`
 

@@ -11,6 +11,7 @@
 		tree: TreeNode[];
 		currentPath: string[];
 		logo: string;
+		icon?: string | false;
 		cssNames?: string[];
 		activeStylesheet?: string;
 		theme?: ThemeMode;
@@ -19,7 +20,7 @@
 		onThemeChange?: (theme: ThemeMode) => void;
 	}
 
-	let { tree, currentPath, logo, cssNames = [], activeStylesheet, theme = 'light', onToggleFullscreen, onStylesheetChange, onThemeChange }: Props = $props();
+	let { tree, currentPath, logo, icon = 'sdocs', cssNames = [], activeStylesheet, theme = 'light', onToggleFullscreen, onStylesheetChange, onThemeChange }: Props = $props();
 
 	const themeIcons: Record<ThemeMode, string> = { light: '\u2600', dark: '\u263D' };
 	const themeLabels: Record<ThemeMode, string> = { light: 'Light', dark: 'Dark' };
@@ -185,7 +186,11 @@
 <aside class="sdocs-sidebar">
 	<div class="sdocs-sidebar-header">
 		<a href="#/" class="sdocs-logo">
-			<Icon name="sdocs" --w="22px" --h="22px" --fill="#FC1D29" />
+			{#if icon === 'sdocs'}
+				<Icon name="sdocs" --w="22px" --h="22px" --fill="#FC1D29" />
+			{:else if icon}
+				<img class="sdocs-logo-img" src={icon} alt="" />
+			{/if}
 			{logo}
 		</a>
 		<div class="sdocs-header-actions">
@@ -303,6 +308,11 @@
 		font-size: 20px;
 		color: var(--color-base-900);
 		text-decoration: none;
+	}
+	.sdocs-logo-img {
+		width: 22px;
+		height: 22px;
+		object-fit: contain;
 	}
 	.sdocs-header-actions {
 		display: flex;

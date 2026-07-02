@@ -97,6 +97,7 @@ mount(App, {
 		docs,
 		cssNames,
 		logo: ${JSON.stringify(config.logo)},
+		icon: ${JSON.stringify(config.icon)},
 		sidebarConfig: ${JSON.stringify(config.sidebar)},
 	}
 });`;

@@ -15,6 +15,7 @@
 	interface Props {
 		docs: DocEntry[];
 		logo?: string;
+		icon?: string | false;
 		cssNames?: string[];
 		sidebarConfig?: {
 			order?: Record<string, string[]>;
@@ -22,7 +23,7 @@
 		};
 	}
 
-	let { docs, logo = 'sdocs', cssNames = [], sidebarConfig }: Props = $props();
+	let { docs, logo = 'sdocs', icon = 'sdocs', cssNames = [], sidebarConfig }: Props = $props();
 
 	let sidebarHidden = $state(false);
 	let activeStylesheet = $state<string | undefined>(undefined);
@@ -62,6 +63,7 @@
 			{tree}
 			{currentPath}
 			{logo}
+			{icon}
 			{cssNames}
 			{activeStylesheet}
 			{theme}

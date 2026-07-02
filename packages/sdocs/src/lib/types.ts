@@ -10,6 +10,8 @@ export interface SdocsConfig {
 	css?: string | Record<string, string>;
 	/** Sidebar logo text. Default: 'sdocs' */
 	logo?: string;
+	/** Sidebar logo icon: 'sdocs' for the built-in mascot, an image URL, or false to hide. Default: 'sdocs' */
+	icon?: string | false;
 	/** Sidebar configuration */
 	sidebar?: {
 		/** Per-folder sort overrides. Keys are folder paths, 'root' for top level. '*' = unlisted items. */
@@ -26,6 +28,7 @@ export interface ResolvedSdocsConfig {
 	open: boolean;
 	css: string | Record<string, string> | null;
 	logo: string;
+	icon: string | false;
 	sidebar: {
 		order: Record<string, string[]>;
 		open: string[];

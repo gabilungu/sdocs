@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`icon` config option** — the sidebar header icon is now configurable:
+  `'sdocs'` shows the built-in mascot (the default), any other string is
+  used as an image URL, and `false` hides it.
+
 ## [0.0.30] - 2026-07-03
 
 ### Fixed

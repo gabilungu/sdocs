@@ -22,6 +22,9 @@ export default {
 	// Sidebar logo text (default: 'sdocs')
 	// logo: 'sdocs',
 
+	// Sidebar logo icon: 'sdocs' for the mascot, an image URL, or false to hide (default: 'sdocs')
+	// icon: 'sdocs',
+
 	// Sidebar configuration
 	// sidebar: {
 	// 	order: { root: ['Components', '*', 'Documentation'] },

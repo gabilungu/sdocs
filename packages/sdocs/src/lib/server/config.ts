@@ -11,6 +11,7 @@ const DEFAULTS: ResolvedSdocsConfig = {
 	open: false,
 	css: null,
 	logo: 'sdocs',
+	icon: 'sdocs',
 	sidebar: {
 		order: {},
 		open: [],
@@ -89,6 +90,7 @@ export function resolveConfig(userConfig: SdocsConfig): ResolvedSdocsConfig {
 		open: userConfig.open ?? DEFAULTS.open,
 		css: userConfig.css ?? DEFAULTS.css,
 		logo: userConfig.logo ?? DEFAULTS.logo,
+		icon: userConfig.icon ?? DEFAULTS.icon,
 		sidebar: {
 			order: userConfig.sidebar?.order ?? DEFAULTS.sidebar.order,
 			open: userConfig.sidebar?.open ?? DEFAULTS.sidebar.open,

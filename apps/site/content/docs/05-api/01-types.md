@@ -34,6 +34,7 @@ interface SdocsConfig {
   open?: boolean;
   css?: string | Record<string, string>;
   logo?: string;
+  icon?: string | false;
   sidebar?: {
     order?: Record<string, string[]>;
     open?: string[];
@@ -54,6 +55,7 @@ interface ResolvedSdocsConfig {
   open: boolean;
   css: string | Record<string, string> | null;
   logo: string;
+  icon: string | false;
   sidebar: {
     order: Record<string, string[]>;
     open: string[];

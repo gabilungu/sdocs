@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.16] - 2026-07-03
+
 ### Added
 
 - **Per-variant file icons are back.** `.sdoc`, `.page.sdoc`, `.layout.sdoc`,
@@ -16,17 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   each document is switched to `svelte` (or `javascript`/`typescript` for
   config files) as it opens, so the language server experience is unchanged.
 - The docs preview tab shows the sdocs mascot instead of the generic
-  webview icon.
-
-### Changed
-
-- The activity bar icon is now the sdocs mascot silhouette instead of a
-  generic book.
-
-## [0.0.16] - 2026-07-03
-
-### Added
-
+  webview icon. The activity bar icon is the mascot silhouette instead of
+  a generic book.
 - **sdocs view in the activity bar.** Project cards for every sdocs project
   in the workspace — folders with an `sdocs.config` file or `.sdoc` files,
   plus any added via the new `sdocs.scopes` setting (handy in monorepos).

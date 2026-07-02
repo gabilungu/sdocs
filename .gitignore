@@ -32,7 +32,3 @@ Thumbs.db
 # Vite timestamp temp files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
-
-# Local agent / MCP config (not committed)
-.mcp.json
-CLAUDE.md

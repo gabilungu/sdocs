@@ -16,8 +16,10 @@
 		"test": "npm run test -w sdocs",
 		"site:dev": "npm run dev -w site",
 		"site:build": "npm run build -w site",
-		"testapp:dev": "npm run dev -w testapp",
-		"testapp:build": "npm run build -w testapp",
+		"embedded:dev": "npm run dev -w testapp-embedded",
+		"embedded:build": "npm run build -w testapp-embedded",
+		"standalone:run": "cd apps/testapp-standalone && node ../../packages/sdocs/bin/sdocs.js run",
+		"standalone:build": "cd apps/testapp-standalone && node ../../packages/sdocs/bin/sdocs.js build",
 		"vscode:build": "npm run compile --prefix packages/vscode",
 		"vscode:package": "npm run package --prefix packages/vscode"
 	}

@@ -1,0 +1,18 @@
+<script>
+	import Chip from './Chip.svelte';
+
+	export const meta = {
+		component: Chip,
+		title: 'Chip',
+		description: 'A pill-shaped tag using a host-only dependency (clsx).',
+		args: { label: 'Hello', active: false },
+	};
+</script>
+
+{#snippet Active()}
+	<Chip label="On" active />
+{/snippet}
+
+{#snippet Removable()}
+	<Chip label="Closable" onremove={() => alert('removed')} />
+{/snippet}

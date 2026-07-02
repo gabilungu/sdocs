@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.29] - 2026-07-03
+
+### Fixed
+
+- `sdocs dev`/`run` no longer floods the console with unresolved-import
+  errors on Vite 8 (its rolldown-based dependency scanner can't walk `.svelte`
+  entry graphs). The initial scan is skipped — dependencies are still
+  optimized on demand — and `svelte` is pre-bundled up front.
+
 ## [0.0.28] - 2026-07-03
 
 ### Changed

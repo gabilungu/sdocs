@@ -47,6 +47,14 @@ export async function devCommand(): Promise<void> {
 		resolve: {
 			dedupe: svelteDedupe(cwd),
 		},
+		optimizeDeps: {
+			// Rolldown-based Vite (8+) can't scan .svelte entry graphs and floods
+			// the console with unresolved-import errors. Skip the initial scan —
+			// runtime discovery still optimizes dependencies on demand — and
+			// pre-bundle the one dependency the client app always needs.
+			entries: [],
+			include: ['svelte'],
+		},
 		plugins: [
 			svelte(),
 			sdocsPlugin({ ...config, include: absoluteIncludes }),

@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.30] - 2026-07-03
+
+### Fixed
+
+- The `sdocs dev`/`run` explorer UI rendered unstyled since 0.0.28: with the
+  staging directory under `node_modules`, the Svelte plugin doesn't serve
+  virtual CSS modules for the client's components. Styles are now compiled
+  into the components in dev. (Static builds were unaffected.)
+
+### Added
+
+- The package exports `./package.json`.
+
 ## [0.0.29] - 2026-07-03
 
 ### Fixed

@@ -56,7 +56,14 @@ export async function devCommand(): Promise<void> {
 			include: ['svelte'],
 		},
 		plugins: [
-			svelte(),
+			svelte({
+				compilerOptions: {
+					// The staging dir lives under node_modules (see createStagingDir),
+					// where vite-plugin-svelte doesn't serve virtual CSS modules for
+					// components; inject styles into the JS instead.
+					css: 'injected',
+				},
+			}),
 			sdocsPlugin({ ...config, include: absoluteIncludes }),
 		],
 		server: {

@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.15] - 2026-07-02
+
+### Added
+
+- **"sdocs: New Component Doc" command** — right-click a `.svelte` file in the
+  explorer (or run from the palette) to scaffold `X.sdoc` next to it, pre-filled
+  with the component import, meta, and a `Default(args)` snippet. Opens the
+  existing doc if one is already there.
+- **`component:` value completion** — inside `export const meta`, completing
+  after `component:` suggests the identifiers imported in the file.
+- **sdocs diagnostics** — warnings for: missing `export const meta`, missing
+  `meta.title`, a `meta.component` identifier that isn't imported or declared,
+  and duplicate top-level snippet names (which collide as sub-pages).
+
+### Changed
+
+- Meta-field completion no longer fires in value positions (those belong to
+  the language server).
+
 ## [0.0.14] - 2026-07-02
 
 ### Added

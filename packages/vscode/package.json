@@ -2,7 +2,7 @@
 	"name": "sdocs",
 	"displayName": "sdocs",
 	"description": "Language support for sdocs — Svelte component documentation (.sdoc)",
-	"version": "0.0.14",
+	"version": "0.0.15",
 	"publisher": "gabilungu",
 	"license": "MIT",
 	"repository": {
@@ -32,7 +32,29 @@
 					".sdoc"
 				]
 			}
-		]
+		],
+		"commands": [
+			{
+				"command": "sdocs.newComponentDoc",
+				"category": "sdocs",
+				"title": "New Component Doc"
+			}
+		],
+		"menus": {
+			"explorer/context": [
+				{
+					"command": "sdocs.newComponentDoc",
+					"when": "resourceExtname == .svelte",
+					"group": "2_workspace"
+				}
+			],
+			"commandPalette": [
+				{
+					"command": "sdocs.newComponentDoc",
+					"when": "resourceExtname == .svelte"
+				}
+			]
+		}
 	},
 	"scripts": {
 		"compile": "node esbuild.js",

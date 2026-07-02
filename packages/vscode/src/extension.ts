@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 import { MetaCompletionProvider } from './MetaCompletionProvider';
+import { SdocDiagnostics } from './SdocDiagnostics';
+import { newComponentDoc } from './newComponentDoc';
 
 export function activate(context: vscode.ExtensionContext) {
 	// .sdoc files are registered as the `svelte` language (see contributes.languages),
@@ -11,6 +13,8 @@ export function activate(context: vscode.ExtensionContext) {
 			{ language: 'svelte', pattern: '**/*.sdoc' },
 			new MetaCompletionProvider(),
 		),
+		new SdocDiagnostics(),
+		vscode.commands.registerCommand('sdocs.newComponentDoc', newComponentDoc),
 	);
 
 	// Versions up to 0.0.13 formatted via scratch files under

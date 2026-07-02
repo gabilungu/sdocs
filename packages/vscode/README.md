@@ -13,7 +13,12 @@ server, so they get the full `.svelte` editing experience:
 - **Syntax highlighting** — script, markup, and styles, exactly like `.svelte`.
 - **Formatting** — Format Document and format-on-save via your Svelte formatter.
 - **Meta-field autocomplete** — sdocs-specific suggestions for `component`,
-  `title`, `description`, `args`, and `settings` inside `export const meta = { }`.
+  `title`, `description`, `args`, and `settings` inside `export const meta = { }`,
+  plus imported-component suggestions after `component:`.
+- **New Component Doc** — right-click a `.svelte` file → *New Component Doc*
+  scaffolds an `.sdoc` next to it, ready to fill in.
+- **sdocs lint** — warnings for missing/incomplete `meta`, an unimported
+  `component` reference, and duplicate snippet names.
 
 ## Requirements
 

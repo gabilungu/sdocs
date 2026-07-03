@@ -8,6 +8,7 @@ interface Entry {
 /** One preview panel per project — opening again reveals the existing tab. */
 export class SdocsPanels implements vscode.Disposable {
 	private panels = new Map<string, Entry>();
+	private refreshCount = 0;
 
 	constructor(private extensionUri: vscode.Uri) {}
 
@@ -41,7 +42,9 @@ export class SdocsPanels implements vscode.Disposable {
 	/** Reload the iframe of the currently active preview panel */
 	refreshActive(): void {
 		for (const { panel, url } of this.panels.values()) {
-			if (panel.active) panel.webview.html = iframeHtml(url);
+			// Setting identical html is a no-op (VS Code diffs it), so stamp
+			// each refresh to force the webview — and its iframe — to reload.
+			if (panel.active) panel.webview.html = iframeHtml(url, ++this.refreshCount);
 		}
 	}
 
@@ -51,9 +54,10 @@ export class SdocsPanels implements vscode.Disposable {
 	}
 }
 
-function iframeHtml(url: string): string {
+function iframeHtml(url: string, refresh = 0): string {
 	return `<!DOCTYPE html>
 <html>
+<!-- refresh ${refresh} -->
 <head>
 	<meta http-equiv="Content-Security-Policy"
 		content="default-src 'none'; frame-src http://localhost:* http://127.0.0.1:*; style-src 'unsafe-inline';">

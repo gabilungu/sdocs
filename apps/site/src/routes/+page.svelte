@@ -76,11 +76,13 @@
 	.hero {
 		display: flex;
 		flex-direction: column;
-		align-items: flex-start;
+		align-items: center;
 		gap: 0.5rem;
+		width: 100%;
 		max-width: 62rem;
+		margin: 0 auto;
 		padding: 4rem 1.5rem 3rem;
-		text-align: left;
+		text-align: center;
 	}
 
 	h1 {
@@ -138,7 +140,7 @@
 		align-items: center;
 		width: 100%;
 		max-width: 62rem;
-		margin: 0;
+		margin: 0 auto;
 		padding: 2rem 1.5rem;
 	}
 
@@ -168,7 +170,7 @@
 		gap: 1.25rem;
 		width: 100%;
 		max-width: 62rem;
-		margin: 0;
+		margin: 0 auto;
 		padding: 1rem 1.5rem 4rem;
 	}
 

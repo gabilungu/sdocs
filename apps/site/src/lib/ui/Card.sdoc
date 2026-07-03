@@ -1,0 +1,42 @@
+<script lang="ts">
+	import Card from './Card.svelte';
+	import Terminal from '@lucide/svelte/icons/terminal';
+
+	export const meta = {
+		component: Card,
+		title: 'UI / Card',
+		description: 'Linked card with an icon tile, body text, and a call-to-action line.',
+		args: {
+			href: '#',
+			title: 'CLI',
+			linkText: 'Command reference',
+		},
+	};
+</script>
+
+{#snippet Default(args)}
+	<Card {...args}>
+		Starts the Explorer in any project with zero install, and ships it as a
+		static site.
+	</Card>
+{/snippet}
+
+{#snippet WithIcon(args)}
+	<Card {...args}>
+		{#snippet icon()}<Terminal size={22} />{/snippet}
+		Starts the Explorer in any project with zero install, and ships it as a
+		static site.
+	</Card>
+{/snippet}
+
+{#snippet Grid(args)}
+	<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem;">
+		<Card href="#" title="Explorer" linkText="Explore the docs">
+			{#snippet icon()}<Terminal size={22} />{/snippet}
+			The interactive component browser built from your doc files.
+		</Card>
+		<Card href="#" title="CLI" linkText="Command reference">
+			Zero-install docs dev server and static site builder.
+		</Card>
+	</div>
+{/snippet}

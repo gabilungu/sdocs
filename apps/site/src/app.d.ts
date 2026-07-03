@@ -10,4 +10,11 @@ declare global {
 	}
 }
 
+declare module 'virtual:sdocs' {
+	import type { DocEntry } from 'sdocs';
+	export const docs: DocEntry[];
+	export const cssNames: string[];
+	export default docs;
+}
+
 export {};

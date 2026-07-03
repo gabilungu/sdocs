@@ -3,7 +3,8 @@
 	import PanelsTopLeft from '@lucide/svelte/icons/panels-top-left';
 	import Terminal from '@lucide/svelte/icons/terminal';
 	import Blocks from '@lucide/svelte/icons/blocks';
-	import ArrowRight from '@lucide/svelte/icons/arrow-right';
+	import LinkButton from '$lib/ui/LinkButton.svelte';
+	import Card from '$lib/ui/Card.svelte';
 
 	let { data } = $props();
 </script>
@@ -19,8 +20,8 @@
 	<p class="tagline">A lightweight documentation tool for Svelte 5 components.</p>
 	<pre>npm install -D sdocs</pre>
 	<div class="actions">
-		<a class="primary" href="{base}/explorer/getting-started">Get started</a>
-		<a class="secondary" href="{base}/explorer">Documentation</a>
+		<LinkButton href="{base}/explorer/getting-started">Get started</LinkButton>
+		<LinkButton href="{base}/explorer" variant="secondary">Documentation</LinkButton>
 	</div>
 </section>
 
@@ -43,33 +44,21 @@
 </section>
 
 <section class="entities">
-	<a class="card" href="{base}/explorer">
-		<span class="card-icon"><PanelsTopLeft size={22} /></span>
-		<h3>Explorer</h3>
-		<p>
-			The interactive component browser built from your <code>.sdoc</code> files — live
-			previews, prop controls, theming, and search.
-		</p>
-		<span class="more">Explore the docs <ArrowRight size={15} /></span>
-	</a>
-	<a class="card" href="{base}/cli">
-		<span class="card-icon"><Terminal size={22} /></span>
-		<h3>CLI</h3>
-		<p>
-			<code>npx sdocs run</code> starts the Explorer in any project with zero install, and
-			<code>sdocs build</code> ships it as a static site.
-		</p>
-		<span class="more">Command reference <ArrowRight size={15} /></span>
-	</a>
-	<a class="card" href="{base}/extension">
-		<span class="card-icon"><Blocks size={22} /></span>
-		<h3>VS Code Extension</h3>
-		<p>
-			Full Svelte IntelliSense in <code>.sdoc</code> files, plus a Projects view that runs
-			and shows your docs inside the editor.
-		</p>
-		<span class="more">Extension guide <ArrowRight size={15} /></span>
-	</a>
+	<Card href="{base}/explorer" title="Explorer" linkText="Explore the docs">
+		{#snippet icon()}<PanelsTopLeft size={22} />{/snippet}
+		The interactive component browser built from your <code>.sdoc</code> files — live
+		previews, prop controls, theming, and search.
+	</Card>
+	<Card href="{base}/cli" title="CLI" linkText="Command reference">
+		{#snippet icon()}<Terminal size={22} />{/snippet}
+		<code>npx sdocs run</code> starts the Explorer in any project with zero install, and
+		<code>sdocs build</code> ships it as a static site.
+	</Card>
+	<Card href="{base}/extension" title="VS Code Extension" linkText="Extension guide">
+		{#snippet icon()}<Blocks size={22} />{/snippet}
+		Full Svelte IntelliSense in <code>.sdoc</code> files, plus a Projects view that runs
+		and shows your docs inside the editor.
+	</Card>
 </section>
 
 <style>
@@ -112,27 +101,6 @@
 		margin-top: 1.5rem;
 	}
 
-	.actions a {
-		padding: 0.625rem 1.25rem;
-		border-radius: 8px;
-		font-weight: 600;
-	}
-
-	.actions a:hover {
-		text-decoration: none;
-		filter: brightness(1.1);
-	}
-
-	.primary {
-		background: var(--accent);
-		color: #fff;
-	}
-
-	.secondary {
-		border: 1px solid var(--border);
-		color: var(--text);
-	}
-
 	.example {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
@@ -172,53 +140,6 @@
 		max-width: 62rem;
 		margin: 0 auto;
 		padding: 1rem 1.5rem 4rem;
-	}
-
-	.card {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-		padding: 1.25rem;
-		border: 1px solid var(--border);
-		border-radius: 10px;
-		color: var(--text);
-	}
-
-	.card:hover {
-		text-decoration: none;
-		border-color: var(--accent);
-	}
-
-	.card-icon {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 2.25rem;
-		height: 2.25rem;
-		border-radius: 8px;
-		background: var(--bg-code);
-		color: var(--accent);
-	}
-
-	.card h3 {
-		margin: 0;
-		font-size: 1.0625rem;
-	}
-
-	.card p {
-		margin: 0;
-		flex: 1;
-		font-size: 0.9375rem;
-		color: var(--text-soft);
-	}
-
-	.card .more {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.25rem;
-		font-size: 0.875rem;
-		font-weight: 600;
-		color: var(--accent);
 	}
 
 	@media (max-width: 48rem) {

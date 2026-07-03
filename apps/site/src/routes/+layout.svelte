@@ -23,6 +23,7 @@
 				{#each SECTIONS as section (section.slug)}
 					<a href="{base}/{section.slug}" class:active={isActive(section.slug)}>{section.title}</a>
 				{/each}
+				<a href="{base}/sdocs" class:active={isActive('sdocs')}>Demo</a>
 			</nav>
 		</div>
 		<nav class="external">

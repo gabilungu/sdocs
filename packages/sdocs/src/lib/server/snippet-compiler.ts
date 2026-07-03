@@ -1,4 +1,4 @@
-import { dirname, resolve } from 'node:path';
+import { dirname, relative, resolve, sep } from 'node:path';
 
 /** Base64url encode a string (URL-safe, no padding) */
 export function base64urlEncode(str: string): string {
@@ -8,6 +8,26 @@ export function base64urlEncode(str: string): string {
 /** Base64url decode */
 export function base64urlDecode(str: string): string {
 	return Buffer.from(str, 'base64url').toString('utf-8');
+}
+
+// Doc paths are encoded relative to this root. Encoding absolute paths would
+// leak the machine's filesystem layout into published URLs and produce path
+// segments long enough to break static hosts (GitHub Pages rejects them).
+let docPathRoot = process.cwd();
+
+/** Set the root that doc paths are encoded against (the Vite root / staging dir) */
+export function setDocPathRoot(root: string): void {
+	docPathRoot = root;
+}
+
+/** Encode a doc file path for use in URLs and emitted file names */
+export function encodeDocPath(filePath: string): string {
+	return base64urlEncode(relative(docPathRoot, filePath).split(sep).join('/'));
+}
+
+/** Decode an encoded doc path back to an absolute path */
+function decodeDocPath(encoded: string): string {
+	return resolve(docPathRoot, base64urlDecode(encoded));
 }
 
 /** Resolve relative imports to absolute paths for use in virtual components */
@@ -181,22 +201,22 @@ export function generateStaticPreviewHtml(
 
 /** Build the virtual module ID for an iframe wrapper component */
 export function iframeVirtualId(docFilePath: string, snippetName: string): string {
-	return `/@sdocs/iframe/${base64urlEncode(docFilePath)}/${snippetName}.svelte`;
+	return `/@sdocs/iframe/${encodeDocPath(docFilePath)}/${snippetName}.svelte`;
 }
 
 /** Build the preview URL for an iframe HTML page (dev mode) */
 export function previewUrl(docFilePath: string, snippetName: string): string {
-	return `/@sdocs/preview/${base64urlEncode(docFilePath)}/${snippetName}`;
+	return `/@sdocs/preview/${encodeDocPath(docFilePath)}/${snippetName}`;
 }
 
 /** Build the preview URL for static build output */
 export function buildPreviewUrl(docFilePath: string, snippetName: string): string {
-	return `/previews/${base64urlEncode(docFilePath)}/${snippetName}.html`;
+	return `/previews/${encodeDocPath(docFilePath)}/${snippetName}.html`;
 }
 
 /** Virtual module ID for a preview's mount script (embedded production builds) */
 export function mountVirtualId(docFilePath: string, snippetName: string): string {
-	return `/@sdocs/mount/${base64urlEncode(docFilePath)}/${snippetName}.js`;
+	return `/@sdocs/mount/${encodeDocPath(docFilePath)}/${snippetName}.js`;
 }
 
 /** Parse a mount virtual ID back into its parts */
@@ -204,7 +224,7 @@ export function parseMountId(id: string): { docFilePath: string; snippetName: st
 	const match = id.match(/^\/@sdocs\/mount\/([^/]+)\/(\w+)\.js$/);
 	if (!match) return null;
 	return {
-		docFilePath: base64urlDecode(match[1]),
+		docFilePath: decodeDocPath(match[1]),
 		snippetName: match[2],
 	};
 }
@@ -214,7 +234,7 @@ export function parseIframeId(id: string): { docFilePath: string; snippetName: s
 	const match = id.match(/^\/@sdocs\/iframe\/([^/]+)\/(\w+)\.svelte$/);
 	if (!match) return null;
 	return {
-		docFilePath: base64urlDecode(match[1]),
+		docFilePath: decodeDocPath(match[1]),
 		snippetName: match[2],
 	};
 }
@@ -224,7 +244,7 @@ export function parsePreviewUrl(url: string): { docFilePath: string; snippetName
 	const match = url.match(/^\/@sdocs\/preview\/([^/]+)\/(\w+)$/);
 	if (!match) return null;
 	return {
-		docFilePath: base64urlDecode(match[1]),
+		docFilePath: decodeDocPath(match[1]),
 		snippetName: match[2],
 	};
 }

@@ -25,7 +25,8 @@ import {
 	mountVirtualId,
 	previewUrl,
 	buildPreviewUrl,
-	base64urlEncode,
+	encodeDocPath,
+	setDocPathRoot,
 	type StaticCssLink,
 } from './server/snippet-compiler.js';
 import type {
@@ -67,6 +68,7 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 
 		async configResolved(resolvedConfig) {
 			root = resolvedConfig.root;
+			setDocPathRoot(root);
 			isBuild = resolvedConfig.command === 'build';
 			isSsrBuild = !!resolvedConfig.build?.ssr;
 			base = resolvedConfig.base || '/';
@@ -205,7 +207,7 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				}
 
 				for (const entry of docEntries.values()) {
-					const encoded = base64urlEncode(entry.filePath);
+					const encoded = encodeDocPath(entry.filePath);
 					for (const snippet of entry.snippets) {
 						const jsFileName = `previews/${encoded}/${snippet.name}.js`;
 						this.emitFile({

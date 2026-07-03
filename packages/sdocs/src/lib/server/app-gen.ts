@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import type { ResolvedSdocsConfig } from '../types.js';
 import { discoverDocFiles, getSdocKind } from './discovery.js';
 import { extractSnippets, hasDefaultSnippet } from './snippet-extractor.js';
-import { base64urlEncode } from './snippet-compiler.js';
+import { encodeDocPath, setDocPathRoot } from './snippet-compiler.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -207,6 +207,9 @@ export async function generateBuildFiles(
 	cwd: string,
 ): Promise<{ sdocsDir: string; inputs: Record<string, string> }> {
 	const sdocsDir = await createStagingDir(cwd);
+	// The staging dir becomes the Vite root; encode doc paths against it now so
+	// these inputs match the URLs the plugin generates later.
+	setDocPathRoot(sdocsDir);
 
 	// Copy Explorer components into the staging dir
 	await copyExplorerApp(sdocsDir);
@@ -222,7 +225,7 @@ export async function generateBuildFiles(
 	const docSnippets = await discoverSnippets(config, cwd);
 
 	for (const { filePath, snippetNames } of docSnippets) {
-		const encoded = base64urlEncode(filePath);
+		const encoded = encodeDocPath(filePath);
 		for (const snippetName of snippetNames) {
 			const iframeId = `/@sdocs/iframe/${encoded}/${snippetName}.svelte`;
 			const previewDir = resolve(sdocsDir, 'previews', encoded);

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.34] - 2026-07-03
+
+### Fixed
+
+- **Preview paths are short and project-relative.** Preview URLs and emitted
+  file names used to encode the doc's absolute filesystem path, which leaked
+  the machine's directory layout into published sites and produced path
+  segments long enough for GitHub Pages to reject the deployment. Paths are
+  now encoded relative to the project root.
+
 ## [0.0.33] - 2026-07-03
 
 ### Added

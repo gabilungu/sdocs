@@ -46,6 +46,14 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      # Pages deployments fail transiently ("try again later") now and then;
+      # one automatic retry absorbs it.
       - name: Deploy
         id: deployment
+        continue-on-error: true
+        uses: actions/deploy-pages@v5
+
+      - name: Retry deploy
+        if: steps.deployment.outcome == 'failure'
+        id: deployment-retry
         uses: actions/deploy-pages@v5

@@ -88,6 +88,11 @@ css: {
 
 Relative paths resolve from the project root. Absolute paths and `http(s)://` URLs are used as-is.
 
+In embedded production builds the file is copied verbatim into the build
+output, so keep it self-contained: `@import` and relative `url()` references
+won't resolve from the copied location. Inline what the previews need (fonts
+can be data URIs) or use absolute `http(s)://` URLs.
+
 See [theming](/explorer/features/theming) for details on named stylesheets.
 
 ### `logo`

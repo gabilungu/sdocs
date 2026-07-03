@@ -5,9 +5,8 @@ import { defineConfig } from 'vite';
 export default defineConfig({
 	plugins: [
 		sveltekit(),
-		sdocsPlugin({
-			include: ['./src/lib/ui/**/*.sdoc'],
-		}),
+		// Options come from sdocs.config.js at the project root
+		sdocsPlugin(),
 	],
 	server: {
 		fs: {

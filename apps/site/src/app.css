@@ -1,6 +1,8 @@
+@import './fonts/fonts.css';
+
 /* Site tokens — mirrors the sdocs UI theme (zinc base, blue accent). */
 :root {
-	--sans: 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+	--sans: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 	--mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Monaco, Consolas, monospace;
 
 	--bg: #fff;

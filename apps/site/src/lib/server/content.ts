@@ -11,6 +11,7 @@ export interface NavSection extends NavItem {
 }
 
 export interface Doc {
+	section: string;
 	slug: string;
 	title: string;
 	html: string;
@@ -20,13 +21,14 @@ export interface Doc {
 }
 
 interface Page {
+	section: string;
 	rel: string;
 	slug: string;
 	title: string;
 	body: string;
 }
 
-const files = import.meta.glob('/content/docs/**/*.md', {
+const files = import.meta.glob('/content/**/*.md', {
 	query: '?raw',
 	import: 'default',
 	eager: true
@@ -40,29 +42,33 @@ function parseFrontmatter(raw: string, path: string): { title: string; body: str
 	return { title, body: raw.slice(match[0].length) };
 }
 
-// Directory layout is the source of truth: nesting defines sections, numeric
-// prefixes (01-...) define order and are stripped from slugs, index.md is the
-// section landing page.
+// Directory layout is the source of truth: the first segment is the site
+// section (top bar), nesting below it defines sidebar groups, numeric
+// prefixes (01-...) define order and are stripped from slugs, index.md is
+// the landing page of its level.
 const pages: Page[] = Object.entries(files)
 	.map(([path, raw]) => {
-		const rel = path.replace('/content/docs/', '');
+		const [section, ...rest] = path.replace('/content/', '').split('/');
+		const rel = rest.join('/');
 		const slug = rel
 			.replace(/\.md$/, '')
 			.split('/')
 			.map((segment) => segment.replace(/^\d+-/, ''))
 			.filter((segment) => segment !== 'index')
 			.join('/');
-		return { rel, slug, ...parseFrontmatter(raw, path) };
+		return { section, rel, slug, ...parseFrontmatter(raw, path) };
 	})
 	.sort((a, b) => {
-		// Drop the 'index.md' filename so a section's landing page sorts before its children.
-		const keyA = a.rel.replace(/(^|\/)index\.md$/, '$1');
-		const keyB = b.rel.replace(/(^|\/)index\.md$/, '$1');
+		// Drop the 'index.md' filename so a level's landing page sorts before its children.
+		const keyA = `${a.section}/${a.rel}`.replace(/(^|\/)index\.md$/, '$1');
+		const keyB = `${b.section}/${b.rel}`.replace(/(^|\/)index\.md$/, '$1');
 		return keyA < keyB ? -1 : keyA > keyB ? 1 : 0;
 	});
 
-const nav: NavSection[] = [];
+const navs = new Map<string, NavSection[]>();
 for (const page of pages) {
+	let nav = navs.get(page.section);
+	if (!nav) navs.set(page.section, (nav = []));
 	const item = { title: page.title, slug: page.slug };
 	if (!page.rel.includes('/')) {
 		nav.push({ ...item, children: [] });
@@ -73,22 +79,24 @@ for (const page of pages) {
 	}
 }
 
-export function getNav(): NavSection[] {
-	return nav;
+export function getNav(section: string): NavSection[] {
+	return navs.get(section) ?? [];
 }
 
-export function getSlugs(): string[] {
-	return pages.map((page) => page.slug);
+export function getEntries(): { section: string; slug: string }[] {
+	return pages.map((page) => ({ section: page.section, slug: page.slug }));
 }
 
-export async function getDoc(slug: string): Promise<Doc | null> {
-	const index = pages.findIndex((page) => page.slug === slug);
+export async function getDoc(section: string, slug: string): Promise<Doc | null> {
+	const sectionPages = pages.filter((page) => page.section === section);
+	const index = sectionPages.findIndex((page) => page.slug === slug);
 	if (index === -1) return null;
-	const page = pages[index];
-	const prev = pages[index - 1];
-	const next = pages[index + 1];
+	const page = sectionPages[index];
+	const prev = sectionPages[index - 1];
+	const next = sectionPages[index + 1];
 	const { html, toc } = await renderMarkdown(page.body);
 	return {
+		section,
 		slug: page.slug,
 		title: page.title,
 		html,

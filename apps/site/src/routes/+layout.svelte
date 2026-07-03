@@ -1,8 +1,12 @@
 <script lang="ts">
 	import { base } from '$app/paths';
+	import { page } from '$app/state';
+	import { SECTIONS } from '$lib/sections';
 	import '../app.css';
 
 	let { children } = $props();
+
+	const isActive = (slug: string) => page.url.pathname.startsWith(`${base}/${slug}`);
 </script>
 
 <div class="app">
@@ -12,7 +16,9 @@
 			<span>sdocs</span>
 		</a>
 		<nav>
-			<a href="{base}/docs">Docs</a>
+			{#each SECTIONS as section (section.slug)}
+				<a href="{base}/{section.slug}" class:active={isActive(section.slug)}>{section.title}</a>
+			{/each}
 			<a href="https://github.com/gabilungu/sdocs">GitHub</a>
 		</nav>
 	</header>
@@ -67,6 +73,10 @@
 	nav a:hover {
 		color: var(--text);
 		text-decoration: none;
+	}
+
+	nav a.active {
+		color: var(--text);
 	}
 
 	main {

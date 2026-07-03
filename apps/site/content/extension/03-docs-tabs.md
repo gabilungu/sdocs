@@ -1,0 +1,26 @@
+---
+title: Docs Tabs
+---
+
+Running a project from the [Projects view](/extension/projects-view) opens
+the Explorer in an editor tab — dock it in a split like any editor. One tab
+per project: running or opening again re-focuses the existing tab instead of
+duplicating it.
+
+## Refreshing
+
+Reload the preview without leaving the tab:
+
+- Click the **refresh icon** in the tab's title bar, or
+- Press `Cmd+R` (macOS) / `Ctrl+R` while the docs tab is active — outside the
+  docs tab the keys keep their normal VS Code meaning.
+
+Refreshing reloads the Explorer from its dev server and returns to the docs
+home page.
+
+## Tips
+
+- The tab embeds the same dev server you can open in the browser — use
+  **Browser ↗** on the project card when you want browser devtools.
+- To inspect the tab itself, run **Developer: Open Webview Developer Tools**
+  from the command palette while the tab is focused.

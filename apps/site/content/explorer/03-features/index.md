@@ -1,0 +1,11 @@
+---
+title: Features
+---
+
+Deep dives into what sdocs does automatically.
+
+- [Prop extraction](/explorer/features/prop-extraction) — what's parsed from your Svelte components
+- [Interactive controls](/explorer/features/interactive-controls) — auto-generated UI for each prop type
+- [Theming & CSS switching](/explorer/features/theming) — named stylesheets and app theme
+- [Sidebar](/explorer/features/sidebar) — structure, ordering, groups, search
+- [Routing](/explorer/features/routing) — URL format and deep linking

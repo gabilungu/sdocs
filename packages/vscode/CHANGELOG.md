@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.19] - 2026-07-03
+
 ### Changed
 
 - The `sdocs config` language icon is now the mini mascot. File icon themes

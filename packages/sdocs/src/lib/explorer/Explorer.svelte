@@ -7,7 +7,7 @@
 	import PageView from './views/PageView.svelte';
 	import LayoutView from './views/LayoutView.svelte';
 	import HomePage from './views/HomePage.svelte';
-	import { onMount } from 'svelte';
+	import { onMount, setContext } from 'svelte';
 	import '../ui/styles/sdocs.css';
 
 	type ThemeMode = 'light' | 'dark';
@@ -17,13 +17,24 @@
 		logo?: string;
 		icon?: string | false;
 		cssNames?: string[];
+		/** URL prefix for preview pages when the host app is served under a sub-path (e.g. SvelteKit's base). */
+		previewBase?: string;
 		sidebarConfig?: {
 			order?: Record<string, string[]>;
 			open?: string[];
 		};
 	}
 
-	let { docs, logo = 'sdocs', icon = 'sdocs', cssNames = [], sidebarConfig }: Props = $props();
+	let {
+		docs,
+		logo = 'sdocs',
+		icon = 'sdocs',
+		cssNames = [],
+		previewBase = '',
+		sidebarConfig
+	}: Props = $props();
+
+	setContext('sdocs-preview-base', previewBase);
 
 	let sidebarHidden = $state(false);
 	let activeStylesheet = $state<string | undefined>(undefined);

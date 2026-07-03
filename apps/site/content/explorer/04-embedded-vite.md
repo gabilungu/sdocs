@@ -75,6 +75,7 @@ The `Explorer` component from `sdocs/explorer` accepts:
 | `cssNames` | `string[]` | Stylesheet names if using named CSS. Comes from `virtual:sdocs`. |
 | `logo` | `string` | Sidebar logo text. Default: `'sdocs'`. |
 | `icon` | `string \| false` | Sidebar logo icon: `'sdocs'` for the built-in mascot (default), an image URL, or `false` to hide. |
+| `previewBase` | `string` | URL prefix for preview pages when the app deploys under a sub-path. In SvelteKit, pass `base` from `$app/paths`. Default: `''`. |
 | `sidebarConfig` | `{ order?, open? }` | Sidebar ordering & initial open state. See [sidebar](/explorer/features/sidebar). |
 
 See [types](/explorer/types) for `DocEntry`.
@@ -86,8 +87,19 @@ static page under `previews/` in the build output, and `virtual:sdocs` points
 the preview iframes there — embedded docs work in the deployed app, not just
 in dev. Your `css` stylesheets are bundled into the preview pages as well.
 
-Preview URLs are root-absolute (`/previews/...`), so if the app is deployed
-under a sub-path, previews currently need it to be served at the domain root.
+When the app deploys under a sub-path (GitHub Pages, for example), pass the
+path to the `Explorer` component so preview URLs resolve — in SvelteKit:
+
+```svelte
+<script>
+  import { base } from '$app/paths';
+</script>
+
+<Explorer {docs} {cssNames} previewBase={base} />
+```
+
+Plain Vite apps that set `base` in their Vite config need nothing extra — the
+plugin picks it up automatically.
 
 ## virtual:sdocs
 

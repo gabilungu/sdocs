@@ -55,6 +55,9 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 	const buildMode = (userConfig as any)?._buildMode ?? false;
 	let isBuild = false;
 	let isSsrBuild = false;
+	// Host app's base path ('/' when served at the domain root); preview URLs
+	// are root-absolute and must carry it so embedding works under a sub-path.
+	let base = '/';
 	// Previews planned for emission into a host app's build (embedded mode)
 	let plannedPreviews: PlannedPreview[] = [];
 	let emittedCssLinks: StaticCssLink[] = [];
@@ -66,6 +69,7 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 			root = resolvedConfig.root;
 			isBuild = resolvedConfig.command === 'build';
 			isSsrBuild = !!resolvedConfig.build?.ssr;
+			base = resolvedConfig.base || '/';
 			const fileConfig = await loadRawConfig(root);
 			const merged = { ...fileConfig, ...userConfig };
 			config = resolveAndFinalize(merged, root);
@@ -381,9 +385,13 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				name: s.name,
 				body: s.body,
 				highlightedHtml: s.highlightedHtml,
-				previewUrl: buildMode || isBuild
-					? buildPreviewUrl(e.filePath, s.name)
-					: previewUrl(e.filePath, s.name),
+				previewUrl:
+					// Only absolute bases prefix here; SvelteKit builds with a relative
+					// base ('./') and passes its real path via the Explorer's previewBase.
+					(base.startsWith('/') && base !== '/' ? base.replace(/\/$/, '') : '') +
+					(buildMode || isBuild
+						? buildPreviewUrl(e.filePath, s.name)
+						: previewUrl(e.filePath, s.name)),
 			})),
 			highlightedSource: e.highlightedSource,
 			toc: e.toc,

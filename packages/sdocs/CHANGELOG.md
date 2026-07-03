@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.33] - 2026-07-03
+
+### Added
+
+- **Embedded apps can deploy under a sub-path.** Preview URLs pick up the
+  host Vite `base` automatically; SvelteKit apps (whose base Vite doesn't
+  see) pass it explicitly via the new `previewBase` prop on `Explorer` —
+  e.g. `previewBase={base}` with `base` from `$app/paths`.
+
 ## [0.0.32] - 2026-07-03
 
 ### Changed

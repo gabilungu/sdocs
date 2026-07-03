@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, untrack } from 'svelte';
+	import { getContext, onMount, untrack } from 'svelte';
 
 	interface Props {
 		src: string;
@@ -10,6 +10,11 @@
 	}
 
 	let { src, props = {}, cssVars = {}, activeStylesheet, fullHeight = false }: Props = $props();
+
+	// Preview URLs are root-absolute; hosts serving under a sub-path pass the
+	// prefix via the Explorer's previewBase prop (see Explorer.svelte).
+	const previewBase = (getContext('sdocs-preview-base') as string | undefined) ?? '';
+	const resolvedSrc = $derived(previewBase.replace(/\/$/, '') + src);
 	let iframe: HTMLIFrameElement;
 	let ready = $state(false);
 	let contentHeight = $state(0);
@@ -73,7 +78,7 @@
 <div class="sdocs-preview-frame" class:full-height={fullHeight}>
 	<iframe
 		bind:this={iframe}
-		{src}
+		src={resolvedSrc}
 		title="Component preview"
 		class="sdocs-iframe"
 		scrolling="no"

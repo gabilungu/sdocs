@@ -51,7 +51,7 @@ export async function devCommand(): Promise<void> {
 			// Rolldown-based Vite (8+) can't scan .svelte entry graphs and floods
 			// the console with unresolved-import errors. Skip the initial scan —
 			// runtime discovery still optimizes dependencies on demand — and
-			// pre-bundle the one dependency the client app always needs.
+			// pre-bundle the one dependency the Explorer app always needs.
 			entries: [],
 			include: ['svelte'],
 		},

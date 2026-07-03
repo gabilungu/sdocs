@@ -31,16 +31,16 @@ The plugin:
 - Watches for file changes and triggers a full reload
 - Adds a middleware endpoint for syntax highlighting
 
-## 2. Create a page that mounts the app
+## 2. Create a page that mounts the Explorer
 
 ```svelte
 <!-- src/routes/docs/+page.svelte -->
 <script>
-  import App from 'sdocs/client';
+  import Explorer from 'sdocs/explorer';
   import { docs, cssNames } from 'virtual:sdocs';
 </script>
 
-<App
+<Explorer
   {docs}
   {cssNames}
   logo="My Design System"
@@ -65,9 +65,9 @@ declare module 'virtual:sdocs' {
 }
 ```
 
-## App props
+## Explorer props
 
-The `App` component from `sdocs/client` accepts:
+The `Explorer` component from `sdocs/explorer` accepts:
 
 | Prop | Type | Description |
 |---|---|---|

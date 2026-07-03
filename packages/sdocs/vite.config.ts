@@ -35,9 +35,9 @@ export default defineConfig(async () => {
 		resolve(sdocsDir, 'entry.js'),
 		`import { mount } from 'svelte';
 import { docs, cssNames } from 'virtual:sdocs';
-import App from '../src/lib/client/App.svelte';
+import Explorer from '../src/lib/explorer/Explorer.svelte';
 
-mount(App, {
+mount(Explorer, {
 	target: document.getElementById('app'),
 	props: {
 		docs,
@@ -48,7 +48,7 @@ mount(App, {
 	);
 
 	await copyFile(
-		resolve(cwd, 'src/lib/client/favicon.png'),
+		resolve(cwd, 'src/lib/explorer/favicon.png'),
 		resolve(sdocsDir, 'favicon.png'),
 	);
 

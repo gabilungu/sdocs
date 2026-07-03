@@ -1,5 +1,5 @@
 <script lang="ts">
-	import App from 'sdocs/client';
+	import Explorer from 'sdocs/explorer';
 	import { docs, cssNames } from 'virtual:sdocs';
 </script>
 
@@ -7,7 +7,7 @@
 	<title>testapp docs</title>
 </svelte:head>
 
-<App
+<Explorer
 	{docs}
 	{cssNames}
 	logo="testapp"

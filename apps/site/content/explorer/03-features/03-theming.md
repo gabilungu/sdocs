@@ -4,10 +4,10 @@ title: Theming
 
 sdocs has two independent theming systems:
 
-1. **App theme** (light/dark) — controls the sdocs UI itself
+1. **Explorer theme** (light/dark) — controls the Explorer UI itself
 2. **Preview stylesheets** — CSS loaded into the component preview iframe
 
-## App theme (light/dark)
+## Explorer theme (light/dark)
 
 The sdocs UI has a light/dark toggle in the sidebar header. The choice is persisted to `localStorage` under `sdocs-theme` and applied by setting `data-sdocs-theme="light"` or `"dark"` on the app's own root element (the `.sdocs-app` container, not `<html>`).
 
@@ -48,7 +48,7 @@ This is useful for:
 - Brand variants (Acme vs. AcmeKids)
 - Accessibility variants (high contrast)
 
-### App theme vs. preview theme
+### Explorer theme vs. preview theme
 
 These are **separate** — the sdocs UI being in dark mode doesn't automatically switch the preview to a dark stylesheet. Users control each independently.
 

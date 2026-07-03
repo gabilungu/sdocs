@@ -20,9 +20,9 @@ Usage:
   sdocs <command>
 
 Commands:
-  dev       Start development server with live reload
+  dev       Start the Explorer dev server with live reload
   run       Same as dev — works with npx and no local install
-  build     Build static documentation site
+  build     Build the Explorer as a static site
   preview   Serve built site locally
   init      Scaffold sdocs.config.js
 

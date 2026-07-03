@@ -1,6 +1,6 @@
 {
   "name": "sdocs",
-  "version": "0.0.31",
+  "version": "0.0.32",
   "description": "A lightweight documentation tool for Svelte 5 components",
   "type": "module",
   "license": "MIT",
@@ -21,8 +21,8 @@
       "types": "./dist/vite.d.ts",
       "default": "./dist/vite.js"
     },
-    "./client": {
-      "svelte": "./dist/client/App.svelte"
+    "./explorer": {
+      "svelte": "./dist/explorer/Explorer.svelte"
     },
     "./ui": {
       "types": "./dist/ui/index.d.ts",

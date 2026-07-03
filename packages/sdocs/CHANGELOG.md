@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.32] - 2026-07-03
+
+### Changed
+
+- **Breaking: the embedded component is the Explorer now.** Import
+  `Explorer` from `sdocs/explorer` instead of `App` from `sdocs/client` —
+  same component and props, named for what it is. The CLI help and
+  generated app use the same naming.
+
 ## [0.0.31] - 2026-07-03
 
 ### Added

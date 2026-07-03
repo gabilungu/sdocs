@@ -70,7 +70,7 @@ export class ScopesWebview implements vscode.WebviewViewProvider {
 
 		const actions =
 			status === 'running'
-				? `<button class="primary" data-type="open" data-dir="${dir}" data-label="${label}" title="Show the docs tab">Open</button>
+				? `<button class="primary" data-type="open" data-dir="${dir}" data-label="${label}" title="Open the Explorer tab">Open</button>
 				   <button data-type="external" data-dir="${dir}" title="Open in your browser">Browser ↗</button>
 				   <button class="danger" data-type="stop" data-dir="${dir}" title="Stop the server">Stop</button>`
 				: status === 'starting'

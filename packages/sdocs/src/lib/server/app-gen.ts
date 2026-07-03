@@ -10,14 +10,14 @@ import { base64urlEncode } from './snippet-compiler.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-/** Source client directory in the installed package (dist/client, next to dist/server) */
-function getClientSourceDir(): string {
-	return resolve(__dirname, '../client');
+/** Source Explorer directory in the installed package (dist/explorer, next to dist/server) */
+function getExplorerSourceDir(): string {
+	return resolve(__dirname, '../explorer');
 }
 
-/** Copy the client app plus the ui/ tree it imports (styles, fonts, components) */
-async function copyClientApp(sdocsDir: string): Promise<void> {
-	await copyDir(getClientSourceDir(), resolve(sdocsDir, 'client'));
+/** Copy the Explorer app plus the ui/ tree it imports (styles, fonts, components) */
+async function copyExplorerApp(sdocsDir: string): Promise<void> {
+	await copyDir(getExplorerSourceDir(), resolve(sdocsDir, 'explorer'));
 	await copyDir(resolve(__dirname, '../ui'), resolve(sdocsDir, 'ui'));
 }
 
@@ -74,7 +74,7 @@ function generateIndexHtml(title: string): string {
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<link rel="icon" type="image/png" href="./client/favicon.png">
+	<link rel="icon" type="image/png" href="./explorer/favicon.png">
 	<title>${title}</title>
 	<style>body { margin: 0; }</style>
 </head>
@@ -85,13 +85,13 @@ function generateIndexHtml(title: string): string {
 </html>`;
 }
 
-/** Generate the entry.js that mounts the App */
+/** Generate the entry.js that mounts the Explorer */
 function generateEntryJs(config: ResolvedSdocsConfig): string {
 	return `import { mount } from 'svelte';
 import { docs, cssNames } from 'virtual:sdocs';
-import App from './client/App.svelte';
+import Explorer from './explorer/Explorer.svelte';
 
-mount(App, {
+mount(Explorer, {
 	target: document.getElementById('app'),
 	props: {
 		docs,
@@ -138,8 +138,8 @@ function generatePreviewHtml(
 	<div id="app"></div>
 	<script type="module">
 		import { mount } from 'svelte';
-		import App from '${iframeVirtualId}';
-		mount(App, { target: document.getElementById('app') });
+		import Preview from '${iframeVirtualId}';
+		mount(Preview, { target: document.getElementById('app') });
 
 		window.addEventListener('message', (e) => {
 			if (e.data?.type === 'sdocs:update-stylesheet') {
@@ -192,8 +192,8 @@ export async function generateDevFiles(
 ): Promise<string> {
 	const sdocsDir = await createStagingDir(cwd);
 
-	// Copy client components into the staging dir so they're compiled outside node_modules
-	await copyClientApp(sdocsDir);
+	// Copy Explorer components into the staging dir so they're compiled outside node_modules
+	await copyExplorerApp(sdocsDir);
 
 	await writeFile(resolve(sdocsDir, 'index.html'), generateIndexHtml(config.logo));
 	await writeFile(resolve(sdocsDir, 'entry.js'), generateEntryJs(config));
@@ -208,8 +208,8 @@ export async function generateBuildFiles(
 ): Promise<{ sdocsDir: string; inputs: Record<string, string> }> {
 	const sdocsDir = await createStagingDir(cwd);
 
-	// Copy client components into the staging dir
-	await copyClientApp(sdocsDir);
+	// Copy Explorer components into the staging dir
+	await copyExplorerApp(sdocsDir);
 
 	await writeFile(resolve(sdocsDir, 'index.html'), generateIndexHtml(config.logo));
 	await writeFile(resolve(sdocsDir, 'entry.js'), generateEntryJs(config));

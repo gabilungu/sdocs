@@ -65,11 +65,11 @@ The plugin discovers `.sdoc` files and exposes them via a `virtual:sdocs` module
 ```svelte
 <!-- src/routes/docs/+page.svelte -->
 <script>
-  import App from 'sdocs/client';
+  import Explorer from 'sdocs/explorer';
   import { docs, cssNames } from 'virtual:sdocs';
 </script>
 
-<App
+<Explorer
   {docs}
   {cssNames}
   logo="My Design System"
@@ -273,7 +273,7 @@ sidebar: {
 |--------|-------------|
 | `sdocs` | Main entry — `sdocsPlugin` + types |
 | `sdocs/vite` | Vite plugin function |
-| `sdocs/client` | App.svelte UI component |
+| `sdocs/explorer` | Explorer.svelte UI component |
 | `sdocs/ui` | Reusable UI components (Button, Frame, Icon, Control, NavTree, Stack) |
 
 ## License

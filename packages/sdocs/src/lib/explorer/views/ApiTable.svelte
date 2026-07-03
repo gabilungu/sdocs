@@ -1,0 +1,138 @@
+<script lang="ts">
+	import type { Snippet } from 'svelte';
+	import { typeClass, typeParts, valueClass } from './format.js';
+
+	interface Row {
+		name: string;
+		type?: string | null;
+		default?: string | null;
+		description?: string | null;
+		required?: boolean;
+	}
+
+	interface Props {
+		rows: Row[];
+		/** Renders the per-row control in the fixed right rail */
+		control?: Snippet<[Row]>;
+		/** Show the Default column (rows without defaults, e.g. events, turn it off) */
+		showDefault?: boolean;
+	}
+
+	let { rows, control, showDefault = true }: Props = $props();
+
+	const gridColumns = $derived(
+		['200px', 'minmax(0, 1fr)', ...(showDefault ? ['120px'] : []), ...(control ? ['200px'] : [])].join(' '),
+	);
+</script>
+
+{#if rows.length > 0}
+	<div class="sdocs-api-list">
+		<div class="sdocs-api-header" style:grid-template-columns={gridColumns}>
+			<div>Name</div>
+			<div>Details</div>
+			{#if showDefault}<div>Default</div>{/if}
+			{#if control}<div>Control</div>{/if}
+		</div>
+		{#each rows as row (row.name)}
+			<div class="sdocs-api-row" style:grid-template-columns={gridColumns}>
+				<div class="sdocs-api-name">
+					{row.name}{#if row.required}<span class="sdocs-api-required" title="Required">*</span>{/if}
+				</div>
+				<div class="sdocs-api-middle">
+					{#if row.type}
+						<div class="sdocs-api-meta">
+							{#each typeParts(row.type) as part, i (i)}
+								{#if i > 0}<span class="sdocs-typesep">|</span>{/if}
+								<code class="sdocs-type-{typeClass(row.type)}">{part}</code>
+							{/each}
+						</div>
+					{/if}
+					{#if row.description}
+						<div class="sdocs-api-desc">{row.description}</div>
+					{/if}
+				</div>
+				{#if showDefault}
+					<div class="sdocs-api-default">
+						{#if row.default != null}
+							<span class="sdocs-value sdocs-value-{valueClass(row.default)}">{row.default}</span>
+						{:else}
+							<span class="sdocs-api-empty">—</span>
+						{/if}
+					</div>
+				{/if}
+				{#if control}
+					<div class="sdocs-api-control">
+						{@render control(row)}
+					</div>
+				{/if}
+			</div>
+		{/each}
+	</div>
+{:else}
+	<p class="sdocs-api-none">None</p>
+{/if}
+
+<style>
+	.sdocs-api-list {
+		display: flex;
+		flex-direction: column;
+	}
+	.sdocs-api-header {
+		display: grid;
+		grid-template-columns: 200px minmax(0, 1fr) 120px 200px;
+		gap: 20px;
+		padding: 6px 12px;
+		border-bottom: 2px solid var(--color-base-200);
+		font-size: 12px;
+		font-weight: 600;
+		color: var(--color-base-600);
+	}
+	.sdocs-api-row {
+		display: grid;
+		grid-template-columns: 200px minmax(0, 1fr) 120px 200px;
+		gap: 20px;
+		align-items: start;
+		padding: 12px 12px;
+		border-bottom: 1px solid var(--color-base-100);
+		font-size: 13px;
+	}
+	.sdocs-api-name {
+		font-weight: 600;
+		color: var(--color-base-900);
+		overflow-wrap: break-word;
+	}
+	.sdocs-api-required {
+		color: var(--color-red-500);
+	}
+	.sdocs-api-middle {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		min-width: 0;
+	}
+	.sdocs-api-meta {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 6px;
+	}
+	.sdocs-api-desc {
+		color: var(--color-base-500);
+	}
+	.sdocs-api-default {
+		overflow-wrap: break-word;
+		min-width: 0;
+	}
+	.sdocs-api-empty {
+		color: var(--color-base-300);
+	}
+	.sdocs-api-control {
+		min-width: 0;
+	}
+	.sdocs-api-none {
+		color: var(--color-base-400);
+		font-size: 13px;
+		font-style: italic;
+		margin: 0;
+	}
+</style>

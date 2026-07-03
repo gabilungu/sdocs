@@ -1,6 +1,7 @@
 <script lang="ts">
 	interface Props {
-		label: string;
+		/** Optional label; omit when the control sits next to its name (e.g. in a table) */
+		label?: string;
 		value: string;
 		options: string[];
 		onchange: (value: string) => void;
@@ -10,7 +11,9 @@
 </script>
 
 <label class="sdocs-control">
-	<span class="sdocs-control-label">{label}</span>
+	{#if label}
+		<span class="sdocs-control-label">{label}</span>
+	{/if}
 	<select
 		class="sdocs-control-select"
 		{value}
@@ -32,7 +35,7 @@
 	.sdocs-control-label {
 		min-width: 100px;
 		color: var(--color-base-600);
-		font-weight: 500;
+		font-weight: 600;
 	}
 	.sdocs-control-select {
 		flex: 1;
@@ -43,6 +46,5 @@
 		font-size: 13px;
 		background: var(--color-base-0);
 		color: var(--color-base-600);
-		max-width: 200px;
 	}
 </style>

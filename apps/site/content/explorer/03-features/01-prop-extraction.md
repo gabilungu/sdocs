@@ -12,7 +12,7 @@ For each component documented in a `.sdoc` file, sdocs parses the component's so
 | **Events** | Props named `on*` whose type contains `=>` |
 | **Snippets** | Props typed as `Snippet` or `Snippet<[…]>` |
 | **Methods** | `export function foo() { … }` |
-| **State** | `export const x = $state(…)` / `$derived(…)` |
+| **States** | `export const x = $state(…)` / `$derived(…)` |
 | **CSS custom properties** | `var(--name)` usages in `<style>` + `@cssvar` annotations |
 
 Each appears as its own section on the component's doc page.
@@ -122,7 +122,7 @@ Exported functions:
 
 JSDoc comments become the method description.
 
-## State
+## States
 
 Exported `$state` and `$derived` variables:
 

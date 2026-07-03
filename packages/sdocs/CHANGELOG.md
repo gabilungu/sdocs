@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.37] - 2026-07-03
+
+### Changed
+
+- **The component page is a live API reference.** The separate Controls
+  panel is gone — controls sit inside the API tables, on the row of the
+  prop or CSS custom property they drive. Props, CSS Props, Events, and
+  Snippets share a composite row layout: name (with a red `*` when
+  required), type and description stacked in the middle, an explicit
+  Default column (`—` when absent), and a fixed control rail. Reset moved
+  next to the Props title.
+- **Sections instead of collapsible panels.** The reference sections render
+  flat with icon titles; only the preview and its code stay in the bordered
+  card (Preview Code still collapses). "State" is now "States", matching
+  the plural sibling sections. The page grew to 1120px.
+- **Color-coded types and values.** Type chips are tinted by kind — strings
+  green, numbers and dimensions amber, booleans purple, callbacks blue,
+  snippets pink, colors cyan, `void` slate — union members render as
+  individual chips, and default/state literals are colored plain text.
+  Both themes are handled explicitly.
+
+### Added
+
+- **Run buttons for methods.** Zero-argument methods can be invoked
+  directly from the Methods table and act on the live preview; methods
+  with parameters show a disabled button.
+- **Live state values.** The States table shows each exported state's
+  current value, streamed from the preview as it changes.
+- Section icons (sliders, palette, zap, function, database) join the UI
+  icon set.
+
 ## [0.0.36] - 2026-07-03
 
 ### Fixed

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.20] - 2026-07-03
+
 ### Changed
 
 - The project card's Open button tooltip now says "Open the Explorer tab",

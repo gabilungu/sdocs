@@ -46,25 +46,57 @@ export function resolveImportsToAbsolute(
 	});
 }
 
+/** Add bind:this to the snippet's root component so the wrapper can reach
+ * its exported methods and state. Skipped when the author already binds. */
+function injectRootRef(snippetBody: string): string {
+	if (snippetBody.includes('bind:this')) return snippetBody;
+	const match = snippetBody.match(/<([A-Z][A-Za-z0-9_]*)/);
+	if (!match || match.index === undefined) return snippetBody;
+	const insertAt = match.index + match[0].length;
+	return snippetBody.slice(0, insertAt) + ' bind:this={__sdocsRef}' + snippetBody.slice(insertAt);
+}
+
 /** Generate a virtual Svelte iframe wrapper component for a snippet.
- * Includes $state for reactive prop updates via postMessage. */
+ * Includes $state for reactive prop updates via postMessage, invokes
+ * component methods on request, and broadcasts exported state values. */
 export function generateIframeComponent(
 	absoluteImports: string[],
 	snippetBody: string,
+	stateNames: string[] = [],
 ): string {
 	const importBlock = absoluteImports.length > 0
 		? absoluteImports.join('\n') + '\n'
+		: '';
+	const stateBroadcast = stateNames.length > 0
+		? `
+	$effect(() => {
+		const values: Record<string, unknown> = {};
+		for (const name of ${JSON.stringify(stateNames)}) {
+			try {
+				const v = (__sdocsRef as Record<string, unknown> | undefined)?.[name];
+				values[name] = v === undefined ? undefined : JSON.parse(JSON.stringify($state.snapshot(v)));
+			} catch {
+				values[name] = undefined;
+			}
+		}
+		window.parent.postMessage({ type: 'sdocs:state-values', values }, '*');
+	});
+`
 		: '';
 	// lang="ts" so lifted imports may carry type-only syntax (Svelte 5 erases it natively)
 	return `<script lang="ts">
 	${importBlock}import { onMount } from 'svelte';
 
 	let args = $state({});
-
+	let __sdocsRef = $state();
+${stateBroadcast}
 	onMount(() => {
 		window.addEventListener('message', (e) => {
 			if (e.data?.type === 'sdocs:update-props') {
 				args = { ...e.data.props };
+			}
+			if (e.data?.type === 'sdocs:call-method') {
+				(__sdocsRef as Record<string, () => void> | undefined)?.[e.data.name]?.();
 			}
 			if (e.data?.type === 'sdocs:update-css') {
 				const el = document.getElementById('sdocs-preview');
@@ -100,7 +132,7 @@ export function generateIframeComponent(
 
 <div id="sdocs-preview">
 	{#snippet SdocsPreview(args)}
-		${snippetBody}
+		${injectRootRef(snippetBody)}
 	{/snippet}
 	{@render SdocsPreview(args)}
 </div>`;

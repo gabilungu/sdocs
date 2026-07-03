@@ -4,8 +4,10 @@
 	import { highlightSvelte } from '../highlighter.js';
 	import CollapsiblePanel from './CollapsiblePanel.svelte';
 	import PreviewFrame from './PreviewFrame.svelte';
-	import ControlsPanel from './ControlsPanel.svelte';
 	import DataTable from './DataTable.svelte';
+	import ApiTable from './ApiTable.svelte';
+	import PropControl from './PropControl.svelte';
+	import CssPropControl from './CssPropControl.svelte';
 
 	interface Props {
 		doc: DocEntry;
@@ -31,6 +33,10 @@
 	// Props/CSS controls state
 	let propValues = $state<Record<string, unknown>>({});
 	let cssValues = $state<Record<string, string>>({});
+
+	// Live wiring to the default preview: method invocation + exported state values
+	let defaultPreview = $state<{ callMethod: (name: string) => void }>();
+	let liveStateValues = $state<Record<string, unknown>>({});
 
 	// Initialize from meta.args (build new objects to avoid read+write loop)
 	$effect(() => {
@@ -200,13 +206,17 @@
 		cssValues = newCss;
 	}
 
+	const hasEditableControls = $derived(
+		!!cd && (cd.props.some((p) => p.category === 'prop') || cd.cssProps.length > 0),
+	);
+
 	// Table data builders
 	const propsRows = $derived(
 		(cd?.props ?? []).filter((p) => p.category === 'prop').map((p) => ({
 			name: p.name,
 			type: p.type,
 			default: p.default,
-			required: p.required ? 'Yes' : '',
+			required: p.required,
 			description: p.description,
 		})),
 	);
@@ -247,6 +257,7 @@
 
 	const stateRows = $derived(
 		(cd?.state ?? []).map((s) => ({
+			value: s.name in liveStateValues ? JSON.stringify(liveStateValues[s.name]) : undefined,
 			name: s.name,
 			type: s.type,
 			description: s.description,
@@ -282,10 +293,12 @@
 			{#if defaultSnippet}
 				<div class="sdocs-preview-wrapper">
 					<PreviewFrame
+						bind:this={defaultPreview}
 						src={defaultSnippet.previewUrl ?? ''}
 						props={propValues}
 						cssVars={cssValues}
 						{activeStylesheet}
+						onStateValues={(values) => (liveStateValues = values)}
 					/>
 				</div>
 
@@ -299,92 +312,101 @@
 					</div>
 				</CollapsiblePanel>
 			{/if}
-
-			{#if cd && ((cd.props.filter((p) => p.category === 'prop').length > 0) || cd.cssProps.length > 0)}
-				<CollapsiblePanel title="Controls">
-					<ControlsPanel
-						componentProps={cd.props}
-						cssProps={cd.cssProps}
-						{propValues}
-						{cssValues}
-						onPropChange={handlePropChange}
-						onCssChange={handleCssChange}
-						onReset={handleReset}
-					/>
-				</CollapsiblePanel>
-			{/if}
-
-			<CollapsiblePanel title="Props">
-				<DataTable
-					columns={[
-						{ key: 'name', label: 'Name' },
-						{ key: 'type', label: 'Type' },
-						{ key: 'default', label: 'Default' },
-						{ key: 'required', label: 'Required' },
-						{ key: 'description', label: 'Description' },
-					]}
-					rows={propsRows}
-				/>
-			</CollapsiblePanel>
-
-			<CollapsiblePanel title="CSS Props">
-				<DataTable
-					columns={[
-						{ key: 'name', label: 'Name' },
-						{ key: 'type', label: 'Type' },
-						{ key: 'default', label: 'Default' },
-						{ key: 'description', label: 'Description' },
-					]}
-					rows={cssPropsRows}
-				/>
-			</CollapsiblePanel>
-
-			<CollapsiblePanel title="Events">
-				<DataTable
-					columns={[
-						{ key: 'name', label: 'Name' },
-						{ key: 'type', label: 'Type' },
-						{ key: 'description', label: 'Description' },
-					]}
-					rows={eventsRows}
-				/>
-			</CollapsiblePanel>
-
-			<CollapsiblePanel title="Snippets">
-				<DataTable
-					columns={[
-						{ key: 'name', label: 'Name' },
-						{ key: 'type', label: 'Type' },
-						{ key: 'description', label: 'Description' },
-					]}
-					rows={snippetsRows}
-				/>
-			</CollapsiblePanel>
-
-			<CollapsiblePanel title="Methods">
-				<DataTable
-					columns={[
-						{ key: 'name', label: 'Name' },
-						{ key: 'params', label: 'Parameters' },
-						{ key: 'returns', label: 'Returns' },
-						{ key: 'description', label: 'Description' },
-					]}
-					rows={methodsRows}
-				/>
-			</CollapsiblePanel>
-
-			<CollapsiblePanel title="State">
-				<DataTable
-					columns={[
-						{ key: 'name', label: 'Name' },
-						{ key: 'type', label: 'Type' },
-						{ key: 'description', label: 'Description' },
-					]}
-					rows={stateRows}
-				/>
-			</CollapsiblePanel>
-
 		</div>
+
+		{#snippet propControl(row: Record<string, unknown>)}
+			{@const prop = cd?.props.find((p) => p.name === row.name && p.category === 'prop')}
+			{#if prop}
+				<PropControl {prop} value={propValues[prop.name]} onchange={(v) => handlePropChange(prop.name, v)} />
+			{/if}
+		{/snippet}
+
+		{#snippet methodControl(row: Record<string, unknown>)}
+			{@const hasParams = String(row.params ?? '').trim().length > 0}
+			<button
+				class="sdocs-run-btn"
+				disabled={hasParams || !defaultPreview}
+				title={hasParams ? 'Only methods without parameters can be run here' : `Run ${row.name}() on the preview`}
+				onclick={() => defaultPreview?.callMethod(String(row.name))}
+			>
+				Run
+			</button>
+		{/snippet}
+
+		{#snippet cssPropControl(row: Record<string, unknown>)}
+			{@const cssProp = cd?.cssProps.find((p) => p.name === row.name)}
+			{#if cssProp}
+				<CssPropControl {cssProp} value={cssValues[cssProp.name]} onchange={(v) => handleCssChange(cssProp.name, v)} />
+			{/if}
+		{/snippet}
+
+		<section class="sdocs-doc-section">
+			<h2 class="sdocs-doc-section-title">
+				<Icon name="sliders-horizontal" --w="15px" --h="15px" --fill="var(--color-base-500)" />
+				Props
+				{#if hasEditableControls}
+					<button class="sdocs-reset-btn" onclick={handleReset}>Reset</button>
+				{/if}
+			</h2>
+			<ApiTable rows={propsRows} control={propControl} />
+		</section>
+
+		<section class="sdocs-doc-section">
+			<h2 class="sdocs-doc-section-title">
+				<Icon name="palette" --w="15px" --h="15px" --fill="var(--color-base-500)" />
+				CSS Props
+			</h2>
+			<ApiTable rows={cssPropsRows} control={cssPropControl} />
+		</section>
+
+		<section class="sdocs-doc-section">
+			<h2 class="sdocs-doc-section-title">
+				<Icon name="zap" --w="15px" --h="15px" --fill="var(--color-base-500)" />
+				Events
+			</h2>
+			<ApiTable rows={eventsRows} showDefault={false} />
+		</section>
+
+		<section class="sdocs-doc-section">
+			<h2 class="sdocs-doc-section-title">
+				<Icon name="code" --w="15px" --h="15px" --fill="var(--color-base-500)" />
+				Snippets
+			</h2>
+			<ApiTable rows={snippetsRows} showDefault={false} />
+		</section>
+
+		<section class="sdocs-doc-section">
+			<h2 class="sdocs-doc-section-title">
+				<Icon name="square-function" --w="15px" --h="15px" --fill="var(--color-base-500)" />
+				Methods
+			</h2>
+			<DataTable
+				columns={[
+					{ key: 'name', label: 'Name', kind: 'name' },
+					{ key: 'params', label: 'Parameters' },
+					{ key: 'returns', label: 'Returns', kind: 'type' },
+					{ key: 'description', label: 'Description', kind: 'text' },
+				]}
+				rows={methodsRows}
+				control={methodsRows.length > 0 ? methodControl : undefined}
+			/>
+		</section>
+
+		<section class="sdocs-doc-section">
+			<h2 class="sdocs-doc-section-title">
+				<Icon name="database" --w="15px" --h="15px" --fill="var(--color-base-500)" />
+				States
+			</h2>
+			<DataTable
+				columns={[
+					{ key: 'name', label: 'Name', kind: 'name' },
+					{ key: 'type', label: 'Type', kind: 'type' },
+					{ key: 'value', label: 'Current value', kind: 'value' },
+					{ key: 'description', label: 'Description', kind: 'text' },
+				]}
+				rows={stateRows}
+			/>
+		</section>
 
 		{#if exampleSnippets.length > 0}
 			<hr class="sdocs-divider" />
@@ -421,8 +443,53 @@
 <style>
 	.sdocs-component-view {
 		padding: 24px 32px;
-		max-width: 960px;
+		max-width: 1120px;
 		font-family: var(--sans);
+	}
+	.sdocs-doc-section {
+		margin-top: 28px;
+	}
+	.sdocs-doc-section-title {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin: 0 0 10px;
+		font-size: 14px;
+		font-weight: 600;
+		color: var(--color-base-800);
+	}
+	.sdocs-doc-section-title .sdocs-reset-btn {
+		margin-left: auto;
+	}
+	.sdocs-reset-btn {
+		padding: 4px 12px;
+		border: 1px solid var(--color-base-200);
+		border-radius: 4px;
+		background: var(--color-base-0);
+		font: inherit;
+		font-size: 12px;
+		color: var(--color-base-600);
+		cursor: pointer;
+	}
+	.sdocs-reset-btn:hover {
+		background: var(--color-base-100);
+	}
+	.sdocs-run-btn {
+		padding: 3px 12px;
+		border: 1px solid var(--color-base-200);
+		border-radius: 4px;
+		background: var(--color-base-0);
+		font: inherit;
+		font-size: 12px;
+		color: var(--color-base-600);
+		cursor: pointer;
+	}
+	.sdocs-run-btn:hover:not(:disabled) {
+		background: var(--color-base-100);
+	}
+	.sdocs-run-btn:disabled {
+		opacity: 0.4;
+		cursor: default;
 	}
 	.sdocs-view-header {
 		margin-bottom: 24px;

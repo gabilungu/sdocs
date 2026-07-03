@@ -1,0 +1,53 @@
+<script lang="ts">
+	import Notice from './Notice.svelte';
+
+	export const meta = {
+		component: Notice,
+		title: 'Notice',
+		description:
+			'Kitchen sink: every documented feature in one component — text, number, boolean, and union props; events; plain and parameterized snippets; methods; exported state; and annotated CSS custom properties.',
+		args: {
+			title: 'Build finished',
+			tone: 'success',
+			dismissible: true,
+			count: 1,
+		},
+	};
+</script>
+
+{#snippet Default(args)}
+	<Notice {...args}>
+		All 12 pages compiled in 1.2s — try dismissing me, or change my props
+		in the table below.
+	</Notice>
+{/snippet}
+
+{#snippet WithIconSnippet(args)}
+	<Notice {...args} title="Deploy warning" tone="warning">
+		{#snippet icon(tone)}
+			<span>{tone === 'warning' ? '⚠️' : 'ℹ️'}</span>
+		{/snippet}
+		The icon snippet receives the current tone as a parameter.
+	</Notice>
+{/snippet}
+
+{#snippet Repeated(args)}
+	<Notice {...args} title="Connection retried" tone="danger" count={4}>
+		The count prop renders an occurrence badge next to the title.
+	</Notice>
+{/snippet}
+
+{#snippet WithAction(args)}
+	<Notice {...args} title="Update available" action={{ label: 'Restart now' }}>
+		The action prop is a custom object type — see how it appears in the
+		Props table.
+	</Notice>
+{/snippet}
+
+{#snippet Themed(args)}
+	<div style="--notice-accent: #fc1d29; --notice-bg: #fff5f5; --notice-radius: 4px;">
+		<Notice {...args} title="Mascot mode">
+			Styled entirely through the annotated CSS custom properties.
+		</Notice>
+	</div>
+{/snippet}

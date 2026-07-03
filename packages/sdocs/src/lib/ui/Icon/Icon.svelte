@@ -7,13 +7,18 @@
 	import codeSvg from './icons/code.svg?raw';
 	import componentSvg from './icons/component.svg?raw';
 	import copySvg from './icons/copy.svg?raw';
+	import databaseSvg from './icons/database.svg?raw';
 	import diamondSvg from './icons/diamond.svg?raw';
 	import fileCodeSvg from './icons/file-code.svg?raw';
 	import fileTextSvg from './icons/file-text.svg?raw';
 	import folderOpenSvg from './icons/folder-open.svg?raw';
 	import folderSvg from './icons/folder.svg?raw';
+	import paletteSvg from './icons/palette.svg?raw';
 	import panelsTopLeftSvg from './icons/panels-top-left.svg?raw';
 	import sdocsSvg from './icons/sdocs.svg?raw';
+	import slidersHorizontalSvg from './icons/sliders-horizontal.svg?raw';
+	import squareFunctionSvg from './icons/square-function.svg?raw';
+	import zapSvg from './icons/zap.svg?raw';
 
 	const icons: Record<string, string> = {
 		'bookmark': bookmarkSvg,
@@ -24,13 +29,18 @@
 		'code': codeSvg,
 		'component': componentSvg,
 		'copy': copySvg,
+		'database': databaseSvg,
 		'diamond': diamondSvg,
 		'file-code': fileCodeSvg,
 		'file-text': fileTextSvg,
 		'folder-open': folderOpenSvg,
 		'folder': folderSvg,
+		'palette': paletteSvg,
 		'panels-top-left': panelsTopLeftSvg,
 		'sdocs': sdocsSvg,
+		'sliders-horizontal': slidersHorizontalSvg,
+		'square-function': squareFunctionSvg,
+		'zap': zapSvg,
 	};
 
 	/**

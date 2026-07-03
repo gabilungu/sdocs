@@ -266,7 +266,8 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				if (!snippet) return null;
 
 				const absoluteImports = docImportsCache.get(parsed.docFilePath) ?? [];
-				return generateIframeComponent(absoluteImports, snippet.body);
+				const stateNames = (entry.componentData?.state ?? []).map((s) => s.name);
+				return generateIframeComponent(absoluteImports, snippet.body, stateNames);
 			}
 
 			// Virtual mount script for an emitted preview page

@@ -7,9 +7,16 @@
 		cssVars?: Record<string, string>;
 		activeStylesheet?: string;
 		fullHeight?: boolean;
+		/** Called with the preview component's exported state values whenever they change */
+		onStateValues?: (values: Record<string, unknown>) => void;
 	}
 
-	let { src, props = {}, cssVars = {}, activeStylesheet, fullHeight = false }: Props = $props();
+	let { src, props = {}, cssVars = {}, activeStylesheet, fullHeight = false, onStateValues }: Props = $props();
+
+	/** Invoke a zero-argument method on the preview's root component */
+	export function callMethod(name: string): void {
+		iframe?.contentWindow?.postMessage({ type: 'sdocs:call-method', name }, '*');
+	}
 
 	// Preview URLs are root-absolute; hosts serving under a sub-path pass the
 	// prefix via the Explorer's previewBase prop (see Explorer.svelte).
@@ -29,6 +36,9 @@
 			}
 			if (e.data?.type === 'sdocs:resize' && e.source === iframe?.contentWindow) {
 				contentHeight = e.data.height;
+			}
+			if (e.data?.type === 'sdocs:state-values' && e.source === iframe?.contentWindow) {
+				onStateValues?.(e.data.values);
 			}
 		}
 		window.addEventListener('message', onMessage);

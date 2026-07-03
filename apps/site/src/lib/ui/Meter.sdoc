@@ -1,0 +1,29 @@
+<script lang="ts">
+	import Meter from './Meter.svelte';
+
+	export const meta = {
+		component: Meter,
+		title: 'Meter',
+		description:
+			'Progress meter themed entirely through annotated CSS custom properties — try the color and dimension controls.',
+		args: {
+			value: 64,
+			max: 100,
+			label: 'Docs coverage',
+		},
+	};
+</script>
+
+{#snippet Default(args)}
+	<Meter {...args} />
+{/snippet}
+
+{#snippet Full(args)}
+	<Meter {...args} label="Shipped" value={100} />
+{/snippet}
+
+{#snippet Themed(args)}
+	<div style="--meter-fill: #fc1d29; --meter-height: 14px; --meter-radius: 4px;">
+		<Meter {...args} label="Mascot mode" />
+	</div>
+{/snippet}

@@ -32,15 +32,15 @@
 		flex-direction: column;
 		gap: 0.5rem;
 		padding: 1.25rem;
-		border: 1px solid var(--border, oklch(0.92 0.004 286.32));
+		border: 1px solid var(--border, hsl(240 6% 90%));
 		border-radius: 10px;
-		color: var(--text, oklch(0.21 0.006 285.885));
+		color: var(--text, hsl(240 6% 10%));
 		text-decoration: none;
 	}
 
 	.card:hover {
 		text-decoration: none;
-		border-color: var(--accent, oklch(0.546 0.245 262.881));
+		border-color: var(--accent, hsl(221 83% 53%));
 	}
 
 	.card-icon {
@@ -50,8 +50,8 @@
 		width: 2.25rem;
 		height: 2.25rem;
 		border-radius: 8px;
-		background: var(--bg-code, oklch(0.967 0.001 286.375));
-		color: var(--accent, oklch(0.546 0.245 262.881));
+		background: var(--bg-code, hsl(240 5% 96%));
+		color: var(--accent, hsl(221 83% 53%));
 	}
 
 	h3 {
@@ -63,7 +63,7 @@
 		margin: 0;
 		flex: 1;
 		font-size: 0.9375rem;
-		color: var(--text-soft, oklch(0.552 0.016 285.938));
+		color: var(--text-soft, hsl(240 4% 46%));
 	}
 
 	.more {
@@ -72,6 +72,6 @@
 		gap: 0.25rem;
 		font-size: 0.875rem;
 		font-weight: 600;
-		color: var(--accent, oklch(0.546 0.245 262.881));
+		color: var(--accent, hsl(221 83% 53%));
 	}
 </style>

@@ -40,12 +40,12 @@
 	}
 
 	.primary {
-		background: var(--accent, oklch(0.546 0.245 262.881));
+		background: var(--accent, hsl(221 83% 53%));
 		color: #fff;
 	}
 
 	.secondary {
-		border: 1px solid var(--border, oklch(0.92 0.004 286.32));
-		color: var(--text, oklch(0.21 0.006 285.885));
+		border: 1px solid var(--border, hsl(240 6% 90%));
+		color: var(--text, hsl(240 6% 10%));
 	}
 </style>

@@ -3,7 +3,7 @@
 
 	export const meta = {
 		component: LinkButton,
-		title: 'UI / LinkButton',
+		title: 'LinkButton',
 		description: 'Button-shaped link used for the site\'s calls to action.',
 		args: {
 			href: '#',

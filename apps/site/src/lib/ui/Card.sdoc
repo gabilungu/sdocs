@@ -4,7 +4,7 @@
 
 	export const meta = {
 		component: Card,
-		title: 'UI / Card',
+		title: 'Card',
 		description: 'Linked card with an icon tile, body text, and a call-to-action line.',
 		args: {
 			href: '#',

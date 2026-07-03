@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `sdocs.config.*` files now use the mini mascot as their file icon.
+
 ## [0.0.18] - 2026-07-03
 
 ### Added

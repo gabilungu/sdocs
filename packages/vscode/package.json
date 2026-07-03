@@ -80,8 +80,8 @@
 					"sdocs.config.mjs"
 				],
 				"icon": {
-					"light": "./icons/sdocs-config.svg",
-					"dark": "./icons/sdocs-config.svg"
+					"light": "./icons/mascot_mini.svg",
+					"dark": "./icons/mascot_mini.svg"
 				}
 			}
 		],

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.35] - 2026-07-03
+
+### Fixed
+
+- **The embedded Explorer guards its typography.** Host apps commonly style
+  bare `code`, `pre`, and `a` elements; those rules reached into the
+  Explorer's UI (shrinking code blocks, recoloring links). The Explorer now
+  pins its own font family, sizing, and link color at the `.sdocs-app`
+  boundary. Hosts with higher-specificity global rules should still scope
+  them away from `.sdocs-app`.
+
 ## [0.0.34] - 2026-07-03
 
 ### Fixed

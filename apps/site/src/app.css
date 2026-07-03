@@ -42,17 +42,19 @@ body {
 	-webkit-font-smoothing: antialiased;
 }
 
-a {
+/* Bare-element styles must not reach into the embedded Explorer at /sdocs —
+   it manages its own typography and link colors. */
+a:not(.sdocs-app *) {
 	color: var(--accent);
 	text-decoration: none;
 }
 
-a:hover {
+a:not(.sdocs-app *):hover {
 	text-decoration: underline;
 }
 
-code,
-pre {
+code:not(.sdocs-app *),
+pre:not(.sdocs-app *) {
 	font-family: var(--mono);
 	font-size: 0.875em;
 }

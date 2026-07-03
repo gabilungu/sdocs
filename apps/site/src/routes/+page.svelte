@@ -1,5 +1,9 @@
 <script lang="ts">
 	import { base } from '$app/paths';
+	import PanelsTopLeft from '@lucide/svelte/icons/panels-top-left';
+	import Terminal from '@lucide/svelte/icons/terminal';
+	import Blocks from '@lucide/svelte/icons/blocks';
+	import ArrowRight from '@lucide/svelte/icons/arrow-right';
 
 	let { data } = $props();
 </script>
@@ -40,28 +44,31 @@
 
 <section class="entities">
 	<a class="card" href="{base}/explorer">
+		<span class="card-icon"><PanelsTopLeft size={22} /></span>
 		<h3>Explorer</h3>
 		<p>
 			The interactive component browser built from your <code>.sdoc</code> files — live
 			previews, prop controls, theming, and search.
 		</p>
-		<span class="more">Explore the docs →</span>
+		<span class="more">Explore the docs <ArrowRight size={15} /></span>
 	</a>
 	<a class="card" href="{base}/cli">
+		<span class="card-icon"><Terminal size={22} /></span>
 		<h3>CLI</h3>
 		<p>
 			<code>npx sdocs run</code> starts the Explorer in any project with zero install, and
 			<code>sdocs build</code> ships it as a static site.
 		</p>
-		<span class="more">Command reference →</span>
+		<span class="more">Command reference <ArrowRight size={15} /></span>
 	</a>
 	<a class="card" href="{base}/extension">
+		<span class="card-icon"><Blocks size={22} /></span>
 		<h3>VS Code Extension</h3>
 		<p>
 			Full Svelte IntelliSense in <code>.sdoc</code> files, plus a Projects view that runs
 			and shows your docs inside the editor.
 		</p>
-		<span class="more">Extension guide →</span>
+		<span class="more">Extension guide <ArrowRight size={15} /></span>
 	</a>
 </section>
 
@@ -69,10 +76,11 @@
 	.hero {
 		display: flex;
 		flex-direction: column;
-		align-items: center;
+		align-items: flex-start;
 		gap: 0.5rem;
+		max-width: 62rem;
 		padding: 4rem 1.5rem 3rem;
-		text-align: center;
+		text-align: left;
 	}
 
 	h1 {
@@ -130,7 +138,7 @@
 		align-items: center;
 		width: 100%;
 		max-width: 62rem;
-		margin: 0 auto;
+		margin: 0;
 		padding: 2rem 1.5rem;
 	}
 
@@ -160,7 +168,7 @@
 		gap: 1.25rem;
 		width: 100%;
 		max-width: 62rem;
-		margin: 0 auto;
+		margin: 0;
 		padding: 1rem 1.5rem 4rem;
 	}
 
@@ -179,6 +187,17 @@
 		border-color: var(--accent);
 	}
 
+	.card-icon {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 2.25rem;
+		height: 2.25rem;
+		border-radius: 8px;
+		background: var(--bg-code);
+		color: var(--accent);
+	}
+
 	.card h3 {
 		margin: 0;
 		font-size: 1.0625rem;
@@ -192,6 +211,9 @@
 	}
 
 	.card .more {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
 		font-size: 0.875rem;
 		font-weight: 600;
 		color: var(--accent);

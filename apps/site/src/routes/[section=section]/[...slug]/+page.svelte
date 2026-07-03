@@ -75,7 +75,7 @@
 		gap: 2.5rem;
 		width: 100%;
 		max-width: 82rem;
-		margin: 0 auto;
+		margin: 0;
 		padding: 0 1.5rem;
 	}
 

@@ -9,7 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `sdocs.config.*` files now use the mini mascot as their file icon.
+- The `sdocs config` language icon is now the mini mascot. File icon themes
+  that map `.js`/`.ts` (most do) still control the explorer icon for
+  `sdocs.config.*` files; the mascot appears in the language picker and
+  under themes without such a mapping.
 
 ## [0.0.18] - 2026-07-03
 

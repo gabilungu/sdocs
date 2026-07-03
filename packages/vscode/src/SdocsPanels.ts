@@ -38,6 +38,13 @@ export class SdocsPanels implements vscode.Disposable {
 		this.panels.get(scopeDir)?.panel.dispose();
 	}
 
+	/** Reload the iframe of the currently active preview panel */
+	refreshActive(): void {
+		for (const { panel, url } of this.panels.values()) {
+			if (panel.active) panel.webview.html = iframeHtml(url);
+		}
+	}
+
 	dispose() {
 		for (const { panel } of this.panels.values()) panel.dispose();
 		this.panels.clear();

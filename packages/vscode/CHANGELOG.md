@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Refresh for the docs tab** — a refresh button in the tab's title bar,
+  plus `Cmd+R` (macOS) / `Ctrl+R` reload the preview while the docs tab is
+  active. Outside the docs tab the keys keep their normal meaning.
+
 ## [0.0.17] - 2026-07-03
 
 ### Changed

@@ -53,6 +53,7 @@ export function activate(context: vscode.ExtensionContext) {
 		runner.onReady(({ dir, url }) => panels.open(dir, url, path.basename(dir))),
 		vscode.commands.registerCommand('sdocs.newComponentDoc', newComponentDoc),
 		vscode.commands.registerCommand('sdocs.refreshScopes', () => scopesView.refresh()),
+		vscode.commands.registerCommand('sdocs.refreshPreview', () => panels.refreshActive()),
 	);
 
 	// Versions up to 0.0.13 formatted via scratch files under

@@ -96,6 +96,20 @@
 				"category": "sdocs",
 				"title": "Refresh Projects",
 				"icon": "$(refresh)"
+			},
+			{
+				"command": "sdocs.refreshPreview",
+				"category": "sdocs",
+				"title": "Refresh Docs Tab",
+				"icon": "$(refresh)"
+			}
+		],
+		"keybindings": [
+			{
+				"command": "sdocs.refreshPreview",
+				"key": "ctrl+r",
+				"mac": "cmd+r",
+				"when": "activeWebviewPanelId == sdocsPreview"
 			}
 		],
 		"viewsContainers": {
@@ -142,6 +156,17 @@
 				{
 					"command": "sdocs.newComponentDoc",
 					"when": "resourceExtname == .svelte"
+				},
+				{
+					"command": "sdocs.refreshPreview",
+					"when": "activeWebviewPanelId == sdocsPreview"
+				}
+			],
+			"editor/title": [
+				{
+					"command": "sdocs.refreshPreview",
+					"when": "activeWebviewPanelId == sdocsPreview",
+					"group": "navigation"
 				}
 			],
 			"view/title": [

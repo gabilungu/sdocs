@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.36] - 2026-07-03
+
+### Fixed
+
+- **Usage code is syntax-highlighted in static builds.** The usage snippet
+  regenerates in the browser as controls change and used to be highlighted
+  through a dev-server endpoint — deployed builds fell back to plain text.
+  Highlighting now runs client-side (lazy-loaded Shiki with the JavaScript
+  regex engine), identical on the dev server and any static host; the
+  dev-server endpoint is gone.
+
 ## [0.0.35] - 2026-07-03
 
 ### Fixed

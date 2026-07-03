@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { DocEntry } from '../../types.js';
 	import { Icon } from '../../ui/Icon/index.js';
+	import { highlightSvelte } from '../highlighter.js';
 	import CollapsiblePanel from './CollapsiblePanel.svelte';
 	import PreviewFrame from './PreviewFrame.svelte';
 	import ControlsPanel from './ControlsPanel.svelte';
@@ -169,36 +170,20 @@
 		return generateFallbackCode(componentName, propValues, cssValues);
 	});
 
-	// Highlighted usage code via server-side Shiki. The endpoint is dev-server
-	// middleware; in a production build it doesn't exist, so after the first
-	// failure stop asking and fall back to plain code.
+	// Usage code is generated in the browser, so it's highlighted client-side
+	// (lazy Shiki — see ../highlighter.ts). Debounced while controls change;
+	// stale results are dropped.
 	let highlightedUsageHtml = $state('');
 	let highlightTimer: ReturnType<typeof setTimeout> | undefined;
-	let highlightAvailable = true;
 
 	$effect(() => {
 		const code = usageCode;
 		clearTimeout(highlightTimer);
-		if (!highlightAvailable) {
-			highlightedUsageHtml = '';
-			return;
-		}
 		highlightTimer = setTimeout(async () => {
 			try {
-				const res = await fetch('/__sdocs/highlight', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ code, lang: 'svelte' }),
-				});
-				if (res.ok) {
-					const { html } = await res.json();
-					highlightedUsageHtml = html;
-				} else {
-					highlightAvailable = false;
-					highlightedUsageHtml = '';
-				}
+				const html = await highlightSvelte(code);
+				if (code === usageCode) highlightedUsageHtml = html;
 			} catch {
-				highlightAvailable = false;
 				highlightedUsageHtml = '';
 			}
 		}, 150);

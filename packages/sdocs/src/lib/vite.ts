@@ -115,25 +115,6 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				});
 			});
 
-			// API: highlight code on demand
-			server.middlewares.use((req, res, next) => {
-				if (req.url !== '/__sdocs/highlight' || req.method !== 'POST') return next();
-
-				let body = '';
-				req.on('data', (chunk: Buffer) => { body += chunk; });
-				req.on('end', async () => {
-					try {
-						const { code, lang } = JSON.parse(body);
-						const html = await highlight(code, lang);
-						res.setHeader('Content-Type', 'application/json');
-						res.end(JSON.stringify({ html }));
-					} catch {
-						res.statusCode = 400;
-						res.end('Invalid request');
-					}
-				});
-			});
-
 			// Watch for .sdoc file add/unlink/change
 			server.watcher.on('add', async (filePath) => {
 				if (isDocFile(filePath)) {

@@ -97,6 +97,7 @@
 		font-size: 13px;
 	}
 	.sdocs-api-name {
+		font-size: 14px;
 		font-weight: 600;
 		color: var(--color-base-900);
 		overflow-wrap: break-word;

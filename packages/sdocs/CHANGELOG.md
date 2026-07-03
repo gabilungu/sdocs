@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.38] - 2026-07-04
+
+### Changed
+
+- Names in the API tables are slightly larger (14px), giving each row a
+  clearer anchor.
+
 ## [0.0.37] - 2026-07-03
 
 ### Changed

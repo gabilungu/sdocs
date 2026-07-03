@@ -13,6 +13,7 @@
 
 <div class="app">
 	<header>
+		<div class="header-inner">
 		<div class="header-left">
 			<a class="brand" href="{base}/">
 				<img src="{base}/favicon.svg" alt="" width="26" height="26" />
@@ -58,6 +59,7 @@
 				</svg>
 			</a>
 		</nav>
+		</div>
 	</header>
 	<main>
 		{@render children()}
@@ -75,13 +77,20 @@
 		position: sticky;
 		top: 0;
 		z-index: 10;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
 		height: var(--header-height);
 		padding: 0 1.5rem;
 		background: var(--bg);
 		border-bottom: 1px solid var(--border);
+	}
+
+	.header-inner {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		width: 100%;
+		max-width: 82rem;
+		height: 100%;
+		margin: 0 auto;
 	}
 
 	.header-left {

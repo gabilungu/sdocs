@@ -38,8 +38,11 @@ jobs:
           npm ci
           npm run build --workspace sdocs
 
+      # npm install rather than npm ci: the sdocs dependency is a file: link
+      # to the sibling package, whose dependency tree evolves independently
+      # of this package's lockfile.
       - name: Install dependencies
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       - name: Skip if this version is already published
         id: version

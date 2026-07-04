@@ -16,6 +16,12 @@ export {
 } from './scanner.js';
 
 export {
+	projectSdoc,
+	type SdocProjection,
+	type ProjectedLineKind,
+} from './projection.js';
+
+export {
 	parseSdoc,
 	parseArgsLiteral,
 	slugifyTitle,

@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.42] - 2026-07-04
+
+### Changed
+
+- **Breaking: `.sdoc` files are the block format.** A doc file is now
+  `<script>` on top, `[DOCS]`/`[PAGE]`/`[LAYOUT]` entity blocks in the
+  middle, `<style>` at the bottom — the language documented in the site's
+  Language section. Each entity is its own sidebar entry, so one file can
+  hold several. The `export const meta` convention, `{#snippet}` extraction,
+  auto-generated `Default` previews, and the `.page.sdoc`/`.layout.sdoc`
+  filename kinds are gone.
+- **`[DOCS]` holds any number of previews.** Each
+  `[preview component={X} args={{…}}]` is self-contained; several render as
+  tabs, each a fully live panel with its own controls, extracted API tables,
+  and component source. `[example title="…"]` blocks are frozen and render
+  page-level below the tabs.
+- **`[PAGE]` bodies are markdown** — GFM with `{expression}` interpolation
+  and Svelte component islands; code fences and inline code are inert. The
+  table of contents comes from the markdown headings.
+- **Parsing never crashes the dev server.** Doc files parse through the
+  `sdocs/language` scanner; mistakes surface as file:line warnings and the
+  rest of the file keeps working.
+- **Breaking for embedders:** `DocEntry` is reshaped (`previews`/`examples`/
+  `content` replace `snippets`/`componentData`), and preview URLs address
+  entities as `path#slug`.
+
 ## [0.0.41] - 2026-07-04
 
 ### Added

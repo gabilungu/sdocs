@@ -1,5 +1,44 @@
 import * as vscode from 'vscode';
+import { scanSdoc } from 'sdocs/language';
 import { importedIdentifiers } from './sdocSource';
+
+interface BlockSpec {
+	label: string;
+	detail: string;
+	/** Snippet for the whole block, starting right after the typed '[' */
+	insert: string;
+}
+
+const ENTITY_BLOCKS: BlockSpec[] = [
+	{
+		label: 'DOCS',
+		detail: 'Component docs: previews with controls + examples',
+		insert: 'DOCS title="${1:Group / Name}"]\n\n\t[preview component={${2:Component}}]\n\t\t$0\n\t[/preview]\n\n[/DOCS]',
+	},
+	{
+		label: 'PAGE',
+		detail: 'Freeform markdown page',
+		insert: 'PAGE title="${1:Group / Name}"]\n\n\t$0\n\n[/PAGE]',
+	},
+	{
+		label: 'LAYOUT',
+		detail: 'Full-page sketch on an isolated stage',
+		insert: 'LAYOUT title="${1:Group / Name}"]\n\n\t$0\n\n[/LAYOUT]',
+	},
+];
+
+const SUB_BLOCKS: BlockSpec[] = [
+	{
+		label: 'preview',
+		detail: 'Live showcase with interactive controls',
+		insert: 'preview component={${1:Component}}]\n\t$0\n[/preview]',
+	},
+	{
+		label: 'example',
+		detail: 'Frozen showcase, rendered exactly as written',
+		insert: 'example title="${1:Title}"]\n\t$0\n[/example]',
+	},
+];
 
 interface AttrSpec {
 	label: string;
@@ -92,6 +131,34 @@ export class BlockCompletionProvider implements vscode.CompletionItemProvider {
 				const item = new vscode.CompletionItem(name, vscode.CompletionItemKind.Class);
 				item.detail = 'imported in this file';
 				item.sortText = `!${name}`;
+				return item;
+			});
+		}
+
+		// A bare '[' (or '[par…') at line start → offer whole blocks. Which set
+		// depends on whether the cursor sits inside a [DOCS] entity.
+		const bare = /^\s*\[([A-Za-z]*)$/.exec(before);
+		if (bare) {
+			const file = scanSdoc(document.getText());
+			const offset = document.offsetAt(position);
+			const inDocs = file.entities.some(
+				(e) => e.kind === 'DOCS' && offset > e.openerSpan.end && offset < e.span.end,
+			);
+			const specs = inDocs ? SUB_BLOCKS : ENTITY_BLOCKS;
+			// The editor auto-closes '[' — swallow the ']' sitting after the cursor.
+			const closer = line.slice(position.character).startsWith(']');
+			return specs.map((spec) => {
+				const item = new vscode.CompletionItem(spec.label, vscode.CompletionItemKind.Struct);
+				item.detail = spec.detail;
+				item.insertText = new vscode.SnippetString(spec.insert);
+				item.sortText = `!${spec.label}`;
+				if (closer) {
+					item.additionalTextEdits = [
+						vscode.TextEdit.delete(
+							new vscode.Range(position, position.translate(0, 1)),
+						),
+					];
+				}
 				return item;
 			});
 		}

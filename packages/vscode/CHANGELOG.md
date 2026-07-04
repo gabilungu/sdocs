@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.26] - 2026-07-04
+
+### Added
+
+- **Block completions on `[`.** Typing `[` on a new line offers whole block
+  skeletons: `DOCS`/`PAGE`/`LAYOUT` at the top level, `preview`/`example`
+  inside a `[DOCS]` entity — each inserted with its closer and cursor in
+  the right spot (the auto-closed `]` is cleaned up).
+
 ## [0.0.25] - 2026-07-04
 
 ### Fixed

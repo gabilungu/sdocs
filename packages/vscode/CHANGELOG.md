@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.28] - 2026-07-04
+
+### Fixed
+
+- **Highlighting no longer dies after the first `[preview]`.** Multi-block
+  files (several examples, several entities) lost all sdoc coloring past
+  the first sub-block; block bodies now embed Svelte behind line-guarded
+  regions so every closer and sibling block colors correctly.
+
+### Changed
+
+- **Block completions insert bare skeletons.** `[` completions no longer
+  pre-populate placeholder content ("Group / Name", a preview block) —
+  just the opener with an empty attribute, the closer, and the cursor in
+  place.
+
 ## [0.0.27] - 2026-07-04
 
 ### Fixed

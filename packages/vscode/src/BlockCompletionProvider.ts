@@ -13,17 +13,17 @@ const ENTITY_BLOCKS: BlockSpec[] = [
 	{
 		label: 'DOCS',
 		detail: 'Component docs: previews with controls + examples',
-		insert: 'DOCS title="${1:Group / Name}"]\n\n\t[preview component={${2:Component}}]\n\t\t$0\n\t[/preview]\n\n[/DOCS]',
+		insert: 'DOCS title="$1"]\n\n\t$0\n\n[/DOCS]',
 	},
 	{
 		label: 'PAGE',
 		detail: 'Freeform markdown page',
-		insert: 'PAGE title="${1:Group / Name}"]\n\n\t$0\n\n[/PAGE]',
+		insert: 'PAGE title="$1"]\n\n\t$0\n\n[/PAGE]',
 	},
 	{
 		label: 'LAYOUT',
 		detail: 'Full-page sketch on an isolated stage',
-		insert: 'LAYOUT title="${1:Group / Name}"]\n\n\t$0\n\n[/LAYOUT]',
+		insert: 'LAYOUT title="$1"]\n\n\t$0\n\n[/LAYOUT]',
 	},
 ];
 
@@ -31,12 +31,12 @@ const SUB_BLOCKS: BlockSpec[] = [
 	{
 		label: 'preview',
 		detail: 'Live showcase with interactive controls',
-		insert: 'preview component={${1:Component}}]\n\t$0\n[/preview]',
+		insert: 'preview component={$1}]\n\t$0\n[/preview]',
 	},
 	{
 		label: 'example',
 		detail: 'Frozen showcase, rendered exactly as written',
-		insert: 'example title="${1:Title}"]\n\t$0\n[/example]',
+		insert: 'example title="$1"]\n\t$0\n[/example]',
 	},
 ];
 

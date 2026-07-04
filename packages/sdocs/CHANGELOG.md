@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.45] - 2026-07-04
+
+### Fixed
+
+- **The sdoc grammar survives multi-block files.** The embedded Svelte
+  grammar opens a text region after any line ending in `>` that only closes
+  at the next `<` or `{` — it swallowed block closers, leaving everything
+  after the first `[preview]` uncolored. Block bodies now embed Svelte
+  behind line-guarded regions (the mechanism markdown fences use), so
+  closers, sibling blocks, and later entities all highlight correctly.
+
 ## [0.0.44] - 2026-07-04
 
 ### Changed

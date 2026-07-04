@@ -50,13 +50,14 @@ jobs:
         if: steps.version.outputs.publish == 'true'
         run: npm ci
 
-      - name: Test
-        if: steps.version.outputs.publish == 'true'
-        run: npm test -w sdocs
-
       - name: Build
         if: steps.version.outputs.publish == 'true'
         run: npm run build
+
+      # After Build: the e2e tests drive the built CLI
+      - name: Test
+        if: steps.version.outputs.publish == 'true'
+        run: npm test -w sdocs
 
       - name: Publish
         if: steps.version.outputs.publish == 'true'

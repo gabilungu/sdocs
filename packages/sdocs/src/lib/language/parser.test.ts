@@ -1,0 +1,219 @@
+import { describe, expect, it } from 'vitest';
+import {
+	parseSdoc,
+	parseArgsLiteral,
+	slugifyTitle,
+	normalizeBody,
+	type DocsEntity,
+	type PageEntity,
+} from './parser.js';
+import type { ScanError } from './scanner.js';
+
+function diagnosticCodes(source: string): string[] {
+	return parseSdoc(source).diagnostics.map((d) => d.code);
+}
+
+describe('parseSdoc typed entities', () => {
+	const source = `<script>
+	import Tabs from './Tabs.svelte';
+	import Tab from './Tab.svelte';
+</script>
+
+[DOCS title="Navigation / Tabs" description="A tab bar."]
+
+	[preview component={Tabs} args={{ active: 0 }}]
+		<Tabs {...args}><Tab label="One">…</Tab></Tabs>
+	[/preview]
+
+	[preview component={Tab} args={{ label: 'One' }}]
+		<Tabs><Tab {...args}>…</Tab></Tabs>
+	[/preview]
+
+	[example title="Vertical"]
+		<Tabs vertical />
+	[/example]
+
+[/DOCS]
+`;
+	const doc = parseSdoc(source);
+	const docs = doc.entities[0] as DocsEntity;
+
+	it('parses without diagnostics', () => {
+		expect(doc.diagnostics).toEqual([]);
+	});
+
+	it('types the DOCS entity', () => {
+		expect(docs.kind).toBe('DOCS');
+		expect(docs.title).toBe('Navigation / Tabs');
+		expect(docs.slug).toBe('navigation-tabs');
+		expect(docs.description).toBe('A tab bar.');
+	});
+
+	it('collects previews with component names, own args, and labels', () => {
+		expect(docs.previews).toHaveLength(2);
+		expect(docs.previews[0]).toMatchObject({
+			componentName: 'Tabs',
+			args: { active: 0 },
+			label: 'Tabs',
+		});
+		expect(docs.previews[1]).toMatchObject({
+			componentName: 'Tab',
+			args: { label: 'One' },
+			label: 'Tab',
+		});
+	});
+
+	it('collects examples', () => {
+		expect(docs.examples).toHaveLength(1);
+		expect(docs.examples[0].title).toBe('Vertical');
+		expect(docs.examples[0].body).toContain('<Tabs vertical />');
+	});
+
+	it('uses title= as the tab label override', () => {
+		const overridden = parseSdoc(
+			`[DOCS title="X"]
+[preview component={Button} title="As a link" args={{ a: 1 }}]
+x
+[/preview]
+[preview component={Button}]
+x
+[/preview]
+[/DOCS]
+`,
+		);
+		const entity = overridden.entities[0] as DocsEntity;
+		expect(entity.previews.map((p) => p.label)).toEqual(['As a link', 'Button']);
+		expect(overridden.diagnostics).toEqual([]);
+	});
+});
+
+describe('parseSdoc validation', () => {
+	it('requires entity titles', () => {
+		expect(diagnosticCodes('[DOCS]\n[/DOCS]\n')).toContain('missing-attr');
+		expect(diagnosticCodes('[PAGE]\nx\n[/PAGE]\n')).toContain('missing-attr');
+	});
+
+	it('requires component on previews and title on examples', () => {
+		expect(diagnosticCodes('[DOCS title="X"]\n[preview]\nx\n[/preview]\n[/DOCS]\n')).toContain(
+			'missing-attr',
+		);
+		expect(diagnosticCodes('[DOCS title="X"]\n[example]\nx\n[/example]\n[/DOCS]\n')).toContain(
+			'missing-attr',
+		);
+	});
+
+	it('rejects unknown attributes', () => {
+		expect(diagnosticCodes('[DOCS title="X" component={B}]\n[/DOCS]\n')).toContain('unknown-attr');
+		expect(diagnosticCodes('[PAGE title="X" padding="4px"]\nx\n[/PAGE]\n')).toContain(
+			'unknown-attr',
+		);
+	});
+
+	it('rejects wrong attribute value kinds', () => {
+		expect(diagnosticCodes('[DOCS title={x}]\n[/DOCS]\n')).toContain('attr-value-kind');
+		expect(
+			diagnosticCodes('[DOCS title="X"]\n[preview component="Button"]\nx\n[/preview]\n[/DOCS]\n'),
+		).toContain('attr-value-kind');
+	});
+
+	it('rejects non-identifier component expressions', () => {
+		expect(
+			diagnosticCodes(
+				'[DOCS title="X"]\n[preview component={Tabs.Tab}]\nx\n[/preview]\n[/DOCS]\n',
+			),
+		).toContain('component-identifier');
+	});
+
+	it('rejects duplicate example titles and preview labels', () => {
+		expect(
+			diagnosticCodes(
+				'[DOCS title="X"]\n[example title="A"]\nx\n[/example]\n[example title="A"]\ny\n[/example]\n[/DOCS]\n',
+			),
+		).toContain('duplicate-example-title');
+		expect(
+			diagnosticCodes(
+				'[DOCS title="X"]\n[preview component={B}]\nx\n[/preview]\n[preview component={B}]\ny\n[/preview]\n[/DOCS]\n',
+			),
+		).toContain('duplicate-preview-label');
+	});
+
+	it('rejects colliding entity addresses in one file', () => {
+		expect(
+			diagnosticCodes('[PAGE title="A B"]\nx\n[/PAGE]\n[PAGE title="A / B"]\ny\n[/PAGE]\n'),
+		).toContain('duplicate-entity-title');
+	});
+
+	it('accepts LAYOUT presentation attributes', () => {
+		const doc = parseSdoc('[LAYOUT title="Login" padding="48px"]\n<div />\n[/LAYOUT]\n');
+		expect(doc.diagnostics).toEqual([]);
+		expect(doc.entities[0]).toMatchObject({ kind: 'LAYOUT', padding: '48px' });
+	});
+});
+
+describe('parseArgsLiteral', () => {
+	function parse(raw: string) {
+		const diagnostics: ScanError[] = [];
+		const values = parseArgsLiteral(raw, { start: 0, end: raw.length }, diagnostics);
+		return { values, messages: diagnostics.map((d) => d.message) };
+	}
+
+	it('parses flat literals of all three types', () => {
+		expect(parse(`{ label: 'Hi', size: 14, wide: true, off: false, neg: -0.5 }`).values).toEqual({
+			label: 'Hi',
+			size: 14,
+			wide: true,
+			off: false,
+			neg: -0.5,
+		});
+	});
+
+	it('parses empty objects, quoted keys, and escaped strings', () => {
+		expect(parse('{}').values).toEqual({});
+		expect(parse(`{ "data-x": 'a', b: "it\\'s" }`).values).toEqual({ 'data-x': 'a', b: "it's" });
+	});
+
+	it('rejects nested values and identifiers with a pointer to the body', () => {
+		expect(parse(`{ items: [1, 2] }`).values).toBeNull();
+		expect(parse(`{ obj: { a: 1 } }`).values).toBeNull();
+		const { values, messages } = parse(`{ icon: MyIcon }`);
+		expect(values).toBeNull();
+		expect(messages[0]).toContain('plain literal');
+	});
+
+	it('rejects malformed objects', () => {
+		expect(parse(`plain`).values).toBeNull();
+		expect(parse(`{ a: 1 b: 2 }`).values).toBeNull();
+		expect(parse(`{ a: 1 } extra`).values).toBeNull();
+	});
+});
+
+describe('normalizeBody', () => {
+	it('strips the common indentation but keeps relative indent', () => {
+		expect(normalizeBody('\n\t\t<div>\n\t\t\t<b>x</b>\n\t\t</div>\n')).toBe(
+			'<div>\n\t<b>x</b>\n</div>',
+		);
+	});
+
+	it('ignores blank lines when computing the indent and blanks them out', () => {
+		expect(normalizeBody('\t\ta\n\n\t\tb\n')).toBe('a\n\nb');
+	});
+
+	it('unescapes body lines that start with \\[', () => {
+		expect(normalizeBody('\t\\[example title="x"]\n\ttext\n')).toBe(
+			'[example title="x"]\ntext',
+		);
+	});
+
+	it('dedents PAGE bodies so markdown does not become code blocks', () => {
+		const doc = parseSdoc('[PAGE title="X"]\n\t## Heading\n\n\ttext\n[/PAGE]\n');
+		expect((doc.entities[0] as PageEntity).body).toBe('## Heading\n\ntext');
+	});
+});
+
+describe('slugifyTitle', () => {
+	it('slugifies title paths', () => {
+		expect(slugifyTitle('Forms / Button')).toBe('forms-button');
+		expect(slugifyTitle('  Weird -- Title!! ')).toBe('weird-title');
+		expect(slugifyTitle('')).toBe('untitled');
+	});
+});

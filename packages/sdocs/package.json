@@ -21,6 +21,10 @@
       "types": "./dist/vite.d.ts",
       "default": "./dist/vite.js"
     },
+    "./language": {
+      "types": "./dist/language/index.d.ts",
+      "default": "./dist/language/index.js"
+    },
     "./explorer": {
       "svelte": "./dist/explorer/Explorer.svelte"
     },

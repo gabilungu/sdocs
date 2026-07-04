@@ -93,18 +93,26 @@ async function syncDocument(doc: TextDocument): Promise<Tracked> {
 	return entry;
 }
 
-connection.onInitialize((params) => {
+connection.onInitialize(async (params) => {
 	workspaceUri = params.workspaceFolders?.[0]?.uri ?? params.rootUri ?? null;
+	// Start the embedded Svelte server now so we can advertise exactly the
+	// trigger characters it answers — advertising one it ignores (e.g. space)
+	// makes VS Code cache an empty result and show "No suggestions".
+	const svelte = await getSvelte();
+	const completion = svelte.capabilities.completionProvider;
+	const signature = svelte.capabilities.signatureHelpProvider;
 	return {
 		capabilities: {
 			textDocumentSync: TextDocumentSyncKind.Full,
 			completionProvider: {
 				resolveProvider: true,
-				triggerCharacters: ['.', '"', "'", '`', '/', '@', '<', '#', ':', '|', ' ', '-', '('],
+				triggerCharacters: completion?.triggerCharacters,
 			},
 			hoverProvider: true,
 			definitionProvider: true,
-			signatureHelpProvider: { triggerCharacters: ['(', ','] },
+			signatureHelpProvider: {
+				triggerCharacters: signature?.triggerCharacters ?? ['(', ',', '<'],
+			},
 			documentFormattingProvider: true,
 		},
 	};

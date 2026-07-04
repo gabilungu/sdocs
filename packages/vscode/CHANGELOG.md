@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.29] - 2026-07-04
+
+### Fixed
+
+- **Component prop autocomplete inside block bodies.** The server
+  advertised space as a completion trigger character, but the embedded
+  Svelte server returns nothing for a space-triggered request — so typing
+  `<Button ` cached an empty result and left you with "No suggestions" as
+  you typed attribute names (Ctrl+Space still worked). The server now
+  mirrors exactly the trigger characters the embedded Svelte server
+  answers, so props complete as you type.
+
 ## [0.0.28] - 2026-07-04
 
 ### Fixed

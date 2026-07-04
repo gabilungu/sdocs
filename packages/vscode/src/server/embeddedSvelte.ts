@@ -18,10 +18,13 @@ import {
 	PublishDiagnosticsNotification,
 	type ProtocolConnection,
 	type PublishDiagnosticsParams,
+	type ServerCapabilities,
 } from 'vscode-languageserver-protocol/node';
 import { startServer } from 'svelte-language-server';
 
-export type EmbeddedSvelte = ProtocolConnection;
+/** The embedded connection, carrying the capabilities it advertised at
+ * initialize — so we mirror its real trigger characters rather than guess. */
+export type EmbeddedSvelte = ProtocolConnection & { capabilities: ServerCapabilities };
 
 export async function startEmbeddedSvelte(
 	workspaceUri: string | null,
@@ -57,7 +60,7 @@ export async function startEmbeddedSvelte(
 	client.onUnhandledNotification(() => undefined);
 	client.listen();
 
-	await client.sendRequest(InitializeRequest.type, {
+	const initResult = await client.sendRequest(InitializeRequest.type, {
 		processId: process.pid,
 		rootUri: workspaceUri,
 		workspaceFolders: workspaceUri ? [{ uri: workspaceUri, name: 'workspace' }] : null,
@@ -96,5 +99,7 @@ export async function startEmbeddedSvelte(
 	});
 	await client.sendNotification(InitializedNotification.type, {});
 
-	return client;
+	const embedded = client as EmbeddedSvelte;
+	embedded.capabilities = initResult.capabilities;
+	return embedded;
 }

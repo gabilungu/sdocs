@@ -30,6 +30,37 @@ describe('sdoc language server over LSP', () => {
 		expect(first.diagnostics).toEqual([]);
 	});
 
+	it('does not advertise space as a completion trigger', () => {
+		// Advertising a trigger character the embedded Svelte server ignores
+		// (space) makes VS Code cache an empty result and show "No
+		// suggestions" as you type component attributes.
+		const cp = client.initializeResult.capabilities.completionProvider as {
+			triggerCharacters?: string[];
+		};
+		expect(cp.triggerCharacters).toBeDefined();
+		expect(cp.triggerCharacters).not.toContain(' ');
+	});
+
+	it('completes a component prop typed inside an example body', async () => {
+		// The regression the trigger-character fix addresses: typing
+		// `<Notice t…` should offer the component's `title` prop.
+		const bodyLine = lines.findIndex((l) => l.includes('<Notice') && l.includes('{...args}'));
+		const probe = source.split('\n');
+		const insertAt = bodyLine + 1;
+		probe.splice(insertAt, 0, '\t\t<Notice t />');
+		await client.changeDoc(uri, 10, probe.join('\n'));
+		const line = insertAt;
+		const character = '\t\t<Notice t'.length;
+		const res = (await client.connection.sendRequest('textDocument/completion', {
+			textDocument: { uri },
+			position: { line, character },
+			context: { triggerKind: 1 },
+		})) as { items?: { label: string }[] } | { label: string }[] | null;
+		const items = Array.isArray(res) ? res : (res?.items ?? []);
+		expect(items.some((i) => i.label === 'title')).toBe(true);
+		await client.changeDoc(uri, 11, source);
+	});
+
 	it('reports an injected error at the authored line', async () => {
 		const brokenLine = lines.findIndex((l) => l.includes('{...args}'));
 		const broken = source.replace('{...args}', '{...args} onclick={notAThing}');

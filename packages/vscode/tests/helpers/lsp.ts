@@ -19,6 +19,8 @@ export const SITE = resolve(REPO, 'apps/site');
 export interface LspClient {
 	connection: ProtocolConnection;
 	child: ChildProcess;
+	/** The server's initialize result (capabilities, etc.) */
+	initializeResult: { capabilities: Record<string, unknown> };
 	/** All publishes received, per uri, newest last */
 	diagnostics: Map<string, PublishDiagnosticsParams[]>;
 	openDoc(uri: string, text: string): Promise<void>;
@@ -64,18 +66,19 @@ export async function startClient(
 	connection.onUnhandledNotification(() => {});
 	connection.listen();
 
-	await connection.sendRequest('initialize', {
+	const initializeResult = (await connection.sendRequest('initialize', {
 		processId: process.pid,
 		rootUri: 'file://' + rootDir,
 		workspaceFolders: [{ uri: 'file://' + rootDir, name: 'test' }],
 		capabilities: {},
-	});
+	})) as { capabilities: Record<string, unknown> };
 	await connection.sendNotification('initialized', {});
 
 	let version = 0;
 	return {
 		connection,
 		child,
+		initializeResult,
 		diagnostics,
 		async openDoc(uri, text) {
 			await connection.sendNotification('textDocument/didOpen', {

@@ -1,7 +1,7 @@
 {
 	"name": "sdocs",
 	"displayName": "sdocs",
-	"description": "Language support for sdocs — Svelte component documentation (.sdoc)",
+	"description": "Language support for sdocs \u2014 Svelte component documentation (.sdoc)",
 	"version": "0.0.29",
 	"publisher": "gabilungu",
 	"license": "MIT",
@@ -184,11 +184,13 @@
 		"watch": "node esbuild.js --watch",
 		"package": "node esbuild.js --production",
 		"vscode:prepublish": "npm run package",
-		"test": "vitest run"
+		"test": "vitest run",
+		"test:live": "node tests/integration/main.cjs"
 	},
 	"devDependencies": {
 		"@types/node": "^20.19.43",
 		"@types/vscode": "^1.90.0",
+		"@vscode/test-electron": "^3.0.0",
 		"@vscode/vsce": "^3.0.0",
 		"esbuild": "^0.24.0",
 		"prettier": "^3.9.4",

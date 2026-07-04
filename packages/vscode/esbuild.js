@@ -13,15 +13,36 @@ function copyGrammar() {
 	fs.copyFileSync(source, target);
 }
 
-/** The embedded svelte-language-server resolves 'svelte' from disk at
- * runtime (preferring the workspace's copy, falling back to one next to the
- * server). The installed extension has no node_modules, so ship the fallback
- * svelte package beside the server bundle. */
-function copyFallbackSvelte() {
-	const source = path.join(__dirname, 'node_modules/svelte');
-	const target = path.join(__dirname, 'dist/node_modules/svelte');
-	fs.rmSync(target, { recursive: true, force: true });
-	fs.cpSync(source, target, { recursive: true, dereference: true });
+/** The embedded svelte-language-server loads several things from DISK at
+ * runtime; the installed extension has no node_modules, so ship them beside
+ * the server bundle:
+ * - 'svelte' (fallback compiler when the workspace has none)
+ * - 'svelte2tsx' (its shim .d.ts files declare the __sveltets_2_* helpers)
+ * - typescript's standard lib .d.ts files (both next to the bundle, where
+ *   the bundled compiler's __dirname-based lookup lands, and as a package) */
+function copyRuntimeAssets() {
+	for (const pkg of ['svelte', 'svelte2tsx']) {
+		const target = path.join(__dirname, 'dist/node_modules', pkg);
+		fs.rmSync(target, { recursive: true, force: true });
+		fs.cpSync(path.join(__dirname, 'node_modules', pkg), target, {
+			recursive: true,
+			dereference: true,
+		});
+	}
+	const tsLib = path.join(__dirname, 'node_modules/typescript/lib');
+	const tsTarget = path.join(__dirname, 'dist/node_modules/typescript');
+	fs.rmSync(tsTarget, { recursive: true, force: true });
+	fs.mkdirSync(path.join(tsTarget, 'lib'), { recursive: true });
+	fs.copyFileSync(
+		path.join(__dirname, 'node_modules/typescript/package.json'),
+		path.join(tsTarget, 'package.json'),
+	);
+	for (const file of fs.readdirSync(tsLib)) {
+		if (/^lib\..*\.d\.ts$/.test(file) || file === 'lib.d.ts') {
+			fs.copyFileSync(path.join(tsLib, file), path.join(tsTarget, 'lib', file));
+			fs.copyFileSync(path.join(tsLib, file), path.join(__dirname, 'dist', file));
+		}
+	}
 }
 
 /**
@@ -51,7 +72,7 @@ const bundleResolveFixes = {
 
 async function main() {
 	copyGrammar();
-	copyFallbackSvelte();
+	copyRuntimeAssets();
 	const ctx = await esbuild.context({
 		entryPoints: ['src/extension.ts'],
 		bundle: true,

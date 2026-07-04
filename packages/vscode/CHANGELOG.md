@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.27] - 2026-07-04
+
+### Fixed
+
+- **False errors everywhere in installed copies.** The embedded TypeScript
+  service loads its standard-library `.d.ts` files and svelte2tsx's shim
+  declarations from disk; the packaged extension shipped neither, so every
+  `.sdoc` file drew `ts(2697)` "include ES2015 in your --lib" and
+  `ts(2304)` "Cannot find name '__sveltets_2_…'" errors. Both now ship
+  beside the server bundle.
+
 ## [0.0.26] - 2026-07-04
 
 ### Added

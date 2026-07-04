@@ -2,7 +2,8 @@ import { base } from '$app/paths';
 import { Marked } from 'marked';
 import type { Token } from 'marked';
 import { createHighlighter } from 'shiki';
-import type { Highlighter } from 'shiki';
+import type { Highlighter, LanguageRegistration } from 'shiki';
+import sdocGrammar from 'sdocs/grammar/sdoc.tmLanguage.json';
 
 export interface TocEntry {
 	depth: number;
@@ -26,12 +27,21 @@ const LANG_ALIASES: Record<string, string> = {
 
 const LANGS = ['javascript', 'typescript', 'svelte', 'bash', 'json', 'html', 'css', 'yaml', 'markdown'];
 
+// The sdoc grammar embeds svelte/ts/js/css scopes, all loaded via LANGS above.
+const sdocLang = {
+	...sdocGrammar,
+	name: 'sdoc',
+	embeddedLangs: ['svelte', 'typescript', 'javascript', 'css']
+} as unknown as LanguageRegistration;
+
+const FENCE_LANGS = new Set([...LANGS, 'sdoc']);
+
 let highlighterPromise: Promise<Highlighter> | undefined;
 
 function getHighlighter(): Promise<Highlighter> {
 	highlighterPromise ??= createHighlighter({
 		themes: ['github-light', 'github-dark'],
-		langs: LANGS
+		langs: [...LANGS, sdocLang]
 	});
 	return highlighterPromise;
 }
@@ -94,7 +104,7 @@ export async function renderMarkdown(source: string): Promise<RenderedMarkdown> 
 			codeHtml.set(
 				token,
 				highlighter.codeToHtml(token.text, {
-					lang: LANGS.includes(lang) ? lang : 'text',
+					lang: FENCE_LANGS.has(lang) ? lang : 'text',
 					themes: { light: 'github-light', dark: 'github-dark' }
 				})
 			);

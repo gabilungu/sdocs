@@ -1,6 +1,6 @@
 {
   "name": "sdocs",
-  "version": "0.0.40",
+  "version": "0.0.41",
   "description": "A lightweight documentation tool for Svelte 5 components",
   "type": "module",
   "license": "MIT",
@@ -25,6 +25,7 @@
       "types": "./dist/language/index.d.ts",
       "default": "./dist/language/index.js"
     },
+    "./grammar/sdoc.tmLanguage.json": "./dist/grammar/sdoc.tmLanguage.json",
     "./explorer": {
       "svelte": "./dist/explorer/Explorer.svelte"
     },

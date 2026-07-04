@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.41] - 2026-07-04
+
+### Added
+
+- **`sdocs/language`** — a scanner and parser for the block-based sdoc
+  format: line-anchored `[DOCS]`/`[PAGE]`/`[LAYOUT]` entities with
+  `[preview]`/`[example]` sub-blocks, Svelte-style attributes, precise
+  source spans, and recoverable diagnostics (it never throws, and keeps
+  scanning past mistakes). Groundwork for the format switch — the runtime
+  still reads the current `.sdoc` format.
+- **A TextMate grammar for sdoc** at `sdocs/grammar/sdoc.tmLanguage.json`,
+  usable by any TextMate-compatible highlighter; the documentation site
+  uses it to highlight ```` ```sdoc ```` fences.
+
 ## [0.0.40] - 2026-07-04
 
 ### Fixed

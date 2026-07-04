@@ -16,12 +16,16 @@
 		control?: Snippet<[Row]>;
 		/** Show the Default column (rows without defaults, e.g. events, turn it off) */
 		showDefault?: boolean;
+		/** Header label of the Default column (e.g. "Current value" for states) */
+		defaultLabel?: string;
 	}
 
-	let { rows, control, showDefault = true }: Props = $props();
+	let { rows, control, showDefault = true, defaultLabel = 'Default' }: Props = $props();
 
+	// The default/value column widens to the control-rail width when it is the
+	// last column, so section right edges align.
 	const gridColumns = $derived(
-		['200px', 'minmax(0, 1fr)', ...(showDefault ? ['120px'] : []), ...(control ? ['200px'] : [])].join(' '),
+		['200px', 'minmax(0, 1fr)', ...(showDefault ? [control ? '120px' : '200px'] : []), ...(control ? ['200px'] : [])].join(' '),
 	);
 </script>
 
@@ -30,7 +34,7 @@
 		<div class="sdocs-api-header" style:grid-template-columns={gridColumns}>
 			<div>Name</div>
 			<div>Details</div>
-			{#if showDefault}<div>Default</div>{/if}
+			{#if showDefault}<div>{defaultLabel}</div>{/if}
 			{#if control}<div>Control</div>{/if}
 		</div>
 		{#each rows as row (row.name)}

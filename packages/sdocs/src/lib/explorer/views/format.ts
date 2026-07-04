@@ -1,6 +1,13 @@
+/** Drop `import('module').` qualifiers — JSDoc types carry them, TS ones don't */
+function normalizeType(value: unknown): string {
+	return String(value)
+		.trim()
+		.replace(/import\((['"])[^'"]*\1\)\./g, '');
+}
+
 /** Classify a type string for color coding (conventions, not a formal standard) */
 export function typeClass(value: unknown): string {
-	const v = String(value).trim();
+	const v = normalizeType(value);
 	if (v === 'string' || /^'[^']*'(\s*\|\s*'[^']*')*$/.test(v)) return 'string';
 	if (v === 'number' || /^\d+(\.\d+)?(\s*\|\s*\d+(\.\d+)?)*$/.test(v)) return 'number';
 	if (v === 'boolean') return 'boolean';
@@ -25,7 +32,7 @@ export function valueClass(value: unknown): string {
 
 /** Split a clean union type into its members; everything else stays whole */
 export function typeParts(value: unknown): string[] {
-	const v = String(value).trim();
+	const v = normalizeType(value);
 	if (/^'[^']*'(\s*\|\s*'[^']*')+$/.test(v) || /^\d+(\.\d+)?(\s*\|\s*\d+(\.\d+)?)+$/.test(v)) {
 		return v.split('|').map((part) => part.trim());
 	}

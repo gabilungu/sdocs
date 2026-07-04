@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.39] - 2026-07-04
+
+### Changed
+
+- **Methods and States join the unified section layout.** Methods render a
+  single signature chip (`(params) => returns`, colored like events) with
+  the Run button in the control rail; States show their live value in a
+  "Current value" rail. The value rail widens to align section right edges
+  when it's the last column. All six sections now share one table
+  implementation.
+- **JSDoc types display like TypeScript types.** `import('module').`
+  qualifiers are stripped for display and classification, so
+  `import('svelte').Snippet<[…]>` renders as the same pink `Snippet<[…]>`
+  chip as in TS components.
+
 ## [0.0.38] - 2026-07-04
 
 ### Changed

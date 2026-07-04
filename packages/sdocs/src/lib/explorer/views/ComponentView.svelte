@@ -4,7 +4,6 @@
 	import { highlightSvelte } from '../highlighter.js';
 	import CollapsiblePanel from './CollapsiblePanel.svelte';
 	import PreviewFrame from './PreviewFrame.svelte';
-	import DataTable from './DataTable.svelte';
 	import ApiTable from './ApiTable.svelte';
 	import PropControl from './PropControl.svelte';
 	import CssPropControl from './CssPropControl.svelte';
@@ -249,15 +248,15 @@
 	const methodsRows = $derived(
 		(cd?.methods ?? []).map((m) => ({
 			name: m.name,
+			type: `(${m.params ?? ''}) => ${m.returnType || 'void'}`,
 			params: m.params,
-			returns: m.returnType,
 			description: m.description,
 		})),
 	);
 
 	const stateRows = $derived(
 		(cd?.state ?? []).map((s) => ({
-			value: s.name in liveStateValues ? JSON.stringify(liveStateValues[s.name]) : undefined,
+			default: s.name in liveStateValues ? JSON.stringify(liveStateValues[s.name]) : undefined,
 			name: s.name,
 			type: s.type,
 			description: s.description,
@@ -380,16 +379,7 @@
 				<Icon name="square-function" --w="15px" --h="15px" --fill="var(--color-base-500)" />
 				Methods
 			</h2>
-			<DataTable
-				columns={[
-					{ key: 'name', label: 'Name', kind: 'name' },
-					{ key: 'params', label: 'Parameters' },
-					{ key: 'returns', label: 'Returns', kind: 'type' },
-					{ key: 'description', label: 'Description', kind: 'text' },
-				]}
-				rows={methodsRows}
-				control={methodsRows.length > 0 ? methodControl : undefined}
-			/>
+			<ApiTable rows={methodsRows} showDefault={false} control={methodControl} />
 		</section>
 
 		<section class="sdocs-doc-section">
@@ -397,15 +387,7 @@
 				<Icon name="database" --w="15px" --h="15px" --fill="var(--color-base-500)" />
 				States
 			</h2>
-			<DataTable
-				columns={[
-					{ key: 'name', label: 'Name', kind: 'name' },
-					{ key: 'type', label: 'Type', kind: 'type' },
-					{ key: 'value', label: 'Current value', kind: 'value' },
-					{ key: 'description', label: 'Description', kind: 'text' },
-				]}
-				rows={stateRows}
-			/>
+			<ApiTable rows={stateRows} defaultLabel="Current value" />
 		</section>
 
 		{#if exampleSnippets.length > 0}

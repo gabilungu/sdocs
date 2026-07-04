@@ -1,5 +1,6 @@
 <script lang="ts">
 	import NoticeJs from "./NoticeJs.svelte";
+	import Notice from "./Notice.svelte";
 </script>
 
 [DOCS title="NoticeJs"  description="The plain-JavaScript twin of Notice: the same full feature surface documented through JSDoc (@typedef + @property) instead of TypeScript — compare the two pages."]
@@ -11,6 +12,11 @@
 		>
 	[/preview]
 
+	[preview component={Notice}]
+		<Notice {...args}>Something here</Notice>
+	[/preview]
+
+
 	[example title="WithIconSnippet"]
 		<NoticeJs {...args} title="Deploy warning" tone="warning">
 			{#snippet icon(tone)}
@@ -19,6 +25,8 @@
 			The icon snippet receives the current tone as a parameter.
 		</NoticeJs>
 	[/example]
+
+	
 
 	[example title="WithAction"]
 		<NoticeJs {...args} title="Update available" action={{ label: "Restart now" }}

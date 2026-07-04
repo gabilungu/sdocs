@@ -2,56 +2,58 @@
 title: Layout Docs
 ---
 
-Layout docs demonstrate a composition of multiple components — a login form, a dashboard shell, a card grid. They render full-width in an isolated iframe so the composition gets a clean stage.
+A `[LAYOUT]` block is a full-page sketch — a composition of components on a
+clean, isolated stage: a login form, a dashboard shell, a card grid.
 
-## Example
-
-```svelte
-<!-- LoginForm.layout.sdoc -->
+```sdoc
 <script lang="ts">
-  import Card from './Card.svelte';
-  import Input from './Input.svelte';
-  import Button from './Button.svelte';
-
-  export const meta = {
-    title: 'Patterns / Login Form',
-    description: 'A login form combining Card, Input, and Button.',
-  };
+	import Card from './Card.svelte';
+	import Input from './Input.svelte';
+	import Button from './Button.svelte';
 </script>
 
-<Card padding="24px">
-  <Input label="Email" type="email" />
-  <Input label="Password" type="password" />
-  <Button>Sign in</Button>
-</Card>
+[LAYOUT title="Patterns / Login Form" padding="48px"]
+
+	<Card padding="24px">
+		<Input label="Email" type="email" />
+		<Input label="Password" type="password" />
+		<Button label="Sign in" />
+	</Card>
+
+[/LAYOUT]
 ```
 
-## The `meta` object
+## Attributes
 
-```ts
-{
-  title: string;                     // required — sidebar path
-  description?: string;              // accepted but not displayed (layouts render full-page)
-  settings?: Record<string, any>;    // reserved for preview settings
-}
-```
+| Attribute | Required | Meaning |
+|---|---|---|
+| `title` | yes | Sidebar path, `/`-separated |
+| `padding` | no | Space around the sketch inside the frame |
 
-`component` and `args` are ignored on layout docs.
+Presentation attributes like `padding` tune the stage; the sketch itself is
+whatever you put in the body.
 
-## Content
+## The body
 
-Everything outside `<script>` and `<style>` tags is the layout. It renders in an isolated iframe, meaning the parent app's styles don't leak in — only the stylesheet configured via `config.css` applies.
+The body is full Svelte — components, expressions, `{#if}`/`{#each}`
+blocks, local `<script>` state — rendered full-width in an **isolated
+frame**: the host app's styles don't leak in, only the stylesheet from
+[`config.css`](/explorer/configuration) applies, plus the file's own
+`<style>`.
 
-Imports from your codebase work normally.
+No controls, no prop extraction — just the composition.
 
-## Layouts vs. component docs
+## Not a SvelteKit layout
 
-- A **component doc** documents a single component with its props, events, and variants. It has controls.
-- A **layout doc** shows many components together. No controls, no prop extraction — just the composition.
+Despite the name, `[LAYOUT]` has nothing to do with SvelteKit's
+`+layout.svelte`. It doesn't wrap other pages — it **is** a page: a
+standalone visual sketch that gets its own sidebar entry.
 
-A component doc's named snippets (`WithIcon`, `Disabled`) cover small static variants of one component. Reach for a layout doc when you want to show components working together at the page or feature level.
+## Layouts vs. the other entities
 
-## See also
-
-- [Component docs](/language/component-docs)
-- [Page docs](/language/page-docs)
+- **[Component doc](/language/component-docs)** — one component, with
+  controls, examples, and extracted API. Its `[example]` blocks cover small
+  variants of that component.
+- **[Page](/language/page-docs)** — markdown prose with component islands.
+- **Layout** — many components working together at the page or feature
+  level, on an isolated full-page stage.

@@ -2,159 +2,117 @@
 title: Component Docs
 ---
 
-A component doc is a Svelte file with a `.sdoc` extension that documents a single component. It exports a `meta` object and optionally defines snippets for a live preview and static examples.
+A `[DOCS]` block documents components: live previews wired to interactive
+controls, frozen examples, and each previewed component's extracted API.
 
-## Minimum example
-
-```svelte
-<!-- Button.sdoc -->
+```sdoc
 <script lang="ts">
-  import Button from './Button.svelte';
-
-  export const meta = {
-    component: Button,
-    title: 'Components / Button',
-  };
+	import Button from './Button.svelte';
 </script>
+
+[DOCS title="Forms / Button" description="A flexible button."]
+
+	[preview component={Button} args={{ label: 'Click me', disabled: false }}]
+		<Button {...args} />
+	[/preview]
+
+	[example title="Disabled"]
+		<Button label="Can't touch this" disabled />
+	[/example]
+
+[/DOCS]
 ```
 
-That's it. With no snippets, sdocs auto-generates a `Default` snippet as `<Button {...args} />` (using an empty `args` object since none was provided).
+## `[DOCS]` attributes
 
-## The `meta` object
+| Attribute | Required | Meaning |
+|---|---|---|
+| `title` | yes | Sidebar path and display name — `"Forms / Button"` nests under Forms |
+| `description` | no | Short text under the page title |
 
-```ts
-{
-  component: unknown;          // the imported Svelte component (required for controls)
-  title: string;               // slash-separated path, e.g. "Components / Button"
-  description?: string;        // short description shown at the top of the page
-  args?: Record<string, any>;  // default prop values, bound to interactive controls
-  settings?: Record<string, any>; // reserved for preview settings (currently unused)
-}
+## `[preview]`
+
+A preview is a live, interactive showcase. Each `[preview]` names the
+component it demonstrates and declares the defaults for its
+[interactive controls](/explorer/features/interactive-controls):
+
+| Attribute | Required | Meaning |
+|---|---|---|
+| `component` | yes | The demonstrated component: an identifier imported in the file's `<script>`. Drives [prop extraction](/explorer/features/prop-extraction) and the controls. |
+| `args` | no | This preview's control defaults |
+| `title` | no | Tab label — defaults to the component's name |
+
+`args` values are **plain literals** — strings, numbers, booleans. They stay
+simple because the controls send them into the isolated preview at runtime.
+Anything richer (arrays, objects, imported values) belongs directly in the
+body markup, where full Svelte is available.
+
+Inside the body, `args` is in scope — spread it, pick from it, or ignore it.
+
+## Multiple previews — tabs
+
+A `[DOCS]` block holds any number of previews. With one, the page is a plain
+component page. With several, the page grows a **tab bar**: each tab is that
+preview with its own controls and its component's API tables — every tab
+fully live.
+
+```sdoc
+[DOCS title="Navigation / Tabs"]
+
+	[preview component={Tabs} args={{ active: 0 }}]
+		<Tabs {...args}>
+			<Tab label="One">…</Tab>
+			<Tab label="Two">…</Tab>
+		</Tabs>
+	[/preview]
+
+	[preview component={Tab} args={{ label: 'One' }}]
+		<Tabs>
+			<Tab {...args}>…</Tab>
+		</Tabs>
+	[/preview]
+
+[/DOCS]
 ```
 
-### `component`
+Tab labels default to the component name (`Tabs`, `Tab` above); set
+`title="…"` on a preview to override it — which is also how two previews of
+the *same* component stay distinguishable.
 
-The imported component. sdocs reads its source to extract props, events, snippets, methods, state, and CSS custom properties. See [prop extraction](/explorer/features/prop-extraction) for what exactly is parsed.
+This is made for components that belong together: compound families like
+`Tabs`/`Tab` or `Select`/`Option` whose children never stand alone (wrap the
+child in its parent inside the body, as above), or a component and its close
+twin. Unrelated components read better as separate `[DOCS]` blocks — one
+file can hold several.
 
-You can also pass a string path (`'./Button.svelte'`) if you need to defer the import, but the direct import is recommended.
+A block with **zero** previews is valid too: an examples-only page, with no
+controls and no API tables.
 
-### `title`
+## `[example]`
 
-Controls where the component appears in the sidebar. Slashes become folders:
+Examples are frozen showcases: each renders **exactly what you wrote**,
+always — the controls never touch them. Every example requires a `title`
+(any text — spaces and punctuation welcome), unique within its `[DOCS]`
+block.
 
-```js
-title: 'Components / Button'           // → Components ▸ Button
-title: 'Forms / Inputs / TextInput'    // → Forms ▸ Inputs ▸ TextInput
+Examples belong to the page, not to a tab: they render below the preview
+area and stay visible whichever tab is active.
+
+An example may carry its own `<script>` for local state, layered on top of
+the file's script — that's how you demo interactive behavior:
+
+```sdoc
+[example title="Controlled from outside"]
+	<script>
+		let open = $state(false);
+	</script>
+	<button onclick={() => open = !open}>toggle</button>
+	<Disclosure bind:open summary="Details">…</Disclosure>
+[/example]
 ```
 
-A first segment prefixed with `:` is rendered as a bold group header (expanded by default, still collapsible, styled differently). Later segments don't support the prefix:
+## What sdocs extracts
 
-```js
-title: ':Design System / Components / Button'
-```
-
-See [sidebar](/explorer/features/sidebar) for ordering rules.
-
-### `description`
-
-Optional. Shown as a subtitle on the component page.
-
-### `args`
-
-Default values for props. These become the initial values of the interactive controls on the `Default` snippet:
-
-```js
-args: {
-  label: 'Click me',
-  size: 'md',
-  disabled: false,
-}
-```
-
-When the user edits a control, the new value flows into the `Default` snippet and the preview re-renders. The code panel below the preview updates to reflect the change.
-
-See [interactive controls](/explorer/features/interactive-controls) for which prop types get which control.
-
-## Snippets
-
-Component docs recognize two kinds of snippets:
-
-### The `Default` snippet
-
-This snippet gets the interactive controls. Its `args` parameter is bound to the current control values:
-
-```svelte
-{#snippet Default(args)}
-  <Button {...args} />
-{/snippet}
-```
-
-With `<script lang="ts">`, type the parameter and `args` gets prop
-autocompletion for your component:
-
-```svelte
-{#snippet Default(args: ComponentProps<typeof Button>)}
-  <Button {...args} />
-{/snippet}
-```
-
-(`ComponentProps` comes from `import type { ComponentProps } from 'svelte'`.)
-
-If you omit the `Default` snippet, sdocs auto-generates `<Component {...args} />`. Define it explicitly when you need to wrap the component, provide child content, or set props that shouldn't be editable:
-
-```svelte
-{#snippet Default(args)}
-  <div style="max-width: 400px;">
-    <Button {...args}>
-      {args.label}
-    </Button>
-  </div>
-{/snippet}
-```
-
-### Named snippets (examples)
-
-Any other snippet becomes a static example listed in the sidebar under the component:
-
-```svelte
-{#snippet WithIcon()}
-  <Button>
-    <Icon name="settings" /> Settings
-  </Button>
-{/snippet}
-
-{#snippet Disabled()}
-  <Button disabled>Can't click me</Button>
-{/snippet}
-```
-
-Named snippets are static — they don't receive `args` and don't get interactive controls. Use them to show meaningful variants.
-
-## What appears on the page
-
-For each component doc, the rendered page contains, in order:
-
-1. **Title & description** from `meta`
-2. **Preview** — live render of the `Default` snippet in an iframe
-3. **Preview Code** — collapsible panel with the snippet source, props patched to reflect current control values (collapsed by default)
-4. **Controls panel** — auto-generated from component props
-5. **Props, CSS Props, Events, Snippets, Methods, State** — one table each; sections always render, showing "None" when empty
-6. **Examples** — the named snippets, rendered inline (each is also its own sub-page in the sidebar)
-7. **Component Source** — collapsible panel with the component's highlighted source
-
-## File placement
-
-sdocs discovers `.sdoc` files via the `include` glob in your config. The file can live anywhere that matches. A common convention is to colocate the doc with the component:
-
-```
-src/lib/Button/
-├── Button.svelte
-└── Button.sdoc
-```
-
-## See also
-
-- [Interactive controls](/explorer/features/interactive-controls) — full list of control types
-- [Prop extraction](/explorer/features/prop-extraction) — what sdocs parses from your component
-- [Page docs](/language/page-docs) — for freeform prose
-- [Layout docs](/language/layout-docs) — for component compositions
+For every previewed component, sdocs parses its source and extracts the full
+public API — props, events, snippets, methods, states, and CSS custom
+properties. See [prop extraction](/explorer/features/prop-extraction).

@@ -2,68 +2,76 @@
 title: Page Docs
 ---
 
-Page docs are for freeform prose — install guides, design tokens, principles — anything that isn't documenting a single component. They render as a single page with an auto-generated table of contents.
+A `[PAGE]` block is freeform prose — install guides, design tokens,
+principles — anything that isn't documenting a single component. Its body is
+**markdown**, rendered as a page with an auto-generated table of contents.
 
-## Example
-
-```svelte
-<!-- GettingStarted.page.sdoc -->
+```sdoc
 <script lang="ts">
-  export const meta = {
-    title: 'Docs / Getting Started',
-    description: 'How to set up sdocs in your project.',
-  };
+	import Button from './Button.svelte';
+	const version = '2.0';
 </script>
 
-<h1>Getting Started</h1>
+[PAGE title="Docs / Getting Started"]
 
-<p>Install sdocs and create your first doc file.</p>
+	## Installation
 
-<h2>Installation</h2>
-<p>Run <code>npm install sdocs</code>…</p>
+	Install sdocs (currently {version}) and create your first doc file:
 
-<h2>Configuration</h2>
-<p>Create a <code>sdocs.config.js</code> file…</p>
+	```bash
+	npm install -D sdocs
+	```
 
-<h3>Include patterns</h3>
-<p>Use glob patterns to match your <code>.sdoc</code> files.</p>
+	## Buttons in context
+
+	Components render right in the prose — here's a live one:
+	<Button label="the demo" />
+
+	| Command | Does |
+	|---|---|
+	| `sdocs dev` | dev server |
+	| `sdocs build` | static site |
+
+[/PAGE]
 ```
 
-## The `meta` object
+## Attributes
 
-```ts
-{
-  title: string;         // required — sidebar path
-  description?: string;  // optional subtitle
-}
-```
+`[PAGE]` takes a single attribute: `title` (required) — the sidebar path,
+`/`-separated like every entity.
 
-`component`, `args`, and `settings` are ignored on page docs.
+## The markdown dialect
 
-## Content
+The body is markdown first, with two Svelte conveniences:
 
-Everything outside `<script>` and `<style>` tags is rendered as markup. You can use plain HTML or Svelte syntax (components, expressions, blocks). Imports from your codebase work the same as in a regular Svelte file.
+- **`{expression}` interpolation** — values from the file's `<script>` drop
+  into the prose: `currently {version}`.
+- **Component islands** — a component tag renders live inside the text,
+  like the `<Button />` above. Components come from the file's `<script>`
+  imports.
+
+Everything else is plain markdown: headings, links, images, tables, lists,
+and code fences. **Fences are inert** — code inside them is displayed and
+highlighted, never executed, even if it looks like a component tag.
+
+What a page does **not** have: template logic (`{#if}`, `{#each}`),
+controls, and prop extraction. If you find yourself wanting logic, the
+content is probably a [component doc](/language/component-docs) or a
+[layout](/language/layout-docs).
 
 ## Table of contents
 
-An auto-generated table of contents appears in a sidebar on the right, built from `<h2>`, `<h3>`, and `<h4>` headings.
+A table of contents is generated from the page's `##`–`####` headings and
+shown on the right. Heading IDs are slugified — lowercased, non-word
+characters stripped, spaces as hyphens — so `## Getting Started` anchors at
+`#getting-started`. The page header shows the entity `title`; a top-level
+`#` heading in the body is neither required nor listed.
 
-Heading IDs are slugified: lowercased, non-word characters stripped, spaces replaced with hyphens.
+## When to reach for a page
 
-```html
-<h2>Getting Started</h2>       <!-- id: "getting-started" -->
-<h3>Installation Steps</h3>    <!-- id: "installation-steps" -->
-```
-
-`<h1>` headings are not included in the TOC — it lists `h2`–`h4` only. The title shown in the page header comes from `meta.title`, not from the markup.
-
-## When to use pages vs. component docs
-
-- Use a **page doc** when the content doesn't map to a single component — install guides, architectural overviews, writing guidelines.
-- Use a **component doc** when documenting a specific component with props, events, and variants.
-- Use a **layout doc** when showing a composition of multiple components.
-
-## See also
-
-- [Component docs](/language/component-docs)
-- [Layout docs](/language/layout-docs)
+- **Page** — content that doesn't map to one component: guides, overviews,
+  conventions.
+- **[Component doc](/language/component-docs)** — one component, with
+  controls and extracted API.
+- **[Layout](/language/layout-docs)** — components composed together on a
+  full-page stage.

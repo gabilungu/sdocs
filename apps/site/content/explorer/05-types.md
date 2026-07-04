@@ -169,8 +169,10 @@ interface ParsedCssProp {
 
 ```ts
 interface ExtractedSnippet {
-  name: string;             // "Default" or a named snippet
-  body: string;             // snippet body source (signature stripped)
+  name: string;             // preview label, example title, or 'Content'
+  slug: string;             // URL-safe id, unique within the entity
+  role: 'preview' | 'example' | 'content';
+  body: string;             // block body source
   highlightedHtml?: string; // highlighted body HTML
   previewUrl?: string;      // preview iframe URL (added by the virtual module)
 }

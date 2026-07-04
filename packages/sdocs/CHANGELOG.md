@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.46] - 2026-07-04
+
+### Fixed
+
+- **`npx sdocs` works in projects without a local install again.** The
+  Explorer's lazy syntax highlighter (added in 0.0.36) imports `shiki`,
+  which a bare project couldn't resolve from the staging directory — the
+  dev server failed with `Failed to resolve import "shiki/core"`. The
+  staging directory now links sdocs' own `shiki` (and `svelte`, when the
+  project has none) into place; a project-local `svelte` still wins.
+
 ## [0.0.45] - 2026-07-04
 
 ### Fixed

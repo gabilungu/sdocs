@@ -11,7 +11,7 @@ export interface TreeNode {
 	children: TreeNode[];
 	/** The doc entry (only for component/page/layout nodes) */
 	doc?: DocEntry;
-	/** Snippet names for component nodes (excludes Default) */
+	/** Example titles for component nodes (sidebar sub-pages) */
 	examples?: string[];
 	/** Whether this node should be expanded by default */
 	defaultExpanded?: boolean;

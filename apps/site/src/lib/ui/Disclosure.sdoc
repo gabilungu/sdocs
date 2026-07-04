@@ -6,8 +6,8 @@
 
 	[preview component={Disclosure} args={{ summary: 'What is a .sdoc file?', open: false }}]
 		<Disclosure {...args}>
-			A Svelte file with an <code>export const meta</code> — one per component,
-			rendered by the Explorer with live previews and controls.
+			A file of <code>[DOCS]</code>, <code>[PAGE]</code>, and <code>[LAYOUT]</code>
+			blocks, rendered by the Explorer with live previews and controls.
 		</Disclosure>
 	[/preview]
 

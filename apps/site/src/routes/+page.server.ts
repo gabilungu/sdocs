@@ -1,21 +1,22 @@
 import { renderMarkdown } from '$lib/server/markdown';
 import type { PageServerLoad } from './$types';
 
-const EXAMPLE = `\`\`\`svelte
+const EXAMPLE = `\`\`\`sdoc
 <script lang="ts">
   import Button from './Button.svelte';
-
-  export const meta = {
-    component: Button,
-    title: 'Components / Button',
-    description: 'A flexible button.',
-    args: { label: 'Click me', disabled: false },
-  };
 </script>
 
-{#snippet Default(args)}
-  <Button {...args} />
-{/snippet}
+[DOCS title="Components / Button" description="A flexible button."]
+
+	[preview component={Button} args={{ label: 'Click me', disabled: false }}]
+		<Button {...args} />
+	[/preview]
+
+	[example title="Disabled"]
+		<Button label="Can't touch this" disabled />
+	[/example]
+
+[/DOCS]
 \`\`\``;
 
 export const load: PageServerLoad = async () => {

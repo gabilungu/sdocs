@@ -73,16 +73,16 @@ Clear the search to restore the full tree.
 
 ## Component sub-pages
 
-A component doc with named snippets expands into sub-entries in the sidebar:
+A component doc with examples expands into sub-entries in the sidebar:
 
 ```
 Button
   Docs         ← the main component page
-  WithIcon     ← named snippet
-  Disabled     ← named snippet
+  WithIcon     ← example
+  Disabled     ← example
 ```
 
-The "Docs" entry is the component overview (description, props, Default preview). Each named snippet is a standalone sub-page.
+The "Docs" entry is the component overview (description, live previews, API tables). Each `[example]` is also a standalone sub-page.
 
 ## See also
 

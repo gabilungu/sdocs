@@ -1,8 +1,9 @@
-import { mkdir, mkdtemp, writeFile, rm, readFile, copyFile, readdir } from 'node:fs/promises';
+import { mkdir, mkdtemp, writeFile, rm, readFile, copyFile, readdir, symlink } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 import type { ResolvedSdocsConfig } from '../types.js';
 import { discoverDocFiles } from './discovery.js';
 import { parseSdoc } from '../language/index.js';
@@ -10,6 +11,30 @@ import { planEntitySnippets } from './doc-model.js';
 import { encodeEntityId, setDocPathRoot } from './snippet-compiler.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const require = createRequire(import.meta.url);
+
+/**
+ * Make the staging dir self-sufficient: the staged Explorer imports shiki
+ * (and svelte) as bare specifiers, but when the staging dir sits inside a
+ * bare project (npx run, no local install), walking up never reaches sdocs'
+ * own dependency tree. Link what the Explorer needs into the staging dir's
+ * node_modules — svelte only when the project has no copy of its own, so a
+ * project-local svelte keeps winning (two svelte runtimes don't mix).
+ */
+async function linkStagedDeps(sdocsDir: string, cwd: string): Promise<void> {
+	const nodeModules = resolve(sdocsDir, 'node_modules');
+	await mkdir(nodeModules, { recursive: true });
+	const link = async (pkg: string) => {
+		const target = dirname(require.resolve(`${pkg}/package.json`));
+		await symlink(target, resolve(nodeModules, pkg), 'junction').catch(() => {});
+	};
+	await link('shiki');
+	try {
+		require.resolve('svelte/package.json', { paths: [cwd] });
+	} catch {
+		await link('svelte');
+	}
+}
 
 /** Source Explorer directory in the installed package (dist/explorer, next to dist/server) */
 function getExplorerSourceDir(): string {
@@ -191,6 +216,7 @@ export async function generateDevFiles(
 
 	// Copy Explorer components into the staging dir so they're compiled outside node_modules
 	await copyExplorerApp(sdocsDir);
+	await linkStagedDeps(sdocsDir, cwd);
 
 	await writeFile(resolve(sdocsDir, 'index.html'), generateIndexHtml(config.logo));
 	await writeFile(resolve(sdocsDir, 'entry.js'), generateEntryJs(config));
@@ -210,6 +236,7 @@ export async function generateBuildFiles(
 
 	// Copy Explorer components into the staging dir
 	await copyExplorerApp(sdocsDir);
+	await linkStagedDeps(sdocsDir, cwd);
 
 	await writeFile(resolve(sdocsDir, 'index.html'), generateIndexHtml(config.logo));
 	await writeFile(resolve(sdocsDir, 'entry.js'), generateEntryJs(config));

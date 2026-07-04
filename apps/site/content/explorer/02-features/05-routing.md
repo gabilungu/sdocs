@@ -28,12 +28,12 @@ If a title already contains a hyphen, it'll look the same in the URL — there's
 
 ## Sub-pages
 
-Named snippets get a sub-segment:
+Examples get a sub-segment:
 
 | Entry | URL hash |
 |---|---|
 | `Button` component (main page) | `#/Components/Button` |
-| `Button` with snippet `WithIcon` | `#/Components/Button/WithIcon` |
+| `Button` example `WithIcon` | `#/Components/Button/WithIcon` |
 
 ## Deep linking
 

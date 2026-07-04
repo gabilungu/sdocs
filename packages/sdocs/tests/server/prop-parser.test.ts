@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseComponentSource } from './prop-parser.js';
+import { parseComponentSource } from '../../src/lib/server/prop-parser.js';
 
 function byName(list: { name: string }[], name: string) {
 	const found = list.find((item) => item.name === name);

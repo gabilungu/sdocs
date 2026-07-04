@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { compile } from 'svelte/compiler';
-import { scanSdoc } from './scanner.js';
-import { projectSdoc } from './projection.js';
+import { scanSdoc } from '../../src/lib/language/scanner.js';
+import { projectSdoc } from '../../src/lib/language/projection.js';
 
 const SOURCE = `<script lang="ts">
 	import Tabs from './Tabs.svelte';
@@ -95,9 +95,9 @@ describe('projectSdoc', () => {
 
 describe('projectSdoc over the real corpus', () => {
 	const dirs = [
-		resolve(__dirname, '../../../../../apps/site/src/lib/ui'),
-		resolve(__dirname, '../../../../../apps/testapp-embedded/src/lib/UI'),
-		resolve(__dirname, '../../../../../apps/testapp-standalone/src'),
+		resolve(__dirname, '../../../../apps/site/src/lib/ui'),
+		resolve(__dirname, '../../../../apps/testapp-embedded/src/lib/UI'),
+		resolve(__dirname, '../../../../apps/testapp-standalone/src'),
 	];
 	const files: string[] = [];
 	for (const dir of dirs) {

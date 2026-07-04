@@ -4,7 +4,7 @@ import { defineConfig } from 'vitest/config';
 // server (it roots Vite in .sdocs/), which is not what tests should inherit.
 export default defineConfig({
 	test: {
-		include: ['src/**/*.test.ts'],
+		include: ['tests/**/*.test.ts'],
 		environment: 'node',
 	},
 });

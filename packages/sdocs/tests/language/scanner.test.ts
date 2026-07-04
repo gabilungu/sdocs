@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { scanSdoc } from './scanner.js';
+import { scanSdoc } from '../../src/lib/language/scanner.js';
 
 const FULL = `<script lang="ts">
 	import Button from './Button.svelte';

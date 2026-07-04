@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { generateIframeComponent } from './snippet-compiler.js';
+import { generateIframeComponent } from '../../src/lib/server/snippet-compiler.js';
 
 describe('root ref injection', () => {
 	it('binds the documented component, not the wrapper', () => {

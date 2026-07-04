@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Test files moved out of `src/lib` into `tests/` — they no longer ship
+  compiled inside the published package.
+
 ## [0.0.46] - 2026-07-04
 
 ### Fixed

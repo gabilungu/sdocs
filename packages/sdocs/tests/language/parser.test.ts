@@ -6,8 +6,8 @@ import {
 	normalizeBody,
 	type DocsEntity,
 	type PageEntity,
-} from './parser.js';
-import type { ScanError } from './scanner.js';
+} from '../../src/lib/language/parser.js';
+import type { ScanError } from '../../src/lib/language/scanner.js';
 
 function diagnosticCodes(source: string): string[] {
 	return parseSdoc(source).diagnostics.map((d) => d.code);

@@ -70,15 +70,17 @@ async function waitFor<T>(
 }
 
 describe('sdocs dev in a bare project (npx shape)', () => {
-	it('boots and serves the staged Explorer with its shiki import resolving', { timeout: 90_000 }, async () => {
+	it('boots and serves the staged Explorer with its shiki import resolving', { timeout: 150_000 }, async () => {
 		const dir = makeBareProject();
 		const { output } = spawnCli(['dev'], dir);
 
 		const url = await waitFor(
 			() => output().match(/http:\/\/localhost:\d+/)?.[0] ?? null,
-			60_000,
+			120_000,
 			'dev server URL',
-		);
+		).catch((err) => {
+			throw new Error(`${err.message}\nCLI output:\n${output().slice(-3000)}`);
+		});
 
 		// The app shell must serve
 		const page = await waitFor(

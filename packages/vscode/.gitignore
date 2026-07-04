@@ -2,3 +2,4 @@ dist/
 node_modules/
 *.vsix
 syntaxes/sdoc.tmLanguage.json
+.vscode-test/

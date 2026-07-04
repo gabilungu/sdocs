@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.30] - 2026-07-05
+
+### Fixed
+
+- **Completions failed in projects without prettier installed.** The
+  embedded Svelte server resolves prettier from disk inside every
+  completion request (TypeScript format settings); the packaged extension
+  shipped no copy, so in workspaces without their own prettier each request
+  threw `Cannot find module 'prettier/package.json'` and the editor showed
+  "No suggestions". prettier and prettier-plugin-svelte now ship beside the
+  server bundle; a workspace's own copies still win.
+
 ## [0.0.29] - 2026-07-04
 
 ### Fixed

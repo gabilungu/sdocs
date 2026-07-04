@@ -18,10 +18,13 @@ function copyGrammar() {
  * the server bundle:
  * - 'svelte' (fallback compiler when the workspace has none)
  * - 'svelte2tsx' (its shim .d.ts files declare the __sveltets_2_* helpers)
+ * - 'prettier' + 'prettier-plugin-svelte' (resolved inside getCompletions
+ *   for TS format settings — without them every completion request throws)
  * - typescript's standard lib .d.ts files (both next to the bundle, where
- *   the bundled compiler's __dirname-based lookup lands, and as a package) */
+ *   the bundled compiler's __dirname-based lookup lands, and as a package)
+ * A workspace's own copy of each still wins; these are fallbacks. */
 function copyRuntimeAssets() {
-	for (const pkg of ['svelte', 'svelte2tsx']) {
+	for (const pkg of ['svelte', 'svelte2tsx', 'prettier', 'prettier-plugin-svelte']) {
 		const target = path.join(__dirname, 'dist/node_modules', pkg);
 		fs.rmSync(target, { recursive: true, force: true });
 		fs.cpSync(path.join(__dirname, 'node_modules', pkg), target, {

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.44] - 2026-07-04
+
+### Changed
+
+- The README documents the block format — the npm listing previously showed
+  the retired `export const meta` convention.
+
 ## [0.0.43] - 2026-07-04
 
 ### Added

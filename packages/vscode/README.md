@@ -4,47 +4,53 @@ Language support for [sdocs](https://www.npmjs.com/package/sdocs) — a lightwei
 
 ## Features
 
-`.sdoc`, `.page.sdoc`, and `.layout.sdoc` files are served by the Svelte language
-server, so they get the full `.svelte` editing experience:
+`.sdoc` files are served by the extension's own **sdoc language server**: it
+projects each file onto a virtual Svelte document (every line at its exact
+position) and runs the real Svelte language server over it. You get the full
+`.svelte` editing experience inside your previews and examples, with zero
+false errors on the block syntax:
 
 - **IntelliSense** — completion for props, variables, and markup; hover info
-  with types and JSDoc; go-to-definition into your components.
-- **Diagnostics** — live TypeScript and Svelte compiler errors and warnings.
-- **Syntax highlighting** — script, markup, and styles, exactly like `.svelte`.
-- **Formatting** — Format Document and format-on-save via your Svelte formatter.
-- **Meta-field autocomplete** — sdocs-specific suggestions for `component`,
-  `title`, `description`, `args`, and `settings` inside `export const meta = { }`,
-  plus imported-component suggestions after `component:`.
+  with types and JSDoc; go-to-definition into your components; signature
+  help. `args` is in scope in every preview and example, exactly like at
+  runtime.
+- **Diagnostics** — live TypeScript and Svelte errors and warnings, reported
+  at the authored line.
+- **Syntax highlighting** — a TextMate grammar for the block format:
+  `[DOCS]`/`[PAGE]`/`[LAYOUT]` entities, `[preview]`/`[example]` blocks,
+  Svelte-style attributes, with embedded TypeScript, Svelte, and CSS
+  coloring. ` ```sdoc ` fences highlight in markdown files too, and entity
+  blocks fold.
+- **Formatting** — Format Document formats the `<script>`, `<style>`, and
+  every Svelte block body through prettier independently, reassembled at the
+  block's indentation. Block tags and `[PAGE]` prose are never touched.
+- **Block completions** — each block's attributes with documentation, and
+  imported-component suggestions inside `component={…}`.
+- **Block lint** — the same parser the sdocs build runs: unclosed blocks,
+  wrong casing, missing or unknown attributes, duplicate titles, non-literal
+  `args`, and unimported `component={X}` references.
 - **New Component Doc** — right-click a `.svelte` file → *New Component Doc*
-  scaffolds an `.sdoc` next to it, ready to fill in.
+  scaffolds a `[DOCS]` block next to it, ready to fill in.
 - **sdocs view** — the activity-bar icon lists the sdocs projects in your
   workspace; click one to run its docs and browse them inside the editor.
   Add extra folders with the `sdocs.scopes` setting.
-- **sdocs lint** — warnings for missing/incomplete `meta`, an unimported
-  `component` reference, and duplicate snippet names.
 
 ## Requirements
 
-- [Svelte for VS Code](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode) — installed automatically as a dependency; it provides the language server.
+- [Svelte for VS Code](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode)
+  — installed automatically as a dependency; it provides the Svelte grammar
+  the sdoc highlighting embeds (and the editing experience for your `.svelte`
+  components themselves).
 
 ## Notes
 
 - Language features need the project's dependencies installed so Svelte 5
-  resolves (`{#snippet}` etc.).
-- `.sdoc` files follow your Svelte formatter settings. If your global
-  `editor.defaultFormatter` is a non-Svelte formatter (e.g. Prettier without
-  the Svelte plugin), set the Svelte one for the `svelte` language:
-
-  ```json
-  "[svelte]": { "editor.defaultFormatter": "svelte.svelte-vscode" }
-  ```
+  resolves from your project.
 - Use **relative imports** inside `.sdoc` files (e.g. `./Button.svelte`).
-  Path aliases like `$lib` don't resolve there — `.sdoc` files sit next to the
-  component they document, so relative paths are the natural fit anyway.
+  `.sdoc` files sit next to the component they document, so relative paths
+  are the natural fit.
 - `svelte-check` doesn't include `.sdoc` files in CLI runs; diagnostics are
   live in the editor only.
-- Make sure the folder containing your project's `node_modules` is a workspace
-  folder (or the opened folder). If `.sdoc` files sit below the workspace root
-  but your dependencies don't resolve from it, the language server falls back
-  to an older bundled Svelte parser and reports `Expected if, each or await`
-  on `{#snippet}` blocks.
+- Code inside `[PAGE]` fences and inline code gets highlighting but no
+  language intelligence, and cross-file rename doesn't reach into `.sdoc`
+  files that aren't open.

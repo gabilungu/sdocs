@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.24] - 2026-07-04
+
+### Changed
+
+- The README describes the sdoc language server and block format — the
+  Marketplace listing previously showed the retired meta convention.
+
 ## [0.0.23] - 2026-07-04
 
 ### Added

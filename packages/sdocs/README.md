@@ -96,92 +96,79 @@ That's it — your docs page lives at `/docs` inside your existing app.
 
 ## Writing Docs
 
-sdocs supports three types of doc files:
+A `.sdoc` file is `<script>` at the top, entity blocks in the middle, and an
+optional `<style>` at the bottom. Every entity is its own sidebar entry, so
+one file can hold several.
 
-### Component Docs (`.sdoc`)
+### Component docs — `[DOCS]`
 
-Document a Svelte component with interactive controls and examples.
-
-```svelte
-<!-- Button.sdoc -->
+```sdoc
 <script lang="ts">
-  import Button from './Button.svelte';
-
-  export const meta = {
-    component: Button,
-    title: 'Components / Button',
-    description: 'A flexible button component.',
-    args: {
-      label: 'Click me',
-      size: 'md',
-      disabled: false,
-    },
-  };
+	import Button from './Button.svelte';
 </script>
 
-{#snippet Default()}
-  <Button {...args} />
-{/snippet}
+[DOCS title="Components / Button" description="A flexible button component."]
 
-{#snippet WithIcon()}
-  <Button>
-    <Icon name="settings" /> Settings
-  </Button>
-{/snippet}
+	[preview component={Button} args={{ label: 'Click me', disabled: false }}]
+		<Button {...args} />
+	[/preview]
+
+	[example title="With icon"]
+		<Button><Icon name="settings" /> Settings</Button>
+	[/example]
+
+[/DOCS]
 ```
 
-- **`component`** — the Svelte component to document (auto-extracts props, events, snippets, methods, state, CSS custom properties)
-- **`title`** — slash-separated path for sidebar navigation (e.g. `'Components / Button'`)
-- **`args`** — default prop values, used as initial values for interactive controls
-- **`Default` snippet** — gets live interactive controls. Auto-generated as `<Component {...args} />` if omitted.
-- **Named snippets** — static examples listed in the sidebar
+- **`[preview]`** — a live showcase with interactive controls.
+  `component={X}` names the previewed component (its props, events,
+  snippets, methods, state, and CSS custom properties are extracted
+  automatically) and `args` sets the control defaults. A `[DOCS]` block can
+  hold several previews — they render as tabs, each fully live.
+- **`[example]`** — frozen showcases rendered exactly as written, shown
+  below the preview area. Each needs a unique `title`.
+- **`title`** — slash-separated path for sidebar navigation.
 
-### Page Docs (`.page.sdoc`)
+### Pages — `[PAGE]`
 
-Freeform content pages with auto-generated table of contents.
+Freeform markdown content with `{expression}` interpolation and Svelte
+component islands; code fences are inert. The table of contents is generated
+from the headings.
 
-```svelte
-<!-- GettingStarted.page.sdoc -->
+```sdoc
+[PAGE title="Docs / Getting Started"]
+
+	## Installation
+
+	Run `npm install sdocs` and create your first doc file.
+
+[/PAGE]
+```
+
+### Layouts — `[LAYOUT]`
+
+Full-page component compositions rendered on an isolated stage.
+
+```sdoc
 <script lang="ts">
-  export const meta = {
-    title: 'Docs / Getting Started',
-    description: 'How to set up sdocs.',
-  };
+	import Card from './Card.svelte';
+	import Input from './Input.svelte';
+	import Button from './Button.svelte';
 </script>
 
-<h1>Getting Started</h1>
-<p>Install sdocs and create your first doc file.</p>
+[LAYOUT title="Patterns / Login Form" padding="24px"]
 
-<h2>Installation</h2>
-<p>Run <code>npm install sdocs</code>...</p>
+	<Card padding="24px">
+		<Input label="Email" type="email" />
+		<Input label="Password" type="password" />
+		<Button>Sign in</Button>
+	</Card>
+
+[/LAYOUT]
 ```
 
-Table of contents is auto-generated from `<h2>`, `<h3>`, and `<h4>` headings.
-
-### Layout Docs (`.layout.sdoc`)
-
-Component compositions rendered in an isolated iframe.
-
-```svelte
-<!-- LoginForm.layout.sdoc -->
-<script lang="ts">
-  import Card from './Card.svelte';
-  import Input from './Input.svelte';
-  import Button from './Button.svelte';
-
-  export const meta = {
-    title: 'Patterns / Login Form',
-    description: 'A login form combining multiple components.',
-    settings: { padding: '24px' },
-  };
-</script>
-
-<Card padding="24px">
-  <Input label="Email" type="email" />
-  <Input label="Password" type="password" />
-  <Button>Sign in</Button>
-</Card>
-```
+The full language reference lives at
+[gabilungu.github.io/sdocs/language](https://gabilungu.github.io/sdocs/language).
 
 ## Prop Extraction
 
@@ -200,7 +187,7 @@ JSDoc comments on props are picked up as descriptions.
 
 ## Interactive Controls
 
-The Default snippet gets live controls based on prop types:
+Each preview gets live controls based on prop types:
 
 | Prop Type | Control |
 |-----------|---------|
@@ -275,6 +262,8 @@ sidebar: {
 | `sdocs/vite` | Vite plugin function |
 | `sdocs/explorer` | Explorer.svelte UI component |
 | `sdocs/ui` | Reusable UI components (Button, Frame, Icon, Control, NavTree, Stack) |
+| `sdocs/language` | The sdoc scanner, parser, and Svelte projection |
+| `sdocs/grammar/sdoc.tmLanguage.json` | TextMate grammar for editors and highlighters |
 
 ## License
 

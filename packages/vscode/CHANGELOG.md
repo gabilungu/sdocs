@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.25] - 2026-07-04
+
+### Fixed
+
+- **The language server crashed on startup in installed copies.** The
+  embedded Svelte language server resolves a fallback `svelte` package from
+  disk at runtime; the packaged extension shipped none, so the server died
+  immediately ("crashed 5 times in the last 3 minutes"). The fallback
+  package now ships beside the server bundle. Projects with their own
+  `svelte` installed still get their version, as before.
+
 ## [0.0.24] - 2026-07-04
 
 ### Changed

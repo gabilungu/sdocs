@@ -13,6 +13,17 @@ function copyGrammar() {
 	fs.copyFileSync(source, target);
 }
 
+/** The embedded svelte-language-server resolves 'svelte' from disk at
+ * runtime (preferring the workspace's copy, falling back to one next to the
+ * server). The installed extension has no node_modules, so ship the fallback
+ * svelte package beside the server bundle. */
+function copyFallbackSvelte() {
+	const source = path.join(__dirname, 'node_modules/svelte');
+	const target = path.join(__dirname, 'dist/node_modules/svelte');
+	fs.rmSync(target, { recursive: true, force: true });
+	fs.cpSync(source, target, { recursive: true, dereference: true });
+}
+
 /**
  * Two resolution fixes for the server bundle:
  * - vscode-html/css-languageservice ship UMD mains whose AMD-style paths
@@ -40,6 +51,7 @@ const bundleResolveFixes = {
 
 async function main() {
 	copyGrammar();
+	copyFallbackSvelte();
 	const ctx = await esbuild.context({
 		entryPoints: ['src/extension.ts'],
 		bundle: true,

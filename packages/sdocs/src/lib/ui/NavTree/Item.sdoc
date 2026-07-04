@@ -2,69 +2,64 @@
 	import Item from './Item.svelte';
 	import NavTree from './NavTree.svelte';
 	import { Icon } from '../Icon/index.js';
-
-	export const meta = {
-		component: Item,
-		title: 'NavTree / NavTree.Item',
-		description: 'A tree node that acts as a leaf (link/button) or expandable folder when children are provided. Supports left and right snippet slots for custom content.',
-		args:{
-			label:"Label"
-		}
-	};
 </script>
 
-{#snippet Default({...args})}
-	<NavTree>
-		<Item {...args} >
-		<Item {...args} >
+[DOCS title="NavTree / NavTree.Item" description="A tree node that acts as a leaf (link/button) or expandable folder when children are provided. Supports left and right snippet slots for custom content."]
 
-		</Item>
-		<Item {...args} >
+	[preview component={Item} args={{ label: 'Label' }}]
+		<NavTree>
+			<Item {...args} >
+			<Item {...args} >
 
-		</Item>
+			</Item>
+			<Item {...args} >
 
-		</Item>
-	</NavTree>
-{/snippet}
+			</Item>
 
-{#snippet LeftSlot()}
-	<NavTree>
-		<Item label="Home" href="#/home">
-			{#snippet left()}<Icon name="folder" --w="14px" --h="14px" />{/snippet}
-		</Item>
-		<Item label="Documents" href="#/docs">
-			{#snippet left()}<Icon name="folder-open" --w="14px" --h="14px" />{/snippet}
-		</Item>
-	</NavTree>
-{/snippet}
+			</Item>
+		</NavTree>
+	[/preview]
 
-{#snippet RightSlot()}
-	<NavTree>
-		<Item label="bundle.js" href="#/bundle">
-			{#snippet right()}<span style="font-size: 11px; color: tomato;">54kb</span>{/snippet}
-		</Item>
-		<Item label="style.css" href="#/style">
-			{#snippet right()}<span style="font-size: 11px; color: #9ca3af;">3.2kb</span>{/snippet}
-		</Item>
-	</NavTree>
-{/snippet}
+	[example title="LeftSlot"]
+		<NavTree>
+			<Item label="Home" href="#/home">
+				{#snippet left()}<Icon name="folder" --w="14px" --h="14px" />{/snippet}
+			</Item>
+			<Item label="Documents" href="#/docs">
+				{#snippet left()}<Icon name="folder-open" --w="14px" --h="14px" />{/snippet}
+			</Item>
+		</NavTree>
+	[/example]
 
-{#snippet Expandable()}
-	<NavTree>
-		<Item label="Controls" expanded>
-			<Item label="Text" href="#/text" />
-			<Item label="Number" href="#/number" />
-		</Item>
-		<Item label="Layout">
-			<Item label="Frame" href="#/frame" />
-		</Item>
-	</NavTree>
-{/snippet}
+	[example title="RightSlot"]
+		<NavTree>
+			<Item label="bundle.js" href="#/bundle">
+				{#snippet right()}<span style="font-size: 11px; color: tomato;">54kb</span>{/snippet}
+			</Item>
+			<Item label="style.css" href="#/style">
+				{#snippet right()}<span style="font-size: 11px; color: #9ca3af;">3.2kb</span>{/snippet}
+			</Item>
+		</NavTree>
+	[/example]
 
-{#snippet ActiveState()}
-	<NavTree>
-		<Item label="Regular item" href="#/one" />
-		<Item label="Active item" href="#/two" active />
-		<Item label="Another item" href="#/three" />
-	</NavTree>
-{/snippet}
+	[example title="Expandable"]
+		<NavTree>
+			<Item label="Controls" expanded>
+				<Item label="Text" href="#/text" />
+				<Item label="Number" href="#/number" />
+			</Item>
+			<Item label="Layout">
+				<Item label="Frame" href="#/frame" />
+			</Item>
+		</NavTree>
+	[/example]
+
+	[example title="ActiveState"]
+		<NavTree>
+			<Item label="Regular item" href="#/one" />
+			<Item label="Active item" href="#/two" active />
+			<Item label="Another item" href="#/three" />
+		</NavTree>
+	[/example]
+
+[/DOCS]

@@ -1,45 +1,40 @@
 <script lang="ts">
 	import Icon from './Icon.svelte';
-
-	export const meta = {
-		component: Icon,
-		title: 'Icon',
-		description: 'Displays an SVG icon by name. Supports sizing and color via CSS custom properties.',
-		args: {
-			name: 'chevron-right',
-		},
-	};
 </script>
 
-{#snippet Default(args)}
-	<Icon name="chevron-right" --w="24px" --h="24px" --fill="currentColor" />
-{/snippet}
+[DOCS title="Icon" description="Displays an SVG icon by name. Supports sizing and color via CSS custom properties."]
 
-{#snippet AllIcons()}
-	<div style="display: flex; gap: 12px; align-items: center;">
-		<Icon name="chevron-up" />
-		<Icon name="chevron-down" />
-		<Icon name="chevron-left" />
-		<Icon name="chevron-right" />
-		<Icon name="folder" />
-		<Icon name="folder-open" />
-	</div>
-{/snippet}
+	[preview component={Icon} args={{ name: 'chevron-right' }}]
+		<Icon name="chevron-right" --w="24px" --h="24px" --fill="currentColor" />
+	[/preview]
 
-{#snippet CustomSize()}
-	<div style="display: flex; gap: 12px; align-items: center;">
-		<Icon name="chevron-right" --w="16px" --h="16px" />
-		<Icon name="chevron-right" />
-		<Icon name="chevron-right" --w="32px" --h="32px" />
-		<Icon name="chevron-right" --w="48px" --h="48px" />
-	</div>
-{/snippet}
+	[example title="AllIcons"]
+		<div style="display: flex; gap: 12px; align-items: center;">
+			<Icon name="chevron-up" />
+			<Icon name="chevron-down" />
+			<Icon name="chevron-left" />
+			<Icon name="chevron-right" />
+			<Icon name="folder" />
+			<Icon name="folder-open" />
+		</div>
+	[/example]
 
-{#snippet CustomColor()}
-	<div style="display: flex; gap: 12px; align-items: center;">
-		<Icon name="chevron-right" --fill="tomato" />
-		<Icon name="chevron-right" --fill="dodgerblue" />
-		<Icon name="chevron-right" --fill="mediumseagreen" />
-		<Icon name="chevron-right" --fill="slateviolet" />
-	</div>
-{/snippet}
+	[example title="CustomSize"]
+		<div style="display: flex; gap: 12px; align-items: center;">
+			<Icon name="chevron-right" --w="16px" --h="16px" />
+			<Icon name="chevron-right" />
+			<Icon name="chevron-right" --w="32px" --h="32px" />
+			<Icon name="chevron-right" --w="48px" --h="48px" />
+		</div>
+	[/example]
+
+	[example title="CustomColor"]
+		<div style="display: flex; gap: 12px; align-items: center;">
+			<Icon name="chevron-right" --fill="tomato" />
+			<Icon name="chevron-right" --fill="dodgerblue" />
+			<Icon name="chevron-right" --fill="mediumseagreen" />
+			<Icon name="chevron-right" --fill="slateviolet" />
+		</div>
+	[/example]
+
+[/DOCS]

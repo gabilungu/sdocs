@@ -1,0 +1,28 @@
+[PAGE title=":Pages / About"]
+
+	# About sdocs
+
+	sdocs is a lightweight documentation tool for Svelte 5 components.
+	It discovers `.sdoc` files in your project and renders an interactive
+	component explorer with live previews.
+
+	## Features
+
+	- Zero-config component discovery
+	- Live preview with prop controls
+	- Multiple titled examples per component
+	- Page and layout support
+	- Light and dark themes
+
+	## Getting Started
+
+	Create a `.sdoc` file next to your component and add a `[DOCS]` block
+	with a `[preview]` naming the component.
+
+	## Entities
+
+	- **`[DOCS]`** — component documentation with previews and examples
+	- **`[PAGE]`** — standalone content pages
+	- **`[LAYOUT]`** — full-page layout previews
+
+[/PAGE]

@@ -1,18 +1,11 @@
 <script lang="ts">
 	import Select from './Select.svelte';
-
-	export const meta = {
-		component: Select,
-		title: 'UI / Control / Select',
-		description: 'A dropdown select control.',
-		args: {
-			label: 'Size',
-			value: 'md',
-			options: ['sm', 'md', 'lg'],
-		},
-	};
 </script>
 
-{#snippet Default(args)}
-	<Select {...args} onchange={(v) => console.log('changed:', v)} />
-{/snippet}
+[DOCS title="UI / Control / Select" description="A dropdown select control."]
+
+	[preview component={Select} args={{ label: 'Size', value: 'md' }}]
+		<Select {...args} options={['sm', 'md', 'lg']} onchange={(v) => console.log('changed:', v)} />
+	[/preview]
+
+[/DOCS]

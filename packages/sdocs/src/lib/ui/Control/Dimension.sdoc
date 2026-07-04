@@ -1,17 +1,11 @@
 <script lang="ts">
 	import Dimension from './Dimension.svelte';
-
-	export const meta = {
-		component: Dimension,
-		title: 'UI / Control / Dimension',
-		description: 'A dimension input control for CSS values (px).',
-		args: {
-			label: 'Width',
-			value: '120px',
-		},
-	};
 </script>
 
-{#snippet Default(args)}
-	<Dimension {...args} onchange={(v) => console.log('changed:', v)} />
-{/snippet}
+[DOCS title="UI / Control / Dimension" description="A dimension input control for CSS values (px)."]
+
+	[preview component={Dimension} args={{ label: 'Width', value: '120px' }}]
+		<Dimension {...args} onchange={(v) => console.log('changed:', v)} />
+	[/preview]
+
+[/DOCS]

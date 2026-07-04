@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.43] - 2026-07-04
+
+### Added
+
+- **`projectSdoc` in `sdocs/language`** — a line-preserving projection of a
+  `.sdoc` file onto a virtual Svelte document: every authored line keeps its
+  exact position, sub-block openers become the same `{#snippet}` wrappers
+  the build generates, PAGE prose stays live with code regions masked, and
+  a trailer past the authored end marks everything as used. This is the
+  foundation of the VS Code extension's sdoc language server.
+
+### Changed
+
+- The Explorer's own UI library docs (`src/lib/ui/*.sdoc`) are converted to
+  the block format.
+
 ## [0.0.42] - 2026-07-04
 
 ### Changed

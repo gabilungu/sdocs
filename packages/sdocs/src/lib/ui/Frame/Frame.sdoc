@@ -1,54 +1,52 @@
 <script lang="ts">
 	import Frame from './Frame.svelte';
-
-	export const meta = {
-		component: Frame,
-		title: 'Frame',
-		description: 'A flexible holy-grail layout with top, bottom, left, right, and center regions.',
-	};
 </script>
 
-{#snippet Default()}
-	<div style="height: 300px; border: 1px solid #ccc;">
-		<Frame>
-			{#snippet top()}
-				<div style="padding: 8px; background: var(--color-base-100); border-bottom: 1px solid var(--color-base-200);">Top</div>
-			{/snippet}
-			{#snippet left()}
-				<div style="padding: 8px; width: 120px; background: var(--color-base-50); border-right: 1px solid var(--color-base-200);">Left</div>
-			{/snippet}
-			<div style="padding: 8px;">Center content</div>
-			{#snippet right()}
-				<div style="padding: 8px; width: 120px; background: var(--color-base-50); border-left: 1px solid var(--color-base-200);">Right</div>
-			{/snippet}
-			{#snippet bottom()}
-				<div style="padding: 8px; background: var(--color-base-100); border-top: 1px solid var(--color-base-200);">Bottom</div>
-			{/snippet}
-		</Frame>
-	</div>
-{/snippet}
+[DOCS title="Frame" description="A flexible holy-grail layout with top, bottom, left, right, and center regions."]
 
-{#snippet TopAndBottom()}
-	<div style="height: 200px; border: 1px solid #ccc;">
-		<Frame>
-			{#snippet top()}
-				<div style="padding: 8px; background: var(--color-base-100); border-bottom: 1px solid var(--color-base-200);">Header</div>
-			{/snippet}
-			<div style="padding: 8px;">Main content area</div>
-			{#snippet bottom()}
-				<div style="padding: 8px; background: var(--color-base-100); border-top: 1px solid var(--color-base-200);">Footer</div>
-			{/snippet}
-		</Frame>
-	</div>
-{/snippet}
+	[preview component={Frame}]
+		<div style="height: 300px; border: 1px solid #ccc;">
+			<Frame>
+				{#snippet top()}
+					<div style="padding: 8px; background: var(--color-base-100); border-bottom: 1px solid var(--color-base-200);">Top</div>
+				{/snippet}
+				{#snippet left()}
+					<div style="padding: 8px; width: 120px; background: var(--color-base-50); border-right: 1px solid var(--color-base-200);">Left</div>
+				{/snippet}
+				<div style="padding: 8px;">Center content</div>
+				{#snippet right()}
+					<div style="padding: 8px; width: 120px; background: var(--color-base-50); border-left: 1px solid var(--color-base-200);">Right</div>
+				{/snippet}
+				{#snippet bottom()}
+					<div style="padding: 8px; background: var(--color-base-100); border-top: 1px solid var(--color-base-200);">Bottom</div>
+				{/snippet}
+			</Frame>
+		</div>
+	[/preview]
 
-{#snippet Sidebar()}
-	<div style="height: 200px; border: 1px solid #ccc;">
-		<Frame>
-			{#snippet left()}
-				<div style="padding: 8px; width: 150px; background: var(--color-base-50); border-right: 1px solid var(--color-base-200);">Sidebar</div>
-			{/snippet}
-			<div style="padding: 8px;">Content</div>
-		</Frame>
-	</div>
-{/snippet}
+	[example title="TopAndBottom"]
+		<div style="height: 200px; border: 1px solid #ccc;">
+			<Frame>
+				{#snippet top()}
+					<div style="padding: 8px; background: var(--color-base-100); border-bottom: 1px solid var(--color-base-200);">Header</div>
+				{/snippet}
+				<div style="padding: 8px;">Main content area</div>
+				{#snippet bottom()}
+					<div style="padding: 8px; background: var(--color-base-100); border-top: 1px solid var(--color-base-200);">Footer</div>
+				{/snippet}
+			</Frame>
+		</div>
+	[/example]
+
+	[example title="Sidebar"]
+		<div style="height: 200px; border: 1px solid #ccc;">
+			<Frame>
+				{#snippet left()}
+					<div style="padding: 8px; width: 150px; background: var(--color-base-50); border-right: 1px solid var(--color-base-200);">Sidebar</div>
+				{/snippet}
+				<div style="padding: 8px;">Content</div>
+			</Frame>
+		</div>
+	[/example]
+
+[/DOCS]

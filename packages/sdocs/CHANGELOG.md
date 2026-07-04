@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.47] - 2026-07-05
+
+### Fixed
+
+- **Shared values in the file `<script>` reach previews and examples.** The
+  pipeline lifted only `import` lines into a preview, so a shared value like
+  `const options = […]` was `undefined` at render time even though the
+  language reference promises the file script's shared values are available
+  to every entity. The whole file script (imports and declarations) is now
+  lifted, with its relative imports resolved.
+
 ### Changed
 
 - Test files moved out of `src/lib` into `tests/` — they no longer ship

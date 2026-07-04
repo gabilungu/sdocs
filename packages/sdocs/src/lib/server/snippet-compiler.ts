@@ -61,6 +61,21 @@ export function resolveImportsToAbsolute(
 	});
 }
 
+/**
+ * Rewrite the relative import specifiers in a whole `<script>` block to
+ * absolute paths, so the file script — imports AND shared values (consts,
+ * functions) — can be lifted verbatim into a generated preview. Everything
+ * else in the script is preserved, which is what makes shared values
+ * available to previews and examples.
+ */
+export function resolveScriptImports(script: string, docFilePath: string): string {
+	const docDir = dirname(docFilePath);
+	return script.replace(
+		/(\bfrom\s+|\bimport\s+)(['"])(\.\.?\/[^'"]*)\2/g,
+		(_m, keyword, quote, spec) => `${keyword}${quote}${resolve(docDir, spec)}${quote}`,
+	);
+}
+
 /** Add bind:this to the documented component in the snippet so the wrapper
  * can reach its exported methods and state. Binds the first occurrence of
  * the doc's component when named (so wrapped children like
@@ -83,14 +98,14 @@ function injectRootRef(snippetBody: string, componentName?: string): string {
  * Includes $state for reactive prop updates via postMessage, invokes
  * component methods on request, and broadcasts exported state values. */
 export function generateIframeComponent(
-	absoluteImports: string[],
+	scriptPrelude: string,
 	snippetBody: string,
 	stateNames: string[] = [],
 	componentName?: string,
 ): string {
-	const importBlock = absoluteImports.length > 0
-		? absoluteImports.join('\n') + '\n'
-		: '';
+	// The file <script> (imports + shared values), lifted verbatim so previews
+	// and examples see everything the entity's siblings do.
+	const importBlock = scriptPrelude.trim() ? scriptPrelude.trim() + '\n' : '';
 	const stateBroadcast = stateNames.length > 0
 		? `
 	$effect(() => {

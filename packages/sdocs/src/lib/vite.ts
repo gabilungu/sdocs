@@ -15,7 +15,7 @@ import {
 	parseIframeId,
 	parseMountId,
 	parsePreviewUrl,
-	resolveImportsToAbsolute,
+	resolveScriptImports,
 	generateIframeComponent,
 	generateMountScript,
 	generatePreviewHtml,
@@ -62,7 +62,7 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 	let root: string;
 	let server: ViteDevServer;
 	let docEntries: Map<string, DocEntry> = new Map();
-	let docImportsCache: Map<string, string[]> = new Map();
+	let docScriptCache: Map<string, string> = new Map();
 	const buildMode = (userConfig as any)?._buildMode ?? false;
 	let isBuild = false;
 	let isSsrBuild = false;
@@ -138,7 +138,7 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				if (isDocFile(filePath)) {
 					console.log(`[sdocs] Removed doc file: ${filePath}`);
 					deleteEntriesOf(filePath);
-					docImportsCache.delete(filePath);
+					docScriptCache.delete(filePath);
 					invalidateVirtualModule();
 				}
 			});
@@ -275,14 +275,14 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				const snippet = allSnippets(entry).find((s) => s.slug === parsed.snippetSlug);
 				if (!snippet) return null;
 
-				const absoluteImports = docImportsCache.get(parsed.docFilePath) ?? [];
+				const scriptPrelude = docScriptCache.get(parsed.docFilePath) ?? '';
 				// Method calls and live state bind to the snippet's own preview;
 				// example iframes fall back to the first preview's component.
 				const preview =
 					entry.previews.find((p) => p.snippet.slug === snippet.slug) ?? entry.previews[0];
 				const stateNames = (preview?.componentData?.state ?? []).map((s) => s.name);
 				return generateIframeComponent(
-					absoluteImports,
+					scriptPrelude,
 					snippet.body,
 					stateNames,
 					preview?.componentName ?? undefined,
@@ -328,7 +328,7 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 
 		const scriptContent = doc.script?.content ?? '';
 		const imports = extractImports(scriptContent);
-		docImportsCache.set(filePath, resolveImportsToAbsolute(imports, filePath));
+		docScriptCache.set(filePath, resolveScriptImports(scriptContent, filePath));
 
 		// One component parse per component file per rebuild, however many
 		// previews reference it.

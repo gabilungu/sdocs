@@ -53,5 +53,5 @@ A component doc's named snippets (`WithIcon`, `Disabled`) cover small static var
 
 ## See also
 
-- [Component docs](/explorer/writing-docs/component-sdoc)
-- [Page docs](/explorer/writing-docs/page-sdoc)
+- [Component docs](/language/component-docs)
+- [Page docs](/language/page-docs)

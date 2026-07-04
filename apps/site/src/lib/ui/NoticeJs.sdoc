@@ -1,0 +1,32 @@
+<script lang="ts">
+	import NoticeJs from './NoticeJs.svelte';
+
+	export const meta = {
+		component: NoticeJs,
+		title: 'NoticeJs',
+		description: 'The plain-JavaScript twin of Notice: the same full feature surface documented through JSDoc (@typedef + @property) instead of TypeScript — compare the two pages.',
+		args: {
+			title: 'Build finished',
+			tone: 'success',
+			dismissible: true,
+			count: 1,
+		},
+	};
+</script>
+
+{#snippet Default(args)}
+	<NoticeJs {...args}>Documented entirely with JSDoc — types, descriptions, events, and snippets all come from the annotations.</NoticeJs>
+{/snippet}
+
+{#snippet WithIconSnippet(args)}
+	<NoticeJs {...args} title="Deploy warning" tone="warning">
+		{#snippet icon(tone)}
+			<span>{tone === 'warning' ? '⚠️' : 'ℹ️'}</span>
+		{/snippet}
+		The icon snippet receives the current tone as a parameter.
+	</NoticeJs>
+{/snippet}
+
+{#snippet WithAction(args)}
+	<NoticeJs {...args} title="Update available" action={{ label: 'Restart now' }}>The action prop is a custom JSDoc typedef — it appears by name in the Props table.</NoticeJs>
+{/snippet}

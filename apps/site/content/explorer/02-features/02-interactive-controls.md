@@ -111,4 +111,4 @@ This is intentional: rather than guessing and misrendering, sdocs surfaces the p
 ## See also
 
 - [Prop extraction](/explorer/features/prop-extraction) — how sdocs parses your component
-- [Writing component docs](/explorer/writing-docs/component-sdoc) — the `Default` snippet and `args`
+- [Writing component docs](/language/component-docs) — the `Default` snippet and `args`

@@ -56,4 +56,4 @@ Clicking the fullscreen button hides the sidebar. This is a UI state only — it
 ## See also
 
 - [Sidebar](/explorer/features/sidebar) — where titles come from
-- [Writing component docs](/explorer/writing-docs/component-sdoc) — setting `title`
+- [Writing component docs](/language/component-docs) — setting `title`

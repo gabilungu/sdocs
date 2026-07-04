@@ -71,7 +71,7 @@ Given a Svelte component `src/lib/Button.svelte`, create `src/lib/Button.sdoc` n
 
 That's the minimum. `Default` gets interactive controls wired up to `meta.args`. Omit the `Default` snippet entirely and sdocs will auto-generate it as `<Button {...args} />`.
 
-See [writing component docs](/explorer/writing-docs/component-sdoc) for named snippets, examples, and the full `meta` object.
+See [writing component docs](/language/component-docs) for named snippets, examples, and the full `meta` object.
 
 ## Run the dev server
 
@@ -96,6 +96,6 @@ Rather than running a separate server, you can mount sdocs as a route inside you
 
 ## Next steps
 
-- [Write page docs](/explorer/writing-docs/page-sdoc) for freeform content with auto-generated table of contents
-- [Write layout docs](/explorer/writing-docs/layout-sdoc) for component compositions
+- [Write page docs](/language/page-docs) for freeform content with auto-generated table of contents
+- [Write layout docs](/language/layout-docs) for component compositions
 - [Explore interactive controls](/explorer/features/interactive-controls) to see what prop types get auto-generated UI

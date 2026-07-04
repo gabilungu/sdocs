@@ -156,5 +156,5 @@ src/lib/Button/
 
 - [Interactive controls](/explorer/features/interactive-controls) — full list of control types
 - [Prop extraction](/explorer/features/prop-extraction) — what sdocs parses from your component
-- [Page docs](/explorer/writing-docs/page-sdoc) — for freeform prose
-- [Layout docs](/explorer/writing-docs/layout-sdoc) — for component compositions
+- [Page docs](/language/page-docs) — for freeform prose
+- [Layout docs](/language/layout-docs) — for component compositions

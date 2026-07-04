@@ -18,10 +18,6 @@ There are two ways to run it:
 ## In this section
 
 - [Getting Started](/explorer/getting-started) — install and write your first doc
-- **Writing docs**
-  - [Component docs (`.sdoc`)](/explorer/writing-docs/component-sdoc)
-  - [Page docs (`.page.sdoc`)](/explorer/writing-docs/page-sdoc)
-  - [Layout docs (`.layout.sdoc`)](/explorer/writing-docs/layout-sdoc)
 - **Features**
   - [Prop extraction](/explorer/features/prop-extraction)
   - [Interactive controls](/explorer/features/interactive-controls)
@@ -34,5 +30,6 @@ There are two ways to run it:
 
 ## The other entities
 
+- [The sdoc language](/language) — the `.sdoc` file format the Explorer renders
 - [CLI](/cli) — run, build, and scaffold from the command line
 - [VS Code extension](/extension) — `.sdoc` IntelliSense and one-click docs inside the editor

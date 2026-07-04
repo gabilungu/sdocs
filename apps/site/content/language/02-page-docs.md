@@ -65,5 +65,5 @@ Heading IDs are slugified: lowercased, non-word characters stripped, spaces repl
 
 ## See also
 
-- [Component docs](/explorer/writing-docs/component-sdoc)
-- [Layout docs](/explorer/writing-docs/layout-sdoc)
+- [Component docs](/language/component-docs)
+- [Layout docs](/language/layout-docs)

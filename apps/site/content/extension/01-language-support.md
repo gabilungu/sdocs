@@ -35,7 +35,11 @@ Doc-level problems are flagged as you type:
 ## File icons
 
 Doc files carry their own icons in the explorer — distinct marks for
-`.sdoc`, `.page.sdoc`, and `.layout.sdoc`. `sdocs.config.*` files register
+`.sdoc`, `.page.sdoc`, and `.layout.sdoc`. While a doc file is open in an
+editor it runs as the Svelte language (that's what powers the language
+server), so icon themes that map the Svelte language show the Svelte icon
+for it; after closing the file, the sdoc icon returns the next time the
+explorer redraws the row (a window reload always does it). `sdocs.config.*` files register
 as an "sdocs config" language with the mascot as its icon; note that most
 file icon themes map `.js`/`.ts` themselves and take precedence in the
 explorer for config files.

@@ -178,4 +178,4 @@ Without the annotation, the var is still extracted and gets a plain text input.
 ## See also
 
 - [Interactive controls](/explorer/features/interactive-controls) — how extracted props become UI controls
-- [Writing component docs](/explorer/writing-docs/component-sdoc)
+- [Writing component docs](/language/component-docs)

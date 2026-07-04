@@ -267,7 +267,8 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 
 				const absoluteImports = docImportsCache.get(parsed.docFilePath) ?? [];
 				const stateNames = (entry.componentData?.state ?? []).map((s) => s.name);
-				return generateIframeComponent(absoluteImports, snippet.body, stateNames);
+				const componentName = entry.componentPath?.split('/').pop()?.replace('.svelte', '');
+				return generateIframeComponent(absoluteImports, snippet.body, stateNames, componentName);
 			}
 
 			// Virtual mount script for an emitted preview page

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.40] - 2026-07-04
+
+### Fixed
+
+- **Wrapped previews bind to the documented component.** When a preview
+  wraps the documented component in another one (a `<Tab>` shown inside
+  `<Tabs>`), method calls and live state used to attach to the outer
+  wrapper — the first capitalized tag in the snippet. The preview ref now
+  binds to the doc's own component wherever it appears in the snippet,
+  falling back to the first capitalized tag when it's absent.
+- **Usage-code patching matches the component name exactly.** Attribute
+  updates from the controls located the root tag with a prefix search, so
+  a component like `Tab` could patch a sibling `<Tabs>` tag instead of its
+  own. The tag search now requires a whole-name match.
+
 ## [0.0.39] - 2026-07-04
 
 ### Changed

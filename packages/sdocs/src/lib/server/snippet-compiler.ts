@@ -46,11 +46,19 @@ export function resolveImportsToAbsolute(
 	});
 }
 
-/** Add bind:this to the snippet's root component so the wrapper can reach
- * its exported methods and state. Skipped when the author already binds. */
-function injectRootRef(snippetBody: string): string {
+/** Add bind:this to the documented component in the snippet so the wrapper
+ * can reach its exported methods and state. Binds the first occurrence of
+ * the doc's component when named (so wrapped children like
+ * <Tabs><Tab/></Tabs> documenting Tab bind the right instance), otherwise
+ * the first capitalized tag. Skipped when the author already binds. */
+function injectRootRef(snippetBody: string, componentName?: string): string {
 	if (snippetBody.includes('bind:this')) return snippetBody;
-	const match = snippetBody.match(/<([A-Z][A-Za-z0-9_]*)/);
+	let match: RegExpMatchArray | null = null;
+	if (componentName) {
+		const escaped = componentName.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+		match = snippetBody.match(new RegExp(`<${escaped}(?=[\\s/>])`));
+	}
+	if (!match) match = snippetBody.match(/<[A-Z][A-Za-z0-9_]*(?=[\s/>])/);
 	if (!match || match.index === undefined) return snippetBody;
 	const insertAt = match.index + match[0].length;
 	return snippetBody.slice(0, insertAt) + ' bind:this={__sdocsRef}' + snippetBody.slice(insertAt);
@@ -63,6 +71,7 @@ export function generateIframeComponent(
 	absoluteImports: string[],
 	snippetBody: string,
 	stateNames: string[] = [],
+	componentName?: string,
 ): string {
 	const importBlock = absoluteImports.length > 0
 		? absoluteImports.join('\n') + '\n'
@@ -132,7 +141,7 @@ ${stateBroadcast}
 
 <div id="sdocs-preview">
 	{#snippet SdocsPreview(args)}
-		${injectRootRef(snippetBody)}
+		${injectRootRef(snippetBody, componentName)}
 	{/snippet}
 	{@render SdocsPreview(args)}
 </div>`;

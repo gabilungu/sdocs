@@ -106,8 +106,11 @@
 		if (changes.length === 0) return snippetBody;
 
 		// Find the opening tag: <ComponentName ...> or <ComponentName ... />
-		const tagStart = snippetBody.indexOf(`<${name}`);
-		if (tagStart === -1) return snippetBody;
+		// (whole-name match, so <Tab doesn't hit <Tabs)
+		const escapedName = name.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+		const tagMatch = snippetBody.match(new RegExp(`<${escapedName}(?=[\\s/>])`));
+		if (!tagMatch || tagMatch.index === undefined) return snippetBody;
+		const tagStart = tagMatch.index;
 
 		// Find the end of the opening tag, respecting {} expressions
 		let braceDepth = 0;

@@ -52,7 +52,8 @@ function spawnCli(args: string[], cwd: string): { child: ChildProcess; output: (
 	child.stdout!.on('data', (d) => (buffer += d));
 	child.stderr!.on('data', (d) => (buffer += d));
 	children.push(child);
-	return { child, output: () => buffer };
+	// eslint-disable-next-line no-control-regex — CI runners colorize output
+	return { child, output: () => buffer.replace(/\x1b\[[0-9;]*m/g, '') };
 }
 
 async function waitFor<T>(

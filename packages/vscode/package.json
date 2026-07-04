@@ -190,7 +190,8 @@
 		"@types/vscode": "^1.90.0",
 		"@vscode/vsce": "^3.0.0",
 		"esbuild": "^0.24.0",
-		"typescript": "^5.7.0",
-		"sdocs": "file:../sdocs"
+		"sdocs": "file:../sdocs",
+		"svelte-language-server": "^0.18.3",
+		"typescript": "^5.7.0"
 	}
 }

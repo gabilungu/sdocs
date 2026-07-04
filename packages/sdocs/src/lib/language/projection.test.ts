@@ -65,9 +65,9 @@ describe('projectSdoc', () => {
 	});
 
 	it('rewrites sub-block openers to snippet wrappers in place', () => {
-		expect(lines[at('[preview')]).toBe('{#snippet __sdocs$0_0(args: Record<string, any>)}');
+		expect(lines[at('[preview')]).toBe('{#snippet __sdocs$0_0(args: any)}');
 		expect(lines[at('[/preview]')]).toBe('{/snippet}');
-		expect(lines[at('[example')]).toBe('{#snippet __sdocs$0_1(args: Record<string, any>)}');
+		expect(lines[at('[example')]).toBe('{#snippet __sdocs$0_1(args: any)}');
 	});
 
 	it('blanks entity tags and masks PAGE code while keeping prose live', () => {

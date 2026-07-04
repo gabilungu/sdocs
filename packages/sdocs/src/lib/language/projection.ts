@@ -80,7 +80,7 @@ export function projectSdoc(file: SdocFile): SdocProjection {
 	if (file.style) copyVerbatim(file.style.span);
 
 	const isTs = /lang\s*=\s*["']ts["']/.test(file.script?.attrsText ?? '');
-	const argsParam = isTs ? '(args: Record<string, any>)' : '(args)';
+	const argsParam = isTs ? '(args: any)' : '(args)';
 
 	const snippets: { name: string; withArgs: boolean }[] = [];
 	const componentRefs = new Set<string>();

@@ -25,23 +25,21 @@ export async function newComponentDoc(uri?: vscode.Uri): Promise<void> {
 
 	const template = `<script${lang}>
 	import ${componentName} from './${fileName}';
-
-	export const meta = {
-		component: ${componentName},
-		title: '${componentName}',
-		description: '',
-	};
 </script>
 
-{#snippet Default(args)}
-	<${componentName} {...args} />
-{/snippet}
+[DOCS title="${componentName}" description=""]
+
+	[preview component={${componentName}}]
+		<${componentName} {...args} />
+	[/preview]
+
+[/DOCS]
 `;
 
 	await vscode.workspace.fs.writeFile(sdocUri, new TextEncoder().encode(template));
 	const doc = await vscode.window.showTextDocument(sdocUri);
 	// Put the cursor in the description value, ready to type.
-	const offset = template.indexOf("description: '") + "description: '".length;
+	const offset = template.indexOf('description="') + 'description="'.length;
 	const position = doc.document.positionAt(offset);
 	doc.selection = new vscode.Selection(position, position);
 }

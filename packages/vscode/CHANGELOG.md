@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.22] - 2026-07-04
+
+### Changed
+
+- **IntelliSense and diagnostics speak the block format.** The extension
+  now runs the same `sdocs/language` parser as the build pipeline:
+  structural and semantic problems (unclosed blocks, casing, missing or
+  unknown attributes, duplicate titles, non-literal `args`) are flagged
+  with precise ranges as you type, plus a check that `component={X}` is
+  imported in the file. Completions offer each block's attributes and
+  imported identifiers inside `component={…}`; **New Component Doc**
+  scaffolds a `[DOCS]` block. The `export const meta` lint and completions
+  are gone, along with the `sdoc (page)` / `sdoc (layout)` language
+  variants — one `.sdoc` language covers every file.
+
 ## [0.0.21] - 2026-07-04
 
 ### Added

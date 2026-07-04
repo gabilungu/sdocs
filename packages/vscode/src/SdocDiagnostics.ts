@@ -1,9 +1,10 @@
 import * as vscode from 'vscode';
-import { findMetaObject, importedIdentifiers, topLevelSnippets } from './sdocSource';
+import { parseSdoc, scanSdoc } from 'sdocs/language';
+import { importedIdentifiers } from './sdocSource';
 
 const DEBOUNCE_MS = 400;
 
-/** sdocs-specific lint for .sdoc files — complements (never repeats) the Svelte LS. */
+/** sdoc block-format lint — complements (never repeats) the Svelte LS. */
 export class SdocDiagnostics implements vscode.Disposable {
 	private collection = vscode.languages.createDiagnosticCollection('sdocs');
 	private timers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -45,67 +46,43 @@ export class SdocDiagnostics implements vscode.Disposable {
 		this.timers.delete(doc.uri.toString());
 		const text = doc.getText();
 		const diagnostics: vscode.Diagnostic[] = [];
-		const isComponentDoc =
-			!doc.fileName.endsWith('.page.sdoc') && !doc.fileName.endsWith('.layout.sdoc');
 
-		const meta = findMetaObject(text);
-		if (!meta) {
+		// The parser reports syntax and semantic problems with source spans.
+		const parsed = parseSdoc(text);
+		for (const d of parsed.diagnostics) {
 			diagnostics.push(
 				new vscode.Diagnostic(
-					new vscode.Range(0, 0, 0, Math.max(1, doc.lineAt(0).text.length)),
-					"sdocs: no `export const meta = { ... }` found — add one with at least a `title`.",
+					rangeAt(doc, d.span.start, Math.max(1, d.span.end - d.span.start)),
+					`sdocs: ${d.message}`,
 					vscode.DiagnosticSeverity.Warning,
 				),
 			);
-		} else {
-			// title is the one required meta field.
-			if (!/^[ \t]*title\s*:/m.test(meta.topLevel)) {
-				diagnostics.push(
-					new vscode.Diagnostic(
-						rangeAt(doc, meta.declStart, 'export const meta'.length),
-						'sdocs: `meta.title` is required — it names the doc and places it in the sidebar.',
-						vscode.DiagnosticSeverity.Warning,
-					),
-				);
-			}
-
-			// component: must reference an identifier that exists in the file
-			// (string paths are also valid and skipped — they're masked out).
-			if (isComponentDoc) {
-				const component = /(^|[{,\n])\s*component\s*:\s*([A-Za-z_$][\w$]*)/.exec(meta.topLevel);
-				if (component) {
-					const name = component[2];
-					const declared =
-						importedIdentifiers(text).has(name) ||
-						new RegExp(`\\b(?:const|let|var|function|class)\\s+${name}\\b`).test(text);
-					if (!declared) {
-						const nameOffset =
-							meta.braceOpen + component.index + component[0].length - name.length;
-						diagnostics.push(
-							new vscode.Diagnostic(
-								rangeAt(doc, nameOffset, name.length),
-								`sdocs: \`${name}\` is not imported or declared in this file.`,
-								vscode.DiagnosticSeverity.Warning,
-							),
-						);
-					}
-				}
-			}
 		}
 
-		// Duplicate top-level snippet names collide as sdocs sub-pages.
-		const seen = new Map<string, number>();
-		for (const snippet of topLevelSnippets(text)) {
-			const count = seen.get(snippet.name) ?? 0;
-			seen.set(snippet.name, count + 1);
-			if (count > 0) {
-				diagnostics.push(
-					new vscode.Diagnostic(
-						rangeAt(doc, snippet.nameOffset, snippet.name.length),
-						`sdocs: duplicate snippet name \`${snippet.name}\` — snippet sub-pages need unique names.`,
-						vscode.DiagnosticSeverity.Warning,
-					),
-				);
+		// component={X} must reference an identifier that exists in the file.
+		const declared = importedIdentifiers(text);
+		const scanned = scanSdoc(text);
+		const script = scanned.script?.content ?? '';
+		for (const entity of scanned.entities) {
+			for (const block of entity.blocks) {
+				if (block.kind !== 'preview') continue;
+				const attr = block.attrs.component;
+				if (!attr || attr.kind !== 'expression') continue;
+				const name = attr.raw.trim();
+				if (!/^[A-Z][A-Za-z0-9_]*$/.test(name)) continue; // parser already flags these
+				const exists =
+					declared.has(name) ||
+					new RegExp(`\\b(?:const|let|var|function|class)\\s+${name}\\b`).test(script);
+				if (!exists) {
+					const lead = attr.raw.length - attr.raw.trimStart().length;
+					diagnostics.push(
+						new vscode.Diagnostic(
+							rangeAt(doc, attr.valueSpan.start + lead, name.length),
+							`sdocs: \`${name}\` is not imported or declared in this file's <script>.`,
+							vscode.DiagnosticSeverity.Warning,
+						),
+					);
+				}
 			}
 		}
 

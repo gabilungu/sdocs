@@ -2,7 +2,7 @@
 	"name": "sdocs",
 	"displayName": "sdocs",
 	"description": "Language support for sdocs — Svelte component documentation (.sdoc)",
-	"version": "0.0.21",
+	"version": "0.0.22",
 	"publisher": "gabilungu",
 	"license": "MIT",
 	"repository": {
@@ -23,8 +23,6 @@
 	"activationEvents": [
 		"onLanguage:svelte",
 		"onLanguage:sdoc",
-		"onLanguage:sdoc-page",
-		"onLanguage:sdoc-layout",
 		"onLanguage:sdocs-config"
 	],
 	"main": "./dist/extension.js",
@@ -42,32 +40,6 @@
 				"icon": {
 					"light": "./icons/sdoc-light.svg",
 					"dark": "./icons/sdoc-dark.svg"
-				}
-			},
-			{
-				"id": "sdoc-page",
-				"aliases": [
-					"sdoc (page)"
-				],
-				"filenamePatterns": [
-					"*.page.sdoc"
-				],
-				"icon": {
-					"light": "./icons/sdoc-page-light.svg",
-					"dark": "./icons/sdoc-page-dark.svg"
-				}
-			},
-			{
-				"id": "sdoc-layout",
-				"aliases": [
-					"sdoc (layout)"
-				],
-				"filenamePatterns": [
-					"*.layout.sdoc"
-				],
-				"icon": {
-					"light": "./icons/sdoc-layout-light.svg",
-					"dark": "./icons/sdoc-layout-dark.svg"
 				}
 			},
 			{
@@ -218,6 +190,7 @@
 		"@types/vscode": "^1.90.0",
 		"@vscode/vsce": "^3.0.0",
 		"esbuild": "^0.24.0",
-		"typescript": "^5.7.0"
+		"typescript": "^5.7.0",
+		"sdocs": "file:../sdocs"
 	}
 }

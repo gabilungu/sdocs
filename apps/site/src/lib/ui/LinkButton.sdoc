@@ -1,29 +1,22 @@
 <script lang="ts">
 	import LinkButton from './LinkButton.svelte';
-
-	export const meta = {
-		component: LinkButton,
-		title: 'LinkButton',
-		description: 'Button-shaped link used for the site\'s calls to action.',
-		args: {
-			href: '#',
-			variant: 'primary',
-			external: false,
-		},
-	};
 </script>
 
-{#snippet Default(args)}
-	<LinkButton {...args}>Get started</LinkButton>
-{/snippet}
+[DOCS title="LinkButton" description="Button-shaped link used for the site's calls to action."]
 
-{#snippet Secondary(args)}
-	<LinkButton {...args} variant="secondary">Documentation</LinkButton>
-{/snippet}
+	[preview component={LinkButton} args={{ href: '#', variant: 'primary', external: false }}]
+		<LinkButton {...args}>Get started</LinkButton>
+	[/preview]
 
-{#snippet Pair(args)}
-	<div style="display: flex; gap: 0.75rem;">
-		<LinkButton href="#">Get started</LinkButton>
-		<LinkButton href="#" variant="secondary">Documentation</LinkButton>
-	</div>
-{/snippet}
+	[example title="Secondary"]
+		<LinkButton {...args} variant="secondary">Documentation</LinkButton>
+	[/example]
+
+	[example title="Pair"]
+		<div style="display: flex; gap: 0.75rem;">
+			<LinkButton href="#">Get started</LinkButton>
+			<LinkButton href="#" variant="secondary">Documentation</LinkButton>
+		</div>
+	[/example]
+
+[/DOCS]

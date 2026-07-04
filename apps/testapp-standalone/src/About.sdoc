@@ -1,0 +1,14 @@
+[PAGE title=":Pages / About"]
+
+	# standalone
+
+	This project documents components with sdocs **without installing it** — the
+	docs server runs via `npx sdocs run` (or the local CLI from the monorepo).
+
+	## What it covers
+
+	- The no-install CLI flow
+	- Host-only dependencies (`clsx`) resolving from this project
+	- Plain-JS components documented via JSDoc
+
+[/PAGE]

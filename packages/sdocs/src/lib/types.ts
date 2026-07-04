@@ -35,18 +35,12 @@ export interface ResolvedSdocsConfig {
 	};
 }
 
-/** Meta extracted from a .sdoc file */
+/** Entity metadata from a [DOCS]/[PAGE]/[LAYOUT] opener */
 export interface SdocMeta {
-	/** The Svelte component being documented */
-	component?: unknown;
 	/** Sidebar path (e.g. 'Demo / Button') */
 	title: string;
 	/** Short description */
 	description?: string;
-	/** Default prop values */
-	args?: Record<string, unknown>;
-	/** Preview settings (padding, background, etc.) */
-	settings?: Record<string, unknown>;
 }
 
 /** A parsed prop */
@@ -90,13 +84,34 @@ export interface ComponentData {
 	cssProps: ParsedCssProp[];
 }
 
-/** An extracted snippet */
+/** A renderable snippet of an entity: a preview, an example, or the body */
 export interface ExtractedSnippet {
+	/** Display name: preview label / example title / 'Content' */
 	name: string;
+	/** URL-safe id, unique within the entity */
+	slug: string;
+	role: 'preview' | 'example' | 'content';
 	body: string;
 	highlightedHtml?: string;
 	/** Preview URL for iframe (added by virtual module) */
 	previewUrl?: string;
+}
+
+/** One [preview] of a DOCS entity: a live showcase of one component */
+export interface PreviewEntry {
+	/** Tab label (title override or the component name) */
+	label: string;
+	/** The previewed component's identifier in the file's script */
+	componentName: string | null;
+	/** Absolute path to the previewed component */
+	componentPath: string | null;
+	/** Parsed component data (props, methods, state, CSS props) */
+	componentData: ComponentData | null;
+	/** Highlighted component source HTML */
+	highlightedSource: string | null;
+	/** Control defaults for this preview */
+	args: Record<string, unknown>;
+	snippet: ExtractedSnippet;
 }
 
 /** A table of contents heading (for pages) */
@@ -106,22 +121,24 @@ export interface TocHeading {
 	id: string;
 }
 
-/** A complete doc entry (one .sdoc file) */
+/** A complete doc entry (one entity of one .sdoc file) */
 export interface DocEntry {
-	/** Doc kind */
+	/** Doc kind: DOCS / PAGE / LAYOUT */
 	kind: 'component' | 'page' | 'layout';
 	/** Absolute path to the .sdoc file */
 	filePath: string;
-	/** Absolute path to the documented component */
-	componentPath: string | null;
-	/** Parsed meta */
+	/** URL-safe entity id, unique within the file */
+	entitySlug: string;
+	/** Entity metadata (title drives the sidebar) */
 	meta: SdocMeta;
-	/** Parsed component data (props, methods, state, CSS props) */
-	componentData: ComponentData | null;
-	/** Extracted snippets */
-	snippets: ExtractedSnippet[];
-	/** Highlighted component source HTML */
-	highlightedSource: string | null;
+	/** Live previews (component kind; empty otherwise) */
+	previews: PreviewEntry[];
+	/** Frozen examples (component kind; empty otherwise) */
+	examples: ExtractedSnippet[];
+	/** The rendered body (page/layout kind; null otherwise) */
+	content: ExtractedSnippet | null;
 	/** Table of contents headings (pages only) */
 	toc?: TocHeading[];
+	/** Stage padding (layouts only) */
+	padding?: string | null;
 }

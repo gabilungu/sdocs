@@ -20,14 +20,29 @@ export function setDocPathRoot(root: string): void {
 	docPathRoot = root;
 }
 
-/** Encode a doc file path for use in URLs and emitted file names */
-export function encodeDocPath(filePath: string): string {
-	return base64urlEncode(relative(docPathRoot, filePath).split(sep).join('/'));
+/** Encode a doc entity (file + entity slug) for URLs and emitted file names.
+ * The slug rides inside the token as a '#' fragment so every URL shape keeps
+ * exactly one token path segment. */
+export function encodeEntityId(filePath: string, entitySlug: string): string {
+	return base64urlEncode(
+		relative(docPathRoot, filePath).split(sep).join('/') + '#' + entitySlug,
+	);
 }
 
-/** Decode an encoded doc path back to an absolute path */
-function decodeDocPath(encoded: string): string {
-	return resolve(docPathRoot, base64urlDecode(encoded));
+/** Decode an encoded entity id back to an absolute path + entity slug */
+function decodeEntityId(encoded: string): { docFilePath: string; entitySlug: string } {
+	const decoded = base64urlDecode(encoded);
+	const hash = decoded.lastIndexOf('#');
+	const relPath = hash === -1 ? decoded : decoded.slice(0, hash);
+	return {
+		docFilePath: resolve(docPathRoot, relPath),
+		entitySlug: hash === -1 ? '' : decoded.slice(hash + 1),
+	};
+}
+
+/** The docEntries key for one entity of one file */
+export function entityKey(filePath: string, entitySlug: string): string {
+	return `${filePath}#${entitySlug}`;
 }
 
 /** Resolve relative imports to absolute paths for use in virtual components */
@@ -240,52 +255,49 @@ export function generateStaticPreviewHtml(
 	return previewHtmlShell(links, `<script type="module" src="${scriptSrc}"></script>`);
 }
 
+export interface ParsedSnippetId {
+	docFilePath: string;
+	entitySlug: string;
+	snippetSlug: string;
+}
+
 /** Build the virtual module ID for an iframe wrapper component */
-export function iframeVirtualId(docFilePath: string, snippetName: string): string {
-	return `/@sdocs/iframe/${encodeDocPath(docFilePath)}/${snippetName}.svelte`;
+export function iframeVirtualId(docFilePath: string, entitySlug: string, snippetSlug: string): string {
+	return `/@sdocs/iframe/${encodeEntityId(docFilePath, entitySlug)}/${snippetSlug}.svelte`;
 }
 
 /** Build the preview URL for an iframe HTML page (dev mode) */
-export function previewUrl(docFilePath: string, snippetName: string): string {
-	return `/@sdocs/preview/${encodeDocPath(docFilePath)}/${snippetName}`;
+export function previewUrl(docFilePath: string, entitySlug: string, snippetSlug: string): string {
+	return `/@sdocs/preview/${encodeEntityId(docFilePath, entitySlug)}/${snippetSlug}`;
 }
 
 /** Build the preview URL for static build output */
-export function buildPreviewUrl(docFilePath: string, snippetName: string): string {
-	return `/previews/${encodeDocPath(docFilePath)}/${snippetName}.html`;
+export function buildPreviewUrl(docFilePath: string, entitySlug: string, snippetSlug: string): string {
+	return `/previews/${encodeEntityId(docFilePath, entitySlug)}/${snippetSlug}.html`;
 }
 
 /** Virtual module ID for a preview's mount script (embedded production builds) */
-export function mountVirtualId(docFilePath: string, snippetName: string): string {
-	return `/@sdocs/mount/${encodeDocPath(docFilePath)}/${snippetName}.js`;
+export function mountVirtualId(docFilePath: string, entitySlug: string, snippetSlug: string): string {
+	return `/@sdocs/mount/${encodeEntityId(docFilePath, entitySlug)}/${snippetSlug}.js`;
 }
 
 /** Parse a mount virtual ID back into its parts */
-export function parseMountId(id: string): { docFilePath: string; snippetName: string } | null {
-	const match = id.match(/^\/@sdocs\/mount\/([^/]+)\/(\w+)\.js$/);
+export function parseMountId(id: string): ParsedSnippetId | null {
+	const match = id.match(/^\/@sdocs\/mount\/([^/]+)\/([\w-]+)\.js$/);
 	if (!match) return null;
-	return {
-		docFilePath: decodeDocPath(match[1]),
-		snippetName: match[2],
-	};
+	return { ...decodeEntityId(match[1]), snippetSlug: match[2] };
 }
 
 /** Parse an iframe virtual ID back into its parts */
-export function parseIframeId(id: string): { docFilePath: string; snippetName: string } | null {
-	const match = id.match(/^\/@sdocs\/iframe\/([^/]+)\/(\w+)\.svelte$/);
+export function parseIframeId(id: string): ParsedSnippetId | null {
+	const match = id.match(/^\/@sdocs\/iframe\/([^/]+)\/([\w-]+)\.svelte$/);
 	if (!match) return null;
-	return {
-		docFilePath: decodeDocPath(match[1]),
-		snippetName: match[2],
-	};
+	return { ...decodeEntityId(match[1]), snippetSlug: match[2] };
 }
 
 /** Parse a preview URL back into its parts */
-export function parsePreviewUrl(url: string): { docFilePath: string; snippetName: string } | null {
-	const match = url.match(/^\/@sdocs\/preview\/([^/]+)\/(\w+)$/);
+export function parsePreviewUrl(url: string): ParsedSnippetId | null {
+	const match = url.match(/^\/@sdocs\/preview\/([^/]+)\/([\w-]+)$/);
 	if (!match) return null;
-	return {
-		docFilePath: decodeDocPath(match[1]),
-		snippetName: match[2],
-	};
+	return { ...decodeEntityId(match[1]), snippetSlug: match[2] };
 }

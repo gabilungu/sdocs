@@ -1,37 +1,30 @@
 <script lang="ts">
 	import Disclosure from './Disclosure.svelte';
-
-	export const meta = {
-		component: Disclosure,
-		title: 'Disclosure',
-		description:
-			'Expandable panel with a children snippet, a parameterized marker snippet, and an ontoggle event.',
-		args: {
-			summary: 'What is a .sdoc file?',
-			open: false,
-		},
-	};
 </script>
 
-{#snippet Default(args)}
-	<Disclosure {...args}>
-		A Svelte file with an <code>export const meta</code> — one per component,
-		rendered by the Explorer with live previews and controls.
-	</Disclosure>
-{/snippet}
+[DOCS title="Disclosure" description="Expandable panel with a children snippet, a parameterized marker snippet, and an ontoggle event."]
 
-{#snippet StartsOpen(args)}
-	<Disclosure {...args} summary="Already expanded" open>
-		The <code>open</code> prop only sets the initial state — the component
-		manages its own from there.
-	</Disclosure>
-{/snippet}
+	[preview component={Disclosure} args={{ summary: 'What is a .sdoc file?', open: false }}]
+		<Disclosure {...args}>
+			A Svelte file with an <code>export const meta</code> — one per component,
+			rendered by the Explorer with live previews and controls.
+		</Disclosure>
+	[/preview]
 
-{#snippet CustomMarker(args)}
-	<Disclosure {...args} summary="Custom marker snippet">
-		{#snippet marker(open)}
-			<span>{open ? '−' : '+'}</span>
-		{/snippet}
-		The marker snippet receives the open state as a parameter.
-	</Disclosure>
-{/snippet}
+	[example title="StartsOpen"]
+		<Disclosure {...args} summary="Already expanded" open>
+			The <code>open</code> prop only sets the initial state — the component
+			manages its own from there.
+		</Disclosure>
+	[/example]
+
+	[example title="CustomMarker"]
+		<Disclosure {...args} summary="Custom marker snippet">
+			{#snippet marker(open)}
+				<span>{open ? '−' : '+'}</span>
+			{/snippet}
+			The marker snippet receives the open state as a parameter.
+		</Disclosure>
+	[/example]
+
+[/DOCS]

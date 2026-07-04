@@ -18,28 +18,40 @@
 	let { doc, snippetName, activeStylesheet }: Props = $props();
 
 	const meta = $derived(doc.meta);
-	const cd = $derived(doc.componentData);
-	const componentName = $derived(
-		typeof meta.component === 'string'
-			? meta.component
-			: (meta.title ?? '').split('/').pop()?.trim() ?? 'Component',
+	const previews = $derived(doc.previews ?? []);
+
+	// Active preview tab (one full live panel per preview)
+	let activeIndex = $state(0);
+	$effect(() => {
+		doc;
+		activeIndex = 0;
+	});
+	const activePreview = $derived(
+		previews.length > 0 ? previews[Math.min(activeIndex, previews.length - 1)] : undefined,
 	);
-	const snippets = $derived(doc.snippets ?? []);
-	const defaultSnippet = $derived(snippets.find((s) => s.name === 'Default'));
-	const exampleSnippets = $derived(snippets.filter((s) => s.name !== 'Default'));
-	const focusedSnippet = $derived(snippetName ? snippets.find((s) => s.name === snippetName) : null);
+
+	const cd = $derived(activePreview?.componentData ?? null);
+	const componentName = $derived(
+		activePreview?.componentName ??
+			((meta.title ?? '').split('/').pop()?.trim() || 'Component'),
+	);
+	const exampleSnippets = $derived(doc.examples ?? []);
+	const focusedSnippet = $derived(
+		snippetName ? exampleSnippets.find((s) => s.name === snippetName) : null,
+	);
 
 	// Props/CSS controls state
 	let propValues = $state<Record<string, unknown>>({});
 	let cssValues = $state<Record<string, string>>({});
 
-	// Live wiring to the default preview: method invocation + exported state values
+	// Live wiring to the active preview: method invocation + exported state values
 	let defaultPreview = $state<{ callMethod: (name: string) => void }>();
 	let liveStateValues = $state<Record<string, unknown>>({});
 
-	// Initialize from meta.args (build new objects to avoid read+write loop)
+	// Initialize from the active preview's args (build new objects to avoid
+	// read+write loop); re-runs on doc and tab change.
 	$effect(() => {
-		propValues = { ...(meta.args ?? {}) };
+		propValues = { ...(activePreview?.args ?? {}) };
 		const newCss: Record<string, string> = {};
 		if (cd?.cssProps) {
 			for (const cp of cd.cssProps) {
@@ -47,6 +59,7 @@
 			}
 		}
 		cssValues = newCss;
+		liveStateValues = {};
 	});
 
 	function handlePropChange(name: string, value: unknown) {
@@ -159,8 +172,8 @@
 		return snippetBody.slice(0, attrsStart) + attrs + closing + snippetBody.slice(tagEnd + 1);
 	}
 
-	// Initial values for diffing (computed once per doc change)
-	const initialProps = $derived(meta.args ?? {});
+	// Initial values for diffing (computed once per doc/tab change)
+	const initialProps = $derived(activePreview?.args ?? {});
 	const initialCss = $derived.by(() => {
 		const css: Record<string, string> = {};
 		if (cd?.cssProps) {
@@ -172,8 +185,8 @@
 	});
 
 	const usageCode = $derived.by(() => {
-		if (defaultSnippet?.body) {
-			return patchSnippetCode(defaultSnippet.body, componentName, propValues, cssValues, initialProps, initialCss);
+		if (activePreview?.snippet.body) {
+			return patchSnippetCode(activePreview.snippet.body, componentName, propValues, cssValues, initialProps, initialCss);
 		}
 		return generateFallbackCode(componentName, propValues, cssValues);
 	});
@@ -198,7 +211,7 @@
 	});
 
 	function handleReset() {
-		propValues = { ...(meta.args ?? {}) };
+		propValues = { ...(activePreview?.args ?? {}) };
 		const newCss: Record<string, string> = {};
 		if (cd?.cssProps) {
 			for (const cp of cd.cssProps) {
@@ -290,19 +303,37 @@
 			{/if}
 		</div>
 
+		{#if previews.length > 1}
+			<div class="sdocs-preview-tabs" role="tablist">
+				{#each previews as preview, i (preview.snippet.slug)}
+					<button
+						class="sdocs-preview-tab"
+						class:active={i === activeIndex}
+						role="tab"
+						aria-selected={i === activeIndex}
+						onclick={() => (activeIndex = i)}
+					>
+						{preview.label}
+					</button>
+				{/each}
+			</div>
+		{/if}
+
 		<div class="sdocs-panels">
 			<!-- Showcase -->
-			{#if defaultSnippet}
-				<div class="sdocs-preview-wrapper">
-					<PreviewFrame
-						bind:this={defaultPreview}
-						src={defaultSnippet.previewUrl ?? ''}
-						props={propValues}
-						cssVars={cssValues}
-						{activeStylesheet}
-						onStateValues={(values) => (liveStateValues = values)}
-					/>
-				</div>
+			{#if activePreview}
+				{#key activePreview.snippet.slug}
+					<div class="sdocs-preview-wrapper">
+						<PreviewFrame
+							bind:this={defaultPreview}
+							src={activePreview.snippet.previewUrl ?? ''}
+							props={propValues}
+							cssVars={cssValues}
+							{activeStylesheet}
+							onStateValues={(values) => (liveStateValues = values)}
+						/>
+					</div>
+				{/key}
 
 				<CollapsiblePanel title="Preview Code" defaultExpanded={false}>
 					<div class="sdocs-code-block">
@@ -414,11 +445,11 @@
 			{/each}
 		{/if}
 
-		{#if doc.highlightedSource}
+		{#if activePreview?.highlightedSource}
 			<hr class="sdocs-divider" />
 			<div class="sdocs-panels">
 				<CollapsiblePanel title="Component Source" defaultExpanded={false}>
-					<div class="sdocs-code-block">{@html doc.highlightedSource}</div>
+					<div class="sdocs-code-block">{@html activePreview.highlightedSource}</div>
 				</CollapsiblePanel>
 			</div>
 		{/if}
@@ -475,6 +506,31 @@
 	.sdocs-run-btn:disabled {
 		opacity: 0.4;
 		cursor: default;
+	}
+	.sdocs-preview-tabs {
+		display: flex;
+		gap: 4px;
+		margin-bottom: 12px;
+		border-bottom: 1px solid var(--color-base-200);
+	}
+	.sdocs-preview-tab {
+		padding: 7px 14px;
+		border: none;
+		border-bottom: 2px solid transparent;
+		background: none;
+		font: inherit;
+		font-size: 13px;
+		font-weight: 500;
+		color: var(--color-base-500);
+		cursor: pointer;
+	}
+	.sdocs-preview-tab:hover {
+		color: var(--color-base-800);
+	}
+	.sdocs-preview-tab.active {
+		color: var(--color-base-900);
+		border-bottom-color: var(--color-accent-500, var(--color-base-900));
+		font-weight: 600;
 	}
 	.sdocs-view-header {
 		margin-bottom: 24px;

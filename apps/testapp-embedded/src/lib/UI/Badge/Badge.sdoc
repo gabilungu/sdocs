@@ -1,22 +1,19 @@
 <script>
 	import Badge from './Badge.svelte';
-
-	export const meta = {
-		component: Badge,
-		title: 'UI / Badge',
-		description: 'A plain-JS badge documented through JSDoc.',
-		args: {
-			label: 'New',
-			tone: 'info',
-			pill: false,
-		},
-	};
 </script>
 
-{#snippet Success()}
-	<Badge label="Done" tone="success" />
-{/snippet}
+[DOCS title="UI / Badge" description="A plain-JS badge documented through JSDoc."]
 
-{#snippet Dismissable()}
-	<Badge label="Closable" tone="warning" ondismiss={() => alert('dismissed')} />
-{/snippet}
+	[preview component={Badge} args={{ label: 'New', tone: 'info', pill: false }}]
+		<Badge {...args} />
+	[/preview]
+
+	[example title="Success"]
+		<Badge label="Done" tone="success" />
+	[/example]
+
+	[example title="Dismissable"]
+		<Badge label="Closable" tone="warning" ondismiss={() => alert('dismissed')} />
+	[/example]
+
+[/DOCS]

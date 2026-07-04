@@ -1,28 +1,19 @@
 <script lang="ts">
 	import TextField from './TextField.svelte';
-
-	export const meta = {
-		component: TextField,
-		title: 'TextField',
-		description:
-			'Labeled text input with a character counter. Exposes focus()/clear() methods, oninput/onchange events, and an exported length state.',
-		args: {
-			label: 'Your name',
-			placeholder: 'Ada Lovelace',
-			disabled: false,
-			maxlength: 60,
-		},
-	};
 </script>
 
-{#snippet Default(args)}
-	<TextField {...args} />
-{/snippet}
+[DOCS title="TextField" description="Labeled text input with a character counter. Exposes focus()/clear() methods, oninput/onchange events, and an exported length state."]
 
-{#snippet Disabled(args)}
-	<TextField {...args} label="Read only" disabled />
-{/snippet}
+	[preview component={TextField} args={{ label: 'Your name', placeholder: 'Ada Lovelace', disabled: false, maxlength: 60 }}]
+		<TextField {...args} />
+	[/preview]
 
-{#snippet ShortLimit(args)}
-	<TextField {...args} label="Handle" placeholder="@ada" maxlength={12} />
-{/snippet}
+	[example title="Disabled"]
+		<TextField {...args} label="Read only" disabled />
+	[/example]
+
+	[example title="ShortLimit"]
+		<TextField {...args} label="Handle" placeholder="@ada" maxlength={12} />
+	[/example]
+
+[/DOCS]

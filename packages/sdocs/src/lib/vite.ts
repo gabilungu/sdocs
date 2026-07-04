@@ -1,17 +1,16 @@
 import type { Plugin, ViteDevServer } from 'vite';
 import { readFile } from 'node:fs/promises';
 import { loadRawConfig, resolveAndFinalize } from './server/config.js';
-import { discoverDocFiles, getSdocKind } from './server/discovery.js';
-import { parseDocSource } from './server/meta-parser.js';
+import { discoverDocFiles } from './server/discovery.js';
 import { parseComponent } from './server/prop-parser.js';
+import { parseSdoc, offsetToPosition } from './language/index.js';
 import {
-	extractSnippets,
-	extractMarkupBody,
-	hasDefaultSnippet,
-	generateAutoDefault,
-} from './server/snippet-extractor.js';
+	planEntitySnippets,
+	extractImports,
+	resolveComponentImport,
+} from './server/doc-model.js';
+import { renderPageMarkdown } from './server/page-markdown.js';
 import { highlight, disposeHighlighter } from './server/highlighter.js';
-import { extractTocFromHtml } from './server/toc-extractor.js';
 import {
 	parseIframeId,
 	parseMountId,
@@ -25,7 +24,8 @@ import {
 	mountVirtualId,
 	previewUrl,
 	buildPreviewUrl,
-	encodeDocPath,
+	encodeEntityId,
+	entityKey,
 	setDocPathRoot,
 	type StaticCssLink,
 } from './server/snippet-compiler.js';
@@ -33,7 +33,8 @@ import type {
 	SdocsConfig,
 	ResolvedSdocsConfig,
 	DocEntry,
-	TocHeading,
+	ExtractedSnippet,
+	ComponentData,
 } from './types.js';
 
 const VIRTUAL_MODULE_ID = 'virtual:sdocs';
@@ -45,6 +46,15 @@ const MOUNT_PREFIX = '/@sdocs/mount/';
 interface PlannedPreview {
 	jsFileName: string;
 	htmlFileName: string;
+}
+
+/** Every renderable snippet of an entry, in order. */
+function allSnippets(entry: DocEntry): ExtractedSnippet[] {
+	return [
+		...entry.previews.map((p) => p.snippet),
+		...entry.examples,
+		...(entry.content ? [entry.content] : []),
+	];
 }
 
 export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean }): Plugin {
@@ -87,21 +97,21 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				const parsed = parsePreviewUrl(req.url);
 				if (!parsed) return next();
 
-				const entry = docEntries.get(parsed.docFilePath);
+				const entry = docEntries.get(entityKey(parsed.docFilePath, parsed.entitySlug));
 				if (!entry) {
 					res.statusCode = 404;
 					res.end('Doc not found');
 					return;
 				}
 
-				const snippet = entry.snippets.find((s) => s.name === parsed.snippetName);
+				const snippet = allSnippets(entry).find((s) => s.slug === parsed.snippetSlug);
 				if (!snippet) {
 					res.statusCode = 404;
 					res.end('Snippet not found');
 					return;
 				}
 
-				const iframeId = iframeVirtualId(parsed.docFilePath, parsed.snippetName);
+				const iframeId = iframeVirtualId(parsed.docFilePath, parsed.entitySlug, snippet.slug);
 				const html = generatePreviewHtml(iframeId, config.css);
 
 				res.setHeader('Content-Type', 'text/html');
@@ -127,7 +137,7 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 			server.watcher.on('unlink', (filePath) => {
 				if (isDocFile(filePath)) {
 					console.log(`[sdocs] Removed doc file: ${filePath}`);
-					docEntries.delete(filePath);
+					deleteEntriesOf(filePath);
 					docImportsCache.delete(filePath);
 					invalidateVirtualModule();
 				}
@@ -188,17 +198,17 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				}
 
 				for (const entry of docEntries.values()) {
-					const encoded = encodeDocPath(entry.filePath);
-					for (const snippet of entry.snippets) {
-						const jsFileName = `previews/${encoded}/${snippet.name}.js`;
+					const encoded = encodeEntityId(entry.filePath, entry.entitySlug);
+					for (const snippet of allSnippets(entry)) {
+						const jsFileName = `previews/${encoded}/${snippet.slug}.js`;
 						this.emitFile({
 							type: 'chunk',
-							id: mountVirtualId(entry.filePath, snippet.name),
+							id: mountVirtualId(entry.filePath, entry.entitySlug, snippet.slug),
 							fileName: jsFileName,
 						});
 						plannedPreviews.push({
 							jsFileName,
-							htmlFileName: `previews/${encoded}/${snippet.name}.html`,
+							htmlFileName: `previews/${encoded}/${snippet.slug}.html`,
 						});
 					}
 				}
@@ -225,7 +235,7 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 					queue.push(...mod.imports);
 				}
 
-				// The HTML sits at previews/<doc>/<name>.html — two levels deep.
+				// The HTML sits at previews/<entity>/<name>.html — two levels deep.
 				const cssLinks: StaticCssLink[] = [
 					...emittedCssLinks,
 					...[...cssFiles].map((file) => ({ href: `../../${file}` })),
@@ -259,16 +269,24 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				const parsed = parseIframeId(realId);
 				if (!parsed) return null;
 
-				const entry = docEntries.get(parsed.docFilePath);
+				const entry = docEntries.get(entityKey(parsed.docFilePath, parsed.entitySlug));
 				if (!entry) return null;
 
-				const snippet = entry.snippets.find((s) => s.name === parsed.snippetName);
+				const snippet = allSnippets(entry).find((s) => s.slug === parsed.snippetSlug);
 				if (!snippet) return null;
 
 				const absoluteImports = docImportsCache.get(parsed.docFilePath) ?? [];
-				const stateNames = (entry.componentData?.state ?? []).map((s) => s.name);
-				const componentName = entry.componentPath?.split('/').pop()?.replace('.svelte', '');
-				return generateIframeComponent(absoluteImports, snippet.body, stateNames, componentName);
+				// Method calls and live state bind to the snippet's own preview;
+				// example iframes fall back to the first preview's component.
+				const preview =
+					entry.previews.find((p) => p.snippet.slug === snippet.slug) ?? entry.previews[0];
+				const stateNames = (preview?.componentData?.state ?? []).map((s) => s.name);
+				return generateIframeComponent(
+					absoluteImports,
+					snippet.body,
+					stateNames,
+					preview?.componentName ?? undefined,
+				);
 			}
 
 			// Virtual mount script for an emitted preview page
@@ -276,7 +294,7 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				const parsed = parseMountId(id.slice(1));
 				if (!parsed) return null;
 				return generateMountScript(
-					iframeVirtualId(parsed.docFilePath, parsed.snippetName),
+					iframeVirtualId(parsed.docFilePath, parsed.entitySlug, parsed.snippetSlug),
 				);
 			}
 		},
@@ -289,97 +307,144 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 	// ─── Process a single doc file ───
 
 	async function processDocFile(filePath: string): Promise<void> {
+		try {
+			await processDocFileInner(filePath);
+		} catch (err) {
+			// A half-written file must never kill the dev server.
+			console.warn(`[sdocs] Failed to process ${filePath}:`, err);
+		}
+	}
+
+	async function processDocFileInner(filePath: string): Promise<void> {
 		const source = await readFile(filePath, 'utf-8');
-		const kind = getSdocKind(filePath);
+		const doc = parseSdoc(source);
 
-		const parsed = parseDocSource(source, filePath);
-		const meta = parsed.meta;
-		const componentPath = parsed.componentPath;
-		const imports = parsed.imports;
-		let snippets;
-		let toc: TocHeading[] | undefined;
-
-		if (kind === 'page' || kind === 'layout') {
-			const body = extractMarkupBody(source);
-			snippets = [{ name: 'Content', body }];
-			if (kind === 'page') {
-				toc = extractTocFromHtml(body);
-			}
-		} else {
-			snippets = extractSnippets(source);
-			if (!hasDefaultSnippet(snippets)) {
-				const componentName = componentPath?.split('/').pop()?.replace('.svelte', '') ?? 'Component';
-				snippets.unshift({
-					name: 'Default',
-					body: generateAutoDefault(componentName),
-				});
-			}
+		for (const d of doc.diagnostics) {
+			const pos = offsetToPosition(source, d.span.start);
+			console.warn(`[sdocs] ${filePath}:${pos.line + 1}:${pos.column + 1} — ${d.message}`);
 		}
 
-		// If component is specified as a path but not imported, auto-add the import
-		if (componentPath) {
-			const componentName = componentPath.split('/').pop()?.replace('.svelte', '') ?? 'Component';
-			const hasImport = imports.some((imp) => imp.includes(componentName));
-			if (!hasImport) {
-				imports.push(`import ${componentName} from '${componentPath}'`);
-			}
-		}
+		deleteEntriesOf(filePath);
 
-		// Cache resolved imports for iframe component generation
+		const scriptContent = doc.script?.content ?? '';
+		const imports = extractImports(scriptContent);
 		docImportsCache.set(filePath, resolveImportsToAbsolute(imports, filePath));
 
-		let componentData = null;
-		let highlightedSource = null;
-		if (kind === 'component' && componentPath) {
-			try {
-				componentData = await parseComponent(componentPath);
-				const componentSource = await readFile(componentPath, 'utf-8');
-				highlightedSource = await highlight(componentSource);
-			} catch (err) {
-				console.warn(`[sdocs] Failed to parse component: ${componentPath}`, err);
+		// One component parse per component file per rebuild, however many
+		// previews reference it.
+		const componentCache = new Map<
+			string,
+			{ data: ComponentData | null; highlighted: string | null }
+		>();
+		const loadComponent = async (componentPath: string) => {
+			let cached = componentCache.get(componentPath);
+			if (!cached) {
+				cached = { data: null, highlighted: null };
+				try {
+					cached.data = await parseComponent(componentPath);
+					const componentSource = await readFile(componentPath, 'utf-8');
+					cached.highlighted = await highlight(componentSource);
+				} catch (err) {
+					console.warn(`[sdocs] Failed to parse component: ${componentPath}`, err);
+				}
+				componentCache.set(componentPath, cached);
 			}
-		}
+			return cached;
+		};
 
-		for (const snippet of snippets) {
-			snippet.highlightedHtml = await highlight(snippet.body);
-		}
+		for (const entity of doc.entities) {
+			const planned = planEntitySnippets(entity);
+			const snippets: ExtractedSnippet[] = planned.map((p) => ({
+				name: p.name,
+				slug: p.slug,
+				role: p.role,
+				body: p.body,
+			}));
 
-		docEntries.set(filePath, {
-			kind,
-			filePath,
-			componentPath,
-			meta,
-			componentData,
-			snippets,
-			highlightedSource,
-			toc,
-		});
+			const entry: DocEntry = {
+				kind: entity.kind === 'DOCS' ? 'component' : entity.kind === 'PAGE' ? 'page' : 'layout',
+				filePath,
+				entitySlug: entity.slug,
+				meta: { title: entity.title },
+				previews: [],
+				examples: [],
+				content: null,
+			};
+
+			if (entity.kind === 'DOCS') {
+				if (entity.description) entry.meta.description = entity.description;
+				for (const [i, preview] of entity.previews.entries()) {
+					const snippet = snippets[i];
+					let componentPath: string | null = null;
+					let componentData: ComponentData | null = null;
+					let highlightedSource: string | null = null;
+					if (preview.componentName) {
+						componentPath = resolveComponentImport(preview.componentName, imports, filePath);
+						if (componentPath) {
+							const loaded = await loadComponent(componentPath);
+							componentData = loaded.data;
+							highlightedSource = loaded.highlighted;
+						} else {
+							console.warn(
+								`[sdocs] ${filePath}: component {${preview.componentName}} is not imported in the file's <script>`,
+							);
+						}
+					}
+					snippet.highlightedHtml = await highlight(snippet.body);
+					entry.previews.push({
+						label: preview.label,
+						componentName: preview.componentName,
+						componentPath,
+						componentData,
+						highlightedSource,
+						args: preview.args ?? {},
+						snippet,
+					});
+				}
+				entry.examples = snippets.filter((s) => s.role === 'example');
+				for (const example of entry.examples) {
+					example.highlightedHtml = await highlight(example.body);
+				}
+			} else if (entity.kind === 'PAGE') {
+				const rendered = await renderPageMarkdown(entity.body);
+				snippets[0].body = rendered.html;
+				entry.content = snippets[0];
+				entry.toc = rendered.toc;
+			} else {
+				entry.content = snippets[0];
+				entry.padding = entity.padding;
+			}
+
+			docEntries.set(entityKey(filePath, entity.slug), entry);
+		}
 	}
 
 	// ─── Generate the virtual module ───
 
 	function generateVirtualModule(): string {
-		const entries = Array.from(docEntries.values());
-		const data = entries.map((e) => ({
+		const urlFor = (entry: DocEntry, snippet: ExtractedSnippet): string =>
+			// Only absolute bases prefix here; SvelteKit builds with a relative
+			// base ('./') and passes its real path via the Explorer's previewBase.
+			(base.startsWith('/') && base !== '/' ? base.replace(/\/$/, '') : '') +
+			(buildMode || isBuild
+				? buildPreviewUrl(entry.filePath, entry.entitySlug, snippet.slug)
+				: previewUrl(entry.filePath, entry.entitySlug, snippet.slug));
+
+		const withUrl = (entry: DocEntry, snippet: ExtractedSnippet) => ({
+			...snippet,
+			previewUrl: urlFor(entry, snippet),
+		});
+
+		const data = Array.from(docEntries.values()).map((e) => ({
 			kind: e.kind,
 			filePath: e.filePath,
-			componentPath: e.componentPath,
+			entitySlug: e.entitySlug,
 			meta: e.meta,
-			componentData: e.componentData,
-			snippets: e.snippets.map((s) => ({
-				name: s.name,
-				body: s.body,
-				highlightedHtml: s.highlightedHtml,
-				previewUrl:
-					// Only absolute bases prefix here; SvelteKit builds with a relative
-					// base ('./') and passes its real path via the Explorer's previewBase.
-					(base.startsWith('/') && base !== '/' ? base.replace(/\/$/, '') : '') +
-					(buildMode || isBuild
-						? buildPreviewUrl(e.filePath, s.name)
-						: previewUrl(e.filePath, s.name)),
-			})),
-			highlightedSource: e.highlightedSource,
+			previews: e.previews.map((p) => ({ ...p, snippet: withUrl(e, p.snippet) })),
+			examples: e.examples.map((s) => withUrl(e, s)),
+			content: e.content ? withUrl(e, e.content) : null,
 			toc: e.toc,
+			padding: e.padding,
 		}));
 		// Extract named CSS stylesheet names (empty array if single string or null)
 		const cssNames = config.css && typeof config.css === 'object'
@@ -400,10 +465,10 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 
 		// Also invalidate iframe virtual modules for the changed doc file
 		if (docFilePath) {
-			const entry = docEntries.get(docFilePath);
-			if (entry) {
-				for (const snippet of entry.snippets) {
-					const iframeId = '\0' + iframeVirtualId(docFilePath, snippet.name);
+			for (const entry of entriesOf(docFilePath)) {
+				for (const snippet of allSnippets(entry)) {
+					const iframeId =
+						'\0' + iframeVirtualId(docFilePath, entry.entitySlug, snippet.slug);
 					const iframeMod = server.moduleGraph.getModuleById(iframeId);
 					if (iframeMod) {
 						server.moduleGraph.invalidateModule(iframeMod);
@@ -417,6 +482,20 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 
 	function isDocFile(filePath: string): boolean {
 		return filePath.endsWith('.sdoc');
+	}
+
+	function entriesOf(filePath: string): DocEntry[] {
+		const entries: DocEntry[] = [];
+		for (const [key, entry] of docEntries) {
+			if (key.startsWith(filePath + '#')) entries.push(entry);
+		}
+		return entries;
+	}
+
+	function deleteEntriesOf(filePath: string): void {
+		for (const key of [...docEntries.keys()]) {
+			if (key.startsWith(filePath + '#')) docEntries.delete(key);
+		}
 	}
 
 	/** Emit a user stylesheet as a build asset; returns its href relative to a preview page. */
@@ -434,16 +513,20 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 
 	function isComponentReferencedByDoc(filePath: string): boolean {
 		for (const entry of docEntries.values()) {
-			if (entry.componentPath === filePath) return true;
+			if (entry.previews.some((p) => p.componentPath === filePath)) return true;
 		}
 		return false;
 	}
 
 	async function reprocessComponentEntries(componentPath: string): Promise<void> {
-		for (const [docPath, entry] of docEntries) {
-			if (entry.componentPath === componentPath) {
-				await processDocFile(docPath);
+		const files = new Set<string>();
+		for (const entry of docEntries.values()) {
+			if (entry.previews.some((p) => p.componentPath === componentPath)) {
+				files.add(entry.filePath);
 			}
+		}
+		for (const file of files) {
+			await processDocFile(file);
 		}
 	}
 }

@@ -1,0 +1,15 @@
+[PAGE title=":Pages / Welcome"]
+
+	# testapp
+
+	This app exercises the local `sdocs` workspace package end to end,
+	embedded in a SvelteKit app via `sdocs/vite` and `sdocs/explorer`.
+
+	## What it covers
+
+	- **Component docs** — `Button.sdoc` with a preview and examples
+	- **Pages** — this file's `[PAGE]` block
+	- **Layouts** — the `[LAYOUT]` block in `Demo.sdoc`
+	- **Embedded mode** — the explorer mounted at `/docs`
+
+[/PAGE]

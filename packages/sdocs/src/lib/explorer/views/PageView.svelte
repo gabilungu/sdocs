@@ -10,7 +10,7 @@
 	let { doc, activeStylesheet }: Props = $props();
 
 	const meta = $derived(doc.meta);
-	const contentSnippet = $derived(doc.snippets?.[0]);
+	const contentSnippet = $derived(doc.content);
 	const toc = $derived(doc.toc ?? []);
 
 	function scrollToHeading(id: string) {

@@ -4,9 +4,10 @@ import { tmpdir } from 'node:os';
 import { dirname, resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ResolvedSdocsConfig } from '../types.js';
-import { discoverDocFiles, getSdocKind } from './discovery.js';
-import { extractSnippets, hasDefaultSnippet } from './snippet-extractor.js';
-import { encodeDocPath, setDocPathRoot } from './snippet-compiler.js';
+import { discoverDocFiles } from './discovery.js';
+import { parseSdoc } from '../language/index.js';
+import { planEntitySnippets } from './doc-model.js';
+import { encodeEntityId, setDocPathRoot } from './snippet-compiler.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -158,27 +159,23 @@ function generatePreviewHtml(
 </html>`;
 }
 
-/** Discover doc files and extract snippet names (lightweight, no highlighting) */
+/** Discover doc files and plan snippet slugs per entity (lightweight, no highlighting) */
 async function discoverSnippets(
 	config: ResolvedSdocsConfig,
 	cwd: string,
-): Promise<Array<{ filePath: string; snippetNames: string[] }>> {
+): Promise<Array<{ filePath: string; entitySlug: string; snippetSlugs: string[] }>> {
 	const files = await discoverDocFiles(config.include, cwd);
-	const results: Array<{ filePath: string; snippetNames: string[] }> = [];
+	const results: Array<{ filePath: string; entitySlug: string; snippetSlugs: string[] }> = [];
 
 	for (const filePath of files) {
 		const source = await readFile(filePath, 'utf-8');
-		const kind = getSdocKind(filePath);
-
-		if (kind === 'page' || kind === 'layout') {
-			results.push({ filePath, snippetNames: ['Content'] });
-		} else {
-			const snippets = extractSnippets(source);
-			const names = snippets.map((s) => s.name);
-			if (!hasDefaultSnippet(snippets)) {
-				names.unshift('Default');
-			}
-			results.push({ filePath, snippetNames: names });
+		const doc = parseSdoc(source);
+		for (const entity of doc.entities) {
+			results.push({
+				filePath,
+				entitySlug: entity.slug,
+				snippetSlugs: planEntitySnippets(entity).map((s) => s.slug),
+			});
 		}
 	}
 
@@ -224,17 +221,17 @@ export async function generateBuildFiles(
 	// Discover snippets and generate preview HTML pages
 	const docSnippets = await discoverSnippets(config, cwd);
 
-	for (const { filePath, snippetNames } of docSnippets) {
-		const encoded = encodeDocPath(filePath);
-		for (const snippetName of snippetNames) {
-			const iframeId = `/@sdocs/iframe/${encoded}/${snippetName}.svelte`;
+	for (const { filePath, entitySlug, snippetSlugs } of docSnippets) {
+		const encoded = encodeEntityId(filePath, entitySlug);
+		for (const snippetSlug of snippetSlugs) {
+			const iframeId = `/@sdocs/iframe/${encoded}/${snippetSlug}.svelte`;
 			const previewDir = resolve(sdocsDir, 'previews', encoded);
 			await mkdir(previewDir, { recursive: true });
 
-			const previewPath = resolve(previewDir, `${snippetName}.html`);
+			const previewPath = resolve(previewDir, `${snippetSlug}.html`);
 			await writeFile(previewPath, generatePreviewHtml(iframeId, config.css));
 
-			const inputKey = `preview-${encoded}-${snippetName}`;
+			const inputKey = `preview-${encoded}-${snippetSlug}`;
 			inputs[inputKey] = previewPath;
 		}
 	}

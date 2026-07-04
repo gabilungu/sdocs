@@ -9,7 +9,7 @@
 
 	let { doc, activeStylesheet }: Props = $props();
 
-	const contentSnippet = $derived(doc.snippets?.[0]);
+	const contentSnippet = $derived(doc.content);
 </script>
 
 <div class="sdocs-layout-view">

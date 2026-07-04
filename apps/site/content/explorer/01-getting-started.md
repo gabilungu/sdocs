@@ -49,29 +49,23 @@ See the full [configuration reference](/explorer/configuration) for every option
 
 Given a Svelte component `src/lib/Button.svelte`, create `src/lib/Button.sdoc` next to it:
 
-```svelte
+```sdoc
 <script lang="ts">
   import Button from './Button.svelte';
-
-  export const meta = {
-    component: Button,
-    title: 'Components / Button',
-    description: 'A flexible button.',
-    args: {
-      label: 'Click me',
-      disabled: false,
-    },
-  };
 </script>
 
-{#snippet Default(args)}
-  <Button {...args} />
-{/snippet}
+[DOCS title="Components / Button" description="A flexible button."]
+
+	[preview component={Button} args={{ label: 'Click me', disabled: false }}]
+		<Button {...args} />
+	[/preview]
+
+[/DOCS]
 ```
 
-That's the minimum. `Default` gets interactive controls wired up to `meta.args`. Omit the `Default` snippet entirely and sdocs will auto-generate it as `<Button {...args} />`.
+That's the minimum. The preview gets interactive controls wired up to its `args`.
 
-See [writing component docs](/language/component-docs) for named snippets, examples, and the full `meta` object.
+See [the sdoc language](/language) for the full format — examples, pages, layouts, and multiple previews per page.
 
 ## Run the dev server
 

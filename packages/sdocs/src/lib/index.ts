@@ -10,4 +10,6 @@ export type {
 	ParsedCssProp,
 	ComponentData,
 	ExtractedSnippet,
+	PreviewEntry,
+	TocHeading,
 } from './types.js';

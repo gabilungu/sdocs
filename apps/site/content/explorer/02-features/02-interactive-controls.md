@@ -80,27 +80,19 @@ See [prop extraction](/explorer/features/prop-extraction) for the full extractio
 
 ## Default values
 
-Initial control values come from `meta.args`:
+Initial control values come from the preview's `args`:
 
-```svelte
-<script lang="ts">
-  export const meta = {
-    component: Button,
-    title: 'Components / Button',
-    args: {
-      label: 'Click me',
-      size: 'md',
-      disabled: false,
-    },
-  };
-</script>
+```sdoc
+[preview component={Button} args={{ label: 'Click me', size: 'md', disabled: false }}]
+	<Button {...args} />
+[/preview]
 ```
 
 For CSS custom properties, set defaults via the `var()` fallback in your component's `<style>` block (`var(--bg, #333)`) — sdocs picks these up automatically.
 
 ## Reset
 
-The controls panel has a **Reset** button that restores all controls to the values in `meta.args` (and CSS vars back to their `var()` defaults).
+The Props section has a **Reset** button that restores all controls to the preview's `args` (and CSS vars back to their `var()` defaults).
 
 ## Unsupported types
 

@@ -61,6 +61,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "marked": "^16.4.2",
     "shiki": "^3.22.0",
     "tinyglobby": "^0.2.15",
     "typescript": "^5.7.0"

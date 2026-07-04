@@ -72,9 +72,7 @@ export function buildTree(docs: DocEntry[], sidebar?: SidebarConfig): TreeNode[]
 		const itemPath = [...currentPath, itemName];
 
 		if (kind === 'component') {
-			const examples = doc.snippets
-				?.filter((s) => s.name !== 'Default')
-				.map((s) => s.name) ?? [];
+			const examples = doc.examples?.map((s) => s.name) ?? [];
 
 			// Check if a folder node with this name already exists (created by a child doc)
 			const existing = parent.find((n) => n.name === itemName);
@@ -248,7 +246,7 @@ export function findDocByPath(
 		// One extra segment → example
 		if (segments.length === path.length - 1 && segments.every((s, i) => s === path[i])) {
 			const snippetName = path[path.length - 1];
-			const hasSnippet = doc.snippets?.some((s) => s.name === snippetName);
+			const hasSnippet = doc.examples?.some((s) => s.name === snippetName);
 			if (hasSnippet) {
 				return { doc, snippetName };
 			}

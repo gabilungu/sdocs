@@ -2,7 +2,7 @@
 	"name": "sdocs",
 	"displayName": "sdocs",
 	"description": "Language support for sdocs — Svelte component documentation (.sdoc)",
-	"version": "0.0.20",
+	"version": "0.0.21",
 	"publisher": "gabilungu",
 	"license": "MIT",
 	"repository": {
@@ -38,6 +38,7 @@
 				"extensions": [
 					".sdoc"
 				],
+				"configuration": "./language-configuration.json",
 				"icon": {
 					"light": "./icons/sdoc-light.svg",
 					"dark": "./icons/sdoc-dark.svg"
@@ -82,6 +83,34 @@
 				"icon": {
 					"light": "./icons/mascot_mini.svg",
 					"dark": "./icons/mascot_mini.svg"
+				}
+			}
+		],
+		"grammars": [
+			{
+				"language": "sdoc",
+				"scopeName": "source.sdoc",
+				"path": "./syntaxes/sdoc.tmLanguage.json",
+				"embeddedLanguages": {
+					"source.ts": "typescript",
+					"source.js": "javascript",
+					"source.css": "css",
+					"source.svelte": "svelte",
+					"meta.embedded.expression.sdoc": "typescript"
+				},
+				"unbalancedBracketScopes": [
+					"punctuation.definition.tag.begin.sdoc",
+					"punctuation.definition.tag.end.sdoc"
+				]
+			},
+			{
+				"scopeName": "markdown.sdoc.codeblock",
+				"path": "./syntaxes/sdoc-markdown.json",
+				"injectTo": [
+					"text.html.markdown"
+				],
+				"embeddedLanguages": {
+					"meta.embedded.block.sdoc": "sdoc"
 				}
 			}
 		],

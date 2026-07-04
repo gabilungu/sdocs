@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.21] - 2026-07-04
+
+### Added
+
+- **sdoc syntax highlighting.** A TextMate grammar for the block-based
+  sdoc format: `[DOCS]`/`[PAGE]`/`[LAYOUT]` entities, `[preview]`/
+  `[example]` blocks, and Svelte-style attributes, with embedded
+  TypeScript, JavaScript, CSS, and Svelte coloring in the right places.
+  The grammar injects into markdown, so ```` ```sdoc ```` fences highlight
+  in any markdown file. `.sdoc` files also gain a language configuration:
+  comments, bracket pairs, and folding on entity blocks.
+
 ## [0.0.20] - 2026-07-03
 
 ### Changed

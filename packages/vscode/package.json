@@ -2,7 +2,7 @@
 	"name": "sdocs",
 	"displayName": "sdocs",
 	"description": "Language support for sdocs — Svelte component documentation (.sdoc)",
-	"version": "0.0.22",
+	"version": "0.0.23",
 	"publisher": "gabilungu",
 	"license": "MIT",
 	"repository": {
@@ -190,8 +190,14 @@
 		"@types/vscode": "^1.90.0",
 		"@vscode/vsce": "^3.0.0",
 		"esbuild": "^0.24.0",
+		"prettier": "^3.9.4",
+		"prettier-plugin-svelte": "^4.1.1",
 		"sdocs": "file:../sdocs",
 		"svelte-language-server": "^0.18.3",
-		"typescript": "^5.7.0"
+		"typescript": "^5.7.0",
+		"vscode-languageclient": "^10.1.0",
+		"vscode-languageserver": "^10.1.0",
+		"vscode-languageserver-protocol": "^3.18.2",
+		"vscode-languageserver-textdocument": "^1.0.13"
 	}
 }

@@ -2,15 +2,31 @@
 title: Language Support
 ---
 
-`.sdoc` files get the complete `.svelte` editing experience — they are
-served by the Svelte language server, so everything it does in a component
-works inside your previews and examples too:
+`.sdoc` files are served by the extension's own **sdoc language server**. It
+projects each file onto a virtual Svelte document — every authored line at
+its exact position, block tags translated to the same snippet wrappers the
+build pipeline generates — and runs the real Svelte language server over
+that projection. The result is the full `.svelte` editing experience inside
+your previews, examples, and the file `<script>`, with zero false errors on
+the block syntax:
 
 - Completion with types and JSDoc
 - Hover information
-- Live TypeScript and Svelte diagnostics
+- Live TypeScript and Svelte diagnostics, reported at the authored line
 - Go-to-definition
-- Native formatting
+- Signature help
+
+Because the editor sees exactly what the build compiles — `args` in scope
+in every preview and example, components resolved through the file's
+imports — a clean editor means a clean build.
+
+## Formatting
+
+**Format Document** formats fragment-wise: the file `<script>` and
+`<style>` and every `[preview]`/`[example]`/`[LAYOUT]` body run through
+prettier with the Svelte plugin independently, then reassemble at the
+block's indentation. Block tags are never touched, and `[PAGE]` prose is
+never reflowed.
 
 ## sdoc syntax highlighting
 
@@ -33,10 +49,10 @@ On top of the language server, the extension understands the block format:
 - **`component={…}` value completion** — suggests the identifiers imported
   in the file's `<script>`.
 
-## Diagnostics
+## Block diagnostics
 
-The extension runs the same parser as the sdocs build pipeline, so problems
-are flagged as you type, exactly as the Explorer would see them:
+The extension also runs the sdocs parser directly, so format-level problems
+are flagged as you type, exactly as the build pipeline would see them:
 
 - Structural mistakes — unclosed blocks, wrong tag casing, text outside
   blocks, misplaced `<script>`/`<style>`
@@ -46,13 +62,18 @@ are flagged as you type, exactly as the Explorer would see them:
 - `args` values that aren't plain literals
 - A `component={X}` identifier that isn't imported or declared in the file
 
+## Current limitations
+
+- Code inside `[PAGE]` fences and inline code gets highlighting but no
+  language intelligence (it's display-only content).
+- Cross-file rename and find-references don't reach into `.sdoc` files that
+  aren't open.
+
 ## File icons
 
-Doc files carry the sdoc icon in the explorer. While a doc file is open in
-an editor it runs as the Svelte language (that's what powers the language
-server), so icon themes that map the Svelte language show the Svelte icon
-for it; after closing the file, the sdoc icon returns the next time the
-explorer redraws the row (a window reload always does it). `sdocs.config.*`
-files register as an "sdocs config" language with the mascot as its icon;
-note that most file icon themes map `.js`/`.ts` themselves and take
-precedence in the explorer for config files.
+Doc files keep the sdoc icon in the explorer — open or closed — since
+`.sdoc` files now run as their own language. `sdocs.config.*` files register
+as an "sdocs config" language with the mascot as its icon; while a config
+file is open it runs as JavaScript/TypeScript (for the language service), and
+most file icon themes map `.js`/`.ts` themselves and take precedence in the
+explorer for config files.

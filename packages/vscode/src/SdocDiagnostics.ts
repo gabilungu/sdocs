@@ -23,7 +23,7 @@ export class SdocDiagnostics implements vscode.Disposable {
 	}
 
 	private isSdoc(doc: vscode.TextDocument): boolean {
-		return doc.languageId === 'svelte' && doc.fileName.endsWith('.sdoc');
+		return doc.languageId === 'sdoc';
 	}
 
 	private clearTimer(uri: vscode.Uri) {

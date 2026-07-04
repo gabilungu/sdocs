@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.23] - 2026-07-04
+
+### Added
+
+- **The sdoc language server.** `.sdoc` files now run as their own language,
+  served by a bundled language server that projects each file onto a
+  line-preserving virtual Svelte document (block tags become the same
+  snippet wrappers the build pipeline generates) and runs the embedded
+  Svelte language server over it. Completion, hover, diagnostics,
+  go-to-definition, and signature help work inside `<script>` and every
+  block body — reported at the authored position, with zero false errors
+  on block syntax.
+- **Format Document for .sdoc.** Fragment-wise: the file `<script>`/`<style>`
+  and every Svelte block body format through prettier independently and
+  reassemble at the block's indentation. Block tags and `[PAGE]` prose are
+  never touched.
+
+### Changed
+
+- **The language-flip hack is gone for `.sdoc`.** Files keep the `sdoc`
+  language id, so the sdoc grammar is the active editor grammar and the
+  explorer file icon no longer reverts to Svelte while a doc is open. (The
+  flip remains only for `sdocs.config.*`, which runs as JS/TS.)
+
 ## [0.0.22] - 2026-07-04
 
 ### Changed

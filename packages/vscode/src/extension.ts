@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'node:path';
+import { LanguageClient, TransportKind } from 'vscode-languageclient/node';
 import { BlockCompletionProvider } from './BlockCompletionProvider';
 import { SdocDiagnostics } from './SdocDiagnostics';
 import { newComponentDoc } from './newComponentDoc';
@@ -7,32 +8,42 @@ import { SdocsRunner } from './SdocsRunner';
 import { SdocsPanels } from './SdocsPanels';
 import { ScopesWebview } from './ScopesWebview';
 
-// The sdoc/sdocs-config language contributions exist so the explorer shows
-// sdocs file icons — but the Svelte and TS language servers only serve
-// documents whose language id is `svelte`/`javascript`/`typescript`.
-// Flipping each document as it opens keeps both: the static file-to-language
-// mapping (which drives explorer icons) stays ours, while open documents get
-// the real language service. The flip stays until the sdoc language server.
+// sdocs.config.* files register as the `sdocs-config` language so the
+// explorer shows the mascot icon — but the TS language server only serves
+// `javascript`/`typescript` documents, so open config docs flip over.
+// .sdoc files keep their own language: the bundled sdoc language server
+// provides Svelte intelligence inside block bodies.
 function flipTarget(doc: vscode.TextDocument): string | undefined {
-	switch (doc.languageId) {
-		case 'sdoc':
-			return 'svelte';
-		case 'sdocs-config':
-			return doc.fileName.endsWith('.ts') ? 'typescript' : 'javascript';
+	if (doc.languageId === 'sdocs-config') {
+		return doc.fileName.endsWith('.ts') ? 'typescript' : 'javascript';
 	}
 	return undefined;
 }
 
+let client: LanguageClient | undefined;
+
 export function activate(context: vscode.ExtensionContext) {
-	// .sdoc files run as the `svelte` language (via flipTarget above), so the
-	// Svelte language server provides completion, hover, diagnostics, and
-	// formatting. This extension only adds sdocs-specific extras on top, scoped
-	// by file pattern so plain .svelte files are untouched.
 	const flip = (doc: vscode.TextDocument) => {
 		const target = flipTarget(doc);
 		if (target) void vscode.languages.setTextDocumentLanguage(doc, target);
 	};
 	vscode.workspace.textDocuments.forEach(flip);
+
+	// The sdoc language server: a line-preserving Svelte projection served by
+	// an embedded svelte-language-server, running in its own node process.
+	const serverModule = context.asAbsolutePath('dist/server.js');
+	client = new LanguageClient(
+		'sdocs',
+		'sdocs',
+		{
+			run: { module: serverModule, transport: TransportKind.ipc },
+			debug: { module: serverModule, transport: TransportKind.ipc },
+		},
+		{
+			documentSelector: [{ scheme: 'file', language: 'sdoc' }],
+		},
+	);
+	void client.start();
 
 	const runner = new SdocsRunner();
 	const panels = new SdocsPanels(context.extensionUri);
@@ -41,7 +52,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
 		vscode.workspace.onDidOpenTextDocument(flip),
 		vscode.languages.registerCompletionItemProvider(
-			{ language: 'svelte', pattern: '**/*.sdoc' },
+			{ language: 'sdoc' },
 			new BlockCompletionProvider(),
 			'[', '{',
 		),
@@ -66,4 +77,6 @@ export function activate(context: vscode.ExtensionContext) {
 	}
 }
 
-export function deactivate() {}
+export function deactivate(): Thenable<void> | undefined {
+	return client?.stop();
+}

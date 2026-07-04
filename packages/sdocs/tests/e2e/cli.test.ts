@@ -10,8 +10,8 @@
  *   plugin's virtual ids.
  */
 
-import { afterAll, describe, expect, it } from 'vitest';
-import { spawn, type ChildProcess } from 'node:child_process';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { execFileSync, spawn, type ChildProcess } from 'node:child_process';
 import { cpSync, mkdirSync, mkdtempSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -21,6 +21,13 @@ const REPO = resolve(__dirname, '../../../..');
 
 const children: ChildProcess[] = [];
 const tempDirs: string[] = [];
+
+// The CLI runs from dist/ (bin/sdocs.js imports ../dist/server/cli.js), so
+// build before spawning it — the Testing panel and fresh checkouts have no
+// dist yet.
+beforeAll(() => {
+	execFileSync('npm', ['run', 'build'], { cwd: resolve(__dirname, '../..'), stdio: 'ignore' });
+}, 120_000);
 
 afterAll(() => {
 	for (const child of children) child.kill('SIGINT');

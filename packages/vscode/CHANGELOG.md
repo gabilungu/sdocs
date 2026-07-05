@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.37] - 2026-07-05
+
+### Added
+
+- **Stage alignment attributes.** `align` (horizontal) and `alignY`
+  (vertical) lint, complete, and appear in `[preview]`/`[example]`/`[DOCS]`
+  hovers, alongside the existing stage-layout attributes.
+
 ## [0.0.36] - 2026-07-05
 
 ### Fixed

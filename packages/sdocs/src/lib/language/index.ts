@@ -27,6 +27,12 @@ export {
 } from './page-islands.js';
 
 export {
+	configSchema,
+	type ConfigSchema,
+	type ConfigFieldSchema,
+} from './config-schema.js';
+
+export {
 	parseSdoc,
 	parseArgsLiteral,
 	slugifyTitle,

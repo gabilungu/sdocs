@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.56] - 2026-07-05
+
+### Added
+
+- **`configSchema` in `sdocs/language`** — a structured description of the
+  `sdocs.config.*` shape (keys, documentation, and value enums) mirroring
+  `SdocsConfig`. Editor tooling reads it to complete the config file in
+  projects that don't install `sdocs`, so config completion can't drift from
+  the config type.
+
 ## [0.0.55] - 2026-07-05
 
 ### Changed

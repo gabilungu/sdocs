@@ -24,10 +24,11 @@ imports — a clean editor means a clean build.
 
 **Format Document** formats fragment-wise: the file `<script>` and
 `<style>` and every `[preview]`/`[example]`/`[LAYOUT]` body run through
-prettier with the Svelte plugin independently, and `[PAGE]` bodies through
-prettier's markdown formatter (markup is normalized; prose lines are never
-re-wrapped). Everything reassembles at the block's indentation. Block tags
-are never touched.
+prettier with the Svelte plugin independently. In `[PAGE]` bodies, Svelte
+islands (snippets, HTML sections, component tags) format as Svelte
+fragments and the markdown prose between them through prettier's markdown
+formatter (markup normalized; prose lines never re-wrapped). Everything
+reassembles at the block's indentation. Block tags are never touched.
 
 ## sdoc syntax highlighting
 

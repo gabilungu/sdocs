@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.34] - 2026-07-05
+
+### Fixed
+
+- **Format Document can no longer break a page — and it indents islands
+  properly.** `[PAGE]` formatting now recognizes Svelte islands — snippets,
+  HTML sections, component tags — and formats each as a Svelte fragment
+  (canonical indentation, one that doesn't parse stays exactly as written),
+  while the markdown prose between them formats as markdown. Previously
+  prettier's markdown pass could re-indent island lines into a shape that
+  failed to compile.
+- **Svelte islands color as Svelte in page bodies.** `{#snippet}` blocks get
+  Svelte highlighting throughout — keywords, typed params, and the markup
+  inside them — and `{@render …}` tags color as keywords with TypeScript
+  interiors, instead of HTML-guess colors, via the updated sdoc grammar.
+
 ## [0.0.33] - 2026-07-05
 
 ### Added

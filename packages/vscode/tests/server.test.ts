@@ -147,9 +147,59 @@ describe('sdoc language server over LSP', () => {
 		expect(formatted).toContain('\t- one');
 		expect(formatted).toContain('\t- two');
 		expect(formatted).toContain('\t# Hello');
-		// Svelte islands and block tags survive untouched
-		expect(formatted).toContain("{@render colorBox('#ff0000')}");
+		// the island formats as a Svelte fragment (prettier's double quotes)
+		expect(formatted).toContain('{@render colorBox("#ff0000")}');
 		expect(formatted).toContain('[PAGE title="T"]');
 		expect(formatted).toContain('[/PAGE]');
+	});
+
+	it('re-indents messy Svelte islands as Svelte fragments (multi-section PAGE)', async () => {
+		const pageUri = 'file://' + resolve(SITE, 'src/lib/ui/__fmt-islands.sdoc');
+		const page = [
+			'[PAGE title="Sections"]',
+			'',
+			'\t## One',
+			'',
+			// messy: wrong depths everywhere
+			'\t\t{#snippet colorBox(color: string)}',
+			'\t\t\t\t<div style="background-color:{color}; width:100px; height:100px;">',
+			'\t\t<div>asdAS',
+			'\t\t</div>',
+			'\t</div>',
+			'{/snippet}',
+			'',
+			'\t## Two',
+			'',
+			'\t<div style="display:flex;">',
+			"\t\t{@render colorBox('#ff0000')}",
+			'\t</div>',
+			'',
+			'[/PAGE]',
+			'',
+		].join('\n');
+		await client.openDoc(pageUri, page);
+		const edits = (await client.connection.sendRequest('textDocument/formatting', {
+			textDocument: { uri: pageUri },
+			options: { tabSize: 4, insertSpaces: false },
+		})) as { newText: string }[] | null;
+		expect(edits?.[0]).toBeTruthy();
+		const formatted = edits![0].newText;
+		// the snippet island is re-indented canonically at the body indent
+		expect(formatted).toContain(
+			[
+				'\t{#snippet colorBox(color: string)}',
+				'\t\t<div style="background-color:{color}; width:100px; height:100px;">',
+				'\t\t\t<div>asdAS</div>',
+				'\t\t</div>',
+				'\t{/snippet}',
+			].join('\n'),
+		);
+		// the second island normalizes too (quotes become double, tabs canonical)
+		expect(formatted).toContain(
+			['\t<div style="display:flex;">', '\t\t{@render colorBox("#ff0000")}', '\t</div>'].join('\n'),
+		);
+		// prose still formats around them
+		expect(formatted).toContain('\t## One');
+		expect(formatted).toContain('\t## Two');
 	});
 });

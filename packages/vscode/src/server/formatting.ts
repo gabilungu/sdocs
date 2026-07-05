@@ -12,7 +12,7 @@ import * as prettier from 'prettier';
 import * as markdownPlugin from 'prettier/plugins/markdown';
 import * as sveltePlugin from 'prettier-plugin-svelte';
 import type { FormattingOptions } from 'vscode-languageserver-protocol';
-import { scanSdoc, type SdocFile, type Span } from 'sdocs/language';
+import { scanSdoc, segmentPageBody, type SdocFile, type Span } from 'sdocs/language';
 
 interface Region {
 	/** First and last source line index (inclusive) to replace */
@@ -124,14 +124,54 @@ export async function formatSdoc(
 		}
 	}
 
+	// Islands are Svelte fragments, but typed snippet params ({#snippet x(a:
+	// string)}) only parse with a TS context — format behind a synthetic empty
+	// script tag and strip it back out. Unparseable islands stay verbatim.
+	const formatIsland = async (text: string): Promise<string[] | null> => {
+		try {
+			const formatted = await prettier.format('<script lang="ts"></script>\n' + text, opts);
+			const stripped = formatted.replace(/^<script lang="ts"><\/script>\n+/, '');
+			if (stripped === formatted) return null;
+			return stripped.replace(/\n+$/, '').split('\n');
+		} catch {
+			return null;
+		}
+	};
+
+	// [PAGE] bodies: prose formats as markdown, Svelte islands (snippets, HTML
+	// sections, component tags) as Svelte fragments — markdown tooling never
+	// touches an island. Segments reassemble with one blank line between.
+	const formatPageBody = async (dedented: string[]): Promise<string[]> => {
+		const chunks: string[][] = [];
+		for (const segment of segmentPageBody(dedented.join('\n'))) {
+			if (segment.kind === 'island') {
+				chunks.push((await formatIsland(segment.lines.join('\n'))) ?? segment.lines);
+			} else {
+				// Segments dedent independently: when islands and prose sit at
+				// different depths, the whole-body common indent is empty, and a
+				// still-indented prose line would read as a markdown code block.
+				const prose = dedent(segment.lines).lines;
+				const formatted = await formatFragment(prose.join('\n'), markdownOptions(options));
+				const lines = formatted ?? prose;
+				// prettier trims a blank-only segment to a single empty line
+				if (lines.some((l) => l.trim() !== '')) chunks.push(lines);
+			}
+		}
+		const out: string[] = [];
+		chunks.forEach((chunk, i) => {
+			if (i > 0) out.push('');
+			out.push(...chunk);
+		});
+		return out;
+	};
+
 	for (const body of bodies) {
 		const { first, last } = spanLines(body.span);
 		const raw = sourceLines.slice(first, last + 1);
 		const { lines: dedented } = dedent(raw);
-		const formatted = await formatFragment(
-			dedented.join('\n'),
-			body.markdown ? markdownOptions(options) : opts,
-		);
+		const formatted = body.markdown
+			? await formatPageBody(dedented)
+			: await formatFragment(dedented.join('\n'));
 		if (!formatted) continue;
 		const indent = body.indent + (options.insertSpaces ? ' '.repeat(options.tabSize) : '\t');
 		regions.push({

@@ -25,7 +25,7 @@ const TAG_DOCS: Record<string, string> = {
 	PAGE: [
 		'**`[PAGE]`** — standalone page',
 		'',
-		'Markdown prose with Svelte islands: component tags, HTML sections, and `{#snippet}` blocks pass to Svelte untouched; `{expressions}` interpolate values from the file `<script>`.',
+		'Markdown prose rendered with the docs app\'s own styling, with Svelte islands: component tags, HTML sections, and `{#snippet}` blocks pass to Svelte untouched; `{expressions}` interpolate values from the file `<script>`. `[example]` blocks stage code in the project context — they are the only place the configured `css` loads.',
 		'',
 		'- `title` *(required)* — sidebar path, `/`-separated; a leading `:` groups.',
 		'- `maxWidth` — content column width (default `1200px`).',
@@ -61,9 +61,9 @@ const TAG_DOCS: Record<string, string> = {
 	example: [
 		'**`[example]`** — frozen example',
 		'',
-		'A Svelte snippet rendered live below the previews, without controls — for showing a composition or state the controls can\'t reach.',
+		'A Svelte snippet rendered live on an isolated stage with the project\'s css, without controls. In `[DOCS]` it renders below the previews; in `[PAGE]` it renders in place, mid-prose — the way to showcase real components inside a documentation page.',
 		'',
-		'- `title` *(required)* — the example heading (and its sidebar sub-entry).',
+		'- `title` *(required)* — the example heading (and, in `[DOCS]`, its sidebar sub-entry).',
 		'- `maxWidth` / `padding` / `direction` / `gap` — stage size & flow.',
 		'- `contentX` — horizontal: `left`/`center`/`right`/`justify`. `contentY` — vertical: `top`/`middle`/`bottom`/`justify`.',
 		'',

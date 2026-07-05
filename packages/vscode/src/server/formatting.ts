@@ -106,15 +106,41 @@ export async function formatSdoc(
 	}
 
 	// Block bodies: Svelte fragments in [preview]/[example] and [LAYOUT];
-	// [PAGE] bodies are markdown.
+	// [PAGE] bodies are markdown, except their [example] blocks — those are
+	// Svelte fragments like any example, with the prose around them markdown.
 	const bodies: { span: Span; indent: string; markdown?: boolean }[] = [];
+	const pushBlockBodies = (blocks: SdocFile['entities'][number]['blocks']) => {
+		for (const block of blocks) {
+			if (block.bodySpan.end > block.bodySpan.start) {
+				bodies.push({ span: block.bodySpan, indent: openerIndent(source, block.openerSpan) });
+			}
+		}
+	};
+	const pushProse = (start: number, end: number, indent: string) => {
+		if (end <= start) return;
+		const text = source.slice(start, end);
+		if (text.trim() === '') return;
+		// Tighten to whole non-blank lines: the blank padding that separates
+		// prose from the [example] tags stays exactly as authored.
+		const lead = text.match(/^(?:[ \t]*\r?\n)+/)?.[0].length ?? 0;
+		const trail = text.match(/(?:\r?\n[ \t]*)+$/)?.[0].length ?? 0;
+		bodies.push({ span: { start: start + lead, end: end - trail }, indent, markdown: true });
+	};
 	for (const entity of file.entities) {
 		if (entity.kind === 'DOCS') {
+			pushBlockBodies(entity.blocks);
+		} else if (entity.kind === 'PAGE' && entity.blocks.length > 0) {
+			const indent = openerIndent(source, entity.openerSpan);
+			let from = entity.bodySpan.start;
 			for (const block of entity.blocks) {
-				if (block.bodySpan.end > block.bodySpan.start) {
-					bodies.push({ span: block.bodySpan, indent: openerIndent(source, block.openerSpan) });
-				}
+				let openerLineStart = block.openerSpan.start;
+				while (openerLineStart > 0 && source[openerLineStart - 1] !== '\n') openerLineStart--;
+				pushProse(from, openerLineStart, indent);
+				const nl = source.indexOf('\n', block.span.end);
+				from = nl === -1 ? entity.bodySpan.end : nl + 1;
 			}
+			pushBlockBodies(entity.blocks);
+			pushProse(from, entity.bodySpan.end, indent);
 		} else if (entity.bodySpan.end > entity.bodySpan.start) {
 			bodies.push({
 				span: entity.bodySpan,

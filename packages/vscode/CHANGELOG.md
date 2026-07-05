@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.40] - 2026-07-05
+
+### Added
+
+- **`[example]` blocks inside `[PAGE]`** are fully supported: `[` inside a
+  page offers the example block, its body gets Svelte language intelligence
+  (completion, hover, diagnostics at authored lines), the grammar colors it
+  as Svelte within the markdown body, and Format Document formats it as a
+  Svelte fragment while the prose around it stays markdown. Diagnostics
+  validate titles (required, unique per page) and reject `[preview]` in
+  pages with a pointed message; block syntax inside markdown fences stays
+  content.
+
+### Changed
+
+- `[PAGE]` and `[example]` hovers describe the styling boundary: page prose
+  is docs-styled, example stages load the project's css.
+
 ## [0.0.39] - 2026-07-05
 
 ### Added

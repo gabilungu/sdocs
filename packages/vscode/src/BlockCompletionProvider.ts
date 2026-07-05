@@ -85,15 +85,21 @@ export class BlockCompletionProvider implements vscode.CompletionItemProvider {
 		}
 
 		// A bare '[' (or '[par…') at line start → offer whole blocks. Which set
-		// depends on whether the cursor sits inside a [DOCS] entity.
+		// depends on the entity the cursor sits inside: [DOCS] takes both
+		// sub-blocks, [PAGE] takes [example] only, elsewhere entities.
 		const bare = /^\s*\[([A-Za-z]*)$/.exec(before);
 		if (bare) {
 			const file = scanSdoc(document.getText());
 			const offset = document.offsetAt(position);
-			const inDocs = file.entities.some(
-				(e) => e.kind === 'DOCS' && offset > e.openerSpan.end && offset < e.span.end,
+			const host = file.entities.find(
+				(e) => offset > e.openerSpan.end && offset < e.span.end,
 			);
-			const specs = inDocs ? SUB_BLOCKS : ENTITY_BLOCKS;
+			const specs =
+				host?.kind === 'DOCS'
+					? SUB_BLOCKS
+					: host?.kind === 'PAGE'
+						? SUB_BLOCKS.filter((s) => s.label === 'example')
+						: ENTITY_BLOCKS;
 			// The editor auto-closes '[' — swallow the ']' sitting after the cursor.
 			const closer = line.slice(position.character).startsWith(']');
 			return specs.map((spec) => {

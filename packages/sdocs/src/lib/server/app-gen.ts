@@ -7,7 +7,7 @@ import { createRequire } from 'node:module';
 import type { ResolvedSdocsConfig } from '../types.js';
 import { discoverDocFiles } from './discovery.js';
 import { parseSdoc } from '../language/index.js';
-import { planEntitySnippets } from './doc-model.js';
+import { planIframeSnippets } from './doc-model.js';
 import { encodeEntityId, setDocPathRoot } from './snippet-compiler.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -114,7 +114,7 @@ function generateIndexHtml(title: string): string {
 /** Generate the entry.js that mounts the Explorer */
 function generateEntryJs(config: ResolvedSdocsConfig): string {
 	return `import { mount } from 'svelte';
-import { docs, cssNames } from 'virtual:sdocs';
+import { docs, cssNames, pageModules } from 'virtual:sdocs';
 import Explorer from './explorer/Explorer.svelte';
 
 mount(Explorer, {
@@ -122,6 +122,7 @@ mount(Explorer, {
 	props: {
 		docs,
 		cssNames,
+		pageModules,
 		logo: ${JSON.stringify(config.logo)},
 		icon: ${JSON.stringify(config.icon)},
 		sidebarConfig: ${JSON.stringify(config.sidebar)},
@@ -199,7 +200,8 @@ async function discoverSnippets(
 			results.push({
 				filePath,
 				entitySlug: entity.slug,
-				snippetSlugs: planEntitySnippets(entity).map((s) => s.slug),
+				// Iframe pages only: a PAGE's content compiles natively in the Explorer.
+				snippetSlugs: planIframeSnippets(entity).map((s) => s.slug),
 			});
 		}
 	}

@@ -6,6 +6,12 @@ A `[PAGE]` block is freeform prose — install guides, design tokens,
 principles — anything that isn't documenting a single component. Its body is
 **markdown**, rendered as a page with an auto-generated table of contents.
 
+Pages are documentation, so the prose renders with the docs app's own
+typography — the project's `css` never touches it. To showcase real
+components or tokens *in the project's context*, drop an `[example]` block
+anywhere in the flow: it renders in place on an isolated stage that loads
+the configured `css`, exactly like an example in a `[DOCS]` entity.
+
 ```sdoc
 <script lang="ts">
 	import Button from './Button.svelte';
@@ -24,8 +30,12 @@ principles — anything that isn't documenting a single component. Its body is
 
 	## Buttons in context
 
-	Components render right in the prose — here's a live one:
-	<Button label="the demo" />
+	Components render on a stage, in your project's own css:
+
+	[example title="Buttons" direction="row" gap="8px"]
+		<Button label="Save" />
+		<Button label="Delete" intent="danger" />
+	[/example]
 
 	| Command | Does |
 	|---|---|
@@ -44,6 +54,25 @@ principles — anything that isn't documenting a single component. Its body is
 | `padding` | no | Space around the page content (default `32px`) |
 | `toc` | no | `toc="false"` hides the table of contents (default `true`) |
 
+## Examples in pages
+
+An `[example]` inside a page works like an
+[example in a component doc](/language/component-docs): a frozen Svelte
+snippet rendered live, with a collapsed code panel under it. It is the only
+part of a page where the configured `css` loads, which makes the boundary
+easy to reason about: **prose is docs-styled, stages are project-styled**.
+
+| Attribute | Required | Meaning |
+|---|---|---|
+| `title` | yes | The example heading |
+| `maxWidth` / `padding` | no | Stage size (defaults from `content.docs`) |
+| `direction` / `gap` | no | Stage flex flow (defaults from `content.docs`) |
+| `contentX` / `contentY` | no | Stage alignment (defaults from `content.docs`) |
+
+Each example is self-contained: it sees the file `<script>` (imports and
+shared values), but not snippets declared in the prose — the two compile
+into different worlds.
+
 ## The markdown dialect
 
 The body is markdown first, with two Svelte conveniences:
@@ -58,11 +87,15 @@ The body is markdown first, with two Svelte conveniences:
   island; the island runs until its tags and blocks are balanced — blank
   lines inside are fine. Markdown never reformats or splits an island.
 
+Islands run in the **docs context** — they're for structuring the page
+itself (custom layouts around prose, repeated markup via snippets). Anything
+that should look like your product belongs in an `[example]`.
+
 Everything else is plain markdown: headings, links, images, tables, lists,
 and code fences. **Fences are inert** — code inside them is displayed and
-highlighted, never executed, even if it looks like a component tag. The same
-goes for `` `inline code` ``. For a literal brace in prose, escape it:
-`\{`.
+highlighted, never executed, even if it looks like a component tag (an
+`[example]` opener inside a fence is content too). The same goes for
+`` `inline code` ``. For a literal brace in prose, escape it: `\{`.
 
 ## Snippets
 

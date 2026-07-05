@@ -14,14 +14,17 @@ import { highlight, disposeHighlighter } from './server/highlighter.js';
 import {
 	parseIframeId,
 	parseMountId,
+	parsePageId,
 	parsePreviewUrl,
 	resolveScriptImports,
 	generateIframeComponent,
 	generateMountScript,
+	generatePageComponent,
 	generatePreviewHtml,
 	generateStaticPreviewHtml,
 	iframeVirtualId,
 	mountVirtualId,
+	pageVirtualId,
 	previewUrl,
 	buildPreviewUrl,
 	encodeEntityId,
@@ -42,18 +45,20 @@ const RESOLVED_VIRTUAL_ID = '\0virtual:sdocs';
 const IFRAME_PREFIX = '/@sdocs/iframe/';
 const PREVIEW_PREFIX = '/@sdocs/preview/';
 const MOUNT_PREFIX = '/@sdocs/mount/';
+const PAGE_PREFIX = '/@sdocs/page/';
 
 interface PlannedPreview {
 	jsFileName: string;
 	htmlFileName: string;
 }
 
-/** Every renderable snippet of an entry, in order. */
+/** Every iframe-served snippet of an entry, in order. A PAGE's content
+ * renders natively in the Explorer (via pageModules), never as an iframe. */
 function allSnippets(entry: DocEntry): ExtractedSnippet[] {
 	return [
 		...entry.previews.map((p) => p.snippet),
 		...entry.examples,
-		...(entry.content ? [entry.content] : []),
+		...(entry.content && entry.kind !== 'page' ? [entry.content] : []),
 	];
 }
 
@@ -256,6 +261,7 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 			if (id === VIRTUAL_MODULE_ID) return RESOLVED_VIRTUAL_ID;
 			if (id.startsWith(IFRAME_PREFIX)) return '\0' + id;
 			if (id.startsWith(MOUNT_PREFIX)) return '\0' + id;
+			if (id.startsWith(PAGE_PREFIX)) return '\0' + id;
 		},
 
 		load(id) {
@@ -288,6 +294,16 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 					preview?.componentName ?? undefined,
 					snippet.stage,
 				);
+			}
+
+			// Virtual native content component for a PAGE entity
+			if (id.startsWith('\0' + PAGE_PREFIX)) {
+				const parsed = parsePageId(id.slice(1));
+				if (!parsed) return null;
+				const entry = docEntries.get(entityKey(parsed.docFilePath, parsed.entitySlug));
+				if (!entry?.content) return null;
+				const scriptPrelude = docScriptCache.get(parsed.docFilePath) ?? '';
+				return generatePageComponent(scriptPrelude, entry.content.body);
 			}
 
 			// Virtual mount script for an emitted preview page
@@ -444,11 +460,31 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 					example.highlightedHtml = await highlight(example.body);
 				}
 			} else if (entity.kind === 'PAGE') {
+				// The page body renders natively in the Explorer; only its
+				// [example] blocks are staged in iframes (with the project css),
+				// cascading block attributes over the content.docs stage defaults.
 				const rendered = await renderPageMarkdown(entity.body);
 				snippets[0].body = rendered.html;
-				snippets[0].stage = stageOf();
 				entry.content = snippets[0];
 				entry.toc = rendered.toc;
+				entry.padding = entity.sizing.padding ?? config.content.page.padding;
+				entry.contentKey = encodeEntityId(filePath, entity.slug);
+				entry.examples = snippets.filter((s) => s.role === 'example');
+				entity.examples.forEach((example, i) => {
+					if (entry.examples[i]) {
+						entry.examples[i].stage = {
+							maxWidth: example.sizing.maxWidth ?? '100%',
+							padding: example.sizing.padding ?? config.content.docs.padding,
+							direction: example.sizing.direction ?? config.content.docs.direction,
+							gap: example.sizing.gap ?? config.content.docs.gap,
+							contentX: example.sizing.contentX ?? config.content.docs.contentX,
+							contentY: example.sizing.contentY ?? config.content.docs.contentY,
+						};
+					}
+				});
+				for (const example of entry.examples) {
+					example.highlightedHtml = await highlight(example.body);
+				}
 			} else {
 				snippets[0].stage = stageOf();
 				entry.content = snippets[0];
@@ -481,17 +517,33 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 			meta: e.meta,
 			previews: e.previews.map((p) => ({ ...p, snippet: withUrl(e, p.snippet) })),
 			examples: e.examples.map((s) => withUrl(e, s)),
-			content: e.content ? withUrl(e, e.content) : null,
+			// Page content renders natively (no iframe URL); see pageModules below.
+			content: e.content ? (e.kind === 'page' ? e.content : withUrl(e, e.content)) : null,
 			toc: e.toc,
 			maxWidth: e.maxWidth,
+			padding: e.padding,
 			showToc: e.showToc,
+			contentKey: e.contentKey,
 		}));
 		// Extract named CSS stylesheet names (empty array if single string or null)
 		const cssNames = config.css && typeof config.css === 'object'
 			? Object.keys(config.css)
 			: [];
 
-		return `export const docs = ${JSON.stringify(data)};\nexport const cssNames = ${JSON.stringify(cssNames)};\nexport default docs;`;
+		// Native page components, as static dynamic imports so every mode (dev,
+		// embedded build, CLI build) code-splits them through the module graph —
+		// shared Svelte runtime, component CSS handled by Vite's import helper.
+		const pageImports = Array.from(docEntries.values())
+			.filter((e) => e.kind === 'page')
+			.map(
+				(e) =>
+					`\t${JSON.stringify(encodeEntityId(e.filePath, e.entitySlug))}: () => import(${JSON.stringify(
+						pageVirtualId(e.filePath, e.entitySlug),
+					)}),`,
+			)
+			.join('\n');
+
+		return `export const docs = ${JSON.stringify(data)};\nexport const cssNames = ${JSON.stringify(cssNames)};\nexport const pageModules = {\n${pageImports}\n};\nexport default docs;`;
 	}
 
 	// ─── HMR helpers ───
@@ -503,7 +555,7 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 			server.moduleGraph.invalidateModule(mod);
 		}
 
-		// Also invalidate iframe virtual modules for the changed doc file
+		// Also invalidate iframe and page virtual modules for the changed doc file
 		if (docFilePath) {
 			for (const entry of entriesOf(docFilePath)) {
 				for (const snippet of allSnippets(entry)) {
@@ -512,6 +564,14 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 					const iframeMod = server.moduleGraph.getModuleById(iframeId);
 					if (iframeMod) {
 						server.moduleGraph.invalidateModule(iframeMod);
+					}
+				}
+				if (entry.kind === 'page') {
+					const pageMod = server.moduleGraph.getModuleById(
+						'\0' + pageVirtualId(docFilePath, entry.entitySlug),
+					);
+					if (pageMod) {
+						server.moduleGraph.invalidateModule(pageMod);
 					}
 				}
 			}

@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.57] - 2026-07-05
+
+### Added
+
+- **`[example]` blocks inside `[PAGE]`.** Pages can now stage real code in
+  the project's context, mid-prose: an example renders in place on an
+  isolated iframe stage that loads the configured `css`, with a collapsed
+  code panel — exactly like an example in `[DOCS]`. Stage attributes
+  (`maxWidth`, `padding`, `direction`, `gap`, `contentX`, `contentY`)
+  cascade from `content.docs`. Titles are required and unique per page;
+  markdown fences shield block syntax, so a fence may show `[example]`
+  without escaping.
+
+### Changed
+
+- **Page prose renders natively in the Explorer**, with the docs app's own
+  typography — no longer inside an iframe that loads the project `css`. The
+  boundary is now crisp: documentation is docs-styled, stages are
+  project-styled. Pages gain real markdown styling (headings, lists, tables,
+  code), direct table-of-contents scrolling, and native text flow. Svelte
+  islands still work and run in the docs context — showcase code belongs in
+  `[example]` blocks.
+- **Embedded hosts pass `pageModules`.** `virtual:sdocs` now exports
+  `pageModules`; forward it to `<Explorer {docs} {cssNames} {pageModules}>`
+  so pages render their content. Hosts that don't pass it show page examples
+  and headers but no body.
+
 ## [0.0.56] - 2026-07-05
 
 ### Added

@@ -234,6 +234,26 @@ ${stateBroadcast}
 </div>`;
 }
 
+/**
+ * Generate the Svelte component for a [PAGE] body, rendered natively inside
+ * the Explorer (sdocs styling — the project's css never loads here). Prose
+ * arrives as rendered markdown, islands verbatim; `{@render __sdocsExample?.(i)}`
+ * markers render the example stages the Explorer passes in as a snippet prop.
+ */
+export function generatePageComponent(scriptPrelude: string, renderedBody: string): string {
+	const importBlock = scriptPrelude.trim() ? scriptPrelude.trim() + '\n' : '';
+	// lang="ts" so lifted imports may carry type-only syntax
+	return `<script lang="ts">
+	${importBlock}
+	let { __sdocsExample } = $props();
+</script>
+
+<div class="sdocs-page-body">
+${renderedBody}
+</div>
+`;
+}
+
 /** Convert a CSS path to a Vite-servable URL */
 function normalizeCssHref(href: string): string {
 	if (href.startsWith('http')) return href;
@@ -346,6 +366,18 @@ export function previewUrl(docFilePath: string, entitySlug: string, snippetSlug:
 /** Build the preview URL for static build output */
 export function buildPreviewUrl(docFilePath: string, entitySlug: string, snippetSlug: string): string {
 	return `/previews/${encodeEntityId(docFilePath, entitySlug)}/${snippetSlug}.html`;
+}
+
+/** Virtual module ID for a PAGE entity's native content component */
+export function pageVirtualId(docFilePath: string, entitySlug: string): string {
+	return `/@sdocs/page/${encodeEntityId(docFilePath, entitySlug)}.svelte`;
+}
+
+/** Parse a page virtual ID back into its parts */
+export function parsePageId(id: string): { docFilePath: string; entitySlug: string } | null {
+	const match = id.match(/^\/@sdocs\/page\/([^/]+)\.svelte$/);
+	if (!match) return null;
+	return decodeEntityId(match[1]);
 }
 
 /** Virtual module ID for a preview's mount script (embedded production builds) */

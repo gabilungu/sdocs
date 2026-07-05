@@ -245,6 +245,9 @@
 					"contentName": "meta.embedded.block.markdown",
 					"patterns": [
 						{
+							"include": "#page-example"
+						},
+						{
 							"include": "#page-svelte-block"
 						},
 						{
@@ -568,6 +571,48 @@
 				},
 				{
 					"include": "source.ts"
+				}
+			]
+		},
+		"page-example": {
+			"name": "meta.block.example.sdoc",
+			"begin": "(^|\\G)\\s*(\\[)(example)\\b(.*)$",
+			"beginCaptures": {
+				"2": {
+					"name": "punctuation.definition.tag.begin.sdoc"
+				},
+				"3": {
+					"name": "entity.name.tag.sdoc"
+				},
+				"4": {
+					"patterns": [
+						{
+							"include": "#attributes"
+						}
+					]
+				}
+			},
+			"end": "(^|\\G)\\s*(\\[/)(example)(\\])\\s*$",
+			"endCaptures": {
+				"2": {
+					"name": "punctuation.definition.tag.begin.sdoc"
+				},
+				"3": {
+					"name": "entity.name.tag.sdoc"
+				},
+				"4": {
+					"name": "punctuation.definition.tag.end.sdoc"
+				}
+			},
+			"patterns": [
+				{
+					"begin": "(^|\\G)",
+					"while": "(^|\\G)(?!\\s*\\[/example\\]\\s*$)",
+					"patterns": [
+						{
+							"include": "source.svelte"
+						}
+					]
 				}
 			]
 		}

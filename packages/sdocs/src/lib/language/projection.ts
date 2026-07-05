@@ -123,6 +123,59 @@ export function projectSdoc(file: SdocFile): SdocProjection {
 		snippets.push({ name, withArgs });
 	};
 
+	/** A PAGE with [example] blocks: the prose regions and each example body
+	 * become SIBLING snippets, split in place — the example opener line closes
+	 * the running prose snippet and opens the example's, the example closer
+	 * does the reverse. Siblings (not nested) so the trailer can render every
+	 * one of them, keeping imports used only by examples free of unused noise. */
+	const wrapPageWithExamples = (entity: Entity, e: number) => {
+		const openFirst = lineOfOffset(starts, entity.openerSpan.start);
+		const openLast = lineOfOffset(starts, Math.max(entity.openerSpan.start, entity.openerSpan.end - 1));
+		out[openFirst] = `{#snippet __sdocs$${e}_p0()}`;
+		kinds[openFirst] = 'wrapper';
+		for (let l = openFirst + 1; l <= openLast; l++) {
+			out[l] = '';
+			kinds[l] = 'blank';
+		}
+		snippets.push({ name: `__sdocs$${e}_p0`, withArgs: false });
+
+		const maskLines = (fromLine: number, toLine: number) => {
+			const state = { inFence: false };
+			for (let l = fromLine; l <= toLine; l++) {
+				const end = l + 1 < total ? starts[l + 1] - 1 : source.length;
+				const line = source.slice(starts[l], end).replace(/\r$/, '');
+				const masked = maskMarkdownLine(line, state);
+				out[l] = masked.text;
+				kinds[l] = masked.masked ? 'masked' : 'verbatim';
+			}
+		};
+
+		let proseFrom = openLast + 1;
+		entity.blocks.forEach((block: SubBlock, b: number) => {
+			const bOpenFirst = lineOfOffset(starts, block.openerSpan.start);
+			const bOpenLast = lineOfOffset(starts, Math.max(block.openerSpan.start, block.openerSpan.end - 1));
+			maskLines(proseFrom, bOpenFirst - 1);
+			out[bOpenFirst] = `{/snippet}{#snippet __sdocs$${e}_${b}${argsParam}}`;
+			kinds[bOpenFirst] = 'wrapper';
+			for (let l = bOpenFirst + 1; l <= bOpenLast; l++) {
+				out[l] = '';
+				kinds[l] = 'blank';
+			}
+			if (block.bodySpan.end > block.bodySpan.start) copyVerbatim(block.bodySpan);
+			const bClose = lineOfOffset(starts, Math.max(block.span.start, block.span.end - 1));
+			out[bClose] = `{/snippet}{#snippet __sdocs$${e}_p${b + 1}()}`;
+			kinds[bClose] = 'wrapper';
+			snippets.push({ name: `__sdocs$${e}_${b}`, withArgs: true });
+			snippets.push({ name: `__sdocs$${e}_p${b + 1}`, withArgs: false });
+			proseFrom = bClose + 1;
+		});
+
+		const closeLine = lineOfOffset(starts, Math.max(entity.span.start, entity.span.end - 1));
+		maskLines(proseFrom, closeLine - 1);
+		out[closeLine] = '{/snippet}';
+		kinds[closeLine] = 'wrapper';
+	};
+
 	file.entities.forEach((entity: Entity, e: number) => {
 		if (entity.kind === 'DOCS') {
 			entity.blocks.forEach((block: SubBlock, b: number) => {
@@ -133,6 +186,8 @@ export function projectSdoc(file: SdocFile): SdocProjection {
 					if (/^[A-Z][A-Za-z0-9_]*$/.test(name)) componentRefs.add(name);
 				}
 			});
+		} else if (entity.kind === 'PAGE' && entity.blocks.length > 0) {
+			wrapPageWithExamples(entity, e);
 		} else {
 			wrapBlock(
 				`__sdocs$${e}`,

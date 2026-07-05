@@ -1,3 +1,7 @@
+<script>
+	import Chip from './Chip.svelte';
+</script>
+
 [PAGE title=":Pages / About"]
 
 	# standalone
@@ -10,5 +14,12 @@
 	- The no-install CLI flow
 	- Host-only dependencies (`clsx`) resolving from this project
 	- Plain-JS components documented via JSDoc
+
+	And a page example, staged in the project context:
+
+	[example title="Chips"]
+		<Chip label="One" active />
+		<Chip label="Two" />
+	[/example]
 
 [/PAGE]

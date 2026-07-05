@@ -109,7 +109,9 @@ block. `maxWidth`, `padding`, `direction`, `gap`, `contentX`, and `contentY` tun
 its stage, like on `[preview]`.
 
 Examples belong to the page, not to a tab: they render below the preview
-area and stay visible whichever tab is active.
+area and stay visible whichever tab is active. The same block also works
+inside a [`[PAGE]`](/language/page-docs) — there it renders in place,
+mid-prose.
 
 An example may carry its own `<script>` for local state, layered on top of
 the file's script — that's how you demo interactive behavior:

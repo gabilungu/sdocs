@@ -3,7 +3,8 @@
  *
  * A .sdoc file is: optional <script> at the top, entity blocks in the
  * middle ([DOCS] / [PAGE] / [LAYOUT], with lowercase sub-blocks [preview] /
- * [example] inside [DOCS]), optional <style> at the bottom.
+ * [example] inside [DOCS] and [example] inside [PAGE]), optional <style>
+ * at the bottom.
  *
  * The scanner is line-anchored and non-balancing: tags are recognized only
  * at the start of a line and only where the current state allows them, so
@@ -53,9 +54,10 @@ export interface SubBlock {
 export interface Entity {
 	kind: EntityKind;
 	attrs: Attrs;
-	/** DOCS: sub-blocks. PAGE/LAYOUT: always empty. */
+	/** DOCS: preview/example sub-blocks. PAGE: example sub-blocks. LAYOUT: always empty. */
 	blocks: SubBlock[];
-	/** PAGE/LAYOUT: the raw body. DOCS: '' (body text between blocks is an error). */
+	/** PAGE/LAYOUT: the raw body (for PAGE it includes any [example] blocks,
+	 * addressable via their spans). DOCS: '' (body text between blocks is an error). */
 	body: string;
 	bodySpan: Span;
 	openerSpan: Span;
@@ -469,6 +471,86 @@ export function scanSdoc(source: string): SdocFile {
 		return lines.length;
 	}
 
+	/** Scan the inside of a [PAGE] entity until its closer: prose lines are
+	 * body text, [example] openers capture sub-blocks. Lines inside markdown
+	 * code fences are always prose, so a fence may show block syntax without
+	 * escaping. The body keeps the raw text of the whole range — example
+	 * blocks included — so consumers can splice by span. */
+	function scanPageBody(startLi: number, entity: Entity): number {
+		const bodyStart = startLi < lines.length ? lines[startLi].start : source.length;
+		let bodyEnd = bodyStart;
+		let inFence = false;
+		let i = startLi;
+		while (i < lines.length) {
+			const line = lines[i];
+			const trimmed = line.text.trim();
+			if (/^(`{3,}|~{3,})/.test(trimmed)) {
+				inFence = !inFence;
+				bodyEnd = line.end;
+				i++;
+				continue;
+			}
+			if (inFence) {
+				if (trimmed !== '') bodyEnd = line.end;
+				i++;
+				continue;
+			}
+			if (trimmed === '[/PAGE]') {
+				const tagStart = line.start + line.text.indexOf('[/PAGE]');
+				entity.body = source.slice(bodyStart, Math.max(bodyStart, bodyEnd));
+				entity.bodySpan = { start: bodyStart, end: Math.max(bodyStart, bodyEnd) };
+				entity.span.end = tagStart + '[/PAGE]'.length;
+				return i + 1;
+			}
+			const token = tagToken(trimmed);
+			if (token && !token.closer && token.name === 'example') {
+				const opener = scanOpener(i, token.name.length);
+				if (!opener) return lines.length;
+				const captured = captureBody(opener.nextLi, '[/example]');
+				if (!captured) {
+					errors.push({
+						code: 'unclosed-block',
+						message: 'Missing [/example].',
+						span: opener.openerSpan,
+					});
+					return lines.length;
+				}
+				entity.blocks.push({
+					kind: 'example',
+					attrs: opener.attrs,
+					body: captured.body,
+					bodySpan: captured.bodySpan,
+					openerSpan: opener.openerSpan,
+					span: { start: opener.openerSpan.start, end: captured.closerSpan.end },
+				});
+				bodyEnd = captured.closerSpan.end;
+				i = captured.nextLi;
+				continue;
+			}
+			if (token && !token.closer && token.name === 'preview') {
+				errors.push({
+					code: 'unknown-tag',
+					message: '[preview] is only valid inside [DOCS] — pages showcase with [example].',
+					span: { start: line.start + line.text.indexOf('['), end: line.end },
+				});
+				i++;
+				continue;
+			}
+			// Everything else — prose, markdown, islands, stray brackets — is body.
+			if (trimmed !== '') bodyEnd = line.end;
+			i++;
+		}
+		errors.push({
+			code: 'unclosed-block',
+			message: 'Missing [/PAGE].',
+			span: entity.openerSpan,
+		});
+		entity.body = source.slice(bodyStart);
+		entity.bodySpan = { start: bodyStart, end: source.length };
+		entity.span.end = source.length;
+		return lines.length;
+	}
+
 	// ---- main loop over top-level lines ----
 	while (li < lines.length) {
 		const line = lines[li];
@@ -540,6 +622,8 @@ export function scanSdoc(source: string): SdocFile {
 			entities.push(entity);
 			if (token.name === 'DOCS') {
 				li = scanDocsBody(opener.nextLi, entity);
+			} else if (token.name === 'PAGE') {
+				li = scanPageBody(opener.nextLi, entity);
 			} else {
 				const captured = captureBody(opener.nextLi, `[/${token.name}]`);
 				if (!captured) {
@@ -574,7 +658,10 @@ export function scanSdoc(source: string): SdocFile {
 		if (token && !token.closer && isSubBlockKind(token.name)) {
 			errors.push({
 				code: 'block-outside-entity',
-				message: `[${token.name}] is only valid inside a [DOCS] entity.`,
+				message:
+					token.name === 'example'
+						? '[example] is only valid inside a [DOCS] or [PAGE] entity.'
+						: '[preview] is only valid inside a [DOCS] entity.',
 				span,
 			});
 			li++;

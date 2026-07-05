@@ -76,7 +76,11 @@ export interface PageEntity {
 	title: string;
 	slug: string;
 	sizing: Sizing;
+	/** Prose body with each [example] block replaced by a
+	 * `{@render __sdocsExample?.(i)}` marker the page renderer resolves. */
 	body: string;
+	/** The page's [example] blocks, in marker order */
+	examples: ExampleBlock[];
 	bodySpan: Span;
 	openerSpan: Span;
 	span: Span;
@@ -359,6 +363,31 @@ function parsePreview(block: SubBlock, diagnostics: ScanError[]): PreviewBlock {
 	};
 }
 
+function parseExample(
+	block: SubBlock,
+	seenTitles: Set<string>,
+	owner: 'DOCS' | 'PAGE',
+	diagnostics: ScanError[],
+): ExampleBlock {
+	checkAttrs('[example]', block.attrs, SUB_BLOCK_ATTR_RULES.example, block.openerSpan, diagnostics);
+	const title = stringAttr(block.attrs, 'title') ?? '';
+	if (title && seenTitles.has(title)) {
+		diagnostics.push({
+			code: 'duplicate-example-title',
+			message: `Duplicate example title "${title}" — titles are unique within a [${owner}] block.`,
+			span: block.openerSpan,
+		});
+	}
+	seenTitles.add(title);
+	return {
+		title,
+		sizing: sizingOf(block.attrs),
+		body: normalizeBody(block.body),
+		bodySpan: block.bodySpan,
+		span: block.span,
+	};
+}
+
 function parseDocs(entity: Entity, diagnostics: ScanError[]): DocsEntity {
 	checkAttrs('[DOCS]', entity.attrs, ENTITY_ATTR_RULES.DOCS, entity.openerSpan, diagnostics);
 	const previews: PreviewBlock[] = [];
@@ -379,23 +408,7 @@ function parseDocs(entity: Entity, diagnostics: ScanError[]): DocsEntity {
 			previewLabels.add(preview.label);
 			previews.push(preview);
 		} else {
-			checkAttrs('[example]', block.attrs, SUB_BLOCK_ATTR_RULES.example, block.openerSpan, diagnostics);
-			const title = stringAttr(block.attrs, 'title') ?? '';
-			if (title && exampleTitles.has(title)) {
-				diagnostics.push({
-					code: 'duplicate-example-title',
-					message: `Duplicate example title "${title}" — titles are unique within a [DOCS] block.`,
-					span: block.openerSpan,
-				});
-			}
-			exampleTitles.add(title);
-			examples.push({
-				title,
-				sizing: sizingOf(block.attrs),
-				body: normalizeBody(block.body),
-				bodySpan: block.bodySpan,
-				span: block.span,
-			});
+			examples.push(parseExample(block, exampleTitles, 'DOCS', diagnostics));
 		}
 	}
 
@@ -413,6 +426,48 @@ function parseDocs(entity: Entity, diagnostics: ScanError[]): DocsEntity {
 	};
 }
 
+/**
+ * Replace each [example] block in a PAGE's raw body with a
+ * `{@render __sdocsExample?.(i)}` marker at the opener's indentation, so the
+ * markdown renderer passes it through verbatim and the Explorer renders the
+ * example's stage in place.
+ */
+function spliceExampleMarkers(entity: Entity): string {
+	if (entity.blocks.length === 0) return entity.body;
+	let out = '';
+	let from = 0;
+	entity.blocks.forEach((block, i) => {
+		const before = entity.body.slice(from, block.span.start - entity.bodySpan.start);
+		const indent = before.slice(before.lastIndexOf('\n') + 1);
+		out += before.slice(0, before.length - indent.length);
+		out += `${indent}{@render __sdocsExample?.(${i})}`;
+		from = block.span.end - entity.bodySpan.start;
+	});
+	out += entity.body.slice(from);
+	return out;
+}
+
+function parsePage(entity: Entity, diagnostics: ScanError[]): PageEntity {
+	checkAttrs('[PAGE]', entity.attrs, ENTITY_ATTR_RULES.PAGE, entity.openerSpan, diagnostics);
+	const examples: ExampleBlock[] = [];
+	const exampleTitles = new Set<string>();
+	for (const block of entity.blocks) {
+		examples.push(parseExample(block, exampleTitles, 'PAGE', diagnostics));
+	}
+	const title = stringAttr(entity.attrs, 'title') ?? '';
+	return {
+		kind: 'PAGE',
+		title,
+		slug: slugifyTitle(title),
+		sizing: sizingOf(entity.attrs),
+		body: normalizeBody(spliceExampleMarkers(entity)),
+		examples,
+		bodySpan: entity.bodySpan,
+		openerSpan: entity.openerSpan,
+		span: entity.span,
+	};
+}
+
 export function parseSdoc(source: string): SdocDocument {
 	const scanned: SdocFile = scanSdoc(source);
 	const diagnostics: ScanError[] = [...scanned.errors];
@@ -423,16 +478,13 @@ export function parseSdoc(source: string): SdocDocument {
 		let typed: SdocEntity;
 		if (entity.kind === 'DOCS') {
 			typed = parseDocs(entity, diagnostics);
+		} else if (entity.kind === 'PAGE') {
+			typed = parsePage(entity, diagnostics);
 		} else {
-			checkAttrs(
-				`[${entity.kind}]`,
-				entity.attrs,
-				ENTITY_ATTR_RULES[entity.kind],
-				entity.openerSpan,
-				diagnostics,
-			);
+			checkAttrs('[LAYOUT]', entity.attrs, ENTITY_ATTR_RULES.LAYOUT, entity.openerSpan, diagnostics);
 			const title = stringAttr(entity.attrs, 'title') ?? '';
-			const base = {
+			typed = {
+				kind: 'LAYOUT',
 				title,
 				slug: slugifyTitle(title),
 				sizing: sizingOf(entity.attrs),
@@ -441,7 +493,6 @@ export function parseSdoc(source: string): SdocDocument {
 				openerSpan: entity.openerSpan,
 				span: entity.span,
 			};
-			typed = entity.kind === 'PAGE' ? { kind: 'PAGE', ...base } : { kind: 'LAYOUT', ...base };
 		}
 		if (slugs.has(typed.slug)) {
 			diagnostics.push({

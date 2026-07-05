@@ -71,7 +71,10 @@ Whether to open the browser when `sdocs dev` or `sdocs preview` starts.
 
 ### `css`
 
-Stylesheet(s) loaded into the preview iframe for each component/snippet.
+Stylesheet(s) loaded into every stage — preview and example iframes and
+`[LAYOUT]` pages. Stages are the *only* place this css loads: page prose and
+the docs app chrome keep their own styling, so the boundary between "your
+product" and "the documentation" stays crisp.
 
 - **Type:** `string | Record<string, string>`
 - **Default:** `null`
@@ -167,7 +170,7 @@ shorthand.
 | `page` | `padding` | `32px` | space around the page prose |
 | `page` | `toc` | `true` | table-of-contents visibility |
 | `docs` | `maxWidth` | `1200px` | the docs content column |
-| `docs` | `padding` | `16px` | preview & example stages |
+| `docs` | `padding` | `16px` | preview & example stages (in `[DOCS]` and `[PAGE]`) |
 | `docs` | `direction` | `row` | stage `flex-direction` |
 | `docs` | `gap` | `16px` | stage `gap` |
 | `docs` | `contentX` | `left` | horizontal: `left`/`center`/`right`/`justify` |

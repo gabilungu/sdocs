@@ -19,6 +19,8 @@
 		cssNames?: string[];
 		/** URL prefix for preview pages when the host app is served under a sub-path (e.g. SvelteKit's base). */
 		previewBase?: string;
+		/** Native page components from `virtual:sdocs`, keyed by contentKey. */
+		pageModules?: Record<string, () => Promise<{ default: unknown }>>;
 		sidebarConfig?: {
 			order?: Record<string, string[]>;
 			open?: string[];
@@ -31,6 +33,7 @@
 		icon = 'sdocs',
 		cssNames = [],
 		previewBase = '',
+		pageModules = {},
 		sidebarConfig
 	}: Props = $props();
 
@@ -90,7 +93,7 @@
 	<main class="sdocs-main" class:sdocs-main-fullscreen={sidebarHidden}>
 		{#if resolved}
 			{#if resolved.doc.kind === 'page'}
-				<PageView doc={resolved.doc} {activeStylesheet} />
+				<PageView doc={resolved.doc} {activeStylesheet} {pageModules} />
 			{:else if resolved.doc.kind === 'layout'}
 				<LayoutView doc={resolved.doc} {activeStylesheet} />
 			{:else}

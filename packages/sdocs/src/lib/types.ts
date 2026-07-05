@@ -182,7 +182,7 @@ export interface DocEntry {
 	meta: SdocMeta;
 	/** Live previews (component kind; empty otherwise) */
 	previews: PreviewEntry[];
-	/** Frozen examples (component kind; empty otherwise) */
+	/** Frozen examples (component and page kinds; empty otherwise) */
 	examples: ExtractedSnippet[];
 	/** The rendered body (page/layout kind; null otherwise) */
 	content: ExtractedSnippet | null;
@@ -190,6 +190,10 @@ export interface DocEntry {
 	toc?: TocHeading[];
 	/** Resolved content-column max width (component and page kinds) */
 	maxWidth?: string;
+	/** Resolved page padding (pages only) */
+	padding?: string;
 	/** Resolved table-of-contents visibility (pages only) */
 	showToc?: boolean;
+	/** Key into the virtual module's pageModules map (pages only) */
+	contentKey?: string;
 }

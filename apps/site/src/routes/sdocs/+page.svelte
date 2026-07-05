@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { base } from '$app/paths';
 	import Explorer from 'sdocs/explorer';
-	import { docs, cssNames } from 'virtual:sdocs';
+	import { docs, cssNames, pageModules } from 'virtual:sdocs';
 </script>
 
 <svelte:head>
@@ -10,7 +10,7 @@
 </svelte:head>
 
 <div class="demo">
-	<Explorer {docs} {cssNames} logo="sdocs site" previewBase={base} />
+	<Explorer {docs} {cssNames} {pageModules} logo="sdocs site" previewBase={base} />
 </div>
 
 <style>

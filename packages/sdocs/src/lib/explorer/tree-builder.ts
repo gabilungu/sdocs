@@ -220,6 +220,15 @@ function sortByOrder(nodes: TreeNode[], order: string[]): void {
 	}
 }
 
+/**
+ * The title shown to users. A leading ':' on the first segment is a sidebar
+ * grouping directive (see buildTree), not part of the displayed title, so it
+ * is stripped for headings.
+ */
+export function displayTitle(title: string | null | undefined): string {
+	return (title ?? '').replace(/^:\s*/, '');
+}
+
 /** Check if a path matches a tree node (for active state) */
 export function pathMatchesNode(currentPath: string[], node: TreeNode): boolean {
 	if (node.path.length !== currentPath.length) return false;

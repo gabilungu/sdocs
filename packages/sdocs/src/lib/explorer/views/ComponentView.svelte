@@ -7,6 +7,7 @@
 	import ApiTable from './ApiTable.svelte';
 	import PropControl from './PropControl.svelte';
 	import CssPropControl from './CssPropControl.svelte';
+	import { displayTitle } from '../tree-builder.js';
 
 	interface Props {
 		doc: DocEntry;
@@ -291,7 +292,7 @@
 	{#if focusedSnippet}
 		<!-- Example full-page view -->
 		<div class="sdocs-view-header">
-			<h1 class="sdocs-view-title">{meta.title} / {snippetName}</h1>
+			<h1 class="sdocs-view-title">{displayTitle(meta.title)} / {snippetName}</h1>
 		</div>
 		<div class="sdocs-panels">
 			<CollapsiblePanel title="Preview">
@@ -304,7 +305,7 @@
 	{:else}
 		<!-- Full component view -->
 		<div class="sdocs-view-header">
-			<h1 class="sdocs-view-title">{meta.title}</h1>
+			<h1 class="sdocs-view-title">{displayTitle(meta.title)}</h1>
 			{#if meta.description}
 				<p class="sdocs-view-description">{meta.description}</p>
 			{/if}

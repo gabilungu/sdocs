@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.49] - 2026-07-05
+
+### Fixed
+
+- **The `:` group marker no longer leaks into page headings.** A title like
+  `:Group / Name` groups an entry in the sidebar, but the leading colon was
+  rendered verbatim in the component/page `<h1>`. Headings now strip it, so the
+  title reads `Group / Name`.
+
 ## [0.0.48] - 2026-07-05
 
 ### Changed

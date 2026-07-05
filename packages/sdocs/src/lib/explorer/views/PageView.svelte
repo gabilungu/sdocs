@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { DocEntry } from '../../types.js';
 	import PreviewFrame from './PreviewFrame.svelte';
+	import { displayTitle } from '../tree-builder.js';
 
 	interface Props {
 		doc: DocEntry;
@@ -25,7 +26,7 @@
 	<div class="sdocs-page-main">
 		<!-- Header -->
 		<div class="sdocs-view-header">
-			<h1 class="sdocs-view-title">{meta.title}</h1>
+			<h1 class="sdocs-view-title">{displayTitle(meta.title)}</h1>
 			{#if meta.description}
 				<p class="sdocs-view-description">{meta.description}</p>
 			{/if}

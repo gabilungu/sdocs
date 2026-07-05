@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`attributeRules(kind)` in `sdocs/language`** — the allowed attributes and
+  value shapes for a block kind, the single source of truth behind both
+  diagnostics and the VS Code extension's attribute completions.
+
 ## [0.0.53] - 2026-07-05
 
 ### Added

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { resolveConfig } from '../../src/lib/server/config.js';
-import { parseSdoc } from '../../src/lib/language/index.js';
+import { parseSdoc, attributeRules } from '../../src/lib/language/index.js';
 
 describe('content sizing config', () => {
 	it('applies the documented defaults', () => {
@@ -106,5 +106,32 @@ describe('sizing attributes', () => {
 		expect(bad1.diagnostics.map((d) => d.code)).toContain('unknown-attr');
 		const bad2 = parseSdoc('[PAGE title="P" direction="row"]\nx\n[/PAGE]\n');
 		expect(bad2.diagnostics.map((d) => d.code)).toContain('unknown-attr');
+	});
+});
+
+describe('attributeRules (shared by diagnostics and completions)', () => {
+	it('exposes the full attribute set per block kind', () => {
+		expect(Object.keys(attributeRules('preview'))).toEqual([
+			'component', 'args', 'title', 'maxWidth', 'padding', 'direction', 'gap',
+		]);
+		expect(Object.keys(attributeRules('example'))).toEqual([
+			'title', 'maxWidth', 'padding', 'direction', 'gap',
+		]);
+		expect(Object.keys(attributeRules('PAGE'))).toEqual([
+			'title', 'maxWidth', 'padding', 'toc',
+		]);
+		expect(Object.keys(attributeRules('DOCS'))).toContain('gap');
+		expect(Object.keys(attributeRules('LAYOUT'))).toEqual(['title', 'maxWidth', 'padding']);
+	});
+
+	it('carries value kind and required flag for each attribute', () => {
+		const preview = attributeRules('preview');
+		expect(preview.component).toMatchObject({ required: true, kind: 'expression' });
+		expect(preview.args.kind).toBe('expression');
+		expect(preview.padding).toMatchObject({ required: false, kind: 'string' });
+	});
+
+	it('returns an empty map for an unknown kind', () => {
+		expect(attributeRules('nope')).toEqual({});
 	});
 });

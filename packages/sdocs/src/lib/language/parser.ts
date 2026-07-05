@@ -140,7 +140,7 @@ export function slugifyTitle(title: string): string {
 
 const IDENTIFIER_RE = /^[A-Z][A-Za-z0-9_]*$/;
 
-interface AttrRule {
+export interface AttrRule {
 	/** required | optional */
 	required: boolean;
 	/** expected value kind */
@@ -201,6 +201,13 @@ const SUB_BLOCK_ATTR_RULES: Record<string, Record<string, AttrRule>> = {
 		...STAGE_LAYOUT_ATTR_RULES,
 	},
 };
+
+/** Allowed attributes and their value shapes for a block, keyed by kind
+ * ('DOCS'|'PAGE'|'LAYOUT'|'preview'|'example'). Single source of truth for
+ * both diagnostics and editor attribute completions. */
+export function attributeRules(kind: string): Record<string, AttrRule> {
+	return ENTITY_ATTR_RULES[kind] ?? SUB_BLOCK_ATTR_RULES[kind] ?? {};
+}
 
 function checkAttrs(
 	owner: string,

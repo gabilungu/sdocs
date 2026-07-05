@@ -31,6 +31,8 @@ export {
 	parseArgsLiteral,
 	slugifyTitle,
 	normalizeBody,
+	attributeRules,
+	type AttrRule,
 	type ArgValue,
 	type Sizing,
 	type PreviewBlock,

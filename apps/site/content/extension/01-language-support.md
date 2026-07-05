@@ -52,6 +52,18 @@ On top of the language server, the extension understands the block format:
 - **`component={…}` value completion** — suggests the identifiers imported
   in the file's `<script>`.
 
+## Config completion
+
+`sdocs.config.*` files complete too. When your project has `sdocs`
+installed, the config's `/** @type {import('sdocs').SdocsConfig} */`
+annotation gives you the real thing — completion, hover, and type-checking
+straight off the config type. When `sdocs` isn't installed — a standalone
+project driven with `npx sdocs` — the extension fills in from a bundled
+schema: keys at every level (`content` → `docs` → `contentX`…), value
+suggestions for the enumerated options (`contentX`, `contentY`, `direction`,
+`toc`, …), and inline docs. The extension detects which case applies per
+project and steps aside when the real types are present.
+
 ## Block diagnostics
 
 The extension also runs the sdocs parser directly, so format-level problems

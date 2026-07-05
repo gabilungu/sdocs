@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.39] - 2026-07-05
+
+### Added
+
+- **Config completion for `sdocs.config.*`.** Completes config keys at every
+  level (`content` → `docs` → `contentX`…), value suggestions for the
+  enumerated options (`contentX`, `contentY`, `direction`, `toc`, …), and
+  inline docs. In projects with `sdocs` installed the TypeScript server
+  drives it from the `SdocsConfig` type (with type-checking); where `sdocs`
+  isn't installed the extension fills in from a bundled schema — detected per
+  project.
+
 ## [0.0.38] - 2026-07-05
 
 ### Changed

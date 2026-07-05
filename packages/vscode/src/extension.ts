@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'node:path';
 import { LanguageClient, TransportKind } from 'vscode-languageclient/node';
 import { BlockCompletionProvider } from './BlockCompletionProvider';
+import { ConfigCompletionProvider } from './ConfigCompletionProvider';
 import { SdocDiagnostics } from './SdocDiagnostics';
 import { newComponentDoc } from './newComponentDoc';
 import { SdocsRunner } from './SdocsRunner';
@@ -55,6 +56,13 @@ export function activate(context: vscode.ExtensionContext) {
 			{ language: 'sdoc' },
 			new BlockCompletionProvider(),
 			'[', '{',
+		),
+		// Config completion matches by filename (the doc may be flipped to
+		// js/ts), and defers to the TypeScript type when `sdocs` is installed.
+		vscode.languages.registerCompletionItemProvider(
+			{ pattern: '**/sdocs.config.{js,cjs,mjs,ts,mts,cts}' },
+			new ConfigCompletionProvider(),
+			':', "'", '"',
 		),
 		new SdocDiagnostics(),
 		runner,

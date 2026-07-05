@@ -8,6 +8,10 @@ export interface SdocsConfig {
 	open?: boolean;
 	/** CSS loaded in preview iframes. Single path or named stylesheets. */
 	css?: string | Record<string, string>;
+	/** Folder of static assets served at the site root — images for pages,
+	 * files for previews. Standalone CLI flows (`sdocs dev`/`build`); when
+	 * embedding the Vite plugin, use the host app's own public directory. */
+	static?: string;
 	/** Sidebar logo text. Default: 'sdocs' */
 	logo?: string;
 	/** Sidebar logo icon: 'sdocs' for the built-in mascot, an image URL, or false to hide. Default: 'sdocs' */
@@ -25,6 +29,9 @@ export interface SdocsConfig {
 		page?: ContentSizing & {
 			/** Show the table of contents. Default: true */
 			toc?: boolean;
+			/** Horizontal alignment of the content column (with its toc) inside
+			 * the view: 'left'|'center'|'right'. Default: 'left' */
+			contentX?: string;
 		};
 		/** [DOCS] pages: maxWidth is the content column (default '1200px');
 		 * padding/direction/gap are the default preview/example stage layout
@@ -69,6 +76,7 @@ export interface ResolvedSdocsConfig {
 	port: number;
 	open: boolean;
 	css: string | Record<string, string> | null;
+	static: string | null;
 	logo: string;
 	icon: string | false;
 	sidebar: {
@@ -76,7 +84,7 @@ export interface ResolvedSdocsConfig {
 		open: string[];
 	};
 	content: {
-		page: Required<ContentSizing> & { toc: boolean };
+		page: Required<ContentSizing> & { toc: boolean; contentX: string };
 		docs: Required<ContentSizing> & { direction: string; gap: string; contentX: string; contentY: string };
 		layout: Required<ContentSizing>;
 	};
@@ -192,8 +200,13 @@ export interface DocEntry {
 	maxWidth?: string;
 	/** Resolved page padding (pages only) */
 	padding?: string;
+	/** Resolved horizontal alignment of the content column (pages only) */
+	contentX?: string;
 	/** Resolved table-of-contents visibility (pages only) */
 	showToc?: boolean;
+	/** The body's `#` heading, shown as the page title instead of the entity
+	 * title (pages only) */
+	bodyTitle?: string;
 	/** Key into the virtual module's pageModules map (pages only) */
 	contentKey?: string;
 }

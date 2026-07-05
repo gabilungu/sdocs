@@ -468,6 +468,8 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				entry.content = snippets[0];
 				entry.toc = rendered.toc;
 				entry.padding = entity.sizing.padding ?? config.content.page.padding;
+				entry.contentX = entity.sizing.contentX ?? config.content.page.contentX;
+				entry.bodyTitle = rendered.bodyTitle;
 				entry.contentKey = encodeEntityId(filePath, entity.slug);
 				entry.examples = snippets.filter((s) => s.role === 'example');
 				entity.examples.forEach((example, i) => {
@@ -522,7 +524,9 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 			toc: e.toc,
 			maxWidth: e.maxWidth,
 			padding: e.padding,
+			contentX: e.contentX,
 			showToc: e.showToc,
+			bodyTitle: e.bodyTitle,
 			contentKey: e.contentKey,
 		}));
 		// Extract named CSS stylesheet names (empty array if single string or null)

@@ -4,14 +4,14 @@ import { configSchema } from '../../src/lib/language/index.js';
 describe('configSchema (drives config completion without an install)', () => {
 	it('exposes the top-level config keys', () => {
 		expect(Object.keys(configSchema)).toEqual([
-			'include', 'port', 'open', 'css', 'logo', 'icon', 'sidebar', 'content',
+			'include', 'port', 'open', 'css', 'static', 'logo', 'icon', 'sidebar', 'content',
 		]);
 	});
 
 	it('nests the content stages with their own keys', () => {
 		const content = configSchema.content.object!;
 		expect(Object.keys(content)).toEqual(['page', 'docs', 'layout']);
-		expect(Object.keys(content.page.object!)).toEqual(['maxWidth', 'padding', 'toc']);
+		expect(Object.keys(content.page.object!)).toEqual(['maxWidth', 'padding', 'toc', 'contentX']);
 		expect(Object.keys(content.docs.object!)).toEqual([
 			'maxWidth', 'padding', 'direction', 'gap', 'contentX', 'contentY',
 		]);

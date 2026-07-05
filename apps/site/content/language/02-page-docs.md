@@ -50,9 +50,15 @@ the configured `css`, exactly like an example in a `[DOCS]` entity.
 | Attribute | Required | Meaning |
 |---|---|---|
 | `title` | yes | Sidebar path, `/`-separated like every entity |
-| `maxWidth` | no | Content column width (default from config, `1200px`) |
+| `maxWidth` | no | Width of the content column, toc included (default from config, `1200px`) |
 | `padding` | no | Space around the page content (default `32px`) |
+| `contentX` | no | Aligns the content column: `left`/`center`/`right` (default `left`) |
 | `toc` | no | `toc="false"` hides the table of contents (default `true`) |
+
+The `maxWidth` box holds the prose *and* the table of contents; when the toc
+is hidden (or the page has no headings), the prose takes its space. A body
+that opens with a `#` heading uses it as the page's displayed title — the
+`title` attribute then only names the sidebar entry.
 
 ## Examples in pages
 
@@ -91,11 +97,24 @@ Islands run in the **docs context** — they're for structuring the page
 itself (custom layouts around prose, repeated markup via snippets). Anything
 that should look like your product belongs in an `[example]`.
 
-Everything else is plain markdown: headings, links, images, tables, lists,
-and code fences. **Fences are inert** — code inside them is displayed and
-highlighted, never executed, even if it looks like a component tag (an
-`[example]` opener inside a fence is content too). The same goes for
-`` `inline code` ``. For a literal brace in prose, escape it: `\{`.
+Everything else is GitHub-flavored markdown: headings, links, images,
+tables (with `:---:` alignment), lists, task lists (`- [x]`),
+`~~strikethrough~~`, blockquotes, horizontal rules, and code fences.
+**Fences are inert** — code inside them is displayed and highlighted, never
+executed, even if it looks like a component tag (an `[example]` opener
+inside a fence is content too). The same goes for `` `inline code` ``. For a
+literal brace in prose, escape it: `\{`.
+
+Some details worth knowing:
+
+- **Alerts** — a blockquote whose first line is `[!NOTE]`, `[!TIP]`,
+  `[!IMPORTANT]`, `[!WARNING]`, or `[!CAUTION]` renders as a tinted callout,
+  GitHub-style.
+- **Links** — external (`http…`) links open in a new tab; internal and
+  relative links stay in the app.
+- **Images** — `![alt](/hero.png)` works with a [`static`
+  folder](/explorer/configuration#static) configured; assets are served at
+  the site root in dev and copied into the build.
 
 ## Snippets
 

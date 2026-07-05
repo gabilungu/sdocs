@@ -32,8 +32,9 @@ interface SdocsConfig {
     order?: Record<string, string[]>;
     open?: string[];
   };
+  static?: string;
   content?: {
-    page?: { maxWidth?: string; padding?: string; toc?: boolean };
+    page?: { maxWidth?: string; padding?: string; toc?: boolean; contentX?: string };
     docs?: { maxWidth?: string; padding?: string; direction?: string; gap?: string; contentX?: string; contentY?: string };
     layout?: { maxWidth?: string; padding?: string };
   };
@@ -103,6 +104,23 @@ can be data URIs) or use absolute `http(s)://` URLs.
 
 See [theming](/explorer/features/theming) for details on named stylesheets.
 
+### `static`
+
+A folder of static assets, served at the site root in dev and copied into
+`dist/` by `sdocs build` — images for pages, files for previews.
+
+- **Type:** `string`
+- **Default:** none
+
+```js
+static: './static'
+```
+
+With `static/hero.png` in the project, a page can write `![hero](/hero.png)`
+and a preview can reference `/hero.png` too. The option powers the
+standalone CLI flows (`sdocs dev`/`run`/`build`); when embedding the Vite
+plugin in an app, use the host's own public directory instead.
+
 ### `logo`
 
 Text shown in the sidebar header.
@@ -169,6 +187,7 @@ shorthand.
 | `page` | `maxWidth` | `1200px` | the page's content column |
 | `page` | `padding` | `32px` | space around the page prose |
 | `page` | `toc` | `true` | table-of-contents visibility |
+| `page` | `contentX` | `left` | aligns the content column: `left`/`center`/`right` |
 | `docs` | `maxWidth` | `1200px` | the docs content column |
 | `docs` | `padding` | `16px` | preview & example stages (in `[DOCS]` and `[PAGE]`) |
 | `docs` | `direction` | `row` | stage `flex-direction` |
@@ -177,6 +196,10 @@ shorthand.
 | `docs` | `contentY` | `top` | vertical: `top`/`middle`/`bottom`/`justify` |
 | `layout` | `maxWidth` | `100%` | the full-page stage |
 | `layout` | `padding` | `0px` | space inside the stage |
+
+A page's `maxWidth` constrains the content column together with its table
+of contents; hide the toc and the prose takes the full width. `contentX`
+places that column inside the view.
 
 Preview and example stages are flex containers: items line up along
 `direction` with `gap` between them (wrapping as needed). `contentX`

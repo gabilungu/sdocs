@@ -40,6 +40,11 @@
 	function scrollToHeading(id: string) {
 		container?.querySelector(`#${CSS.escape(id)}`)?.scrollIntoView({ behavior: 'smooth' });
 	}
+
+	// contentX aligns the whole column (content + toc) inside the view.
+	const columnMargin = $derived(
+		doc.contentX === 'center' ? '0 auto' : doc.contentX === 'right' ? '0 0 0 auto' : undefined,
+	);
 </script>
 
 {#snippet exampleFrame(index: number)}
@@ -65,51 +70,60 @@
 {/snippet}
 
 <div class="sdocs-page-view" style:padding={doc.padding}>
-	<div class="sdocs-page-main" style:max-width={doc.maxWidth}>
-		<!-- Header -->
-		<div class="sdocs-view-header">
-			<h1 class="sdocs-view-title">{displayTitle(meta.title)}</h1>
-			{#if meta.description}
-				<p class="sdocs-view-description">{meta.description}</p>
+	<!-- maxWidth constrains the whole column — content plus toc; contentX
+	     places it. Without a toc the content takes the toc's space. -->
+	<div class="sdocs-page-inner" style:max-width={doc.maxWidth} style:margin={columnMargin}>
+		<div class="sdocs-page-main">
+			<!-- Header: a body `#` heading takes over as the page title -->
+			{#if !doc.bodyTitle}
+				<div class="sdocs-view-header">
+					<h1 class="sdocs-view-title">{displayTitle(meta.title)}</h1>
+					{#if meta.description}
+						<p class="sdocs-view-description">{meta.description}</p>
+					{/if}
+				</div>
 			{/if}
+
+			<!-- Content -->
+			<div class="sdocs-page-content" bind:this={container}>
+				{#if PageComponent}
+					<PageComponent __sdocsExample={exampleFrame} />
+				{/if}
+			</div>
 		</div>
 
-		<!-- Content -->
-		<div class="sdocs-page-content" bind:this={container}>
-			{#if PageComponent}
-				<PageComponent __sdocsExample={exampleFrame} />
-			{/if}
-		</div>
+		<!-- Table of Contents -->
+		{#if toc.length > 0 && doc.showToc !== false}
+			<aside class="sdocs-toc">
+				<h3 class="sdocs-toc-title">On this page</h3>
+				<nav>
+					<ul class="sdocs-toc-list">
+						{#each toc as heading (heading.id)}
+							<li class="sdocs-toc-item" style:padding-left="{(heading.level - 2) * 12}px">
+								<button
+									class="sdocs-toc-link"
+									onclick={() => scrollToHeading(heading.id)}
+								>
+									{heading.text}
+								</button>
+							</li>
+						{/each}
+					</ul>
+				</nav>
+			</aside>
+		{/if}
 	</div>
-
-	<!-- Table of Contents -->
-	{#if toc.length > 0 && doc.showToc !== false}
-		<aside class="sdocs-toc">
-			<h3 class="sdocs-toc-title">On this page</h3>
-			<nav>
-				<ul class="sdocs-toc-list">
-					{#each toc as heading (heading.id)}
-						<li class="sdocs-toc-item" style:padding-left="{(heading.level - 2) * 12}px">
-							<button
-								class="sdocs-toc-link"
-								onclick={() => scrollToHeading(heading.id)}
-							>
-								{heading.text}
-							</button>
-						</li>
-					{/each}
-				</ul>
-			</nav>
-		</aside>
-	{/if}
 </div>
 
 <style>
 	.sdocs-page-view {
-		display: flex;
-		gap: 24px;
 		/* padding comes from the doc entry (config/entity cascade) */
 		font-family: var(--sans);
+	}
+	.sdocs-page-inner {
+		display: flex;
+		gap: 24px;
+		/* max-width and margin (contentX) come from the doc entry */
 	}
 	.sdocs-page-main {
 		flex: 1;
@@ -207,6 +221,9 @@
 	.sdocs-page-content :global(table) {
 		border-collapse: collapse;
 		margin: 0.9em 0;
+		display: block;
+		max-width: 100%;
+		overflow-x: auto;
 	}
 	.sdocs-page-content :global(th),
 	.sdocs-page-content :global(td) {
@@ -214,12 +231,61 @@
 		padding: 6px 12px;
 		text-align: left;
 	}
+	.sdocs-page-content :global(td[align='center']),
+	.sdocs-page-content :global(th[align='center']) {
+		text-align: center;
+	}
+	.sdocs-page-content :global(td[align='right']),
+	.sdocs-page-content :global(th[align='right']) {
+		text-align: right;
+	}
 	.sdocs-page-content :global(th) {
 		background: var(--color-base-50);
 		font-weight: 600;
 	}
 	.sdocs-page-content :global(img) {
 		max-width: 100%;
+		border-radius: 6px;
+	}
+
+	/* Task lists: GitHub-style checkboxes, no bullet */
+	.sdocs-page-content :global(li:has(> input[type='checkbox']:first-child)) {
+		list-style: none;
+		margin-left: -1.3em;
+	}
+	.sdocs-page-content :global(li > input[type='checkbox']) {
+		margin-right: 6px;
+		vertical-align: -2px;
+	}
+
+	/* GitHub-style alerts: > [!NOTE] / [!TIP] / [!IMPORTANT] / [!WARNING] / [!CAUTION] */
+	.sdocs-page-content :global(.sdocs-alert) {
+		margin: 0.9em 0;
+		padding: 8px 16px;
+		border-left: 3px solid var(--sdocs-alert-color);
+		border-radius: 0 6px 6px 0;
+		background: color-mix(in srgb, var(--sdocs-alert-color) 6%, transparent);
+	}
+	.sdocs-page-content :global(.sdocs-alert-label) {
+		font-size: 13px;
+		font-weight: 650;
+		color: var(--sdocs-alert-color);
+		margin: 0.25em 0 0;
+	}
+	.sdocs-page-content :global(.sdocs-alert-note) {
+		--sdocs-alert-color: var(--color-blue-500);
+	}
+	.sdocs-page-content :global(.sdocs-alert-tip) {
+		--sdocs-alert-color: var(--color-green-500);
+	}
+	.sdocs-page-content :global(.sdocs-alert-important) {
+		--sdocs-alert-color: var(--color-purple-500);
+	}
+	.sdocs-page-content :global(.sdocs-alert-warning) {
+		--sdocs-alert-color: var(--color-amber-500);
+	}
+	.sdocs-page-content :global(.sdocs-alert-caution) {
+		--sdocs-alert-color: var(--color-red-500);
 	}
 
 	/* ── Example stages in the page flow ── */

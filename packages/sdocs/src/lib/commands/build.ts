@@ -24,6 +24,8 @@ export async function buildCommand(): Promise<void> {
 		await build({
 			configFile: false,
 			root: sdocsDir,
+			// The project's static assets (config `static`), copied into dist/
+			publicDir: config.static ?? false,
 			resolve: {
 				dedupe: svelteDedupe(cwd),
 			},

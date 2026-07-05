@@ -79,7 +79,9 @@ function lineDepths(line: string): { svelte: number; html: number } {
 	return { svelte, html };
 }
 
-/** Split a page body into prose and island segments. */
+/** Split a page body into prose and island segments. Lines inside markdown
+ * code fences are always prose — a component tag shown in a fence must stay
+ * displayed code, never a live island. */
 export function segmentPageBody(body: string): PageSegment[] {
 	const lines = body.split('\n');
 	const segments: PageSegment[] = [];
@@ -93,9 +95,21 @@ export function segmentPageBody(body: string): PageSegment[] {
 		current.lines.push(line);
 	};
 
+	let inFence = false;
 	let i = 0;
 	while (i < lines.length) {
 		const line = lines[i];
+		if (/^\s*(`{3,}|~{3,})/.test(line)) {
+			inFence = !inFence;
+			push('prose', line);
+			i++;
+			continue;
+		}
+		if (inFence) {
+			push('prose', line);
+			i++;
+			continue;
+		}
 		const prevBlank = i === 0 || lines[i - 1].trim() === '';
 		if (prevBlank && line.trim() !== '' && startsIsland(line)) {
 			// Consume the island: until Svelte blocks and HTML tags balance out.

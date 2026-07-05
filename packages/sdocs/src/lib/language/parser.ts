@@ -191,6 +191,8 @@ const ENTITY_ATTR_RULES: Record<string, Record<string, AttrRule>> = {
 	PAGE: {
 		title: { required: true, kind: 'string', hint: 'title="Group / Name"' },
 		...SIZING_ATTR_RULES,
+		// On PAGE, contentX aligns the content column (with its toc), not a stage.
+		contentX: { required: false, kind: 'string', hint: 'contentX="center"' },
 		toc: { required: false, kind: 'string', hint: 'toc="false"' },
 	},
 	LAYOUT: {

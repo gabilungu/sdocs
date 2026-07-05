@@ -44,6 +44,8 @@ export async function devCommand(): Promise<void> {
 	const server = await createServer({
 		configFile: false,
 		root: sdocsDir,
+		// The project's static assets (config `static`), served at the site root
+		publicDir: config.static ?? false,
 		resolve: {
 			dedupe: svelteDedupe(cwd),
 		},

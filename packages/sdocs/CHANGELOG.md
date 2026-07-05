@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.58] - 2026-07-05
+
+### Added
+
+- **Richer page markdown.** GitHub-style alerts (`> [!NOTE]`, `[!TIP]`,
+  `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`) render as tinted callouts;
+  task lists get proper checkboxes; table columns honor `:---:` alignment;
+  external links open in a new tab (internal ones stay in the app); images
+  render lazily and Svelte-safe.
+- **`static` config option.** A folder of static assets served at the site
+  root in dev and copied into `dist/` by `sdocs build` — `![hero](/hero.png)`
+  in a page just works. Powers the standalone CLI flows; embedded apps keep
+  using the host's public directory.
+- **Page column alignment.** `content.page.contentX` (config) and
+  `contentX` on `[PAGE]` align the content column `left`/`center`/`right`.
+- **A body `#` heading takes over as the page title** — the header no longer
+  duplicates it; the entity `title` keeps naming the sidebar entry.
+
+### Changed
+
+- **A page's `maxWidth` now bounds the content column together with its
+  table of contents**; when the toc is hidden the prose takes its space.
+
+### Fixed
+
+- **Code fences can show component tags.** A `<Component />` line inside a
+  markdown fence, preceded by a blank line, was treated as a live Svelte
+  island and rendered (or crashed the page) instead of staying highlighted
+  code. Fences now shield island detection, matching the scanner and the
+  editor projection.
+
 ## [0.0.57] - 2026-07-05
 
 ### Added

@@ -17,6 +17,9 @@ import type { TocHeading } from '../types.js';
 export interface RenderedPage {
 	html: string;
 	toc: TocHeading[];
+	/** Text of the body's first `#` heading, when present — it takes over as
+	 * the page's displayed title. */
+	bodyTitle?: string;
 }
 
 function slugify(text: string): string {
@@ -106,32 +109,60 @@ function plainText(tokens: Token[]): string {
 export async function renderPageMarkdown(source: string): Promise<RenderedPage> {
 	const toc: TocHeading[] = [];
 	const usedIds = new Set<string>();
+	const state: ProseState = { toc, usedIds, bodyTitle: undefined };
 	const parts: string[] = [];
 	for (const segment of segmentPageBody(source)) {
 		if (segment.kind === 'island') {
 			parts.push(segment.lines.join('\n'));
 		} else {
-			parts.push(await renderProse(segment.lines.join('\n'), toc, usedIds));
+			parts.push(await renderProse(segment.lines.join('\n'), state));
 		}
 	}
-	return { html: parts.join('\n'), toc };
+	return { html: parts.join('\n'), toc, bodyTitle: state.bodyTitle };
 }
 
-async function renderProse(
-	source: string,
-	toc: TocHeading[],
-	usedIds: Set<string>,
-): Promise<string> {
+interface ProseState {
+	toc: TocHeading[];
+	usedIds: Set<string>;
+	bodyTitle: string | undefined;
+}
+
+/** GitHub-style alert kinds recognized on a blockquote's first line. */
+const ALERT_KINDS = ['NOTE', 'TIP', 'IMPORTANT', 'WARNING', 'CAUTION'] as const;
+const ALERT_RE = new RegExp(`^\\[!(${ALERT_KINDS.join('|')})\\][ \\t]*(?:\\n|$)`);
+
+async function renderProse(source: string, state: ProseState): Promise<string> {
+	const { toc, usedIds } = state;
 	const headingIds = new WeakMap<Token, string>();
 	const fenceHtml = new WeakMap<Token, string>();
+	const alertKinds = new WeakMap<Token, string>();
 
 	const marked = new Marked({ gfm: true });
 	const tokens = marked.lexer(source);
+
+	/** Detect a GitHub-style alert marker on a blockquote's first line and
+	 * strip it from the tokens; the renderer wraps the rest as a callout. */
+	const detectAlert = (token: Token) => {
+		if (!('tokens' in token) || !token.tokens) return;
+		const para = token.tokens[0];
+		if (para?.type !== 'paragraph' || !para.tokens) return;
+		const first = para.tokens[0];
+		if (first?.type !== 'text') return;
+		const m = ALERT_RE.exec(first.text ?? '');
+		if (!m) return;
+		alertKinds.set(token, m[1]);
+		first.text = first.text.slice(m[0].length);
+		if (first.text === '') para.tokens.shift();
+		if (para.tokens.length === 0) token.tokens.shift();
+	};
 
 	const walk = (list: Token[]) => {
 		for (const token of list) {
 			if (token.type === 'heading') {
 				const text = plainText(token.tokens ?? []);
+				if (token.depth === 1 && state.bodyTitle === undefined) {
+					state.bodyTitle = text;
+				}
 				const baseId = slugify(text);
 				let id = baseId;
 				for (let n = 2; usedIds.has(id); n++) id = `${baseId}-${n}`;
@@ -141,6 +172,7 @@ async function renderProse(
 					toc.push({ text, level: token.depth, id });
 				}
 			}
+			if (token.type === 'blockquote') detectAlert(token);
 			if ('tokens' in token && token.tokens) walk(token.tokens);
 			if ('items' in token && token.items) walk(token.items as Token[]);
 		}
@@ -167,6 +199,30 @@ async function renderProse(
 				return id
 					? `<h${token.depth} id="${id}">${html}</h${token.depth}>\n`
 					: `<h${token.depth}>${html}</h${token.depth}>\n`;
+			},
+			// GitHub-style alerts: `> [!NOTE]` blockquotes become callouts.
+			blockquote(token) {
+				const body = this.parser.parse(token.tokens ?? []);
+				const kind = alertKinds.get(token);
+				if (!kind) return `<blockquote>\n${body}</blockquote>\n`;
+				const label = kind.charAt(0) + kind.slice(1).toLowerCase();
+				return `<div class="sdocs-alert sdocs-alert-${kind.toLowerCase()}"><p class="sdocs-alert-label">${label}</p>\n${body}</div>\n`;
+			},
+			// External links open away from the docs app; hrefs stay inert.
+			link(token) {
+				const inner = this.parser.parseInline(token.tokens ?? []);
+				const href = escapeBraces(escapeHtml(token.href ?? ''));
+				const title = token.title ? ` title="${escapeBraces(escapeHtml(token.title))}"` : '';
+				const external = /^https?:\/\//i.test(token.href ?? '');
+				const attrs = external ? ' target="_blank" rel="noopener noreferrer"' : '';
+				return `<a href="${href}"${title}${attrs}>${inner}</a>`;
+			},
+			// Self-closing and brace-escaped so images are always Svelte-safe.
+			image(token) {
+				const src = escapeBraces(escapeHtml(token.href ?? ''));
+				const alt = escapeBraces(escapeHtml(token.text ?? ''));
+				const title = token.title ? ` title="${escapeBraces(escapeHtml(token.title))}"` : '';
+				return `<img src="${src}" alt="${alt}"${title} loading="lazy" />`;
 			},
 			code(token) {
 				return (

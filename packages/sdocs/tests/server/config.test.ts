@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { resolveConfig } from '../../src/lib/server/config.js';
+import { resolveConfig, resolveAndFinalize } from '../../src/lib/server/config.js';
 import { parseSdoc, attributeRules } from '../../src/lib/language/index.js';
 
 describe('content sizing config', () => {
 	it('applies the documented defaults', () => {
 		const c = resolveConfig({});
-		expect(c.content.page).toEqual({ maxWidth: '1200px', padding: '32px', toc: true });
+		expect(c.content.page).toEqual({ maxWidth: '1200px', padding: '32px', toc: true, contentX: 'left' });
 		expect(c.content.docs).toEqual({
 			maxWidth: '1200px',
 			padding: '16px',
@@ -25,7 +25,7 @@ describe('content sizing config', () => {
 				layout: { maxWidth: '900px' },
 			},
 		});
-		expect(c.content.page).toEqual({ maxWidth: '1200px', padding: '48px', toc: false });
+		expect(c.content.page).toEqual({ maxWidth: '1200px', padding: '48px', toc: false, contentX: 'left' });
 		expect(c.content.docs).toEqual({
 			maxWidth: '1200px',
 			padding: '16px',
@@ -122,7 +122,7 @@ describe('attributeRules (shared by diagnostics and completions)', () => {
 			'title', 'maxWidth', 'padding', 'direction', 'gap', 'contentX', 'contentY',
 		]);
 		expect(Object.keys(attributeRules('PAGE'))).toEqual([
-			'title', 'maxWidth', 'padding', 'toc',
+			'title', 'maxWidth', 'padding', 'contentX', 'toc',
 		]);
 		expect(Object.keys(attributeRules('DOCS'))).toContain('gap');
 		expect(Object.keys(attributeRules('LAYOUT'))).toEqual(['title', 'maxWidth', 'padding']);
@@ -137,5 +137,23 @@ describe('attributeRules (shared by diagnostics and completions)', () => {
 
 	it('returns an empty map for an unknown kind', () => {
 		expect(attributeRules('nope')).toEqual({});
+	});
+});
+
+describe('static assets folder', () => {
+	it('defaults to null and resolves relative paths against the root', () => {
+		expect(resolveConfig({}).static).toBeNull();
+		expect(resolveAndFinalize({ static: './static' }, '/proj').static).toBe('/proj/static');
+		expect(resolveAndFinalize({ static: '/elsewhere/assets' }, '/proj').static).toBe('/elsewhere/assets');
+	});
+});
+
+describe('page content alignment', () => {
+	it('accepts contentX on [PAGE] and resolves the config default', () => {
+		const doc = parseSdoc('[PAGE title="P" contentX="center"]\n\thi\n[/PAGE]\n');
+		expect(doc.diagnostics).toEqual([]);
+		expect(doc.entities[0].sizing.contentX).toBe('center');
+		expect(resolveConfig({}).content.page.contentX).toBe('left');
+		expect(resolveConfig({ content: { page: { contentX: 'center' } } }).content.page.contentX).toBe('center');
 	});
 });

@@ -87,6 +87,11 @@ export const configSchema: ConfigSchema = {
 		doc: 'CSS loaded inside preview iframes — a single stylesheet path, or a map of named stylesheets to switch between.',
 		insert: ": '$0'",
 	},
+	static: {
+		detail: 'string',
+		doc: 'Folder of static assets served at the site root — images for pages, files for previews. Standalone CLI flows; embedded apps use the host\'s public directory.',
+		insert: ": './${0:static}'",
+	},
 	logo: {
 		detail: 'string',
 		doc: 'Sidebar logo text. Default: `sdocs`.',
@@ -123,7 +128,7 @@ export const configSchema: ConfigSchema = {
 		object: {
 			page: {
 				detail: 'object',
-				doc: '`[PAGE]` content. Defaults: `maxWidth` `1200px`, `padding` `32px`, `toc` `true`.',
+				doc: '`[PAGE]` content. Defaults: `maxWidth` `1200px`, `padding` `32px`, `toc` `true`, `contentX` `left`.',
 				insert: ': {\n\t$0\n}',
 				object: {
 					maxWidth,
@@ -133,6 +138,13 @@ export const configSchema: ConfigSchema = {
 						doc: 'Show the page table of contents. Default: `true`.',
 						insert: ': ${0:true}',
 						values: ['true', 'false'],
+					},
+					contentX: {
+						detail: "'left' | 'center' | 'right'",
+						doc: 'Horizontal alignment of the page content column (with its toc). Default: `left`.',
+						insert: ": '${0:center}'",
+						values: ['left', 'center', 'right'],
+						quoted: true,
 					},
 				},
 			},

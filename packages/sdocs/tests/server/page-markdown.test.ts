@@ -117,3 +117,81 @@ describe('renderPageMarkdown', () => {
 		expect(toc.map((t) => t.id)).toEqual(['first', 'second']);
 	});
 });
+
+describe('rich markdown features', () => {
+	it('turns [!NOTE]-style blockquotes into alerts, marker stripped', async () => {
+		const { html } = await renderPageMarkdown('> [!NOTE]\n> Something worth knowing.');
+		expect(html).toContain('<div class="sdocs-alert sdocs-alert-note">');
+		expect(html).toContain('<p class="sdocs-alert-label">Note</p>');
+		expect(html).toContain('Something worth knowing.');
+		expect(html).not.toContain('[!NOTE]');
+	});
+
+	it('supports all five alert kinds with capitalized labels', async () => {
+		for (const [kind, label] of [
+			['TIP', 'Tip'], ['IMPORTANT', 'Important'], ['WARNING', 'Warning'], ['CAUTION', 'Caution'],
+		] as const) {
+			const { html } = await renderPageMarkdown(`> [!${kind}]\n> body`);
+			expect(html).toContain(`sdocs-alert-${kind.toLowerCase()}`);
+			expect(html).toContain(`>${label}</p>`);
+		}
+	});
+
+	it('leaves ordinary blockquotes alone', async () => {
+		const { html } = await renderPageMarkdown('> Just a quote.');
+		expect(html).toContain('<blockquote>');
+		expect(html).not.toContain('sdocs-alert');
+	});
+
+	it('opens external links in a new tab, leaves internal ones alone', async () => {
+		const { html } = await renderPageMarkdown(
+			'[out](https://example.com) and [in](#section) and [rel](./other)',
+		);
+		expect(html).toContain('href="https://example.com" target="_blank" rel="noopener noreferrer"');
+		expect(html).toContain('<a href="#section">in</a>');
+		expect(html).toContain('<a href="./other">rel</a>');
+	});
+
+	it('renders images self-closed, lazy, and Svelte-inert', async () => {
+		const { html } = await renderPageMarkdown('![alt {braces}](/logo.svg "the title")');
+		expect(html).toContain('src="/logo.svg"');
+		expect(html).toContain('alt="alt &#123;braces&#125;"');
+		expect(html).toContain('title="the title"');
+		expect(html).toContain('loading="lazy" />');
+	});
+
+	it('renders GFM task lists and strikethrough', async () => {
+		const { html } = await renderPageMarkdown('- [x] done\n- [ ] todo\n\n~~gone~~');
+		expect(html).toContain('type="checkbox"');
+		expect(html).toContain('<del>gone</del>');
+	});
+
+	it('reports the first # heading as the body title', async () => {
+		const { bodyTitle } = await renderPageMarkdown('# Real Title\n\n## Section\n\n# Second');
+		expect(bodyTitle).toBe('Real Title');
+	});
+
+	it('reports no body title without an h1', async () => {
+		const { bodyTitle } = await renderPageMarkdown('## Only sections here');
+		expect(bodyTitle).toBeUndefined();
+	});
+});
+
+describe('fences shield islands', () => {
+	it('keeps a component tag inside a fence as highlighted code, not a live island', async () => {
+		const source = [
+			'```svelte',
+			'<script>',
+			'\tlet count = $state(0);',
+			'</script>',
+			'',
+			'<Button label="Count: {count}" onclick={() => count++} />',
+			'```',
+		].join('\n');
+		const { html } = await renderPageMarkdown(source);
+		// stays inside the highlighted <pre>, braces inert
+		expect(html).toContain('shiki');
+		expect(html).not.toContain('label="Count: {count}"');
+		expect(html).toContain('&#123;');
+	});
+});

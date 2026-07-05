@@ -10,6 +10,7 @@ const DEFAULTS: ResolvedSdocsConfig = {
 	port: 3000,
 	open: false,
 	css: null,
+	static: null,
 	logo: 'sdocs',
 	icon: 'sdocs',
 	sidebar: {
@@ -17,7 +18,7 @@ const DEFAULTS: ResolvedSdocsConfig = {
 		open: [],
 	},
 	content: {
-		page: { maxWidth: '1200px', padding: '32px', toc: true },
+		page: { maxWidth: '1200px', padding: '32px', toc: true, contentX: 'left' },
 		docs: {
 			maxWidth: '1200px',
 			padding: '16px',
@@ -78,6 +79,7 @@ export function resolveAndFinalize(userConfig: SdocsConfig, root: string): Resol
 	const resolved = resolveConfig(userConfig);
 	resolved.include = resolveIncludePatterns(resolved.include, root);
 	resolved.css = resolveCssPaths(resolved.css, root);
+	if (resolved.static) resolved.static = resolve(root, resolved.static);
 	return resolved;
 }
 
@@ -101,6 +103,7 @@ export function resolveConfig(userConfig: SdocsConfig): ResolvedSdocsConfig {
 		port: userConfig.port ?? DEFAULTS.port,
 		open: userConfig.open ?? DEFAULTS.open,
 		css: userConfig.css ?? DEFAULTS.css,
+		static: userConfig.static ?? DEFAULTS.static,
 		logo: userConfig.logo ?? DEFAULTS.logo,
 		icon: userConfig.icon ?? DEFAULTS.icon,
 		sidebar: {

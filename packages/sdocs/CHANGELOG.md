@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **The page table of contents highlights the current section.** As the
+  page scrolls, the "On this page" entry for the section in view lights up;
+  clicking an entry highlights it immediately and holds it through the
+  smooth scroll.
+
 ## [0.0.59] - 2026-07-05
 
 ### Changed

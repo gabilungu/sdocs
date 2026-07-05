@@ -37,7 +37,69 @@
 		};
 	});
 
+	// Scrollspy: the TOC highlights the section currently in view. The active
+	// heading is the last one above the threshold line near the viewport top.
+	// The scroll listener is capturing because the scrolling element is an
+	// ancestor container, not the window.
+	const SPY_OFFSET = 120;
+	let activeId = $state('');
+	let spyLockUntil = 0;
+
+	$effect(() => {
+		if (!container || toc.length === 0) return;
+		void PageComponent; // re-run once the page body has mounted
+		const ids = toc.map((h) => h.id);
+		let frame = 0;
+		const update = () => {
+			frame = 0;
+			if (performance.now() < spyLockUntil) return;
+			// At the bottom the last sections can never reach the threshold
+			// line — snap to the final entry so it is reachable at all.
+			let scroller: HTMLElement | null = container ?? null;
+			while (scroller) {
+				const o = getComputedStyle(scroller).overflowY;
+				if (
+					scroller.scrollHeight > scroller.clientHeight + 1 &&
+					(o === 'auto' || o === 'scroll')
+				) {
+					break;
+				}
+				scroller = scroller.parentElement;
+			}
+			const atBottom = scroller
+				? scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 2
+				: window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
+			if (atBottom) {
+				activeId = ids[ids.length - 1];
+				return;
+			}
+			let current = ids[0] ?? '';
+			for (const id of ids) {
+				const el = container?.querySelector(`#${CSS.escape(id)}`);
+				if (!el) continue;
+				if (el.getBoundingClientRect().top > SPY_OFFSET) break;
+				current = id;
+			}
+			activeId = current;
+		};
+		const onScroll = () => {
+			if (!frame) frame = requestAnimationFrame(update);
+		};
+		update();
+		document.addEventListener('scroll', onScroll, { capture: true, passive: true });
+		window.addEventListener('resize', onScroll);
+		return () => {
+			document.removeEventListener('scroll', onScroll, { capture: true });
+			window.removeEventListener('resize', onScroll);
+			if (frame) cancelAnimationFrame(frame);
+		};
+	});
+
 	function scrollToHeading(id: string) {
+		// Highlight the target right away and hold it while the smooth scroll
+		// passes intermediate sections.
+		activeId = id;
+		spyLockUntil = performance.now() + 800;
 		container?.querySelector(`#${CSS.escape(id)}`)?.scrollIntoView({ behavior: 'smooth' });
 	}
 
@@ -102,6 +164,8 @@
 							<li class="sdocs-toc-item" style:padding-left="{(heading.level - 2) * 12}px">
 								<button
 									class="sdocs-toc-link"
+									class:is-active={heading.id === activeId}
+									aria-current={heading.id === activeId ? 'true' : undefined}
 									onclick={() => scrollToHeading(heading.id)}
 								>
 									{heading.text}
@@ -372,8 +436,10 @@
 		cursor: pointer;
 		text-align: left;
 		width: 100%;
+		transition: color 0.15s;
 	}
-	.sdocs-toc-link:hover {
+	.sdocs-toc-link:hover,
+	.sdocs-toc-link.is-active {
 		color: var(--color-action-500);
 	}
 </style>

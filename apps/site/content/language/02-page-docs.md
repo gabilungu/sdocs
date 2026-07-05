@@ -153,8 +153,9 @@ yourself wanting stateful logic, the content is probably a
 ## Table of contents
 
 A table of contents is generated from the page's `##`–`####` headings and
-shown on the right. Heading IDs are slugified — lowercased, non-word
-characters stripped, spaces as hyphens — so `## Getting Started` anchors at
+shown on the right; as the page scrolls, the entry for the section in view
+highlights. Heading IDs are slugified — lowercased, non-word characters
+stripped, spaces as hyphens — so `## Getting Started` anchors at
 `#getting-started`. The page header shows the entity `title`; a top-level
 `#` heading in the body is neither required nor listed.
 

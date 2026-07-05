@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.48] - 2026-07-05
+
+### Changed
+
+- **Empty API sections are hidden on component pages.** Props, CSS Props,
+  Events, Snippets, Methods, and States sections now render only when the
+  component actually has entries for them, instead of every section always
+  showing with a "None" placeholder.
+
 ## [0.0.47] - 2026-07-05
 
 ### Fixed

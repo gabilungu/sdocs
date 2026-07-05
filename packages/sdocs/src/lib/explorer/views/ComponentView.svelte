@@ -278,6 +278,13 @@
 			description: s.description,
 		})),
 	);
+
+	// The Reset button normally sits in the Props header; when a component has
+	// editable CSS vars but no regular props, that section is hidden, so show
+	// Reset in the CSS Props header instead.
+	const showResetInCss = $derived(
+		hasEditableControls && propsRows.length === 0 && cssPropsRows.length > 0,
+	);
 </script>
 
 <div class="sdocs-component-view">
@@ -373,56 +380,71 @@
 			{/if}
 		{/snippet}
 
-		<section class="sdocs-doc-section">
-			<h2 class="sdocs-doc-section-title">
-				<Icon name="sliders-horizontal" --w="15px" --h="15px" --fill="var(--color-base-500)" />
-				Props
-				{#if hasEditableControls}
-					<button class="sdocs-reset-btn" onclick={handleReset}>Reset</button>
-				{/if}
-			</h2>
-			<ApiTable rows={propsRows} control={propControl} />
-		</section>
+		{#if propsRows.length > 0}
+			<section class="sdocs-doc-section">
+				<h2 class="sdocs-doc-section-title">
+					<Icon name="sliders-horizontal" --w="15px" --h="15px" --fill="var(--color-base-500)" />
+					Props
+					{#if hasEditableControls}
+						<button class="sdocs-reset-btn" onclick={handleReset}>Reset</button>
+					{/if}
+				</h2>
+				<ApiTable rows={propsRows} control={propControl} />
+			</section>
+		{/if}
 
-		<section class="sdocs-doc-section">
-			<h2 class="sdocs-doc-section-title">
-				<Icon name="palette" --w="15px" --h="15px" --fill="var(--color-base-500)" />
-				CSS Props
-			</h2>
-			<ApiTable rows={cssPropsRows} control={cssPropControl} />
-		</section>
+		{#if cssPropsRows.length > 0}
+			<section class="sdocs-doc-section">
+				<h2 class="sdocs-doc-section-title">
+					<Icon name="palette" --w="15px" --h="15px" --fill="var(--color-base-500)" />
+					CSS Props
+					{#if showResetInCss}
+						<button class="sdocs-reset-btn" onclick={handleReset}>Reset</button>
+					{/if}
+				</h2>
+				<ApiTable rows={cssPropsRows} control={cssPropControl} />
+			</section>
+		{/if}
 
-		<section class="sdocs-doc-section">
-			<h2 class="sdocs-doc-section-title">
-				<Icon name="zap" --w="15px" --h="15px" --fill="var(--color-base-500)" />
-				Events
-			</h2>
-			<ApiTable rows={eventsRows} showDefault={false} />
-		</section>
+		{#if eventsRows.length > 0}
+			<section class="sdocs-doc-section">
+				<h2 class="sdocs-doc-section-title">
+					<Icon name="zap" --w="15px" --h="15px" --fill="var(--color-base-500)" />
+					Events
+				</h2>
+				<ApiTable rows={eventsRows} showDefault={false} />
+			</section>
+		{/if}
 
-		<section class="sdocs-doc-section">
-			<h2 class="sdocs-doc-section-title">
-				<Icon name="code" --w="15px" --h="15px" --fill="var(--color-base-500)" />
-				Snippets
-			</h2>
-			<ApiTable rows={snippetsRows} showDefault={false} />
-		</section>
+		{#if snippetsRows.length > 0}
+			<section class="sdocs-doc-section">
+				<h2 class="sdocs-doc-section-title">
+					<Icon name="code" --w="15px" --h="15px" --fill="var(--color-base-500)" />
+					Snippets
+				</h2>
+				<ApiTable rows={snippetsRows} showDefault={false} />
+			</section>
+		{/if}
 
-		<section class="sdocs-doc-section">
-			<h2 class="sdocs-doc-section-title">
-				<Icon name="square-function" --w="15px" --h="15px" --fill="var(--color-base-500)" />
-				Methods
-			</h2>
-			<ApiTable rows={methodsRows} showDefault={false} control={methodControl} />
-		</section>
+		{#if methodsRows.length > 0}
+			<section class="sdocs-doc-section">
+				<h2 class="sdocs-doc-section-title">
+					<Icon name="square-function" --w="15px" --h="15px" --fill="var(--color-base-500)" />
+					Methods
+				</h2>
+				<ApiTable rows={methodsRows} showDefault={false} control={methodControl} />
+			</section>
+		{/if}
 
-		<section class="sdocs-doc-section">
-			<h2 class="sdocs-doc-section-title">
-				<Icon name="database" --w="15px" --h="15px" --fill="var(--color-base-500)" />
-				States
-			</h2>
-			<ApiTable rows={stateRows} defaultLabel="Current value" />
-		</section>
+		{#if stateRows.length > 0}
+			<section class="sdocs-doc-section">
+				<h2 class="sdocs-doc-section-title">
+					<Icon name="database" --w="15px" --h="15px" --fill="var(--color-base-500)" />
+					States
+				</h2>
+				<ApiTable rows={stateRows} defaultLabel="Current value" />
+			</section>
+		{/if}
 
 		{#if exampleSnippets.length > 0}
 			<hr class="sdocs-divider" />

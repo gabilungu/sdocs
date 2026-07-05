@@ -15,7 +15,9 @@ For each component documented in a `.sdoc` file, sdocs parses the component's so
 | **States** | `export const x = $state(…)` / `$derived(…)` |
 | **CSS custom properties** | `var(--name)` usages in `<style>` + `@cssvar` annotations |
 
-Each appears as its own section on the component's doc page.
+Each appears as its own section on the component's doc page. Sections with no
+entries are omitted, so a component's page shows only the categories it actually
+has.
 
 ## Props
 

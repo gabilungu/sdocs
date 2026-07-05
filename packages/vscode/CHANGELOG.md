@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.36] - 2026-07-05
+
+### Fixed
+
+- **Attribute autocomplete offers every allowed attribute.** Completions were
+  a hardcoded list that had drifted from validation, so `maxWidth`, `padding`,
+  `direction`, `gap`, and `toc` were flagged as unknown yet never suggested.
+  Completions now derive from the same parser rules diagnostics use, so the two
+  can't diverge again; each item shows its value hint and whether it's required.
+
 ## [0.0.35] - 2026-07-05
 
 ### Added

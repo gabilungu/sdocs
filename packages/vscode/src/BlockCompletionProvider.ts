@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { scanSdoc } from 'sdocs/language';
+import { scanSdoc, attributeRules, type AttrRule } from 'sdocs/language';
 import { importedIdentifiers } from './sdocSource';
 
 interface BlockSpec {
@@ -40,80 +40,27 @@ const SUB_BLOCKS: BlockSpec[] = [
 	},
 ];
 
-interface AttrSpec {
-	label: string;
-	detail: string;
-	documentation: string;
-	/** Snippet inserted for the attribute (tab stop inside the value) */
-	insert: string;
-}
-
-const BLOCK_ATTRS: Record<string, AttrSpec[]> = {
-	DOCS: [
-		{
-			label: 'title',
-			detail: "Sidebar path (e.g. 'Forms / Button')",
-			documentation: 'Names the page and places it in the sidebar — `/` segments nest like folders.',
-			insert: 'title="$1"',
-		},
-		{
-			label: 'description',
-			detail: 'Short text under the page title',
-			documentation: 'One sentence shown in the page header.',
-			insert: 'description="$1"',
-		},
-	],
-	PAGE: [
-		{
-			label: 'title',
-			detail: "Sidebar path (e.g. 'Guides / Setup')",
-			documentation: 'Names the page and places it in the sidebar.',
-			insert: 'title="$1"',
-		},
-	],
-	LAYOUT: [
-		{
-			label: 'title',
-			detail: "Sidebar path (e.g. 'Patterns / Login')",
-			documentation: 'Names the sketch and places it in the sidebar.',
-			insert: 'title="$1"',
-		},
-		{
-			label: 'padding',
-			detail: 'Space around the sketch',
-			documentation: 'Padding inside the isolated frame, e.g. `padding="48px"`.',
-			insert: 'padding="$1"',
-		},
-	],
-	preview: [
-		{
-			label: 'component',
-			detail: 'The demonstrated component',
-			documentation: "An identifier imported in the file's `<script>`. Drives prop extraction and the controls.",
-			insert: 'component={$1}',
-		},
-		{
-			label: 'args',
-			detail: "This preview's control defaults",
-			documentation: 'Plain literals only: `args={{ label: \'Hi\', disabled: false }}`.',
-			insert: 'args={{ $1 }}',
-		},
-		{
-			label: 'title',
-			detail: 'Tab label override',
-			documentation: 'Defaults to the component name; set to distinguish two previews of one component.',
-			insert: 'title="$1"',
-		},
-	],
-	example: [
-		{
-			label: 'title',
-			detail: 'Example title (required, unique)',
-			documentation: 'Any text — shown above the example and used as its address.',
-			insert: 'title="$1"',
-		},
-	],
+/** Human descriptions for attributes, keyed by name. The set of attributes a
+ * block *allows* comes from the parser (attributeRules) — the single source of
+ * truth diagnostics use — so completions never drift from validation. This map
+ * only enriches them; an attribute missing here still completes. */
+const ATTR_DOCS: Record<string, string> = {
+	title: 'Sidebar path — `/` segments nest like folders. A leading `:` on the first segment makes a group header.',
+	description: 'One sentence shown under the page title.',
+	component: "The demonstrated component: an identifier imported in the file's `<script>`. Drives prop extraction and controls.",
+	args: "This preview's control defaults — plain literals only: `args={{ label: 'Hi', disabled: false }}`.",
+	maxWidth: 'Content column ([DOCS]/[PAGE]) or stage ([LAYOUT]/[preview]/[example]) width. Overrides the config default.',
+	padding: 'Space around the content or stage. Overrides the entity and config defaults.',
+	direction: 'Stage `flex-direction` (`row`/`column`). Overrides the entity and config defaults.',
+	gap: 'Stage `gap` between items. Overrides the entity and config defaults.',
+	toc: '`toc="false"` hides the table of contents for this page.',
 };
+
+/** Snippet body for an attribute, from its value kind (special-cased for args). */
+function attrInsert(name: string, rule: AttrRule): string {
+	if (name === 'args') return 'args={{ $1 }}';
+	return rule.kind === 'expression' ? `${name}={$1}` : `${name}="$1"`;
+}
 
 /** Completions inside sdoc block openers: attribute names per block kind,
  * and imported identifiers inside component={…}. */
@@ -166,7 +113,7 @@ export class BlockCompletionProvider implements vscode.CompletionItemProvider {
 		// Attribute names on a block opener line.
 		const opener = /^\s*\[(DOCS|PAGE|LAYOUT|preview|example)\b/.exec(line);
 		if (!opener) return undefined;
-		const specs = BLOCK_ATTRS[opener[1]];
+		const rules = attributeRules(opener[1]);
 		const tagEnd = line.indexOf('[') + 1 + opener[1].length;
 		if (position.character <= tagEnd) return undefined;
 
@@ -180,17 +127,15 @@ export class BlockCompletionProvider implements vscode.CompletionItemProvider {
 		const present = new Set(
 			Array.from(line.matchAll(/([A-Za-z_][\w-]*)\s*=/g), (m) => m[1]),
 		);
-		return specs
-			.filter((spec) => !present.has(spec.label))
-			.map((spec) => {
-				const item = new vscode.CompletionItem(
-					spec.label,
-					vscode.CompletionItemKind.Property,
-				);
-				item.detail = spec.detail;
-				item.documentation = new vscode.MarkdownString(spec.documentation);
-				item.insertText = new vscode.SnippetString(spec.insert);
-				item.sortText = `!${spec.label}`;
+		return Object.entries(rules)
+			.filter(([name]) => !present.has(name))
+			.map(([name, rule]) => {
+				const item = new vscode.CompletionItem(name, vscode.CompletionItemKind.Property);
+				item.detail = rule.required ? `${rule.hint} (required)` : rule.hint;
+				if (ATTR_DOCS[name]) item.documentation = new vscode.MarkdownString(ATTR_DOCS[name]);
+				item.insertText = new vscode.SnippetString(attrInsert(name, rule));
+				// required first, then a stable order matching the rules
+				item.sortText = `${rule.required ? '0' : '1'}${name}`;
 				return item;
 			});
 	}

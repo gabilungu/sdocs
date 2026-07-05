@@ -53,7 +53,7 @@ const ATTR_DOCS: Record<string, string> = {
 	padding: 'Space around the content or stage. Overrides the entity and config defaults.',
 	direction: 'Stage `flex-direction` (`row`/`column`). Overrides the entity and config defaults.',
 	gap: 'Stage `gap` between items. Overrides the entity and config defaults.',
-	contentX: 'Horizontal alignment of stage contents: `left` · `center` · `right` · `justify` (spread).',
+	contentX: 'Horizontal alignment of stage contents: `left` · `center` · `right` · `justify` (spread). On `[PAGE]`, aligns the content column instead: `left` · `center` · `right`.',
 	contentY: 'Vertical alignment of stage contents: `top` · `middle` · `bottom` · `justify` (spread).',
 	toc: '`toc="false"` hides the table of contents for this page.',
 };

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.41] - 2026-07-05
+
+### Added
+
+- **`contentX` on `[PAGE]`** lints, completes, and appears in the hover —
+  it aligns the page's content column (`left`/`center`/`right`).
+- **`static` completes in `sdocs.config.*`** — the bundled config schema
+  gained the new static-assets option.
+
+### Fixed
+
+- **Format Document no longer treats fenced component tags as islands.** A
+  `<Component />` line inside a markdown fence stayed at the mercy of the
+  Svelte fragment formatter; fences now shield island segmentation.
+
 ## [0.0.40] - 2026-07-05
 
 ### Added

@@ -2,7 +2,7 @@
 	"name": "sdocs",
 	"displayName": "sdocs",
 	"description": "Language support for sdocs \u2014 Svelte component documentation (.sdoc)",
-	"version": "0.0.40",
+	"version": "0.0.41",
 	"publisher": "gabilungu",
 	"license": "MIT",
 	"repository": {

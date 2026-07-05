@@ -159,7 +159,10 @@ ${stateBroadcast}
 
 		window.parent.postMessage({ type: 'sdocs:preview-ready' }, '*');
 
-		// Report content height to parent for auto-sizing
+		// Report content height to parent for auto-sizing. The preview div is
+		// display: flow-root so child margins are contained — otherwise the
+		// first/last child's margins collapse through it, scrollHeight comes up
+		// short, and the iframe clips the final block of content.
 		const ro = new ResizeObserver(() => {
 			const height = document.getElementById('sdocs-preview')?.scrollHeight ?? 0;
 			window.parent.postMessage({ type: 'sdocs:resize', height }, '*');
@@ -169,7 +172,7 @@ ${stateBroadcast}
 	});
 </script>
 
-<div id="sdocs-preview">
+<div id="sdocs-preview" style="display: flow-root">
 	{#snippet SdocsPreview(args)}
 		${injectRootRef(snippetBody, componentName)}
 	{/snippet}

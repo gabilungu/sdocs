@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.50] - 2026-07-05
+
+### Fixed
+
+- **The last block of a page no longer gets clipped.** Preview iframes size
+  themselves to the preview root's `scrollHeight`, but the first and last
+  child's margins collapsed through that root and weren't counted — so the
+  final block of `[PAGE]` content (a closing paragraph, a raw HTML block)
+  was cut off. The preview root is now a block formatting context
+  (`display: flow-root`), so the reported height includes everything.
+
 ## [0.0.49] - 2026-07-05
 
 ### Fixed

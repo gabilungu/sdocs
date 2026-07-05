@@ -195,3 +195,18 @@ describe('fences shield islands', () => {
 		expect(html).toContain('&#123;');
 	});
 });
+
+describe('fence languages', () => {
+	it('highlights bash fences as themed shiki blocks', async () => {
+		const { html } = await renderPageMarkdown('```bash\nnpm install gabi\n```');
+		expect(html).toContain('shiki');
+		expect(html).not.toMatch(/<pre><code>/);
+	});
+
+	it('renders unknown languages as plaintext shiki blocks, never bare pre', async () => {
+		const { html } = await renderPageMarkdown('```someunknownlang\nhello world\n```');
+		expect(html).toContain('shiki');
+		expect(html).toContain('hello world');
+		expect(html).not.toMatch(/<pre><code>/);
+	});
+});

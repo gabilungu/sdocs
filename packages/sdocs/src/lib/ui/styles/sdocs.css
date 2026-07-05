@@ -28,6 +28,15 @@
 	text-decoration: none;
 }
 
+/* Highlighted code blocks always render shiki's dark theme — a dark stage
+ * for code in both app themes (the inline light-theme colors lose to the
+ * dual-theme --shiki-dark variables). */
+.sdocs-app pre.shiki,
+.sdocs-app pre.shiki span {
+	color: var(--shiki-dark) !important;
+	background-color: var(--shiki-dark-bg) !important;
+}
+
 /* Type chips and value literals, color-coded by kind (shared by doc tables) */
 .sdocs-app code[class*='sdocs-type-'] {
 	font-family: var(--mono);

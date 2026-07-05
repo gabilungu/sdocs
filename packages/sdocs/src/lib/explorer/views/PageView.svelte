@@ -162,7 +162,11 @@
 		margin: 1.6em 0 0.5em;
 		scroll-margin-top: 16px;
 	}
-	.sdocs-page-content :global(h1) { font-size: 22px; }
+	/* The body h1 serves as the page title — match .sdocs-view-title */
+	.sdocs-page-content :global(h1) {
+		font-size: 24px;
+		font-weight: 700;
+	}
 	.sdocs-page-content :global(h2) { font-size: 18px; }
 	.sdocs-page-content :global(h3) { font-size: 15px; }
 	.sdocs-page-content :global(h4),

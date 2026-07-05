@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.59] - 2026-07-05
+
+### Changed
+
+- **Code blocks render on a dark stage.** Highlighted code — page fences and
+  the code panels — always uses the dark syntax theme, so blocks read as
+  code at a glance in both app themes (they previously rendered white-on-white
+  in light mode).
+- **A page's body `#` title matches the entity title size** (24px/700) — it
+  is the page title, after all.
+
+### Fixed
+
+- **Every fence gets a themed block.** `bash`, `json`, `markdown`, `yaml`,
+  and `diff` fences highlight properly, and unknown languages fall back to a
+  plaintext shiki block instead of an unstyled bare `<pre>`.
+
 ## [0.0.58] - 2026-07-05
 
 ### Added

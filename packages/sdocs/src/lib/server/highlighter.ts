@@ -7,20 +7,25 @@ async function getHighlighter(): Promise<Highlighter> {
 	if (!highlighterPromise) {
 		highlighterPromise = createHighlighter({
 			themes: ['github-light', 'github-dark'],
-			langs: ['svelte', 'typescript', 'javascript', 'css', 'html'],
+			langs: [
+				'svelte', 'typescript', 'javascript', 'css', 'html',
+				'bash', 'json', 'markdown', 'yaml', 'diff',
+			],
 		});
 	}
 	return highlighterPromise;
 }
 
-/** Highlight source code and return HTML */
+/** Highlight source code and return HTML. Unknown languages render as
+ * plaintext, so a fence is always a themed shiki block, never a bare pre. */
 export async function highlight(
 	code: string,
 	lang: string = 'svelte',
 ): Promise<string> {
 	const highlighter = await getHighlighter();
+	const resolved = highlighter.getLoadedLanguages().includes(lang) ? lang : 'text';
 	return highlighter.codeToHtml(code, {
-		lang,
+		lang: resolved,
 		themes: {
 			light: 'github-light',
 			dark: 'github-dark',

@@ -112,13 +112,29 @@ describe('sdoc language server over LSP', () => {
 		await client.changeDoc(uri, 5, source);
 	});
 
-	it('returns no hover on block tag lines (they project to snippet wrappers)', async () => {
-		const line = lines.findIndex((l) => l.includes('[DOCS'));
-		const hover = await client.connection.sendRequest('textDocument/hover', {
-			textDocument: { uri },
-			position: { line, character: lines[line].indexOf('[DOCS') + 2 },
-		});
-		expect(hover).toBeNull();
+	it('shows sdoc docs when hovering a block tag, not snippet-wrapper docs', async () => {
+		const hoverAt = (line: number, character: number) =>
+			client.connection.sendRequest('textDocument/hover', {
+				textDocument: { uri },
+				position: { line, character },
+			}) as Promise<{ contents?: { value?: string } } | null>;
+
+		const docsLine = lines.findIndex((l) => l.includes('[DOCS'));
+		const opener = await hoverAt(docsLine, lines[docsLine].indexOf('[DOCS') + 2);
+		expect(opener?.contents?.value).toContain('component documentation entity');
+		expect(opener?.contents?.value).not.toContain('{#snippet');
+
+		const previewLine = lines.findIndex((l) => l.includes('[preview'));
+		const preview = await hoverAt(previewLine, lines[previewLine].indexOf('[preview') + 3);
+		expect(preview?.contents?.value).toContain('live component panel');
+
+		const closerLine = lines.findIndex((l) => l.includes('[/DOCS]'));
+		const closer = await hoverAt(closerLine, lines[closerLine].indexOf('[/DOCS]') + 3);
+		expect(closer?.contents?.value).toContain('component documentation entity');
+
+		// past the tag token (in the attributes) there is nothing to say
+		const past = await hoverAt(docsLine, lines[docsLine].indexOf('title='));
+		expect(past).toBeNull();
 	});
 
 	it('formats PAGE bodies as markdown, leaving expressions and tags alone', async () => {

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.35] - 2026-07-05
+
+### Added
+
+- **The stage layout attributes lint and complete.** `maxWidth`, `padding`,
+  `direction`, `gap`, and `toc` (each where the language allows them) are
+  known to diagnostics, attribute completions, and the block tag hovers.
+- **Hover documentation for block tags.** Hovering `[DOCS]`, `[PAGE]`,
+  `[LAYOUT]`, `[preview]`, or `[example]` — opener or closer — shows the
+  tag's purpose and attributes with a link to the language reference,
+  instead of nothing.
+
 ## [0.0.34] - 2026-07-05
 
 ### Fixed

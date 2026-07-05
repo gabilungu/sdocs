@@ -34,6 +34,7 @@ import {
 import { scanSdoc, projectSdoc, type SdocProjection } from 'sdocs/language';
 import { startEmbeddedSvelte, type EmbeddedSvelte } from './embeddedSvelte';
 import { formatSdoc } from './formatting';
+import { sdocTagHover } from './tagHover';
 
 const connection: Connection = createConnection(ProposedFeatures.all);
 const documents = new TextDocuments(TextDocument);
@@ -177,7 +178,12 @@ connection.onCompletionResolve(async (item) => {
 });
 
 connection.onHover(async (params) => {
-	if (!isVerbatimLine(params.textDocument.uri, params.position.line)) return null;
+	if (!isVerbatimLine(params.textDocument.uri, params.position.line)) {
+		// Block tag lines get the sdoc language's own docs; other generated
+		// lines have nothing to say.
+		const doc = documents.get(params.textDocument.uri);
+		return doc ? sdocTagHover(doc.getText(), params.position) : null;
+	}
 	const server = await getSvelte();
 	return server.sendRequest(HoverRequest.type, forwardParams(params));
 });

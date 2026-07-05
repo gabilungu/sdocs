@@ -11,8 +11,11 @@ const DEFAULTS: ResolvedSdocsConfig = {
 	open: false,
 	css: null,
 	static: null,
+	title: 'sdocs',
 	logo: 'sdocs',
-	icon: 'sdocs',
+	sections: [],
+	defaultSection: 'Docs',
+	routing: null,
 	sidebar: {
 		order: {},
 		open: [],
@@ -98,14 +101,30 @@ export function resolveConfig(userConfig: SdocsConfig): ResolvedSdocsConfig {
 			: [userConfig.include]
 		: DEFAULTS.include;
 
+	// Pre-0.0.61 configs: `logo` was the header text and `icon` the image.
+	// An `icon` key marks the old shape — map it onto the new keys and warn.
+	const legacy = userConfig as SdocsConfig & { icon?: string | false };
+	const isLegacy = 'icon' in legacy;
+	if (isLegacy) {
+		console.warn(
+			"[sdocs] config `icon` was renamed: use `logo` for the image and `title` for the header text.",
+		);
+	}
+	const title =
+		userConfig.title ?? (isLegacy && typeof legacy.logo === 'string' ? legacy.logo : undefined);
+	const logo = isLegacy ? legacy.icon : userConfig.logo;
+
 	return {
 		include,
 		port: userConfig.port ?? DEFAULTS.port,
 		open: userConfig.open ?? DEFAULTS.open,
 		css: userConfig.css ?? DEFAULTS.css,
 		static: userConfig.static ?? DEFAULTS.static,
-		logo: userConfig.logo ?? DEFAULTS.logo,
-		icon: userConfig.icon ?? DEFAULTS.icon,
+		title: title ?? DEFAULTS.title,
+		logo: logo ?? DEFAULTS.logo,
+		sections: userConfig.sections ?? DEFAULTS.sections,
+		defaultSection: userConfig.defaultSection ?? DEFAULTS.defaultSection,
+		routing: userConfig.routing ?? DEFAULTS.routing,
 		sidebar: {
 			order: userConfig.sidebar?.order ?? DEFAULTS.sidebar.order,
 			open: userConfig.sidebar?.open ?? DEFAULTS.sidebar.open,

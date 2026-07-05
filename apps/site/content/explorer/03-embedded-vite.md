@@ -22,7 +22,7 @@ export default {
 };
 ```
 
-The plugin reads the same [`sdocs.config.js`](/explorer/configuration) if present; options passed here override it. In embedded mode only `include` and `css` matter — UI options like `logo` and `sidebarConfig` are props on the `App` component (below), and `port`/`open` apply only to the standalone CLI.
+The plugin reads the same [`sdocs.config.js`](/explorer/configuration) if present; options passed here override it. In embedded mode only `include` and `css` matter — UI options like `title` and `sidebarConfig` are props on the `Explorer` component (below), and `port`/`open` apply only to the standalone CLI.
 
 The plugin:
 
@@ -43,7 +43,7 @@ The plugin:
 <Explorer
   {docs}
   {cssNames}
-  logo="My Design System"
+  title="My Design System"
   sidebarConfig={{
     order: { root: ['Components', '*'] },
     open: ['Components'],
@@ -73,10 +73,14 @@ The `Explorer` component from `sdocs/explorer` accepts:
 |---|---|---|
 | `docs` | `DocEntry[]` | All discovered doc entries. Comes from `virtual:sdocs`. |
 | `cssNames` | `string[]` | Stylesheet names if using named CSS. Comes from `virtual:sdocs`. |
-| `logo` | `string` | Sidebar logo text. Default: `'sdocs'`. |
-| `icon` | `string \| false` | Sidebar logo icon: `'sdocs'` for the built-in mascot (default), an image URL, or `false` to hide. |
+| `title` | `string` | Header title text. Default: `'sdocs'`. |
+| `logo` | `string \| false` | Header logo: `'sdocs'` for the built-in mascot (default), an image URL, or `false` to hide. |
 | `previewBase` | `string` | URL prefix for preview pages when the app deploys under a sub-path. In SvelteKit, pass `base` from `$app/paths`. Default: `''`. |
 | `sidebarConfig` | `{ order?, open? }` | Sidebar ordering & initial open state. See [sidebar](/explorer/features/sidebar). |
+| `sections` | `string[]` | Top-bar section order (sections come from `@Section/` title prefixes). |
+| `defaultSection` | `string` | Section for docs without an `@Section/` prefix. Default: `'Docs'`. |
+| `routing` | `'history' \| 'hash'` | URL style. Embedded default: `'hash'` — it works under any host routing. Only switch to `'history'` if the host serves a fallback for doc routes. |
+| `basePath` | `string` | Path prefix for history-mode routes (the host sub-path the Explorer is mounted on). Default: `''`. |
 
 See [types](/explorer/types) for `DocEntry`.
 

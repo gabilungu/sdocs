@@ -38,8 +38,8 @@ export default {
   // Dev server port (default: 3000)
   // port: 3000,
 
-  // Sidebar logo text (default: 'sdocs')
-  // logo: 'sdocs',
+  // Header title text (default: 'sdocs')
+  // title: 'sdocs',
 };
 ```
 

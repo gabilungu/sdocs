@@ -37,7 +37,7 @@ export default {
   // port: 3000,
   // open: false,
   // css: './src/styles/global.css',
-  // logo: 'sdocs',
+  // title: 'sdocs',
   // sidebar: { ... },
 };
 ```
@@ -53,7 +53,7 @@ Starts a Vite dev server on the configured port (default `3000`). Watches:
 
 Any change triggers a full reload. The config file itself is read once at
 startup — restart the server after editing it. See
-[configuration](/explorer/configuration) for options like `open`, `css`, and `logo`.
+[configuration](/explorer/configuration) for options like `open`, `css`, and `title`.
 
 ## `sdocs run` — no install needed
 
@@ -74,7 +74,7 @@ You still need `.sdoc` files for it to have something to show; see
 
 ## `sdocs build`
 
-Builds a static site to `dist/`. The output is a single-page app with a pre-rendered iframe preview page per snippet. Deploy anywhere that serves static files (GitHub Pages, Netlify, Vercel, S3).
+Builds a static site to `dist/`. The output is a single-page app with a pre-rendered iframe preview page per snippet, plus an `index.html` per doc route — deep links work with no rewrite rules. Deploy anywhere that serves static files (GitHub Pages, Netlify, Vercel, S3).
 
 ## `sdocs preview`
 

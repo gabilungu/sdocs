@@ -10,7 +10,7 @@
 </svelte:head>
 
 <div class="demo">
-	<Explorer {docs} {cssNames} {pageModules} logo="sdocs site" previewBase={base} />
+	<Explorer {docs} {cssNames} {pageModules} title="sdocs site" previewBase={base} />
 </div>
 
 <style>

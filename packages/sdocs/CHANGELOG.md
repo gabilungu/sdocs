@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Sections: full documentation sites in the Explorer.** An `@Section/`
+  prefix on any entity title (`[PAGE title="@Guides/Installation"]`) groups
+  docs under a full-width top bar, each section with its own sidebar — mix
+  pages-only sections with component sections freely. Docs without a prefix
+  land in a configurable default section (`defaultSection`, default
+  `Docs`); the bar only appears once a second section exists, so existing
+  projects look unchanged. Tab order comes from the new `sections` config
+  (unlisted sections follow alphabetically).
+- **Real URLs (history routing).** Doc routes are now slugified paths —
+  `/components/button/sizes` instead of `#/Components/Button/Sizes`. The
+  CLI dev server serves the shell for any path, `sdocs build` emits an
+  `index.html` per route (deep links work on GitHub Pages with no rewrite
+  rules), and old `#/` bookmarks translate on load. Embedding keeps hash
+  URLs by default; the new `routing` config/prop switches either way, and
+  section-less links resolve into the default section.
+
+### Changed
+
+- **Config/prop rename: `title` + `logo`.** `title` is the header text
+  (was `logo`), `logo` the mascot image (was `icon`). Old configs with an
+  `icon` key are mapped automatically (with a console note); the `icon`
+  Explorer prop still works as an alias.
+
 ## [0.0.60] - 2026-07-06
 
 ### Added

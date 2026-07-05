@@ -19,11 +19,14 @@ export default {
 	// Or named stylesheets:
 	// css: { light: './src/styles/light.css', dark: './src/styles/dark.css' },
 
-	// Sidebar logo text (default: 'sdocs')
+	// Header title text (default: 'sdocs')
+	// title: 'sdocs',
+
+	// Header logo: 'sdocs' for the mascot, an image URL, or false to hide (default: 'sdocs')
 	// logo: 'sdocs',
 
-	// Sidebar logo icon: 'sdocs' for the mascot, an image URL, or false to hide (default: 'sdocs')
-	// icon: 'sdocs',
+	// Top-bar section order — sections come from @Section/ title prefixes
+	// sections: ['Guides', 'Components'],
 
 	// Sidebar configuration
 	// sidebar: {

@@ -1,8 +1,9 @@
 <script lang="ts">
 	import type { DocEntry } from '../types.js';
-	import { initRouter, getPath } from './router.svelte.js';
-	import { buildTree, findDocByPath } from './tree-builder.js';
+	import { initRouter, getRoute, navigate, type RoutingMode } from './router.svelte.js';
+	import { buildSections, resolveRoute } from './tree-builder.js';
 	import Sidebar from './views/Sidebar.svelte';
+	import TopBar from './views/TopBar.svelte';
 	import ComponentView from './views/ComponentView.svelte';
 	import PageView from './views/PageView.svelte';
 	import LayoutView from './views/LayoutView.svelte';
@@ -14,7 +15,11 @@
 
 	interface Props {
 		docs: DocEntry[];
-		logo?: string;
+		/** Header title text */
+		title?: string;
+		/** Header logo: 'sdocs' for the built-in mascot, an image URL, or false to hide */
+		logo?: string | false;
+		/** @deprecated pre-0.0.61 name for `logo` */
 		icon?: string | false;
 		cssNames?: string[];
 		/** URL prefix for preview pages when the host app is served under a sub-path (e.g. SvelteKit's base). */
@@ -25,19 +30,42 @@
 			order?: Record<string, string[]>;
 			open?: string[];
 		};
+		/** Top-bar section order (unlisted sections follow alphabetically) */
+		sections?: string[];
+		/** Section for docs without an `@Section/` title prefix. Default: 'Docs' */
+		defaultSection?: string;
+		/** 'history' for real paths (server must fall back to the shell),
+		 * 'hash' for #/ URLs. Embedded default: 'hash'. */
+		routing?: RoutingMode;
+		/** Path prefix for history-mode routes (host app sub-path) */
+		basePath?: string;
 	}
 
 	let {
 		docs,
+		title,
 		logo = 'sdocs',
-		icon = 'sdocs',
+		icon,
 		cssNames = [],
 		previewBase = '',
 		pageModules = {},
-		sidebarConfig
+		sidebarConfig,
+		sections,
+		defaultSection = 'Docs',
+		routing = 'hash',
+		basePath = ''
 	}: Props = $props();
 
 	setContext('sdocs-preview-base', previewBase);
+
+	// Pre-0.0.61 props: `logo` was the header text and `icon` the image. An
+	// `icon` prop — or a logo value that can't be an asset path — is the old
+	// shape; map it onto the new semantics so embedded apps keep rendering.
+	const logoLooksLikeText = $derived(
+		typeof logo === 'string' && logo !== 'sdocs' && !/[./:]/.test(logo),
+	);
+	const headerTitle = $derived(title ?? (logoLooksLikeText ? (logo as string) : 'sdocs'));
+	const headerLogo = $derived(icon !== undefined ? icon : logoLooksLikeText ? 'sdocs' : logo);
 
 	let sidebarHidden = $state(false);
 	let activeStylesheet = $state<string | undefined>(undefined);
@@ -51,7 +79,7 @@
 	});
 
 	onMount(() => {
-		initRouter();
+		initRouter(routing, basePath);
 		const saved = localStorage.getItem('sdocs-theme') as ThemeMode | null;
 		if (saved && (saved === 'light' || saved === 'dark')) {
 			theme = saved;
@@ -66,43 +94,89 @@
 		localStorage.setItem('sdocs-theme', theme);
 	});
 
-	const currentPath = $derived(getPath());
-	const tree = $derived(buildTree(docs, sidebarConfig));
-	const resolved = $derived(findDocByPath(docs, currentPath));
+	const currentRoute = $derived(getRoute());
+	const sectionMap = $derived(
+		buildSections(docs, sidebarConfig, { defaultSection, order: sections }),
+	);
+	const showTopBar = $derived(sectionMap.sections.length > 1);
+	const activeSection = $derived(
+		(sectionMap.active
+			? sectionMap.sections.find((s) => s.slug === currentRoute[0])
+			: undefined) ??
+			sectionMap.sections.find((s) => s.isDefault) ??
+			sectionMap.sections[0],
+	);
+	const resolved = $derived(resolveRoute(sectionMap, currentRoute));
+
+	/** History mode: internal <a> clicks route client-side instead of reloading. */
+	function onLinkClick(e: MouseEvent) {
+		if (routing !== 'history') return;
+		if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
+			return;
+		const anchor = (e.target as Element | null)?.closest?.('a');
+		if (!anchor || anchor.target || anchor.hasAttribute('download')) return;
+		const href = anchor.getAttribute('href');
+		if (!href || href.startsWith('#')) return;
+		const url = new URL(anchor.href, location.href);
+		if (url.origin !== location.origin) return;
+		const base = basePath.replace(/\/$/, '');
+		if (base && !url.pathname.startsWith(base + '/')) return;
+		e.preventDefault();
+		navigate(url.pathname.slice(base.length).split('/').filter(Boolean).map(decodeURIComponent));
+	}
 </script>
 
-<div class="sdocs-app">
-	{#if !sidebarHidden}
-		<Sidebar
-			{tree}
-			{currentPath}
-			{logo}
-			{icon}
+<svelte:window onclick={onLinkClick} />
+
+<div class="sdocs-app" class:sdocs-app-with-topbar={showTopBar}>
+	{#if showTopBar}
+		<TopBar
+			title={headerTitle}
+			logo={headerLogo}
+			sections={sectionMap.sections}
+			activeSlug={activeSection?.slug}
 			{cssNames}
 			{activeStylesheet}
 			{theme}
-			onToggleFullscreen={() => sidebarHidden = true}
-			onStylesheetChange={(name) => activeStylesheet = name}
-			onThemeChange={(t) => theme = t}
+			onToggleFullscreen={() => (sidebarHidden = true)}
+			onStylesheetChange={(name) => (activeStylesheet = name)}
+			onThemeChange={(t) => (theme = t)}
 		/>
-	{:else}
-		<button class="sdocs-exit-fullscreen" onclick={() => sidebarHidden = false}>
-			&#9664; Exit fullscreen
-		</button>
 	{/if}
-	<main class="sdocs-main" class:sdocs-main-fullscreen={sidebarHidden}>
-		{#if resolved}
-			{#if resolved.doc.kind === 'page'}
-				<PageView doc={resolved.doc} {activeStylesheet} {pageModules} />
-			{:else if resolved.doc.kind === 'layout'}
-				<LayoutView doc={resolved.doc} {activeStylesheet} />
-			{:else}
-				<ComponentView doc={resolved.doc} snippetName={resolved.snippetName} {activeStylesheet} />
-			{/if}
+	<div class="sdocs-body">
+		{#if !sidebarHidden}
+			<Sidebar
+				tree={activeSection?.tree ?? []}
+				{currentRoute}
+				title={headerTitle}
+				logo={headerLogo}
+				showHeader={!showTopBar}
+				cssNames={showTopBar ? [] : cssNames}
+				{activeStylesheet}
+				{theme}
+				onToggleFullscreen={() => (sidebarHidden = true)}
+				onStylesheetChange={(name) => (activeStylesheet = name)}
+				onThemeChange={(t) => (theme = t)}
+			/>
 		{:else}
-			<HomePage {docs} {logo} />
+			<button class="sdocs-exit-fullscreen" onclick={() => (sidebarHidden = false)}>
+				&#9664; Exit fullscreen
+			</button>
 		{/if}
-	</main>
+		<main class="sdocs-main" class:sdocs-main-fullscreen={sidebarHidden}>
+			{#if resolved}
+				{#if resolved.doc.kind === 'page'}
+					<PageView doc={resolved.doc} {activeStylesheet} {pageModules} />
+				{:else if resolved.doc.kind === 'layout'}
+					<LayoutView doc={resolved.doc} {activeStylesheet} />
+				{:else}
+					<ComponentView doc={resolved.doc} snippetName={resolved.snippetName} {activeStylesheet} />
+				{/if}
+			{:else}
+				<HomePage {docs} title={headerTitle} logo={headerLogo} />
+			{/if}
+		</main>
+	</div>
 </div>
 
 <style>
@@ -110,9 +184,15 @@
 		margin: 0;
 		padding: 0;
 		display: flex;
+		flex-direction: column;
 		height: 100vh;
 		overflow: hidden;
 		position: relative;
+	}
+	.sdocs-body {
+		display: flex;
+		flex: 1;
+		min-height: 0;
 	}
 	.sdocs-main {
 		flex: 1;

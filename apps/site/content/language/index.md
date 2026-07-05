@@ -64,7 +64,11 @@ only examples.
 The `title` attribute places each entity in the sidebar — path segments
 separated by `/` create groups, exactly like folders:
 `title="Forms / Button"` puts Button inside the Forms group. Within a group,
-entities appear in document order, then by file path.
+entities appear in document order, then by file path. Two prefixes on the
+first segment add structure above folders: `:` makes a bold sidebar group
+(`title=":Forms / Button"`), and `@` assigns the entity to a top-bar
+[section](/explorer/features/sidebar#sections-top-bar)
+(`title="@Components/Forms / Button"`).
 
 ## Multiple entities per file
 

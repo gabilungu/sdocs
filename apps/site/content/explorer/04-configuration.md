@@ -26,8 +26,11 @@ interface SdocsConfig {
   port?: number;
   open?: boolean;
   css?: string | Record<string, string>;
-  logo?: string;
-  icon?: string | false;
+  title?: string;
+  logo?: string | false;
+  sections?: string[];
+  defaultSection?: string;
+  routing?: 'history' | 'hash';
   sidebar?: {
     order?: Record<string, string[]>;
     open?: string[];
@@ -121,27 +124,61 @@ and a preview can reference `/hero.png` too. The option powers the
 standalone CLI flows (`sdocs dev`/`run`/`build`); when embedding the Vite
 plugin in an app, use the host's own public directory instead.
 
-### `logo`
+### `title`
 
-Text shown in the sidebar header.
+Text shown in the header (the sidebar header, or the top bar when
+[sections](/explorer/features/sidebar#sections-top-bar) are in use).
 
 - **Type:** `string`
 - **Default:** `'sdocs'`
 
-### `icon`
+### `logo`
 
-Icon shown next to the logo text in the sidebar header.
+Logo shown next to the title text.
 
 - **Type:** `string | false`
 - **Default:** `'sdocs'`
 
 `'sdocs'` shows the built-in sdocs mascot. Any other string is used as an
 image URL (`/logo.svg` from your static assets, or a full `http(s)://` URL).
-`false` hides the icon.
+`false` hides the logo.
 
 ```js
-icon: '/acme-logo.svg'
+logo: '/acme-logo.svg'
 ```
+
+### `sections`
+
+Top-bar section order. Sections come from `@Section/` title prefixes; any
+sections not listed here follow alphabetically.
+
+- **Type:** `string[]`
+- **Default:** `[]` (default section first, rest alphabetical)
+
+```js
+sections: ['Guides', 'Components', 'Reference']
+```
+
+### `defaultSection`
+
+Name of the section that docs *without* an `@Section/` title prefix belong
+to. Only relevant once at least one doc declares a section.
+
+- **Type:** `string`
+- **Default:** `'Docs'`
+
+### `routing`
+
+URL style.
+
+- **Type:** `'history' | 'hash'`
+- **Default:** `'history'` in the standalone CLI, `'hash'` when embedding
+
+`'history'` uses real paths (`/guides/installation`) — the CLI dev server
+falls back to the app shell for any path, and `sdocs build` emits a
+physical `index.html` per route so static hosts need no rewrite rules.
+`'hash'` uses `#/` URLs, which work under any host routing — the right
+choice (and the default) when [embedding](/explorer/embedded-vite).
 
 ### `sidebar.order`
 
@@ -228,7 +265,8 @@ export default {
   include: ['./src/lib/**/*.sdoc'],
   port: 3001,
   open: true,
-  logo: 'Acme Design System',
+  title: 'Acme Design System',
+  sections: ['Guides', 'Components'],
   css: {
     light: './src/styles/light.css',
     dark: './src/styles/dark.css',

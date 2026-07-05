@@ -12,10 +12,21 @@ export interface SdocsConfig {
 	 * files for previews. Standalone CLI flows (`sdocs dev`/`build`); when
 	 * embedding the Vite plugin, use the host app's own public directory. */
 	static?: string;
-	/** Sidebar logo text. Default: 'sdocs' */
-	logo?: string;
-	/** Sidebar logo icon: 'sdocs' for the built-in mascot, an image URL, or false to hide. Default: 'sdocs' */
-	icon?: string | false;
+	/** Header title text. Default: 'sdocs' */
+	title?: string;
+	/** Header logo: 'sdocs' for the built-in mascot, an image URL, or false to hide. Default: 'sdocs' */
+	logo?: string | false;
+	/** Top-bar section order. Sections come from `@Section/...` title prefixes;
+	 * unlisted sections follow alphabetically. Default: default section first,
+	 * rest alphabetical. */
+	sections?: string[];
+	/** Name of the section that docs without an `@Section/` prefix belong to.
+	 * Default: 'Docs' */
+	defaultSection?: string;
+	/** URL style: 'history' for real paths (default in the standalone CLI,
+	 * needs the server to fall back to the shell), 'hash' for #/ URLs
+	 * (default when embedding — works under any host routing). */
+	routing?: 'history' | 'hash';
 	/** Sidebar configuration */
 	sidebar?: {
 		/** Per-folder sort overrides. Keys are folder paths, 'root' for top level. '*' = unlisted items. */
@@ -77,8 +88,12 @@ export interface ResolvedSdocsConfig {
 	open: boolean;
 	css: string | Record<string, string> | null;
 	static: string | null;
-	logo: string;
-	icon: string | false;
+	title: string;
+	logo: string | false;
+	sections: string[];
+	defaultSection: string;
+	/** null = per-mode default (standalone: history, embedded: hash) */
+	routing: 'history' | 'hash' | null;
 	sidebar: {
 		order: Record<string, string[]>;
 		open: string[];

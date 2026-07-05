@@ -4,10 +4,11 @@
 
 	interface Props {
 		docs: DocEntry[];
-		logo: string;
+		title: string;
+		logo?: string | false;
 	}
 
-	let { docs, logo }: Props = $props();
+	let { docs, title, logo = 'sdocs' }: Props = $props();
 
 	const componentCount = $derived(docs.filter((d) => d.kind === 'component').length);
 	const pageCount = $derived(docs.filter((d) => d.kind === 'page').length);
@@ -16,8 +17,12 @@
 
 <div class="sdocs-home">
 	<div class="sdocs-home-brand">
-		<Icon name="sdocs" --w="160px" --h="160px" --fill="#FC1D29" />
-		<h1 class="sdocs-home-logo">{logo}</h1>
+		{#if logo === 'sdocs'}
+			<Icon name="sdocs" --w="160px" --h="160px" --fill="#FC1D29" />
+		{:else if logo}
+			<img class="sdocs-home-logo-img" src={logo} alt="" />
+		{/if}
+		<h1 class="sdocs-home-logo">{title}</h1>
 		<p class="sdocs-home-tagline">A lightweight documentation tool for Svelte 5 components.</p>
 	</div>
 
@@ -64,6 +69,11 @@
 		font-weight: 700;
 		color: var(--color-base-900);
 		margin: 0;
+	}
+	.sdocs-home-logo-img {
+		width: 160px;
+		height: 160px;
+		object-fit: contain;
 	}
 	.sdocs-home-tagline {
 		font-size: 16px;

@@ -2,58 +2,79 @@
 title: Routing
 ---
 
-sdocs uses a hash-based router. The current doc is encoded in `window.location.hash`, so any doc page is deep-linkable.
+Every doc page has its own URL. The standalone CLI uses real paths (history
+routing); embedding defaults to `#/` hash URLs. Both modes share the same
+route structure.
 
 ## URL format
 
+Routes are built from the doc's `title`: one slug per segment, with the
+[section](/explorer/features/sidebar#sections-top-bar) first when sections
+are in use.
+
 ```
-https://example.com/docs/#/Components/Button
-https://example.com/docs/#/Components/Button/WithIcon
-https://example.com/docs/#/Patterns/Login-Form
+https://example.com/components/button
+https://example.com/components/button/with-icon
+https://example.com/guides/getting-started
 ```
 
-The hash is `#` followed by one `/` per title segment.
+## Slugs
 
-## Space encoding
+Each title segment is slugified the same way page headings are: lowercased,
+punctuation stripped, spaces as hyphens.
 
-Spaces in titles are encoded as hyphens in the URL, and decoded back when reading:
-
-| Title | URL hash |
+| Title | Route |
 |---|---|
-| `'Components / Button'` | `#/Components/Button` |
-| `'Patterns / Login Form'` | `#/Patterns/Login-Form` |
-| `'Docs / Getting Started'` | `#/Docs/Getting-Started` |
+| `'Components / Button'` | `/components/button` |
+| `'Patterns / Login Form'` | `/patterns/login-form` |
+| `'@Guides/Getting Started'` | `/guides/getting-started` |
 
-If a title already contains a hyphen, it'll look the same in the URL — there's no unambiguous round-trip for `"A - B"` vs. `"A B"`. Avoid hyphens in titles if you care.
+Two siblings that slugify identically get numbered (`/thing`, `/thing-2`).
 
 ## Sub-pages
 
 Examples get a sub-segment:
 
-| Entry | URL hash |
+| Entry | Route |
 |---|---|
-| `Button` component (main page) | `#/Components/Button` |
-| `Button` example `WithIcon` | `#/Components/Button/WithIcon` |
+| `Button` component (main page) | `/components/button` |
+| `Button` example `WithIcon` | `/components/button/with-icon` |
+
+## History mode (standalone CLI)
+
+`sdocs dev` / `sdocs run` serve the app shell for any path, and
+`sdocs build` writes a physical `index.html` per route into `dist/` — deep
+links work on any static host (GitHub Pages included) with no rewrite
+rules. Old `#/…` bookmarks from earlier sdocs versions are translated on
+load.
+
+## Hash mode (embedded)
+
+When the Explorer is embedded in a host app, its routing defaults to
+`#/components/button` under whatever path the host mounts it on — no server
+cooperation needed. Override with the
+[`routing`](/explorer/configuration#routing) option or the `routing` prop
+if your host serves a fallback.
 
 ## Deep linking
 
-Because everything is in the hash, any URL can be bookmarked, shared, or linked to:
-
-```html
-<a href="/docs/#/Components/Button">See the Button docs</a>
-```
-
-The page loads and the selected doc renders, highlighted in the sidebar. (Folders keep their default expand state — deep-linking doesn't auto-expand the path to the entry.)
+Any URL can be bookmarked, shared, or linked to. Links written *without* a
+section prefix (`/components/button` while sections are active) resolve
+into the default section, so URLs from before you introduced sections keep
+working. (Folders keep their default expand state — deep-linking doesn't
+auto-expand the path to the entry.)
 
 ## Home page
 
-Visiting with no hash (or just `#/`) shows a home page with counts of components, pages, and layouts.
+Visiting the root shows a home page with counts of components, pages, and
+layouts.
 
 ## Fullscreen mode
 
-Clicking the fullscreen button hides the sidebar. This is a UI state only — it doesn't affect the URL, and it isn't persisted.
+Clicking the fullscreen button hides the sidebar. This is a UI state only —
+it doesn't affect the URL, and it isn't persisted.
 
 ## See also
 
-- [Sidebar](/explorer/features/sidebar) — where titles come from
-- [Writing component docs](/language/component-docs) — setting `title`
+- [Sidebar](/explorer/features/sidebar) — where titles, groups, and sections come from
+- [Configuration](/explorer/configuration) — the `routing` option

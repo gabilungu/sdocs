@@ -92,16 +92,33 @@ export const configSchema: ConfigSchema = {
 		doc: 'Folder of static assets served at the site root — images for pages, files for previews. Standalone CLI flows; embedded apps use the host\'s public directory.',
 		insert: ": './${0:static}'",
 	},
-	logo: {
+	title: {
 		detail: 'string',
-		doc: 'Sidebar logo text. Default: `sdocs`.',
+		doc: 'Header title text. Default: `sdocs`.',
 		insert: ": '${0:sdocs}'",
 	},
-	icon: {
+	logo: {
 		detail: 'string | false',
-		doc: "Sidebar logo icon: `'sdocs'` for the built-in mascot, an image URL, or `false` to hide it. Default: `'sdocs'`.",
+		doc: "Header logo: `'sdocs'` for the built-in mascot, an image URL, or `false` to hide it. Default: `'sdocs'`.",
 		insert: ": '${0:sdocs}'",
 		values: ['sdocs'],
+		quoted: true,
+	},
+	sections: {
+		detail: 'string[]',
+		doc: 'Top-bar section order. Sections come from `@Section/…` title prefixes; unlisted sections follow alphabetically.',
+		insert: ': [$0]',
+	},
+	defaultSection: {
+		detail: 'string',
+		doc: 'Section for docs without an `@Section/` title prefix. Default: `Docs`.',
+		insert: ": '${0:Docs}'",
+	},
+	routing: {
+		detail: "'history' | 'hash'",
+		doc: "URL style: `'history'` for real paths (standalone CLI default), `'hash'` for `#/` URLs (embedded default).",
+		insert: ": '${0:history}'",
+		values: ['history', 'hash'],
 		quoted: true,
 	},
 	sidebar: {

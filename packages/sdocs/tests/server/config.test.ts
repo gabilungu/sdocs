@@ -157,3 +157,39 @@ describe('page content alignment', () => {
 		expect(resolveConfig({ content: { page: { contentX: 'center' } } }).content.page.contentX).toBe('center');
 	});
 });
+
+describe('header title/logo (renamed from logo/icon)', () => {
+	it('defaults: sdocs title, built-in mascot logo', () => {
+		const c = resolveConfig({});
+		expect(c.title).toBe('sdocs');
+		expect(c.logo).toBe('sdocs');
+	});
+
+	it('new keys pass through', () => {
+		const c = resolveConfig({ title: 'gabi', logo: './mascot.svg' });
+		expect(c.title).toBe('gabi');
+		expect(c.logo).toBe('./mascot.svg');
+	});
+
+	it('legacy shape (icon present) maps logo→title and icon→logo', () => {
+		const c = resolveConfig({ logo: 'MyLib', icon: './m.png' } as never);
+		expect(c.title).toBe('MyLib');
+		expect(c.logo).toBe('./m.png');
+	});
+});
+
+describe('sections config', () => {
+	it('defaults', () => {
+		const c = resolveConfig({});
+		expect(c.sections).toEqual([]);
+		expect(c.defaultSection).toBe('Docs');
+		expect(c.routing).toBeNull();
+	});
+
+	it('passes through', () => {
+		const c = resolveConfig({ sections: ['Guides'], defaultSection: 'Reference', routing: 'hash' });
+		expect(c.sections).toEqual(['Guides']);
+		expect(c.defaultSection).toBe('Reference');
+		expect(c.routing).toBe('hash');
+	});
+});

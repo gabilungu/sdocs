@@ -33,8 +33,11 @@ interface SdocsConfig {
   port?: number;
   open?: boolean;
   css?: string | Record<string, string>;
-  logo?: string;
-  icon?: string | false;
+  title?: string;
+  logo?: string | false;
+  sections?: string[];
+  defaultSection?: string;
+  routing?: 'history' | 'hash';
   sidebar?: {
     order?: Record<string, string[]>;
     open?: string[];
@@ -54,8 +57,11 @@ interface ResolvedSdocsConfig {
   port: number;
   open: boolean;
   css: string | Record<string, string> | null;
-  logo: string;
-  icon: string | false;
+  title: string;
+  logo: string | false;
+  sections: string[];
+  defaultSection: string;
+  routing: 'history' | 'hash' | null;
   sidebar: {
     order: Record<string, string[]>;
     open: string[];

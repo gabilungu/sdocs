@@ -123,8 +123,11 @@ mount(Explorer, {
 		docs,
 		cssNames,
 		pageModules,
+		title: ${JSON.stringify(config.title)},
 		logo: ${JSON.stringify(config.logo)},
-		icon: ${JSON.stringify(config.icon)},
+		sections: ${JSON.stringify(config.sections)},
+		defaultSection: ${JSON.stringify(config.defaultSection)},
+		routing: ${JSON.stringify(config.routing ?? 'history')},
 		sidebarConfig: ${JSON.stringify(config.sidebar)},
 	}
 });`;
@@ -220,7 +223,7 @@ export async function generateDevFiles(
 	await copyExplorerApp(sdocsDir);
 	await linkStagedDeps(sdocsDir, cwd);
 
-	await writeFile(resolve(sdocsDir, 'index.html'), generateIndexHtml(config.logo));
+	await writeFile(resolve(sdocsDir, 'index.html'), generateIndexHtml(config.title));
 	await writeFile(resolve(sdocsDir, 'entry.js'), generateEntryJs(config));
 
 	return sdocsDir;
@@ -240,7 +243,7 @@ export async function generateBuildFiles(
 	await copyExplorerApp(sdocsDir);
 	await linkStagedDeps(sdocsDir, cwd);
 
-	await writeFile(resolve(sdocsDir, 'index.html'), generateIndexHtml(config.logo));
+	await writeFile(resolve(sdocsDir, 'index.html'), generateIndexHtml(config.title));
 	await writeFile(resolve(sdocsDir, 'entry.js'), generateEntryJs(config));
 
 	const inputs: Record<string, string> = {

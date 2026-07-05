@@ -4,7 +4,8 @@ import { configSchema } from '../../src/lib/language/index.js';
 describe('configSchema (drives config completion without an install)', () => {
 	it('exposes the top-level config keys', () => {
 		expect(Object.keys(configSchema)).toEqual([
-			'include', 'port', 'open', 'css', 'static', 'logo', 'icon', 'sidebar', 'content',
+			'include', 'port', 'open', 'css', 'static', 'title', 'logo',
+			'sections', 'defaultSection', 'routing', 'sidebar', 'content',
 		]);
 	});
 

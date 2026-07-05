@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { SvelteSet } from 'svelte/reactivity';
 	import type { TreeNode } from '../tree-builder.js';
-	import { pathToHash } from '../router.svelte.js';
+	import { routeHref, navigate } from '../router.svelte.js';
 	import { Icon } from '../../ui/Icon/index.js';
 	import { NavTree } from '../../ui/index.js';
 
@@ -9,9 +9,11 @@
 
 	interface Props {
 		tree: TreeNode[];
-		currentPath: string[];
-		logo: string;
-		icon?: string | false;
+		currentRoute: string[];
+		title: string;
+		logo?: string | false;
+		/** Brand + actions render here unless a top bar already shows them */
+		showHeader?: boolean;
 		cssNames?: string[];
 		activeStylesheet?: string;
 		theme?: ThemeMode;
@@ -20,7 +22,7 @@
 		onThemeChange?: (theme: ThemeMode) => void;
 	}
 
-	let { tree, currentPath, logo, icon = 'sdocs', cssNames = [], activeStylesheet, theme = 'light', onToggleFullscreen, onStylesheetChange, onThemeChange }: Props = $props();
+	let { tree, currentRoute, title, logo = 'sdocs', showHeader = true, cssNames = [], activeStylesheet, theme = 'light', onToggleFullscreen, onStylesheetChange, onThemeChange }: Props = $props();
 
 	const themeIcons: Record<ThemeMode, string> = { light: '\u2600', dark: '\u263D' };
 	const themeLabels: Record<ThemeMode, string> = { light: 'Light', dark: 'Dark' };
@@ -85,13 +87,16 @@
 		return result;
 	}
 
-	function isActive(nodePath: string[]): boolean {
-		if (nodePath.length > currentPath.length) return false;
-		return nodePath.every((seg, i) => seg === currentPath[i]);
+	function isActive(nodeRoute: string[]): boolean {
+		if (nodeRoute.length > currentRoute.length) return false;
+		return nodeRoute.every((seg, i) => seg === currentRoute[i]);
 	}
 
-	function isExactActive(nodePath: string[]): boolean {
-		return nodePath.length === currentPath.length && nodePath.every((seg, i) => seg === currentPath[i]);
+	function isExactActive(nodeRoute: string[]): boolean {
+		return (
+			nodeRoute.length === currentRoute.length &&
+			nodeRoute.every((seg, i) => seg === currentRoute[i])
+		);
 	}
 
 	function iconName(node: TreeNode, expanded: boolean): string {
@@ -184,35 +189,37 @@
 </script>
 
 <aside class="sdocs-sidebar">
-	<div class="sdocs-sidebar-header">
-		<a href="#/" class="sdocs-logo">
-			{#if icon === 'sdocs'}
-				<Icon name="sdocs" --w="22px" --h="22px" --fill="#FC1D29" />
-			{:else if icon}
-				<img class="sdocs-logo-img" src={icon} alt="" />
-			{/if}
-			{logo}
-		</a>
-		<div class="sdocs-header-actions">
-			{#if cssNames.length > 1}
-				<select
-					class="sdocs-css-picker"
-					value={activeStylesheet}
-					onchange={(e) => onStylesheetChange?.(e.currentTarget.value)}
-				>
-					{#each cssNames as name (name)}
-						<option value={name}>{name}</option>
-					{/each}
-				</select>
-			{/if}
-			<button class="sdocs-theme-btn" onclick={toggleTheme} title="{themeLabels[theme]} theme">
-				{themeIcons[theme]}
-			</button>
-			<button class="sdocs-fullscreen-btn" onclick={() => onToggleFullscreen?.()} title="Fullscreen">
-				&#x26F6;
-			</button>
+	{#if showHeader}
+		<div class="sdocs-sidebar-header">
+			<a href={routeHref([])} class="sdocs-logo">
+				{#if logo === 'sdocs'}
+					<Icon name="sdocs" --w="22px" --h="22px" --fill="#FC1D29" />
+				{:else if logo}
+					<img class="sdocs-logo-img" src={logo} alt="" />
+				{/if}
+				{title}
+			</a>
+			<div class="sdocs-header-actions">
+				{#if cssNames.length > 1}
+					<select
+						class="sdocs-css-picker"
+						value={activeStylesheet}
+						onchange={(e) => onStylesheetChange?.(e.currentTarget.value)}
+					>
+						{#each cssNames as name (name)}
+							<option value={name}>{name}</option>
+						{/each}
+					</select>
+				{/if}
+				<button class="sdocs-theme-btn" onclick={toggleTheme} title="{themeLabels[theme]} theme">
+					{themeIcons[theme]}
+				</button>
+				<button class="sdocs-fullscreen-btn" onclick={() => onToggleFullscreen?.()} title="Fullscreen">
+					&#x26F6;
+				</button>
+			</div>
 		</div>
-	</div>
+	{/if}
 
 	<div class="sdocs-sidebar-search">
 		<input
@@ -244,12 +251,12 @@
 		<NavTree.Item
 			label={node.name}
 			{expanded}
-			active={isActive(node.path)}
+			active={isActive(node.route)}
 			onclick={() => {
 				const wasCollapsed = !expandedSet.has(pathKey);
 				toggleExpanded(pathKey);
 				if (wasCollapsed && node.type !== 'folder') {
-					window.location.hash = pathToHash(node.path);
+					navigate(node.route);
 				}
 			}}
 			--font-weight="500"
@@ -268,8 +275,8 @@
 	{:else}
 		<NavTree.Item
 			label={node.name}
-			href={pathToHash(node.path)}
-			active={isExactActive(node.path)}
+			href={routeHref(node.route)}
+			active={isExactActive(node.route)}
 			--font-weight={leafWeight(node)}
 			--bg-hover={hoverBg(node)}
 			--bg-active={activeBg(node)}
@@ -284,7 +291,7 @@
 <style>
 	.sdocs-sidebar {
 		width: 260px;
-		height: 100vh;
+		height: 100%;
 		overflow-y: auto;
 		border-right: 1px solid var(--color-base-200);
 		background: var(--color-base-0);

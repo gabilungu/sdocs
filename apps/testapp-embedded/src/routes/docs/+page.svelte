@@ -11,7 +11,7 @@
 	{docs}
 	{cssNames}
 	{pageModules}
-	logo="testapp"
+	title="testapp"
 	sidebarConfig={{
 		order: { root: ['UI', '*'] },
 		open: ['UI']

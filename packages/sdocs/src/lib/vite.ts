@@ -380,8 +380,8 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				padding: string | null;
 				direction: string | null;
 				gap: string | null;
-				align: string | null;
-				alignY: string | null;
+				contentX: string | null;
+				contentY: string | null;
 			}) => ({
 				// Entity-level maxWidth on DOCS/PAGE is the content column, not the
 				// stage; stages inside them span their panel unless the block says so.
@@ -389,14 +389,14 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 					block?.maxWidth ??
 					(entity.kind === 'LAYOUT' ? (entity.sizing.maxWidth ?? kindDefaults.maxWidth) : '100%'),
 				padding: block?.padding ?? entity.sizing.padding ?? kindDefaults.padding,
-				// direction/gap/align flex the preview/example stages only
+				// direction/gap/contentX flex the preview/example stages only
 				...(entity.kind === 'DOCS' && block
 					? {
 							direction:
 								block.direction ?? entity.sizing.direction ?? config.content.docs.direction,
 							gap: block.gap ?? entity.sizing.gap ?? config.content.docs.gap,
-							align: block.align ?? entity.sizing.align ?? config.content.docs.align,
-							alignY: block.alignY ?? entity.sizing.alignY ?? config.content.docs.alignY,
+							contentX: block.contentX ?? entity.sizing.contentX ?? config.content.docs.contentX,
+							contentY: block.contentY ?? entity.sizing.contentY ?? config.content.docs.contentY,
 						}
 					: {}),
 			});

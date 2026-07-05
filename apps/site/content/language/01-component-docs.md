@@ -33,8 +33,8 @@ controls, frozen examples, and each previewed component's extracted API.
 | `padding` | no | Default stage padding for this entity's previews and examples (default `16px`) |
 | `direction` | no | Default stage `flex-direction` (default `row`) |
 | `gap` | no | Default stage `gap` (default `16px`) |
-| `align` | no | Default horizontal alignment: `left`/`center`/`right`/`justify` (default `left`) |
-| `alignY` | no | Default vertical alignment: `top`/`middle`/`bottom`/`justify` (default `top`) |
+| `contentX` | no | Default horizontal alignment: `left`/`center`/`right`/`justify` (default `left`) |
+| `contentY` | no | Default vertical alignment: `top`/`middle`/`bottom`/`justify` (default `top`) |
 
 ## `[preview]`
 
@@ -51,8 +51,8 @@ component it demonstrates and declares the defaults for its
 | `padding` | no | Stage padding — overrides the entity and config defaults |
 | `direction` | no | Stage `flex-direction` — overrides the entity and config defaults |
 | `gap` | no | Stage `gap` — overrides the entity and config defaults |
-| `align` | no | Horizontal alignment: `left`/`center`/`right`/`justify` |
-| `alignY` | no | Vertical alignment: `top`/`middle`/`bottom`/`justify` |
+| `contentX` | no | Horizontal alignment: `left`/`center`/`right`/`justify` |
+| `contentY` | no | Vertical alignment: `top`/`middle`/`bottom`/`justify` |
 
 `args` values are **plain literals** — strings, numbers, booleans. They stay
 simple because the controls send them into the isolated preview at runtime.
@@ -105,7 +105,7 @@ controls and no API tables.
 Examples are frozen showcases: each renders **exactly what you wrote**,
 always — the controls never touch them. Every example requires a `title`
 (any text — spaces and punctuation welcome), unique within its `[DOCS]`
-block. `maxWidth`, `padding`, `direction`, `gap`, `align`, and `alignY` tune
+block. `maxWidth`, `padding`, `direction`, `gap`, `contentX`, and `contentY` tune
 its stage, like on `[preview]`.
 
 Examples belong to the page, not to a tab: they render below the preview

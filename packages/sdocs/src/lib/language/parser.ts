@@ -27,9 +27,9 @@ export interface Sizing {
 	/** gap of preview/example stages */
 	gap: string | null;
 	/** horizontal alignment of preview/example stage contents */
-	align: string | null;
+	contentX: string | null;
 	/** vertical alignment of preview/example stage contents */
-	alignY: string | null;
+	contentY: string | null;
 	/** table-of-contents visibility (PAGE) */
 	toc: boolean | null;
 }
@@ -160,8 +160,8 @@ const SIZING_ATTR_RULES: Record<string, AttrRule> = {
 const STAGE_LAYOUT_ATTR_RULES: Record<string, AttrRule> = {
 	direction: { required: false, kind: 'string', hint: 'direction="column"' },
 	gap: { required: false, kind: 'string', hint: 'gap="16px"' },
-	align: { required: false, kind: 'string', hint: 'align="center"' },
-	alignY: { required: false, kind: 'string', hint: 'alignY="middle"' },
+	contentX: { required: false, kind: 'string', hint: 'contentX="center"' },
+	contentY: { required: false, kind: 'string', hint: 'contentY="middle"' },
 };
 
 function sizingOf(attrs: Attrs): Sizing {
@@ -171,8 +171,8 @@ function sizingOf(attrs: Attrs): Sizing {
 		padding: stringAttr(attrs, 'padding'),
 		direction: stringAttr(attrs, 'direction'),
 		gap: stringAttr(attrs, 'gap'),
-		align: stringAttr(attrs, 'align'),
-		alignY: stringAttr(attrs, 'alignY'),
+		contentX: stringAttr(attrs, 'contentX'),
+		contentY: stringAttr(attrs, 'contentY'),
 		toc: toc === null ? null : toc === 'true',
 	};
 }

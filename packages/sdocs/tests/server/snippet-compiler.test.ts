@@ -69,18 +69,18 @@ describe('stage sizing', () => {
 			padding: '16px',
 			direction: 'column',
 			gap: '8px',
-			align: 'left',
-			alignY: 'top',
+			contentX: 'left',
+			contentY: 'top',
 		});
 		expect(out).toContain(
 			'style="display: flex; flex-direction: column; flex-wrap: wrap; justify-content: flex-start; align-items: flex-start; gap: 8px; padding: 16px"',
 		);
 	});
 
-	it('maps align/alignY to the right flex axis for a row', () => {
+	it('maps contentX/contentY to the right flex axis for a row', () => {
 		const out = generateIframeComponent('', '<b>x</b>', [], undefined, {
 			maxWidth: '100%', padding: '16px', direction: 'row', gap: '8px',
-			align: 'center', alignY: 'bottom',
+			contentX: 'center', contentY: 'bottom',
 		});
 		// row: horizontal → justify-content, vertical → align-items
 		expect(out).toContain('justify-content: center; align-items: flex-end');
@@ -89,7 +89,7 @@ describe('stage sizing', () => {
 	it('flips the axes for a column, and "justify" spreads along the flow', () => {
 		const out = generateIframeComponent('', '<b>x</b>', [], undefined, {
 			maxWidth: '100%', padding: '16px', direction: 'column', gap: '8px',
-			align: 'right', alignY: 'justify',
+			contentX: 'right', contentY: 'justify',
 		});
 		// column: vertical → justify-content (justify=space-between), horizontal → align-items
 		expect(out).toContain('justify-content: space-between; align-items: flex-end');
@@ -98,9 +98,9 @@ describe('stage sizing', () => {
 	it('clamps a cross-axis "justify" to stretch (align-items has no space-between)', () => {
 		const out = generateIframeComponent('', '<b>x</b>', [], undefined, {
 			maxWidth: '100%', padding: '16px', direction: 'column', gap: '8px',
-			align: 'justify', alignY: 'top',
+			contentX: 'justify', contentY: 'top',
 		});
-		// column: horizontal(align=justify) → cross axis → space-between clamped to stretch
+		// column: horizontal(contentX=justify) → cross axis → space-between clamped to stretch
 		expect(out).toContain('justify-content: flex-start; align-items: stretch');
 	});
 

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.55] - 2026-07-05
+
+### Changed
+
+- **Renamed the stage alignment attributes** `align`/`alignY` (added in
+  0.0.54) to **`contentX`**/**`contentY`** — for horizontal/vertical content
+  alignment on `[preview]`/`[example]` and their `content.docs` and `[DOCS]`
+  defaults. Values and direction-aware behavior are unchanged.
+
 ## [0.0.54] - 2026-07-05
 
 ### Added

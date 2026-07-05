@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.38] - 2026-07-05
+
+### Changed
+
+- The stage alignment attributes are now **`contentX`**/**`contentY`** (were
+  `align`/`alignY`) in diagnostics, completions, and hovers.
+
 ## [0.0.37] - 2026-07-05
 
 ### Added

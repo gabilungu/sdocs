@@ -107,8 +107,8 @@ export function generateIframeComponent(
 		padding: string;
 		direction?: string;
 		gap?: string;
-		align?: string;
-		alignY?: string;
+		contentX?: string;
+		contentY?: string;
 	},
 ): string {
 	// The stage layout (config -> entity -> block cascade) applies here, inside
@@ -117,8 +117,8 @@ export function generateIframeComponent(
 	// layout stages are flow-root blocks. Both contain child margins, so the
 	// height reported for iframe auto-sizing is exact.
 	//
-	// align/alignY are *physical* (horizontal/vertical); which flex property
-	// each drives depends on direction. The flow axis (main) takes
+	// contentX/contentY are *physical* (horizontal/vertical); which flex
+	// property each drives depends on direction. The flow axis (main) takes
 	// justify-content, the other (cross) takes align-items — and align-items
 	// has no distribution value, so a 'justify' that lands on the cross axis
 	// falls back to stretch.
@@ -135,8 +135,8 @@ export function generateIframeComponent(
 		justify: 'space-between',
 	};
 	const flexStage = () => {
-		const h = H[stage!.align ?? 'left'] ?? 'flex-start';
-		const v = V[stage!.alignY ?? 'top'] ?? 'flex-start';
+		const h = H[stage!.contentX ?? 'left'] ?? 'flex-start';
+		const v = V[stage!.contentY ?? 'top'] ?? 'flex-start';
 		const isColumn = String(stage!.direction).startsWith('column');
 		const justify = isColumn ? v : h;
 		let alignItems = isColumn ? h : v;

@@ -34,7 +34,7 @@ interface SdocsConfig {
   };
   content?: {
     page?: { maxWidth?: string; padding?: string; toc?: boolean };
-    docs?: { maxWidth?: string; padding?: string; direction?: string; gap?: string; align?: string; alignY?: string };
+    docs?: { maxWidth?: string; padding?: string; direction?: string; gap?: string; contentX?: string; contentY?: string };
     layout?: { maxWidth?: string; padding?: string };
   };
 }
@@ -170,15 +170,15 @@ shorthand.
 | `docs` | `padding` | `16px` | preview & example stages |
 | `docs` | `direction` | `row` | stage `flex-direction` |
 | `docs` | `gap` | `16px` | stage `gap` |
-| `docs` | `align` | `left` | horizontal: `left`/`center`/`right`/`justify` |
-| `docs` | `alignY` | `top` | vertical: `top`/`middle`/`bottom`/`justify` |
+| `docs` | `contentX` | `left` | horizontal: `left`/`center`/`right`/`justify` |
+| `docs` | `contentY` | `top` | vertical: `top`/`middle`/`bottom`/`justify` |
 | `layout` | `maxWidth` | `100%` | the full-page stage |
 | `layout` | `padding` | `0px` | space inside the stage |
 
 Preview and example stages are flex containers: items line up along
-`direction` with `gap` between them (wrapping as needed). `align`
-(horizontal) and `alignY` (vertical) are *physical* — sdocs maps each to the
-right flex property for the current `direction`, so `align="center"` centers
+`direction` with `gap` between them (wrapping as needed). `contentX`
+(horizontal) and `contentY` (vertical) are *physical* — sdocs maps each to the
+right flex property for the current `direction`, so `contentX="center"` centers
 horizontally whether the stage is a row or a column. `justify` spreads items
 apart (space-between).
 

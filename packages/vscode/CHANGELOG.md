@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.31] - 2026-07-05
+
+### Fixed
+
+- **The Output dropdown no longer shows two identical "sdocs" channels.**
+  The docs-server runner and the language client both named their channel
+  "sdocs"; the language client's is now "sdocs Language Server".
+
 ## [0.0.30] - 2026-07-05
 
 ### Fixed

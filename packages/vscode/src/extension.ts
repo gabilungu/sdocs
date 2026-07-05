@@ -33,8 +33,8 @@ export function activate(context: vscode.ExtensionContext) {
 	// an embedded svelte-language-server, running in its own node process.
 	const serverModule = context.asAbsolutePath('dist/server.js');
 	client = new LanguageClient(
-		'sdocs',
-		'sdocs',
+		'sdocsLanguageServer',
+		'sdocs Language Server',
 		{
 			run: { module: serverModule, transport: TransportKind.ipc },
 			debug: { module: serverModule, transport: TransportKind.ipc },

@@ -57,3 +57,31 @@ describe('formatting PAGE bodies with examples', () => {
 		expect(await formatSdoc(source, OPTIONS)).toBeNull();
 	});
 });
+
+describe('fences survive formatting (mangling regression)', () => {
+	it('never splits fences or joins tags on a rich page', async () => {
+		const { readFileSync } = await import('node:fs');
+		const { resolve } = await import('node:path');
+		const source = readFileSync(resolve(__dirname, 'fixtures-markdown-page.sdoc'), 'utf8');
+
+		const result = (await formatSdoc(source, OPTIONS)) ?? source;
+		const lines = result.split('\n').map((l) => l.trim());
+
+		// fences stay balanced and alone on their lines
+		const fenceLines = lines.filter((l) => l.startsWith('```'));
+		expect(fenceLines.length % 2).toBe(0);
+		expect(fenceLines).toContain('```svelte');
+		expect(fenceLines).toContain('```bash');
+		// the fence interior stays inside: Button line still between the markers
+		const svelteOpen = lines.indexOf('```svelte');
+		const closeAfter = lines.indexOf('```', svelteOpen);
+		const buttonLine = lines.findIndex((l) => l.startsWith('<Button label="Count:'));
+		expect(buttonLine).toBeGreaterThan(svelteOpen);
+		expect(buttonLine).toBeLessThan(closeAfter);
+		// nothing ever joins block tags with other content
+		expect(lines.some((l) => l.includes('[/example]') && l !== '[/example]')).toBe(false);
+		expect(lines.some((l) => l.includes('[/PAGE]') && l !== '[/PAGE]')).toBe(false);
+		// headings keep their own lines (the mangled output joined them)
+		expect(lines).toContain('## Separators');
+	});
+});

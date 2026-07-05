@@ -1,0 +1,108 @@
+<script lang="ts">
+	import Button from "../lib/components/Button/Button.svelte";
+	const version = "0.0.3";
+</script>
+
+[PAGE title="Markdown"]
+
+	# Markdown showcase
+
+	Every markdown feature a page supports, in one place. This `#` heading is
+	the page title — the sidebar still says *Markdown*, from the entity
+	`title`. Values interpolate from the script: gabi is at version {version}.
+
+	## Emphasis and inline code
+
+	Text can be **bold**, *italic*, ***both***, ~~struck through~~, or
+	`inline code`. A literal brace needs an escape: \{ like so \}.
+
+	## Links
+
+	- An [external link](https://svelte.dev) — opens in a new tab.
+	- A [relative link](./colors) and an [anchor](#tables) stay in the app.
+	- Autolinked: https://github.com/gabilungu/gabi
+
+	## Images
+
+	Served from the configured `static` folder at the site root:
+
+	![A gradient banner reading "gabi static asset"](/sample.svg "Static assets work")
+
+	## Lists
+
+	1. Ordered lists
+	2. Keep their numbers
+		1. And nest
+		2. With sub-items
+
+	- Unordered lists
+	- Use bullets
+		- And nest too
+
+	### Task lists
+
+	- [x] Ship components
+	- [x] Publish to npm
+	- [ ] Take over the world
+
+	## Tables
+
+	| Component | Sizes | Notes |
+	|:----------|:-----:|------:|
+	| Button | 4 | left-aligned column |
+	| Input | 4 | centered column |
+	| Textarea | 4 | right-aligned column |
+
+	## Blockquotes and alerts
+
+	> An ordinary blockquote renders as a quiet aside.
+
+	> [!NOTE]
+	> Useful information that users should know, even when skimming.
+
+	> [!TIP]
+	> Helpful advice for doing things better or more easily.
+
+	> [!IMPORTANT]
+	> Key information users need to know to achieve their goal.
+
+	> [!WARNING]
+	> Urgent info that needs immediate user attention to avoid problems.
+
+	> [!CAUTION]
+	> Advises about risks or negative outcomes of certain actions.
+
+	## Code
+
+	Fences highlight and never execute — even sdoc or Svelte syntax:
+
+	```svelte
+	<script>
+		let count = $state(0);
+	</script>
+
+	<Button label="Count: {count}" onclick={() => count++} />
+	```
+
+	```bash
+	npm install gabi
+	```
+
+	## Separators
+
+	A horizontal rule:
+
+	---
+
+	## Live code
+
+	And when markdown isn't enough, an example stages real components in
+	gabi's own css:
+
+	[example title="Buttons" direction="row" gap="8px" contentY="middle"]
+		<Button label="Default" />
+		<Button label="Success" intent="success" />
+		<Button label="Danger" intent="danger" size="lg" />
+	[/example]
+
+[/PAGE]

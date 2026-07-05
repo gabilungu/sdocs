@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.42] - 2026-07-05
+
+### Added
+
+- **Restart button in the Projects panel.** Each running project card gains
+  ↻ Restart between Browser and Stop — same behavior as the docs tab's
+  restart: the server relaunches and any open docs tab reloads when it's
+  ready.
+
+### Changed
+
+- A formatting regression fixture pins the fence behavior on a feature-rich
+  page (fences never split, tags never join) — the failure mode of the
+  pre-0.0.41 island segmentation.
+
 ## [0.0.41] - 2026-07-05
 
 ### Added

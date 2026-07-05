@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.52] - 2026-07-05
+
+### Added
+
+- **Svelte islands in `[PAGE]` bodies.** A line opening a component/HTML tag
+  or a Svelte block (`{#snippet`, `{@render`) after a blank line starts an
+  island that passes to Svelte verbatim, until its tags and blocks balance —
+  blank lines inside are fine. Markdown can no longer split a snippet across
+  paragraphs or cut an HTML section in half. Snippets declared anywhere on
+  the page are renderable from anywhere (they land at the top level of the
+  compiled fragment), so one `{#snippet}` can serve many sections.
+- **Svelte coloring inside page bodies.** `{#…}…{/…}` blocks highlight as
+  Svelte throughout — keywords, typed params, and the markup inside them —
+  and `{@…}` tags color as keywords with TypeScript interiors, instead of
+  HTML-guess colors. Fenced code and inline code stay inert.
+
 ## [0.0.51] - 2026-07-05
 
 ### Changed

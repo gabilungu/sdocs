@@ -22,6 +22,11 @@ export {
 } from './projection.js';
 
 export {
+	segmentPageBody,
+	type PageSegment,
+} from './page-islands.js';
+
+export {
 	parseSdoc,
 	parseArgsLiteral,
 	slugifyTitle,

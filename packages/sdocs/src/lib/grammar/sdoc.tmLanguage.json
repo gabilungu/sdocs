@@ -5,6 +5,18 @@
 	"fileTypes": [
 		"sdoc"
 	],
+	"injections": {
+		"L:meta.embedded.block.markdown - (markup.fenced_code.block.markdown, markup.inline.raw.string.markdown, meta.template.block.sdoc)": {
+			"patterns": [
+				{
+					"include": "#page-svelte-tag"
+				},
+				{
+					"include": "#page-svelte-expression"
+				}
+			]
+		}
+	},
 	"patterns": [
 		{
 			"include": "#comment"
@@ -233,9 +245,85 @@
 					"contentName": "meta.embedded.block.markdown",
 					"patterns": [
 						{
+							"include": "#page-svelte-block"
+						},
+						{
 							"include": "text.html.markdown"
 						}
 					]
+				}
+			]
+		},
+		"page-svelte-block": {
+			"name": "meta.template.block.sdoc",
+			"begin": "(\\{#[a-zA-Z]+)([^}]*)(\\})",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.control.svelte.sdoc"
+				},
+				"2": {
+					"patterns": [
+						{
+							"include": "source.ts"
+						}
+					]
+				},
+				"3": {
+					"name": "keyword.control.svelte.sdoc"
+				}
+			},
+			"end": "(\\{/[a-zA-Z]+\\})",
+			"endCaptures": {
+				"1": {
+					"name": "keyword.control.svelte.sdoc"
+				}
+			},
+			"patterns": [
+				{
+					"include": "source.svelte"
+				}
+			]
+		},
+		"page-svelte-tag": {
+			"name": "meta.template.block.sdoc",
+			"begin": "(\\{)([@:][a-zA-Z]+)",
+			"beginCaptures": {
+				"1": {
+					"name": "punctuation.definition.block.begin.sdoc"
+				},
+				"2": {
+					"name": "keyword.control.svelte.sdoc"
+				}
+			},
+			"end": "(\\})",
+			"endCaptures": {
+				"1": {
+					"name": "punctuation.definition.block.end.sdoc"
+				}
+			},
+			"patterns": [
+				{
+					"include": "source.ts"
+				}
+			]
+		},
+		"page-svelte-expression": {
+			"name": "meta.template.expression.sdoc",
+			"begin": "(\\{)(?![#/@:\\s}])(?=[^{}]*\\})",
+			"beginCaptures": {
+				"1": {
+					"name": "punctuation.definition.expression.begin.sdoc"
+				}
+			},
+			"end": "(\\})",
+			"endCaptures": {
+				"1": {
+					"name": "punctuation.definition.expression.end.sdoc"
+				}
+			},
+			"patterns": [
+				{
+					"include": "source.ts"
 				}
 			]
 		},

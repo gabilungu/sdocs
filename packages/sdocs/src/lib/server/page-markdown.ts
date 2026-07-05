@@ -11,6 +11,7 @@
 import { Marked } from 'marked';
 import type { Token } from 'marked';
 import { highlight } from './highlighter.js';
+import { segmentPageBody } from '../language/page-islands.js';
 import type { TocHeading } from '../types.js';
 
 export interface RenderedPage {
@@ -95,9 +96,32 @@ function plainText(tokens: Token[]): string {
 	return out;
 }
 
+/**
+ * Render a [PAGE] body: Svelte islands (see segmentPageBody) pass through
+ * verbatim — markdown never splits a snippet or an HTML section — and the
+ * prose between them renders as markdown. Islands land at the top level of
+ * the compiled fragment, so a snippet declared anywhere is renderable from
+ * anywhere on the page.
+ */
 export async function renderPageMarkdown(source: string): Promise<RenderedPage> {
 	const toc: TocHeading[] = [];
 	const usedIds = new Set<string>();
+	const parts: string[] = [];
+	for (const segment of segmentPageBody(source)) {
+		if (segment.kind === 'island') {
+			parts.push(segment.lines.join('\n'));
+		} else {
+			parts.push(await renderProse(segment.lines.join('\n'), toc, usedIds));
+		}
+	}
+	return { html: parts.join('\n'), toc };
+}
+
+async function renderProse(
+	source: string,
+	toc: TocHeading[],
+	usedIds: Set<string>,
+): Promise<string> {
 	const headingIds = new WeakMap<Token, string>();
 	const fenceHtml = new WeakMap<Token, string>();
 
@@ -170,5 +194,5 @@ export async function renderPageMarkdown(source: string): Promise<RenderedPage> 
 		}
 	});
 
-	return { html: marked.parser(tokens), toc };
+	return marked.parser(tokens);
 }

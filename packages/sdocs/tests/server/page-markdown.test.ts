@@ -57,4 +57,63 @@ describe('renderPageMarkdown', () => {
 		const { html } = await renderPageMarkdown('An open { with "quotes" after.');
 		expect(html).toContain('{ with &quot;quotes&quot; after.');
 	});
+
+	it('hoists a standalone snippet out of markdown (never wrapped in <p>)', async () => {
+		const source = [
+			'Some prose first.',
+			'',
+			'{#snippet colorBox(color: string)}',
+			'\t<div style="background:{color}"></div>',
+			'{/snippet}',
+			'',
+			'More prose.',
+			'',
+			'<div style="display:flex;">',
+			"\t{@render colorBox('#ff0000')}",
+			"\t{@render colorBox('#22c55e')}",
+			'</div>',
+		].join('\n');
+		const { html } = await renderPageMarkdown(source);
+		expect(html).not.toContain('<p>{#snippet');
+		expect(html).toContain('{#snippet colorBox(color: string)}');
+		expect(html).toContain("\t{@render colorBox('#ff0000')}");
+		expect(html).toContain('<p>Some prose first.</p>');
+		expect(html).toContain('<p>More prose.</p>');
+	});
+
+	it('keeps blank lines inside an HTML island (no paragraph split)', async () => {
+		const source = [
+			'<div class="section">',
+			'\t<span>one</span>',
+			'',
+			'\t<span>two</span>',
+			'</div>',
+		].join('\n');
+		const { html } = await renderPageMarkdown(source);
+		// the island is verbatim: no <p> injected between the spans
+		expect(html).toContain('<div class="section">');
+		expect(html).not.toContain('<p>');
+	});
+
+	it('treats a flush component tag as an island but keeps inline tags in prose', async () => {
+		const { html } = await renderPageMarkdown(
+			'Inline <Button label="x" /> here.\n\n<Button label="alone" />\n',
+		);
+		expect(html).toContain('<p>Inline <Button label="x" /> here.</p>');
+		expect(html).toContain('\n<Button label="alone" />');
+		expect(html).not.toContain('<p><Button label="alone"');
+	});
+
+	it('collects TOC headings across prose segments split by islands', async () => {
+		const source = [
+			'## First',
+			'',
+			'<div>x</div>',
+			'',
+			'## Second',
+		].join('\n');
+		const { toc } = await renderPageMarkdown(source);
+		expect(toc.map((t) => t.text)).toEqual(['First', 'Second']);
+		expect(toc.map((t) => t.id)).toEqual(['first', 'second']);
+	});
 });

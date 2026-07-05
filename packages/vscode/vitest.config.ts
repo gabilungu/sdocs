@@ -2,6 +2,9 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
 	test: {
+		// The package.json is named "sdocs" too; a distinct project name
+		// avoids a collision with the sdocs package in the Vitest workspace.
+		name: 'vscode',
 		include: ['tests/**/*.test.ts'],
 		globalSetup: ['tests/helpers/build.ts'],
 		testTimeout: 120_000,

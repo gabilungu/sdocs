@@ -24,7 +24,7 @@ is required and installs automatically as a dependency.
 - **[Projects view](/extension/projects-view)** — every sdocs project in your
   workspace as a card, with Run / Open / Stop controls and live status.
 - **[Docs tabs](/extension/docs-tabs)** — the Explorer opens in an editor tab,
-  one per project, with a refresh button and `Cmd+R` support.
+  one per project, with refresh and restart buttons and `Cmd+R` support.
 
 ## Scaffolding new docs
 

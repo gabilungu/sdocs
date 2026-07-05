@@ -64,6 +64,25 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand('sdocs.newComponentDoc', newComponentDoc),
 		vscode.commands.registerCommand('sdocs.refreshScopes', () => scopesView.refresh()),
 		vscode.commands.registerCommand('sdocs.refreshPreview', () => panels.refreshActive()),
+		vscode.commands.registerCommand('sdocs.restartServer', async () => {
+			const dir = panels.activeScopeDir();
+			if (!dir) return;
+			panels.showRestarting(dir);
+			// Resolve once the freshly restarted server reports its URL, then
+			// force the iframe to reload (the URL may be unchanged, so open()'s
+			// diff won't reload it on its own).
+			const ready = new Promise<void>((resolve) => {
+				const sub = runner.onReady(({ dir: d }) => {
+					if (d === dir) {
+						sub.dispose();
+						resolve();
+					}
+				});
+			});
+			await runner.restart(dir);
+			await ready;
+			panels.reload(dir);
+		}),
 	);
 
 	// Versions up to 0.0.13 formatted via scratch files under

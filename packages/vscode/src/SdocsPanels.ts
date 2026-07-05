@@ -48,6 +48,26 @@ export class SdocsPanels implements vscode.Disposable {
 		}
 	}
 
+	/** The scope directory of the currently active preview panel, if any. */
+	activeScopeDir(): string | undefined {
+		for (const [dir, { panel }] of this.panels) {
+			if (panel.active) return dir;
+		}
+		return undefined;
+	}
+
+	/** Force the panel's iframe to reload at its current URL. */
+	reload(scopeDir: string): void {
+		const entry = this.panels.get(scopeDir);
+		if (entry) entry.panel.webview.html = iframeHtml(entry.url, ++this.refreshCount);
+	}
+
+	/** Show a placeholder while the dev server restarts (avoids a dead-iframe flash). */
+	showRestarting(scopeDir: string): void {
+		const entry = this.panels.get(scopeDir);
+		if (entry) entry.panel.webview.html = restartingHtml();
+	}
+
 	dispose() {
 		for (const { panel } of this.panels.values()) panel.dispose();
 		this.panels.clear();
@@ -69,5 +89,24 @@ function iframeHtml(url: string, refresh = 0): string {
 <body>
 	<iframe src="${url}" allow="clipboard-read; clipboard-write"></iframe>
 </body>
+</html>`;
+}
+
+function restartingHtml(): string {
+	return `<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
+	<style>
+		html, body { margin: 0; height: 100%; }
+		body {
+			display: flex; align-items: center; justify-content: center;
+			font-family: var(--vscode-font-family); font-size: 13px;
+			color: var(--vscode-descriptionForeground);
+			background: var(--vscode-editor-background);
+		}
+	</style>
+</head>
+<body>Restarting sdocs…</body>
 </html>`;
 }

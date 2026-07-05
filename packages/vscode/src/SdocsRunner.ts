@@ -81,6 +81,22 @@ export class SdocsRunner implements vscode.Disposable {
 		this.scopes.get(scopeDir)?.process.kill('SIGTERM');
 	}
 
+	/** Stop the scope, wait for it to exit, then start it fresh. */
+	async restart(scopeDir: string): Promise<void> {
+		const existing = this.scopes.get(scopeDir);
+		if (existing) {
+			const { process: proc } = existing;
+			await new Promise<void>((resolve) => {
+				proc.once('exit', () => resolve());
+				proc.kill('SIGTERM');
+			});
+			// The exit handler registered in open() clears the map entry; make
+			// sure it's gone before we spawn a replacement.
+			this.scopes.delete(scopeDir);
+		}
+		await this.open(scopeDir);
+	}
+
 	/** Open a running scope in the system browser. */
 	async openExternal(scopeDir: string): Promise<void> {
 		const url = this.scopes.get(scopeDir)?.url;

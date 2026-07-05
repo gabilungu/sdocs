@@ -18,6 +18,14 @@ Reload the preview without leaving the tab:
 Refreshing reloads the Explorer from its dev server and returns to the docs
 home page.
 
+## Restarting the server
+
+Click the **restart icon** next to refresh to stop the project's dev server and
+start it again, then reload the tab once it's back. Reach for it when the server
+needs a clean boot — after editing `sdocs.config.*`, installing dependencies, or
+if the dev server wedges. Refreshing only reloads the page; restarting relaunches
+the underlying `sdocs` process.
+
 ## Tips
 
 - The tab embeds the same dev server you can open in the browser — use

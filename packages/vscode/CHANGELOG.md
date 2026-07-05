@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.32] - 2026-07-05
+
+### Added
+
+- **Restart button on the docs tab.** Alongside refresh, a restart action in
+  the tab's title bar stops the project's dev server and starts it again, then
+  reloads the tab once it's back — for a clean boot after editing
+  `sdocs.config.*`, installing dependencies, or if the server wedges (refresh
+  only reloads the page).
+
+### Changed
+
+- The docs-tab reload command is now **Refresh sdocs Tab** (was "Refresh Docs
+  Tab").
+
 ## [0.0.31] - 2026-07-05
 
 ### Fixed

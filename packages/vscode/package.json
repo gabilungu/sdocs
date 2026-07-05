@@ -2,7 +2,7 @@
 	"name": "sdocs",
 	"displayName": "sdocs",
 	"description": "Language support for sdocs \u2014 Svelte component documentation (.sdoc)",
-	"version": "0.0.31",
+	"version": "0.0.32",
 	"publisher": "gabilungu",
 	"license": "MIT",
 	"repository": {
@@ -101,8 +101,14 @@
 			{
 				"command": "sdocs.refreshPreview",
 				"category": "sdocs",
-				"title": "Refresh Docs Tab",
+				"title": "Refresh sdocs Tab",
 				"icon": "$(refresh)"
+			},
+			{
+				"command": "sdocs.restartServer",
+				"category": "sdocs",
+				"title": "Restart sdocs Server",
+				"icon": "$(debug-restart)"
 			}
 		],
 		"keybindings": [
@@ -161,13 +167,22 @@
 				{
 					"command": "sdocs.refreshPreview",
 					"when": "activeWebviewPanelId == sdocsPreview"
+				},
+				{
+					"command": "sdocs.restartServer",
+					"when": "activeWebviewPanelId == sdocsPreview"
 				}
 			],
 			"editor/title": [
 				{
 					"command": "sdocs.refreshPreview",
 					"when": "activeWebviewPanelId == sdocsPreview",
-					"group": "navigation"
+					"group": "navigation@1"
+				},
+				{
+					"command": "sdocs.restartServer",
+					"when": "activeWebviewPanelId == sdocsPreview",
+					"group": "navigation@2"
 				}
 			],
 			"view/title": [

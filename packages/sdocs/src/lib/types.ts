@@ -19,6 +19,40 @@ export interface SdocsConfig {
 		/** Folders expanded by default on load. */
 		open?: string[];
 	};
+	/** Content presentation per entity kind; entity/block attributes override these. */
+	content?: {
+		/** [PAGE] content. Defaults: maxWidth '1200px', padding '32px', toc true. */
+		page?: ContentSizing & {
+			/** Show the table of contents. Default: true */
+			toc?: boolean;
+		};
+		/** [DOCS] pages: maxWidth is the content column (default '1200px');
+		 * padding/direction/gap are the default preview/example stage layout
+		 * (defaults '16px', 'row', '16px'). */
+		docs?: ContentSizing & {
+			/** Stage flex-direction. Default: 'row' */
+			direction?: string;
+			/** Stage gap. Default: '16px' */
+			gap?: string;
+		};
+		/** [LAYOUT] stages. Defaults: maxWidth '100%', padding '0px'. */
+		layout?: ContentSizing;
+	};
+}
+
+/** Content sizing knobs (any CSS length; padding takes CSS shorthand) */
+export interface ContentSizing {
+	maxWidth?: string;
+	padding?: string;
+}
+
+/** Resolved stage layout applied inside a preview iframe */
+export interface StageLayout {
+	maxWidth: string;
+	padding: string;
+	/** flex-direction + gap; set for preview/example stages only */
+	direction?: string;
+	gap?: string;
 }
 
 /** Resolved config with all defaults applied */
@@ -32,6 +66,11 @@ export interface ResolvedSdocsConfig {
 	sidebar: {
 		order: Record<string, string[]>;
 		open: string[];
+	};
+	content: {
+		page: Required<ContentSizing> & { toc: boolean };
+		docs: Required<ContentSizing> & { direction: string; gap: string };
+		layout: Required<ContentSizing>;
 	};
 }
 
@@ -95,6 +134,8 @@ export interface ExtractedSnippet {
 	highlightedHtml?: string;
 	/** Preview URL for iframe (added by virtual module) */
 	previewUrl?: string;
+	/** Resolved stage layout applied inside the iframe (config → entity → block) */
+	stage?: StageLayout;
 }
 
 /** One [preview] of a DOCS entity: a live showcase of one component */
@@ -139,6 +180,8 @@ export interface DocEntry {
 	content: ExtractedSnippet | null;
 	/** Table of contents headings (pages only) */
 	toc?: TocHeading[];
-	/** Stage padding (layouts only) */
-	padding?: string | null;
+	/** Resolved content-column max width (component and page kinds) */
+	maxWidth?: string;
+	/** Resolved table-of-contents visibility (pages only) */
+	showToc?: boolean;
 }

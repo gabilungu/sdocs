@@ -102,7 +102,28 @@ export function generateIframeComponent(
 	snippetBody: string,
 	stateNames: string[] = [],
 	componentName?: string,
+	stage?: { maxWidth: string; padding: string; direction?: string; gap?: string },
 ): string {
+	// The stage layout (config -> entity -> block cascade) applies here, inside
+	// the iframe, so every consumer of the preview page gets it. Preview and
+	// example stages are flex containers (direction + gap); page and layout
+	// stages are flow-root blocks. Both contain child margins, so the height
+	// reported for iframe auto-sizing is exact.
+	const stageStyle = [
+		...(stage?.direction
+			? [
+					'display: flex',
+					`flex-direction: ${stage.direction}`,
+					'flex-wrap: wrap',
+					'align-items: flex-start',
+					`gap: ${stage.gap}`,
+				]
+			: ['display: flow-root']),
+		...(stage ? [`padding: ${stage.padding}`] : []),
+		...(stage && stage.maxWidth !== '100%'
+			? [`max-width: ${stage.maxWidth}`, 'margin-inline: auto']
+			: []),
+	].join('; ');
 	// The file <script> (imports + shared values), lifted verbatim so previews
 	// and examples see everything the entity's siblings do.
 	const importBlock = scriptPrelude.trim() ? scriptPrelude.trim() + '\n' : '';
@@ -172,7 +193,7 @@ ${stateBroadcast}
 	});
 </script>
 
-<div id="sdocs-preview" style="display: flow-root">
+<div id="sdocs-preview" style="${stageStyle}">
 	{#snippet SdocsPreview(args)}
 		${injectRootRef(snippetBody, componentName)}
 	{/snippet}

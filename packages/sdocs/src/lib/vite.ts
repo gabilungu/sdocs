@@ -286,6 +286,7 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 					snippet.body,
 					stateNames,
 					preview?.componentName ?? undefined,
+					snippet.stage,
 				);
 			}
 
@@ -371,6 +372,35 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				content: null,
 			};
 
+			// Sizing cascade: block attribute -> entity attribute -> config default.
+			const kindKey = entity.kind === 'DOCS' ? 'docs' : entity.kind === 'PAGE' ? 'page' : 'layout';
+			const kindDefaults = config.content[kindKey];
+			const stageOf = (block?: {
+				maxWidth: string | null;
+				padding: string | null;
+				direction: string | null;
+				gap: string | null;
+			}) => ({
+				// Entity-level maxWidth on DOCS/PAGE is the content column, not the
+				// stage; stages inside them span their panel unless the block says so.
+				maxWidth:
+					block?.maxWidth ??
+					(entity.kind === 'LAYOUT' ? (entity.sizing.maxWidth ?? kindDefaults.maxWidth) : '100%'),
+				padding: block?.padding ?? entity.sizing.padding ?? kindDefaults.padding,
+				// direction/gap flex the preview/example stages only
+				...(entity.kind === 'DOCS' && block
+					? {
+							direction:
+								block.direction ?? entity.sizing.direction ?? config.content.docs.direction,
+							gap: block.gap ?? entity.sizing.gap ?? config.content.docs.gap,
+						}
+					: {}),
+			});
+			entry.maxWidth = entity.sizing.maxWidth ?? kindDefaults.maxWidth;
+			if (entity.kind === 'PAGE') {
+				entry.showToc = entity.sizing.toc ?? config.content.page.toc;
+			}
+
 			if (entity.kind === 'DOCS') {
 				if (entity.description) entry.meta.description = entity.description;
 				for (const [i, preview] of entity.previews.entries()) {
@@ -390,6 +420,7 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 							);
 						}
 					}
+					snippet.stage = stageOf(preview.sizing);
 					snippet.highlightedHtml = await highlight(snippet.body);
 					entry.previews.push({
 						label: preview.label,
@@ -402,17 +433,21 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 					});
 				}
 				entry.examples = snippets.filter((s) => s.role === 'example');
+				entity.examples.forEach((example, i) => {
+					if (entry.examples[i]) entry.examples[i].stage = stageOf(example.sizing);
+				});
 				for (const example of entry.examples) {
 					example.highlightedHtml = await highlight(example.body);
 				}
 			} else if (entity.kind === 'PAGE') {
 				const rendered = await renderPageMarkdown(entity.body);
 				snippets[0].body = rendered.html;
+				snippets[0].stage = stageOf();
 				entry.content = snippets[0];
 				entry.toc = rendered.toc;
 			} else {
+				snippets[0].stage = stageOf();
 				entry.content = snippets[0];
-				entry.padding = entity.padding;
 			}
 
 			docEntries.set(entityKey(filePath, entity.slug), entry);
@@ -444,7 +479,8 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 			examples: e.examples.map((s) => withUrl(e, s)),
 			content: e.content ? withUrl(e, e.content) : null,
 			toc: e.toc,
-			padding: e.padding,
+			maxWidth: e.maxWidth,
+			showToc: e.showToc,
 		}));
 		// Extract named CSS stylesheet names (empty array if single string or null)
 		const cssNames = config.css && typeof config.css === 'object'

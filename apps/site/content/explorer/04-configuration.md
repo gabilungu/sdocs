@@ -32,6 +32,11 @@ interface SdocsConfig {
     order?: Record<string, string[]>;
     open?: string[];
   };
+  content?: {
+    page?: { maxWidth?: string; padding?: string; toc?: boolean };
+    docs?: { maxWidth?: string; padding?: string; direction?: string; gap?: string };
+    layout?: { maxWidth?: string; padding?: string };
+  };
 }
 ```
 
@@ -147,6 +152,41 @@ sidebar: {
   open: ['Components', 'Forms'],
 }
 ```
+
+### `content`
+
+Content sizing per entity kind. Any CSS length works; `padding` takes CSS
+shorthand.
+
+- **Type:** `{ page?, docs?, layout? }`, each `{ maxWidth?: string; padding?: string }`
+- **Defaults:**
+
+| kind | option | default | applies to |
+|---|---|---|---|
+| `page` | `maxWidth` | `1200px` | the page's content column |
+| `page` | `padding` | `32px` | space around the page prose |
+| `page` | `toc` | `true` | table-of-contents visibility |
+| `docs` | `maxWidth` | `1200px` | the docs content column |
+| `docs` | `padding` | `16px` | preview & example stages |
+| `docs` | `direction` | `row` | stage `flex-direction` |
+| `docs` | `gap` | `16px` | stage `gap` |
+| `layout` | `maxWidth` | `100%` | the full-page stage |
+| `layout` | `padding` | `0px` | space inside the stage |
+
+Preview and example stages are flex containers: items line up along
+`direction` with `gap` between them (wrapping as needed).
+
+```js
+content: {
+  page: { maxWidth: '900px', toc: false },
+  docs: { padding: '24px', direction: 'column' },
+}
+```
+
+Entities and blocks override these in place with the same attributes:
+`[PAGE title="…" maxWidth="800px" toc="false"]`,
+`[preview component={X} direction="column" gap="8px"]` — block beats
+entity beats config.
 
 ## Full example
 

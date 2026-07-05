@@ -29,6 +29,10 @@ controls, frozen examples, and each previewed component's extracted API.
 |---|---|---|
 | `title` | yes | Sidebar path and display name — `"Forms / Button"` nests under Forms |
 | `description` | no | Short text under the page title |
+| `maxWidth` | no | Content column width (default from config, `1200px`) |
+| `padding` | no | Default stage padding for this entity's previews and examples (default `16px`) |
+| `direction` | no | Default stage `flex-direction` (default `row`) |
+| `gap` | no | Default stage `gap` (default `16px`) |
 
 ## `[preview]`
 
@@ -41,6 +45,10 @@ component it demonstrates and declares the defaults for its
 | `component` | yes | The demonstrated component: an identifier imported in the file's `<script>`. Drives [prop extraction](/explorer/features/prop-extraction) and the controls. |
 | `args` | no | This preview's control defaults |
 | `title` | no | Tab label — defaults to the component's name |
+| `maxWidth` | no | Stage width (default `100%`; narrower stages center) |
+| `padding` | no | Stage padding — overrides the entity and config defaults |
+| `direction` | no | Stage `flex-direction` — overrides the entity and config defaults |
+| `gap` | no | Stage `gap` — overrides the entity and config defaults |
 
 `args` values are **plain literals** — strings, numbers, booleans. They stay
 simple because the controls send them into the isolated preview at runtime.
@@ -93,7 +101,8 @@ controls and no API tables.
 Examples are frozen showcases: each renders **exactly what you wrote**,
 always — the controls never touch them. Every example requires a `title`
 (any text — spaces and punctuation welcome), unique within its `[DOCS]`
-block.
+block. `maxWidth`, `padding`, `direction`, and `gap` tune its stage, like on
+`[preview]`.
 
 Examples belong to the page, not to a tab: they render below the preview
 area and stay visible whichever tab is active.

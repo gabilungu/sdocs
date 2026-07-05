@@ -28,10 +28,12 @@ clean, isolated stage: a login form, a dashboard shell, a card grid.
 | Attribute | Required | Meaning |
 |---|---|---|
 | `title` | yes | Sidebar path, `/`-separated |
-| `padding` | no | Space around the sketch inside the frame |
+| `maxWidth` | no | Stage width (default `100%`; narrower stages center) |
+| `padding` | no | Space around the sketch inside the frame (default `0px`) |
 
-Presentation attributes like `padding` tune the stage; the sketch itself is
-whatever you put in the body.
+Presentation attributes tune the stage; the sketch itself is whatever you
+put in the body. Global defaults live in the config's [`content`
+option](/explorer/configuration).
 
 ## The body
 

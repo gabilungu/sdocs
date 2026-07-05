@@ -18,6 +18,18 @@ import {
 
 export type ArgValue = string | number | boolean;
 
+/** Explicit presentation overrides from stage attributes */
+export interface Sizing {
+	maxWidth: string | null;
+	padding: string | null;
+	/** flex-direction of preview/example stages */
+	direction: string | null;
+	/** gap of preview/example stages */
+	gap: string | null;
+	/** table-of-contents visibility (PAGE) */
+	toc: boolean | null;
+}
+
 export interface PreviewBlock {
 	/** The identifier from component={X}; null when invalid/missing (already reported) */
 	componentName: string | null;
@@ -29,6 +41,7 @@ export interface PreviewBlock {
 	title: string | null;
 	/** Tab label: the title override or the component name */
 	label: string;
+	sizing: Sizing;
 	body: string;
 	bodySpan: Span;
 	span: Span;
@@ -36,6 +49,7 @@ export interface PreviewBlock {
 
 export interface ExampleBlock {
 	title: string;
+	sizing: Sizing;
 	body: string;
 	bodySpan: Span;
 	span: Span;
@@ -46,6 +60,7 @@ export interface DocsEntity {
 	title: string;
 	slug: string;
 	description: string | null;
+	sizing: Sizing;
 	previews: PreviewBlock[];
 	examples: ExampleBlock[];
 	openerSpan: Span;
@@ -56,6 +71,7 @@ export interface PageEntity {
 	kind: 'PAGE';
 	title: string;
 	slug: string;
+	sizing: Sizing;
 	body: string;
 	bodySpan: Span;
 	openerSpan: Span;
@@ -66,7 +82,7 @@ export interface LayoutEntity {
 	kind: 'LAYOUT';
 	title: string;
 	slug: string;
-	padding: string | null;
+	sizing: Sizing;
 	body: string;
 	bodySpan: Span;
 	openerSpan: Span;
@@ -132,17 +148,42 @@ interface AttrRule {
 	hint: string;
 }
 
+const SIZING_ATTR_RULES: Record<string, AttrRule> = {
+	maxWidth: { required: false, kind: 'string', hint: 'maxWidth="1200px"' },
+	padding: { required: false, kind: 'string', hint: 'padding="32px"' },
+};
+
+const STAGE_LAYOUT_ATTR_RULES: Record<string, AttrRule> = {
+	direction: { required: false, kind: 'string', hint: 'direction="column"' },
+	gap: { required: false, kind: 'string', hint: 'gap="16px"' },
+};
+
+function sizingOf(attrs: Attrs): Sizing {
+	const toc = stringAttr(attrs, 'toc');
+	return {
+		maxWidth: stringAttr(attrs, 'maxWidth'),
+		padding: stringAttr(attrs, 'padding'),
+		direction: stringAttr(attrs, 'direction'),
+		gap: stringAttr(attrs, 'gap'),
+		toc: toc === null ? null : toc === 'true',
+	};
+}
+
 const ENTITY_ATTR_RULES: Record<string, Record<string, AttrRule>> = {
 	DOCS: {
 		title: { required: true, kind: 'string', hint: 'title="Group / Name"' },
 		description: { required: false, kind: 'string', hint: 'description="…"' },
+		...SIZING_ATTR_RULES,
+		...STAGE_LAYOUT_ATTR_RULES,
 	},
 	PAGE: {
 		title: { required: true, kind: 'string', hint: 'title="Group / Name"' },
+		...SIZING_ATTR_RULES,
+		toc: { required: false, kind: 'string', hint: 'toc="false"' },
 	},
 	LAYOUT: {
 		title: { required: true, kind: 'string', hint: 'title="Group / Name"' },
-		padding: { required: false, kind: 'string', hint: 'padding="48px"' },
+		...SIZING_ATTR_RULES,
 	},
 };
 
@@ -151,9 +192,13 @@ const SUB_BLOCK_ATTR_RULES: Record<string, Record<string, AttrRule>> = {
 		component: { required: true, kind: 'expression', hint: 'component={Button}' },
 		args: { required: false, kind: 'expression', hint: 'args={{ label: "Hi" }}' },
 		title: { required: false, kind: 'string', hint: 'title="…"' },
+		...SIZING_ATTR_RULES,
+		...STAGE_LAYOUT_ATTR_RULES,
 	},
 	example: {
 		title: { required: true, kind: 'string', hint: 'title="…"' },
+		...SIZING_ATTR_RULES,
+		...STAGE_LAYOUT_ATTR_RULES,
 	},
 };
 
@@ -292,6 +337,7 @@ function parsePreview(block: SubBlock, diagnostics: ScanError[]): PreviewBlock {
 		argsRaw,
 		title,
 		label: title ?? componentName ?? 'Preview',
+		sizing: sizingOf(block.attrs),
 		body: normalizeBody(block.body),
 		bodySpan: block.bodySpan,
 		span: block.span,
@@ -330,6 +376,7 @@ function parseDocs(entity: Entity, diagnostics: ScanError[]): DocsEntity {
 			exampleTitles.add(title);
 			examples.push({
 				title,
+				sizing: sizingOf(block.attrs),
 				body: normalizeBody(block.body),
 				bodySpan: block.bodySpan,
 				span: block.span,
@@ -343,6 +390,7 @@ function parseDocs(entity: Entity, diagnostics: ScanError[]): DocsEntity {
 		title,
 		slug: slugifyTitle(title),
 		description: stringAttr(entity.attrs, 'description'),
+		sizing: sizingOf(entity.attrs),
 		previews,
 		examples,
 		openerSpan: entity.openerSpan,
@@ -372,15 +420,13 @@ export function parseSdoc(source: string): SdocDocument {
 			const base = {
 				title,
 				slug: slugifyTitle(title),
+				sizing: sizingOf(entity.attrs),
 				body: normalizeBody(entity.body),
 				bodySpan: entity.bodySpan,
 				openerSpan: entity.openerSpan,
 				span: entity.span,
 			};
-			typed =
-				entity.kind === 'PAGE'
-					? { kind: 'PAGE', ...base }
-					: { kind: 'LAYOUT', padding: stringAttr(entity.attrs, 'padding'), ...base };
+			typed = entity.kind === 'PAGE' ? { kind: 'PAGE', ...base } : { kind: 'LAYOUT', ...base };
 		}
 		if (slugs.has(typed.slug)) {
 			diagnostics.push({

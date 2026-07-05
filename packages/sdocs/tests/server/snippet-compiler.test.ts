@@ -44,3 +44,39 @@ describe('script prelude (shared values)', () => {
 		expect(resolved).toContain("import '/proj/src/styles.css'");
 	});
 });
+
+describe('stage sizing', () => {
+	it('applies padding and max-width inside the iframe, centered', () => {
+		const out = generateIframeComponent('', '<b>x</b>', [], undefined, {
+			maxWidth: '800px',
+			padding: '24px',
+		});
+		expect(out).toContain('style="display: flow-root; padding: 24px; max-width: 800px; margin-inline: auto"');
+	});
+
+	it('full-width stages get padding only', () => {
+		const out = generateIframeComponent('', '<b>x</b>', [], undefined, {
+			maxWidth: '100%',
+			padding: '16px',
+		});
+		expect(out).toContain('style="display: flow-root; padding: 16px"');
+		expect(out).not.toContain('margin-inline');
+	});
+
+	it('flexes preview stages when direction is set', () => {
+		const out = generateIframeComponent('', '<b>x</b>', [], undefined, {
+			maxWidth: '100%',
+			padding: '16px',
+			direction: 'column',
+			gap: '8px',
+		});
+		expect(out).toContain(
+			'style="display: flex; flex-direction: column; flex-wrap: wrap; align-items: flex-start; gap: 8px; padding: 16px"',
+		);
+	});
+
+	it('stays bare flow-root without a stage', () => {
+		const out = generateIframeComponent('', '<b>x</b>');
+		expect(out).toContain('style="display: flow-root"');
+	});
+});

@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.53] - 2026-07-05
+
+### Added
+
+- **Content layout is configurable — globally and in place.** The config's
+  `content` option sets per-kind defaults, and the same names work as entity
+  and block attributes (block beats entity beats config):
+  - `maxWidth` — the content column for `[DOCS]`/`[PAGE]` (default `1200px`),
+    the stage for `[LAYOUT]` (default `100%`) and for `[preview]`/`[example]`
+    (default `100%`; narrower stages center).
+  - `padding` — page content `32px`, preview/example stages `16px`
+    (settable on `[DOCS]` as the entity default), layout stages `0px`.
+  - `direction` / `gap` — preview/example stages are flex containers:
+    `flex-direction` (default `row`) and `gap` (default `16px`).
+  - `toc` — `[PAGE]` table-of-contents visibility (default `true`;
+    `toc="false"` hides it).
+
 ## [0.0.52] - 2026-07-05
 
 ### Added

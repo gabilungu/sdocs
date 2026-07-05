@@ -37,8 +37,12 @@ principles — anything that isn't documenting a single component. Its body is
 
 ## Attributes
 
-`[PAGE]` takes a single attribute: `title` (required) — the sidebar path,
-`/`-separated like every entity.
+| Attribute | Required | Meaning |
+|---|---|---|
+| `title` | yes | Sidebar path, `/`-separated like every entity |
+| `maxWidth` | no | Content column width (default from config, `1200px`) |
+| `padding` | no | Space around the page content (default `32px`) |
+| `toc` | no | `toc="false"` hides the table of contents (default `true`) |
 
 ## The markdown dialect
 

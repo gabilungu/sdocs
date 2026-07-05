@@ -23,7 +23,7 @@
 </script>
 
 <div class="sdocs-page-view">
-	<div class="sdocs-page-main">
+	<div class="sdocs-page-main" style:max-width={doc.maxWidth}>
 		<!-- Header -->
 		<div class="sdocs-view-header">
 			<h1 class="sdocs-view-title">{displayTitle(meta.title)}</h1>
@@ -41,7 +41,7 @@
 	</div>
 
 	<!-- Table of Contents -->
-	{#if toc.length > 0}
+	{#if toc.length > 0 && doc.showToc !== false}
 		<aside class="sdocs-toc">
 			<h3 class="sdocs-toc-title">On this page</h3>
 			<nav>

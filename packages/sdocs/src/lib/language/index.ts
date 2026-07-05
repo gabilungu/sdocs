@@ -32,6 +32,7 @@ export {
 	slugifyTitle,
 	normalizeBody,
 	type ArgValue,
+	type Sizing,
 	type PreviewBlock,
 	type ExampleBlock,
 	type DocsEntity,

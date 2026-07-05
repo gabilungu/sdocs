@@ -288,7 +288,7 @@
 	);
 </script>
 
-<div class="sdocs-component-view">
+<div class="sdocs-component-view" style:max-width={doc.maxWidth}>
 	{#if focusedSnippet}
 		<!-- Example full-page view -->
 		<div class="sdocs-view-header">
@@ -482,7 +482,7 @@
 <style>
 	.sdocs-component-view {
 		padding: 24px 32px;
-		max-width: 1120px;
+		/* max-width comes from the doc entry (config/entity cascade) */
 		font-family: var(--sans);
 	}
 	.sdocs-doc-section {
@@ -579,8 +579,8 @@
 		overflow: hidden;
 	}
 	.sdocs-preview-wrapper {
+		/* stage padding lives inside the iframe (config/entity/block cascade) */
 		background: var(--color-base-0);
-		padding: 16px;
 	}
 	.sdocs-divider {
 		border: none;

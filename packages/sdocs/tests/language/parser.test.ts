@@ -104,7 +104,7 @@ describe('parseSdoc validation', () => {
 
 	it('rejects unknown attributes', () => {
 		expect(diagnosticCodes('[DOCS title="X" component={B}]\n[/DOCS]\n')).toContain('unknown-attr');
-		expect(diagnosticCodes('[PAGE title="X" padding="4px"]\nx\n[/PAGE]\n')).toContain(
+		expect(diagnosticCodes('[PAGE title="X" bogus="4px"]\nx\n[/PAGE]\n')).toContain(
 			'unknown-attr',
 		);
 	});
@@ -146,7 +146,10 @@ describe('parseSdoc validation', () => {
 	it('accepts LAYOUT presentation attributes', () => {
 		const doc = parseSdoc('[LAYOUT title="Login" padding="48px"]\n<div />\n[/LAYOUT]\n');
 		expect(doc.diagnostics).toEqual([]);
-		expect(doc.entities[0]).toMatchObject({ kind: 'LAYOUT', padding: '48px' });
+		expect(doc.entities[0]).toMatchObject({
+			kind: 'LAYOUT',
+			sizing: { maxWidth: null, padding: '48px' },
+		});
 	});
 });
 

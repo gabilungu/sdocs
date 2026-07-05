@@ -16,6 +16,11 @@ const DEFAULTS: ResolvedSdocsConfig = {
 		order: {},
 		open: [],
 	},
+	content: {
+		page: { maxWidth: '1200px', padding: '32px', toc: true },
+		docs: { maxWidth: '1200px', padding: '16px', direction: 'row', gap: '16px' },
+		layout: { maxWidth: '100%', padding: '0px' },
+	},
 };
 
 /** Find the config file path in the given directory */
@@ -94,6 +99,11 @@ export function resolveConfig(userConfig: SdocsConfig): ResolvedSdocsConfig {
 		sidebar: {
 			order: userConfig.sidebar?.order ?? DEFAULTS.sidebar.order,
 			open: userConfig.sidebar?.open ?? DEFAULTS.sidebar.open,
+		},
+		content: {
+			page: { ...DEFAULTS.content.page, ...userConfig.content?.page },
+			docs: { ...DEFAULTS.content.docs, ...userConfig.content?.docs },
+			layout: { ...DEFAULTS.content.layout, ...userConfig.content?.layout },
 		},
 	};
 }

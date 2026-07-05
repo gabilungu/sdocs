@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.33] - 2026-07-05
+
+### Added
+
+- **Markdown highlighting in `[PAGE]` bodies.** Page prose now colors as
+  markdown — headings, bold, lists, fences — instead of rendering plain.
+- **Format Document covers `[PAGE]` bodies.** Page prose formats through
+  prettier's markdown formatter: markup is normalized (bullets, spacing) and
+  re-indented at the block level; prose lines are never re-wrapped, and
+  Svelte islands and `{expressions}` pass through untouched.
+
+### Changed
+
+- The scaffolding command is now **sdocs: Create Component Documentation**
+  (was "sdocs: New Component Doc") — in the `.svelte` context menu and the
+  command palette.
+
+### Fixed
+
+- **Hovering a block tag no longer shows `{#snippet}` documentation.** Block
+  openers project to snippet wrappers in the virtual Svelte document; hover,
+  go-to-definition, and signature help on those generated lines are now
+  answered locally instead of forwarded.
+
 ## [0.0.32] - 2026-07-05
 
 ### Added

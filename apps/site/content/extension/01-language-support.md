@@ -24,9 +24,10 @@ imports — a clean editor means a clean build.
 
 **Format Document** formats fragment-wise: the file `<script>` and
 `<style>` and every `[preview]`/`[example]`/`[LAYOUT]` body run through
-prettier with the Svelte plugin independently, then reassemble at the
-block's indentation. Block tags are never touched, and `[PAGE]` prose is
-never reflowed.
+prettier with the Svelte plugin independently, and `[PAGE]` bodies through
+prettier's markdown formatter (markup is normalized; prose lines are never
+re-wrapped). Everything reassembles at the block's indentation. Block tags
+are never touched.
 
 ## sdoc syntax highlighting
 
@@ -34,7 +35,8 @@ The extension ships a TextMate grammar for the block-based
 [sdoc language](/language): `[DOCS]`, `[PAGE]`, and `[LAYOUT]` entities,
 `[preview]` and `[example]` blocks, and Svelte-style attributes, with
 embedded TypeScript, Svelte, and CSS coloring inside `<script>`, block
-bodies, and `<style>`. The grammar also injects into markdown, so
+bodies, and `<style>`. `[PAGE]` bodies color as markdown — headings, bold,
+lists, fences. The grammar also injects into markdown, so
 ` ```sdoc ` code fences in any README or markdown file highlight properly.
 Entity blocks fold, and `.sdoc` files get bracket and comment support.
 

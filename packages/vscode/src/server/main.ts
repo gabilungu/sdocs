@@ -6,7 +6,8 @@
  * path inside the embedded svelte-language-server, forwards editor requests
  * with identity position mapping, and republishes the embedded server's
  * diagnostics filtered down to authored, verbatim lines. Formatting is
- * fragment-wise prettier — block tags and PAGE prose are never touched.
+ * fragment-wise prettier (Svelte bodies via prettier-plugin-svelte, PAGE
+ * bodies via the markdown parser) — block tags are never touched.
  */
 
 import {
@@ -138,6 +139,19 @@ function forwardParams<T extends { textDocument: { uri: string } }>(params: T): 
 	return { ...params, textDocument: { ...params.textDocument, uri: virtualUri(params.textDocument.uri) } };
 }
 
+/**
+ * Only verbatim-projected lines carry authored Svelte the embedded server
+ * can speak about. Block tags project to `{#snippet}` wrappers — answering
+ * there would describe the wrapper (snippet docs on a `[PAGE …]` line), so
+ * position-based requests on generated lines are answered locally with null.
+ */
+function isVerbatimLine(uri: string, line: number): boolean {
+	const entry = tracked.get(uri);
+	if (!entry) return false;
+	return line < entry.projection.sourceLineCount &&
+		entry.projection.lineKinds[line] === 'verbatim';
+}
+
 /** Map any location pointing into a virtual document back to its .sdoc file. */
 function mapLocations<T extends Location | LocationLink>(result: T[] | null): T[] | null {
 	if (!result) return result;
@@ -163,11 +177,13 @@ connection.onCompletionResolve(async (item) => {
 });
 
 connection.onHover(async (params) => {
+	if (!isVerbatimLine(params.textDocument.uri, params.position.line)) return null;
 	const server = await getSvelte();
 	return server.sendRequest(HoverRequest.type, forwardParams(params));
 });
 
 connection.onDefinition(async (params) => {
+	if (!isVerbatimLine(params.textDocument.uri, params.position.line)) return null;
 	const server = await getSvelte();
 	const result = await server.sendRequest(DefinitionRequest.type, forwardParams(params));
 	if (Array.isArray(result)) return mapLocations(result as Location[]);
@@ -176,6 +192,7 @@ connection.onDefinition(async (params) => {
 });
 
 connection.onSignatureHelp(async (params) => {
+	if (!isVerbatimLine(params.textDocument.uri, params.position.line)) return null;
 	const server = await getSvelte();
 	return server.sendRequest(SignatureHelpRequest.type, forwardParams(params));
 });

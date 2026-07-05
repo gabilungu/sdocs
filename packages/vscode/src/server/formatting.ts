@@ -1,11 +1,15 @@
 /**
  * Fragment-wise formatting for .sdoc files: the file <script> and <style>
  * and every Svelte block body format independently through prettier with
- * prettier-plugin-svelte, then reassemble with the block's indentation.
- * Block tags and [PAGE] prose are never touched.
+ * prettier-plugin-svelte, [PAGE] bodies through prettier's markdown parser
+ * (prose lines are preserved, never re-wrapped), then reassemble with the
+ * block's indentation. Block tags are never touched.
  */
 
 import * as prettier from 'prettier';
+// The standalone plugin build: parser resolution must not depend on
+// prettier's lazy disk loading once bundled into dist/server.js.
+import * as markdownPlugin from 'prettier/plugins/markdown';
 import * as sveltePlugin from 'prettier-plugin-svelte';
 import type { FormattingOptions } from 'vscode-languageserver-protocol';
 import { scanSdoc, type SdocFile, type Span } from 'sdocs/language';
@@ -34,6 +38,17 @@ function prettierOptions(options: FormattingOptions): prettier.Options {
 		tabWidth: options.tabSize,
 		svelteSortOrder: 'options-scripts-markup-styles',
 	} as prettier.Options;
+}
+
+/** [PAGE] bodies are markdown; normalize markup, never re-wrap prose. */
+function markdownOptions(options: FormattingOptions): prettier.Options {
+	return {
+		parser: 'markdown',
+		plugins: [markdownPlugin],
+		useTabs: !options.insertSpaces,
+		tabWidth: options.tabSize,
+		proseWrap: 'preserve',
+	};
 }
 
 /** Strip the common leading indentation; returns the dedented text. */
@@ -72,9 +87,9 @@ export async function formatSdoc(
 		last: lineIndex(source, Math.max(span.start, span.end - 1)),
 	});
 
-	const formatFragment = async (text: string): Promise<string[] | null> => {
+	const formatFragment = async (text: string, fragmentOpts = opts): Promise<string[] | null> => {
 		try {
-			const formatted = await prettier.format(text, opts);
+			const formatted = await prettier.format(text, fragmentOpts);
 			return formatted.replace(/\n+$/, '').split('\n');
 		} catch {
 			return null; // fragment doesn't parse — leave it exactly as written
@@ -90,8 +105,9 @@ export async function formatSdoc(
 		if (lines) regions.push({ firstLine: first, lastLine: last, lines });
 	}
 
-	// Block bodies: Svelte fragments in [preview]/[example] and [LAYOUT].
-	const bodies: { span: Span; indent: string }[] = [];
+	// Block bodies: Svelte fragments in [preview]/[example] and [LAYOUT];
+	// [PAGE] bodies are markdown.
+	const bodies: { span: Span; indent: string; markdown?: boolean }[] = [];
 	for (const entity of file.entities) {
 		if (entity.kind === 'DOCS') {
 			for (const block of entity.blocks) {
@@ -99,17 +115,23 @@ export async function formatSdoc(
 					bodies.push({ span: block.bodySpan, indent: openerIndent(source, block.openerSpan) });
 				}
 			}
-		} else if (entity.kind === 'LAYOUT' && entity.bodySpan.end > entity.bodySpan.start) {
-			bodies.push({ span: entity.bodySpan, indent: openerIndent(source, entity.openerSpan) });
+		} else if (entity.bodySpan.end > entity.bodySpan.start) {
+			bodies.push({
+				span: entity.bodySpan,
+				indent: openerIndent(source, entity.openerSpan),
+				markdown: entity.kind === 'PAGE',
+			});
 		}
-		// PAGE prose is never reformatted.
 	}
 
 	for (const body of bodies) {
 		const { first, last } = spanLines(body.span);
 		const raw = sourceLines.slice(first, last + 1);
 		const { lines: dedented } = dedent(raw);
-		const formatted = await formatFragment(dedented.join('\n'));
+		const formatted = await formatFragment(
+			dedented.join('\n'),
+			body.markdown ? markdownOptions(options) : opts,
+		);
 		if (!formatted) continue;
 		const indent = body.indent + (options.insertSpaces ? ' '.repeat(options.tabSize) : '\t');
 		regions.push({

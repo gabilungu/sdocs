@@ -111,4 +111,45 @@ describe('sdoc language server over LSP', () => {
 		expect(formatted).toContain('[/DOCS]');
 		await client.changeDoc(uri, 5, source);
 	});
+
+	it('returns no hover on block tag lines (they project to snippet wrappers)', async () => {
+		const line = lines.findIndex((l) => l.includes('[DOCS'));
+		const hover = await client.connection.sendRequest('textDocument/hover', {
+			textDocument: { uri },
+			position: { line, character: lines[line].indexOf('[DOCS') + 2 },
+		});
+		expect(hover).toBeNull();
+	});
+
+	it('formats PAGE bodies as markdown, leaving expressions and tags alone', async () => {
+		const pageUri = 'file://' + resolve(SITE, 'src/lib/ui/__fmt-page.sdoc');
+		const page = [
+			'[PAGE title="T"]',
+			'',
+			'\t# Hello',
+			'',
+			'\t* one',
+			'\t* two',
+			'',
+			"\t{@render colorBox('#ff0000')}",
+			'',
+			'[/PAGE]',
+			'',
+		].join('\n');
+		await client.openDoc(pageUri, page);
+		const edits = (await client.connection.sendRequest('textDocument/formatting', {
+			textDocument: { uri: pageUri },
+			options: { tabSize: 4, insertSpaces: false },
+		})) as { newText: string }[] | null;
+		expect(edits?.[0]).toBeTruthy();
+		const formatted = edits![0].newText;
+		// markdown normalized (prettier bullets are '-') and re-indented one tab
+		expect(formatted).toContain('\t- one');
+		expect(formatted).toContain('\t- two');
+		expect(formatted).toContain('\t# Hello');
+		// Svelte islands and block tags survive untouched
+		expect(formatted).toContain("{@render colorBox('#ff0000')}");
+		expect(formatted).toContain('[PAGE title="T"]');
+		expect(formatted).toContain('[/PAGE]');
+	});
 });

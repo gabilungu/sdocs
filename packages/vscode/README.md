@@ -29,8 +29,9 @@ false errors on the block syntax:
 - **Block lint** — the same parser the sdocs build runs: unclosed blocks,
   wrong casing, missing or unknown attributes, duplicate titles, non-literal
   `args`, and unimported `component={X}` references.
-- **New Component Doc** — right-click a `.svelte` file → *New Component Doc*
-  scaffolds a `[DOCS]` block next to it, ready to fill in.
+- **Create Component Documentation** — right-click a `.svelte` file →
+  *sdocs: Create Component Documentation* scaffolds a `[DOCS]` block next to
+  it, ready to fill in.
 - **sdocs view** — the activity-bar icon lists the sdocs projects in your
   workspace; click one to run its docs and browse them inside the editor.
   Add extra folders with the `sdocs.scopes` setting.

@@ -27,11 +27,11 @@ const LANG_ALIASES: Record<string, string> = {
 
 const LANGS = ['javascript', 'typescript', 'svelte', 'bash', 'json', 'html', 'css', 'yaml', 'markdown'];
 
-// The sdoc grammar embeds svelte/ts/js/css scopes, all loaded via LANGS above.
+// The sdoc grammar embeds svelte/ts/js/css/markdown scopes, all loaded via LANGS above.
 const sdocLang = {
 	...sdocGrammar,
 	name: 'sdoc',
-	embeddedLangs: ['svelte', 'typescript', 'javascript', 'css']
+	embeddedLangs: ['svelte', 'typescript', 'javascript', 'css', 'markdown']
 } as unknown as LanguageRegistration;
 
 const FENCE_LANGS = new Set([...LANGS, 'sdoc']);

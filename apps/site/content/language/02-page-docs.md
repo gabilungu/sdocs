@@ -45,14 +45,18 @@ principles — anything that isn't documenting a single component. Its body is
 The body is markdown first, with two Svelte conveniences:
 
 - **`{expression}` interpolation** — values from the file's `<script>` drop
-  into the prose: `currently {version}`.
+  into the prose: `currently {version}`. The inside of a balanced `{…}` is
+  passed to Svelte verbatim, so string literals and operators are fine:
+  `{format("0.0.1")}`.
 - **Component islands** — a component tag renders live inside the text,
   like the `<Button />` above. Components come from the file's `<script>`
   imports.
 
 Everything else is plain markdown: headings, links, images, tables, lists,
 and code fences. **Fences are inert** — code inside them is displayed and
-highlighted, never executed, even if it looks like a component tag.
+highlighted, never executed, even if it looks like a component tag. The same
+goes for `` `inline code` ``. For a literal brace in prose, escape it:
+`\{`.
 
 What a page does **not** have: template logic (`{#if}`, `{#each}`),
 controls, and prop extraction. If you find yourself wanting logic, the

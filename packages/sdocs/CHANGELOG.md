@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.51] - 2026-07-05
+
+### Changed
+
+- **The sdoc grammar colors `[PAGE]` bodies as markdown.** Headings, bold,
+  lists, and fences highlight in page prose (the body's block indent is
+  accounted for, so indented bodies don't read as code blocks). Applies
+  everywhere the grammar is used — the VS Code extension and ` ```sdoc `
+  fences on the site.
+
+### Fixed
+
+- **Page expressions with string literals no longer break the page.** The
+  markdown pass HTML-escaped quotes (and `&&`, `<`) inside `{…}` expressions,
+  so `{@render colorBox("#ff0000")}` or `{format("x")}` in a `[PAGE]` body
+  failed to compile. Balanced `{…}` spans now pass through verbatim; prose
+  around them escapes exactly as before, and code fences and inline code stay
+  inert.
+
+### Added
+
+- **`\{` escapes a literal brace in page prose.** Previously a lone brace
+  written in prose could break the page; a backslash-escaped brace now renders
+  as an inert literal `{`.
+
 ## [0.0.50] - 2026-07-05
 
 ### Fixed

@@ -41,6 +41,51 @@ function escapeHtml(text: string): string {
 		.replace(/"/g, '&quot;');
 }
 
+/** marked-equivalent prose escaping (entities already present survive). */
+function escapeProse(text: string): string {
+	return text
+		.replace(/&(?!(?:#\d{1,7}|#[Xx][a-fA-F0-9]{1,6}|\w+);)/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#39;');
+}
+
+/** Index of the `}` closing the `{` at `open`, or -1. Skips quoted strings. */
+function findExpressionEnd(text: string, open: number): number {
+	let depth = 0;
+	for (let i = open; i < text.length; i++) {
+		const ch = text[i];
+		if (ch === '"' || ch === "'" || ch === '`') {
+			for (i++; i < text.length && text[i] !== ch; i++) {
+				if (text[i] === '\\') i++;
+			}
+			if (i >= text.length) return -1;
+		} else if (ch === '{') depth++;
+		else if (ch === '}' && --depth === 0) return i;
+	}
+	return -1;
+}
+
+/**
+ * Escape prose while passing balanced `{…}` spans through verbatim, so Svelte
+ * expressions survive the markdown pass — string literals, `&&`, comparisons.
+ * An unmatched `{` falls back to prose escaping, exactly as before.
+ */
+function escapeTextKeepingExpressions(text: string): string {
+	let out = '';
+	let from = 0;
+	for (let i = 0; i < text.length; i++) {
+		if (text[i] !== '{') continue;
+		const end = findExpressionEnd(text, i);
+		if (end === -1) break;
+		out += escapeProse(text.slice(from, i)) + text.slice(i, end + 1);
+		from = end + 1;
+		i = end;
+	}
+	return out + escapeProse(text.slice(from));
+}
+
 function plainText(tokens: Token[]): string {
 	let out = '';
 	for (const token of tokens) {
@@ -112,6 +157,15 @@ export async function renderPageMarkdown(source: string): Promise<RenderedPage> 
 			// tags, {expressions} stay expressions.
 			html(token) {
 				return token.text;
+			},
+			// Prose escapes for HTML, but balanced {…} spans stay verbatim so
+			// expressions keep their quotes and operators. A backslash-escaped
+			// brace (`\{`) becomes an inert literal brace.
+			text(token) {
+				if (token.type === 'escape') return escapeBraces(escapeProse(token.text));
+				if ('tokens' in token && token.tokens) return this.parser.parseInline(token.tokens);
+				if ('escaped' in token && token.escaped) return token.text;
+				return escapeTextKeepingExpressions(token.text);
 			}
 		}
 	});

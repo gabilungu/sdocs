@@ -15,6 +15,8 @@ import js from '@shikijs/langs/javascript';
 import ts from '@shikijs/langs/typescript';
 import css from '@shikijs/langs/css';
 import svelte from '@shikijs/langs/svelte';
+import markdown from '@shikijs/langs/markdown';
+import html from '@shikijs/langs/html';
 import githubDark from '@shikijs/themes/github-dark';
 
 const grammar = JSON.parse(
@@ -74,6 +76,7 @@ function assertSdocScopes(tokens: Tokens, source: string) {
 		['[example opener', colorOf(tokens, lines, '[example')],
 		['[/DOCS] closer', colorOf(tokens, lines, '[/DOCS]')],
 		['[PAGE after DOCS', colorOf(tokens, lines, '[PAGE', firstDocs + 1)],
+		['markdown heading in PAGE body', colorOf(tokens, lines, '## Heading')],
 		['[/PAGE] closer', colorOf(tokens, lines, '[/PAGE]')],
 	];
 	for (const [label, color] of checks) {
@@ -87,8 +90,8 @@ describe('sdoc grammar (Oniguruma engine, as in VS Code)', () => {
 		const hl = await createHighlighter({
 			themes: ['github-dark'],
 			langs: [
-				'javascript', 'typescript', 'css', 'svelte',
-				{ ...grammar, name: 'sdoc', embeddedLangs: ['svelte', 'typescript', 'javascript', 'css'] },
+				'javascript', 'typescript', 'css', 'svelte', 'markdown', 'html',
+				{ ...grammar, name: 'sdoc', embeddedLangs: ['svelte', 'typescript', 'javascript', 'css', 'markdown'] },
 			],
 		});
 		const { tokens } = hl.codeToTokens(MULTI_BLOCK, { lang: 'sdoc', theme: 'github-dark' });
@@ -100,8 +103,8 @@ describe('sdoc grammar (Oniguruma engine, as in VS Code)', () => {
 		const hl = await createHighlighter({
 			themes: ['github-dark'],
 			langs: [
-				'javascript', 'typescript', 'css', 'svelte',
-				{ ...grammar, name: 'sdoc', embeddedLangs: ['svelte', 'typescript', 'javascript', 'css'] },
+				'javascript', 'typescript', 'css', 'svelte', 'markdown', 'html',
+				{ ...grammar, name: 'sdoc', embeddedLangs: ['svelte', 'typescript', 'javascript', 'css', 'markdown'] },
 			],
 		});
 		for (const file of ['Notice.sdoc', 'NoticeJs.sdoc', 'Card.sdoc']) {
@@ -122,7 +125,7 @@ describe('sdoc grammar (JavaScript engine, as in the Explorer client)', () => {
 	it('keeps sdoc scopes alive across multiple blocks and entities', async () => {
 		const hl = await createHighlighterCore({
 			themes: [githubDark],
-			langs: [js, ts, css, svelte, { ...grammar, name: 'sdoc' }],
+			langs: [js, ts, css, svelte, markdown, html, { ...grammar, name: 'sdoc' }],
 			engine: createJavaScriptRegexEngine({ forgiving: true }),
 		});
 		const { tokens } = hl.codeToTokens(MULTI_BLOCK, { lang: 'sdoc', theme: 'github-dark' });

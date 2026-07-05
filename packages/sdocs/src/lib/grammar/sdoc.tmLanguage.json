@@ -229,10 +229,11 @@
 			"patterns": [
 				{
 					"begin": "(^|\\G)",
-					"while": "(^|\\G)(?!\\s*\\[/PAGE\\]\\s*$)",
+					"while": "(^|\\G)(?!\\s*\\[/PAGE\\]\\s*$)(?:\\t|[ ]{1,4})?",
+					"contentName": "meta.embedded.block.markdown",
 					"patterns": [
 						{
-							"include": "source.svelte"
+							"include": "text.html.markdown"
 						}
 					]
 				}

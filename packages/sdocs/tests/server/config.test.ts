@@ -11,6 +11,8 @@ describe('content sizing config', () => {
 			padding: '16px',
 			direction: 'row',
 			gap: '16px',
+			align: 'left',
+			alignY: 'top',
 		});
 		expect(c.content.layout).toEqual({ maxWidth: '100%', padding: '0px' });
 	});
@@ -19,7 +21,7 @@ describe('content sizing config', () => {
 		const c = resolveConfig({
 			content: {
 				page: { padding: '48px', toc: false },
-				docs: { direction: 'column' },
+				docs: { direction: 'column', align: 'center' },
 				layout: { maxWidth: '900px' },
 			},
 		});
@@ -29,6 +31,8 @@ describe('content sizing config', () => {
 			padding: '16px',
 			direction: 'column',
 			gap: '16px',
+			align: 'center',
+			alignY: 'top',
 		});
 		expect(c.content.layout).toEqual({ maxWidth: '900px', padding: '0px' });
 	});
@@ -112,10 +116,10 @@ describe('sizing attributes', () => {
 describe('attributeRules (shared by diagnostics and completions)', () => {
 	it('exposes the full attribute set per block kind', () => {
 		expect(Object.keys(attributeRules('preview'))).toEqual([
-			'component', 'args', 'title', 'maxWidth', 'padding', 'direction', 'gap',
+			'component', 'args', 'title', 'maxWidth', 'padding', 'direction', 'gap', 'align', 'alignY',
 		]);
 		expect(Object.keys(attributeRules('example'))).toEqual([
-			'title', 'maxWidth', 'padding', 'direction', 'gap',
+			'title', 'maxWidth', 'padding', 'direction', 'gap', 'align', 'alignY',
 		]);
 		expect(Object.keys(attributeRules('PAGE'))).toEqual([
 			'title', 'maxWidth', 'padding', 'toc',

@@ -7,8 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.54] - 2026-07-05
+
 ### Added
 
+- **Stage alignment on previews and examples.** Two direction-aware
+  attributes (also settable per-kind in `content.docs` and on `[DOCS]`):
+  `align` — horizontal (`left`/`center`/`right`/`justify`) — and `alignY` —
+  vertical (`top`/`middle`/`bottom`/`justify`). sdocs maps each to the right
+  flex property for the current `direction`, so `align="center"` centers
+  horizontally in a row or a column; `justify` spreads items along the flow.
 - **`attributeRules(kind)` in `sdocs/language`** — the allowed attributes and
   value shapes for a block kind, the single source of truth behind both
   diagnostics and the VS Code extension's attribute completions.

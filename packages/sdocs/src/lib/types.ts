@@ -34,6 +34,10 @@ export interface SdocsConfig {
 			direction?: string;
 			/** Stage gap. Default: '16px' */
 			gap?: string;
+			/** Horizontal alignment of stage contents: 'left'|'center'|'right'|'justify'. Default: 'left' */
+			align?: string;
+			/** Vertical alignment of stage contents: 'top'|'middle'|'bottom'. Default: 'top' */
+			alignY?: string;
 		};
 		/** [LAYOUT] stages. Defaults: maxWidth '100%', padding '0px'. */
 		layout?: ContentSizing;
@@ -50,9 +54,13 @@ export interface ContentSizing {
 export interface StageLayout {
 	maxWidth: string;
 	padding: string;
-	/** flex-direction + gap; set for preview/example stages only */
+	/** flex-direction + gap + align; set for preview/example stages only */
 	direction?: string;
 	gap?: string;
+	/** horizontal ('left'|'center'|'right'|'justify') — mapped by direction */
+	align?: string;
+	/** vertical ('top'|'middle'|'bottom') — mapped by direction */
+	alignY?: string;
 }
 
 /** Resolved config with all defaults applied */
@@ -69,7 +77,7 @@ export interface ResolvedSdocsConfig {
 	};
 	content: {
 		page: Required<ContentSizing> & { toc: boolean };
-		docs: Required<ContentSizing> & { direction: string; gap: string };
+		docs: Required<ContentSizing> & { direction: string; gap: string; align: string; alignY: string };
 		layout: Required<ContentSizing>;
 	};
 }

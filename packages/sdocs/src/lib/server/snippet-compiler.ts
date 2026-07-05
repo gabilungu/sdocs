@@ -102,23 +102,56 @@ export function generateIframeComponent(
 	snippetBody: string,
 	stateNames: string[] = [],
 	componentName?: string,
-	stage?: { maxWidth: string; padding: string; direction?: string; gap?: string },
+	stage?: {
+		maxWidth: string;
+		padding: string;
+		direction?: string;
+		gap?: string;
+		align?: string;
+		alignY?: string;
+	},
 ): string {
 	// The stage layout (config -> entity -> block cascade) applies here, inside
 	// the iframe, so every consumer of the preview page gets it. Preview and
-	// example stages are flex containers (direction + gap); page and layout
-	// stages are flow-root blocks. Both contain child margins, so the height
-	// reported for iframe auto-sizing is exact.
+	// example stages are flex containers (direction + gap + alignment); page and
+	// layout stages are flow-root blocks. Both contain child margins, so the
+	// height reported for iframe auto-sizing is exact.
+	//
+	// align/alignY are *physical* (horizontal/vertical); which flex property
+	// each drives depends on direction. The flow axis (main) takes
+	// justify-content, the other (cross) takes align-items — and align-items
+	// has no distribution value, so a 'justify' that lands on the cross axis
+	// falls back to stretch.
+	const H: Record<string, string> = {
+		left: 'flex-start',
+		center: 'center',
+		right: 'flex-end',
+		justify: 'space-between',
+	};
+	const V: Record<string, string> = {
+		top: 'flex-start',
+		middle: 'center',
+		bottom: 'flex-end',
+		justify: 'space-between',
+	};
+	const flexStage = () => {
+		const h = H[stage!.align ?? 'left'] ?? 'flex-start';
+		const v = V[stage!.alignY ?? 'top'] ?? 'flex-start';
+		const isColumn = String(stage!.direction).startsWith('column');
+		const justify = isColumn ? v : h;
+		let alignItems = isColumn ? h : v;
+		if (alignItems === 'space-between') alignItems = 'stretch';
+		return [
+			'display: flex',
+			`flex-direction: ${stage!.direction}`,
+			'flex-wrap: wrap',
+			`justify-content: ${justify}`,
+			`align-items: ${alignItems}`,
+			`gap: ${stage!.gap}`,
+		];
+	};
 	const stageStyle = [
-		...(stage?.direction
-			? [
-					'display: flex',
-					`flex-direction: ${stage.direction}`,
-					'flex-wrap: wrap',
-					'align-items: flex-start',
-					`gap: ${stage.gap}`,
-				]
-			: ['display: flow-root']),
+		...(stage?.direction ? flexStage() : ['display: flow-root']),
 		...(stage ? [`padding: ${stage.padding}`] : []),
 		...(stage && stage.maxWidth !== '100%'
 			? [`max-width: ${stage.maxWidth}`, 'margin-inline: auto']

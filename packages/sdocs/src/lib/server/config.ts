@@ -18,7 +18,14 @@ const DEFAULTS: ResolvedSdocsConfig = {
 	},
 	content: {
 		page: { maxWidth: '1200px', padding: '32px', toc: true },
-		docs: { maxWidth: '1200px', padding: '16px', direction: 'row', gap: '16px' },
+		docs: {
+			maxWidth: '1200px',
+			padding: '16px',
+			direction: 'row',
+			gap: '16px',
+			align: 'left',
+			alignY: 'top',
+		},
 		layout: { maxWidth: '100%', padding: '0px' },
 	},
 };

@@ -96,7 +96,7 @@ describe('sdoc language server over LSP', () => {
 		expect(count).toBeGreaterThan(10);
 	});
 
-	it('formats block bodies without touching block tags or structure', async () => {
+	it('formats block bodies without reformatting tag attributes', async () => {
 		const messy = source.replace('<Notice {...args}', '<Notice     {...args}');
 		await client.changeDoc(uri, 4, messy);
 		const edits = (await client.connection.sendRequest('textDocument/formatting', {

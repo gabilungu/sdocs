@@ -58,6 +58,41 @@ describe('formatting PAGE bodies with examples', () => {
 	});
 });
 
+describe('tag indentation normalization', () => {
+	it('re-indents entity and sub-block tags to the structure', async () => {
+		const source = [
+			'  [PAGE title="P"]',
+			'',
+			'\t\t\tProse.',
+			'',
+			'\t\t\t[example title="A"]',
+			'\t<b>x</b>',
+			'\t\t\t\t\t[/example]',
+			'',
+			'\t\t[/PAGE]',
+			'',
+		].join('\n');
+		const result = await formatSdoc(source, OPTIONS);
+		expect(result).not.toBeNull();
+		const lines = result!.split('\n');
+		expect(lines).toContain('[PAGE title="P"]');
+		expect(lines).toContain('\tProse.');
+		expect(lines).toContain('\t[example title="A"]');
+		expect(lines).toContain('\t\t<b>x</b>');
+		expect(lines).toContain('\t[/example]');
+		expect(lines).toContain('[/PAGE]');
+	});
+
+	it('leaves an unclosed block\'s lines alone', async () => {
+		// No [/PAGE]: the opener still normalizes, nothing else is guessed at.
+		const source = ['\t[PAGE title="P"]', '', '\tProse.', ''].join('\n');
+		const result = await formatSdoc(source, OPTIONS);
+		expect(result).not.toBeNull();
+		expect(result!.split('\n')[0]).toBe('[PAGE title="P"]');
+		expect(result).not.toContain('[/PAGE]');
+	});
+});
+
 describe('fences survive formatting (mangling regression)', () => {
 	it('never splits fences or joins tags on a rich page', async () => {
 		const { readFileSync } = await import('node:fs');

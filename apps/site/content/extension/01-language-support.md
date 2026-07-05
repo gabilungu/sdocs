@@ -28,8 +28,10 @@ prettier with the Svelte plugin independently. In `[PAGE]` bodies, `[example]`
 blocks format as Svelte fragments, Svelte islands (snippets, HTML sections,
 component tags) too, and the markdown prose between them through prettier's
 markdown formatter (markup normalized; prose lines never re-wrapped).
-Everything reassembles at the block's indentation. Block tags are never
-touched.
+Everything reassembles at the structural indentation: entity tags sit at
+column 0, `[preview]`/`[example]` tags one level in, bodies one level
+deeper — a misplaced `[/example]` or `[/PAGE]` snaps back into place.
+Tag attributes are never reformatted.
 
 ## sdoc syntax highlighting
 

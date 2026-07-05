@@ -2,8 +2,10 @@
  * Fragment-wise formatting for .sdoc files: the file <script> and <style>
  * and every Svelte block body format independently through prettier with
  * prettier-plugin-svelte, [PAGE] bodies through prettier's markdown parser
- * (prose lines are preserved, never re-wrapped), then reassemble with the
- * block's indentation. Block tags are never touched.
+ * (prose lines are preserved, never re-wrapped), then reassemble at the
+ * structural indentation: entity tags at column 0, sub-block tags one level
+ * in, bodies one level deeper. Tag lines re-indent to that structure; their
+ * attributes are never reformatted.
  */
 
 import * as prettier from 'prettier';
@@ -80,6 +82,7 @@ export async function formatSdoc(
 ): Promise<string | null> {
 	const sourceLines = source.split('\n');
 	const opts = prettierOptions(options);
+	const oneLevel = options.insertSpaces ? ' '.repeat(options.tabSize) : '\t';
 	const regions: Region[] = [];
 
 	const spanLines = (span: Span) => ({
@@ -112,7 +115,7 @@ export async function formatSdoc(
 	const pushBlockBodies = (blocks: SdocFile['entities'][number]['blocks']) => {
 		for (const block of blocks) {
 			if (block.bodySpan.end > block.bodySpan.start) {
-				bodies.push({ span: block.bodySpan, indent: openerIndent(source, block.openerSpan) });
+				bodies.push({ span: block.bodySpan, indent: oneLevel });
 			}
 		}
 	};
@@ -130,21 +133,20 @@ export async function formatSdoc(
 		if (entity.kind === 'DOCS') {
 			pushBlockBodies(entity.blocks);
 		} else if (entity.kind === 'PAGE' && entity.blocks.length > 0) {
-			const indent = openerIndent(source, entity.openerSpan);
 			let from = entity.bodySpan.start;
 			for (const block of entity.blocks) {
 				let openerLineStart = block.openerSpan.start;
 				while (openerLineStart > 0 && source[openerLineStart - 1] !== '\n') openerLineStart--;
-				pushProse(from, openerLineStart, indent);
+				pushProse(from, openerLineStart, '');
 				const nl = source.indexOf('\n', block.span.end);
 				from = nl === -1 ? entity.bodySpan.end : nl + 1;
 			}
 			pushBlockBodies(entity.blocks);
-			pushProse(from, entity.bodySpan.end, indent);
+			pushProse(from, entity.bodySpan.end, '');
 		} else if (entity.bodySpan.end > entity.bodySpan.start) {
 			bodies.push({
 				span: entity.bodySpan,
-				indent: openerIndent(source, entity.openerSpan),
+				indent: '',
 				markdown: entity.kind === 'PAGE',
 			});
 		}
@@ -199,12 +201,34 @@ export async function formatSdoc(
 			? await formatPageBody(dedented)
 			: await formatFragment(dedented.join('\n'));
 		if (!formatted) continue;
-		const indent = body.indent + (options.insertSpaces ? ' '.repeat(options.tabSize) : '\t');
+		const indent = body.indent + oneLevel;
 		regions.push({
 			firstLine: first,
 			lastLine: last,
 			lines: formatted.map((l) => (l === '' ? '' : indent + l)),
 		});
+	}
+
+	// Tag lines re-indent to the structure: entity tags at column 0,
+	// sub-block tags one level in. A closer moves only when the scanner
+	// actually found it (unclosed blocks stay verbatim), and only whole-line
+	// indentation changes — attributes are never reformatted.
+	const retag = (offset: number, indent: string, closer?: string) => {
+		const lineIdx = lineIndex(source, offset);
+		const text = sourceLines[lineIdx];
+		if (closer !== undefined && text.trim() !== closer) return;
+		const normalized = indent + text.trim();
+		if (normalized !== text) {
+			regions.push({ firstLine: lineIdx, lastLine: lineIdx, lines: [normalized] });
+		}
+	};
+	for (const entity of file.entities) {
+		retag(entity.openerSpan.start, '');
+		retag(Math.max(entity.openerSpan.end, entity.span.end - 1), '', `[/${entity.kind}]`);
+		for (const block of entity.blocks) {
+			retag(block.openerSpan.start, oneLevel);
+			retag(Math.max(block.openerSpan.end, block.span.end - 1), oneLevel, `[/${block.kind}]`);
+		}
 	}
 
 	if (regions.length === 0) return null;
@@ -217,10 +241,4 @@ export async function formatSdoc(
 	}
 	const result = out.join('\n');
 	return result === source ? null : result;
-}
-
-function openerIndent(source: string, openerSpan: Span): string {
-	let lineStart = openerSpan.start;
-	while (lineStart > 0 && source[lineStart - 1] !== '\n') lineStart--;
-	return source.slice(lineStart, openerSpan.start).match(/^[ \t]*/)![0];
 }

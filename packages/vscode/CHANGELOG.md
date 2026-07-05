@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.43] - 2026-07-06
+
+### Changed
+
+- **Formatting normalizes block-tag indentation.** Entity tags (`[PAGE]`,
+  `[DOCS]`, `[LAYOUT]` and their closers) sit at column 0,
+  `[preview]`/`[example]` tags one level in, bodies one level deeper — a
+  misplaced `[/example]` or `[/PAGE]` snaps back into place on format. Tag
+  attributes are still never reformatted, and unclosed blocks stay verbatim.
+
 ## [0.0.42] - 2026-07-05
 
 ### Added

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.73] - 2026-07-06
+
+### Changed
+
+- **An example's own page shows the example itself.** Opening an example
+  from the sidebar renders its stage directly under the title — the
+  "Preview" accordion wrapper is gone; only the collapsed Code panel
+  remains below.
+- **Code panels sit flush.** Every collapsible code panel (example Code,
+  Preview Code, Component Source) drops the padding around the block and
+  the block's rounded corners — the code fills the panel edge to edge.
+
 ## [0.0.72] - 2026-07-06
 
 ### Changed

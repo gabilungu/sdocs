@@ -127,7 +127,7 @@
 				<div class="sdocs-preview-wrapper">
 					<PreviewFrame src={example.previewUrl ?? ''} {activeStylesheet} />
 				</div>
-				<CollapsiblePanel title="Code" defaultExpanded={false}>
+				<CollapsiblePanel title="Code" defaultExpanded={false} flush>
 					<div class="sdocs-code-block">{@html example.highlightedHtml ?? ''}</div>
 				</CollapsiblePanel>
 			</div>
@@ -398,7 +398,7 @@
 	.sdocs-code-block :global(pre) {
 		margin: 0;
 		padding: 12px;
-		border-radius: 6px;
+		border-radius: 0;
 		overflow-x: auto;
 	}
 	.sdocs-code-block :global(code) {

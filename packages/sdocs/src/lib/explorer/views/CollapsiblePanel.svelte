@@ -5,10 +5,12 @@
 	interface Props {
 		title: string;
 		defaultExpanded?: boolean;
+		/** No padding around the body — content (code blocks) sits edge to edge. */
+		flush?: boolean;
 		children: Snippet;
 	}
 
-	let { title, defaultExpanded = true, children }: Props = $props();
+	let { title, defaultExpanded = true, flush = false, children }: Props = $props();
 	let expanded = $state(defaultExpanded);
 </script>
 
@@ -20,7 +22,7 @@
 		</span>
 	</button>
 	{#if expanded}
-		<div class="sdocs-panel-body">
+		<div class="sdocs-panel-body" class:flush>
 			{@render children()}
 		</div>
 	{/if}
@@ -59,5 +61,8 @@
 	.sdocs-panel-body {
 		padding: 14px;
 		border-top: 1px solid var(--color-base-100);
+	}
+	.sdocs-panel-body.flush {
+		padding: 0;
 	}
 </style>

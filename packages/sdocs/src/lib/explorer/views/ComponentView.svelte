@@ -295,10 +295,11 @@
 			<h1 class="sdocs-view-title">{displayTitle(meta.title)} / {snippetName}</h1>
 		</div>
 		<div class="sdocs-panels">
-			<CollapsiblePanel title="Preview">
+			<!-- The example IS the page — its stage renders directly, no accordion. -->
+			<div class="sdocs-preview-wrapper">
 				<PreviewFrame src={focusedSnippet.previewUrl ?? ''} {activeStylesheet} />
-			</CollapsiblePanel>
-			<CollapsiblePanel title="Code" defaultExpanded={false}>
+			</div>
+			<CollapsiblePanel title="Code" defaultExpanded={false} flush>
 				<div class="sdocs-code-block">{@html focusedSnippet.highlightedHtml ?? ''}</div>
 			</CollapsiblePanel>
 		</div>
@@ -343,7 +344,7 @@
 					</div>
 				{/key}
 
-				<CollapsiblePanel title="Preview Code" defaultExpanded={false}>
+				<CollapsiblePanel title="Preview Code" defaultExpanded={false} flush>
 					<div class="sdocs-code-block">
 						{#if highlightedUsageHtml}
 							{@html highlightedUsageHtml}
@@ -460,7 +461,7 @@
 						<div class="sdocs-preview-wrapper">
 							<PreviewFrame src={example.previewUrl ?? ''} {activeStylesheet} />
 						</div>
-						<CollapsiblePanel title="Code" defaultExpanded={false}>
+						<CollapsiblePanel title="Code" defaultExpanded={false} flush>
 							<div class="sdocs-code-block">{@html example.highlightedHtml ?? ''}</div>
 						</CollapsiblePanel>
 					</div>
@@ -471,7 +472,7 @@
 		{#if activePreview?.highlightedSource}
 			<hr class="sdocs-divider" />
 			<div class="sdocs-panels">
-				<CollapsiblePanel title="Component Source" defaultExpanded={false}>
+				<CollapsiblePanel title="Component Source" defaultExpanded={false} flush>
 					<div class="sdocs-code-block">{@html activePreview.highlightedSource}</div>
 				</CollapsiblePanel>
 			</div>
@@ -619,7 +620,7 @@
 	.sdocs-code-block :global(pre) {
 		margin: 0;
 		padding: 12px;
-		border-radius: 6px;
+		border-radius: 0;
 		overflow-x: auto;
 	}
 	.sdocs-code-block :global(code) {

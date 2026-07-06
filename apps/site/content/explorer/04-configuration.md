@@ -124,8 +124,7 @@ plugin in an app, use the host's own public directory instead.
 
 ### `title`
 
-Text shown in the header (the sidebar header, or the top bar when
-[sections](/explorer/features/sidebar#sections-top-bar) are in use).
+Text shown in the top bar, next to the logo.
 
 - **Type:** `string`
 - **Default:** `'sdocs'`

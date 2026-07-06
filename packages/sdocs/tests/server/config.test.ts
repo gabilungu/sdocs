@@ -176,6 +176,11 @@ describe('header title/logo (renamed from logo/icon)', () => {
 		expect(c.title).toBe('MyLib');
 		expect(c.logo).toBe('./m.png');
 	});
+
+	it('favicon defaults to the built-in icon and passes a value through', () => {
+		expect(resolveConfig({}).favicon).toBe('./explorer/favicon.png');
+		expect(resolveConfig({ favicon: '/logo.svg' }).favicon).toBe('/logo.svg');
+	});
 });
 
 describe('sections config', () => {

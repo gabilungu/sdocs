@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.66] - 2026-07-06
+
+### Added
+
+- **`favicon` config option.** Point the browser-tab icon at a static asset
+  (`favicon: '/logo.svg'`) or URL; defaults to the built-in sdocs icon. It's
+  base-prefixed on build like other assets.
+
+### Fixed
+
+- **A root-absolute `logo` path resolves under a sub-path deploy.** The
+  header logo is an image the Explorer renders at runtime, so (unlike assets
+  in the HTML) it wasn't getting the `base` prefix and 404'd on a project
+  Pages site; it's now prefixed with the base.
+
 ## [0.0.65] - 2026-07-06
 
 ### Fixed

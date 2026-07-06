@@ -104,6 +104,11 @@ export const configSchema: ConfigSchema = {
 		values: ['sdocs'],
 		quoted: true,
 	},
+	favicon: {
+		detail: 'string',
+		doc: "Browser-tab favicon — a path (e.g. `'/logo.svg'` from the static folder) or URL. Default: the built-in sdocs icon.",
+		insert: ": '${0:/logo.svg}'",
+	},
 	sections: {
 		detail: 'string[]',
 		doc: 'Top-bar section order. Sections come from `@Section/…` title prefixes; unlisted sections follow alphabetically.',

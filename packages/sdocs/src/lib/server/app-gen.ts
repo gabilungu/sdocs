@@ -102,14 +102,29 @@ async function copyDir(src: string, dest: string): Promise<void> {
 	}
 }
 
+/** <link rel="icon"> for a favicon path, with the MIME type from its extension.
+ * A root-absolute path (a project static asset) is base-prefixed by Vite. */
+function faviconLink(favicon: string): string {
+	const ext = favicon.split('?')[0].split('.').pop()?.toLowerCase();
+	const type =
+		ext === 'svg'
+			? 'image/svg+xml'
+			: ext === 'png'
+				? 'image/png'
+				: ext === 'ico'
+					? 'image/x-icon'
+					: null;
+	return `<link rel="icon"${type ? ` type="${type}"` : ''} href="${favicon}">`;
+}
+
 /** Generate the main index.html */
-function generateIndexHtml(title: string): string {
+function generateIndexHtml(title: string, favicon: string): string {
 	return `<!DOCTYPE html>
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<link rel="icon" type="image/png" href="./explorer/favicon.png">
+	${faviconLink(favicon)}
 	<title>${title}</title>
 	<style>body { margin: 0; }</style>
 </head>
@@ -235,7 +250,7 @@ export async function generateDevFiles(
 	await copyExplorerApp(sdocsDir);
 	await linkStagedDeps(sdocsDir, cwd);
 
-	await writeFile(resolve(sdocsDir, 'index.html'), generateIndexHtml(config.title));
+	await writeFile(resolve(sdocsDir, 'index.html'), generateIndexHtml(config.title, config.favicon));
 	// Dev always serves at the root — `base` applies to the build only.
 	await writeFile(resolve(sdocsDir, 'entry.js'), generateEntryJs(config, ''));
 
@@ -256,7 +271,7 @@ export async function generateBuildFiles(
 	await copyExplorerApp(sdocsDir);
 	await linkStagedDeps(sdocsDir, cwd);
 
-	await writeFile(resolve(sdocsDir, 'index.html'), generateIndexHtml(config.title));
+	await writeFile(resolve(sdocsDir, 'index.html'), generateIndexHtml(config.title, config.favicon));
 	await writeFile(resolve(sdocsDir, 'entry.js'), generateEntryJs(config, config.base));
 
 	const inputs: Record<string, string> = {

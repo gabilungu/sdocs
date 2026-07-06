@@ -68,7 +68,15 @@
 		typeof logo === 'string' && logo !== 'sdocs' && !/[./:]/.test(logo),
 	);
 	const headerTitle = $derived(title ?? (logoLooksLikeText ? (logo as string) : 'sdocs'));
-	const headerLogo = $derived(icon !== undefined ? icon : logoLooksLikeText ? 'sdocs' : logo);
+	const rawLogo = $derived(icon !== undefined ? icon : logoLooksLikeText ? 'sdocs' : logo);
+	// A root-absolute logo path (from the project's `static` folder) must carry
+	// the build's base prefix, or it 404s under a sub-path deploy. 'sdocs', an
+	// external URL, or a relative path pass through untouched.
+	const headerLogo = $derived(
+		typeof rawLogo === 'string' && rawLogo.startsWith('/') && !rawLogo.startsWith('//')
+			? basePath.replace(/\/$/, '') + rawLogo
+			: rawLogo,
+	);
 
 	let sidebarHidden = $state(false);
 	let activeStylesheet = $state<string | undefined>(undefined);

@@ -28,6 +28,7 @@ interface SdocsConfig {
   css?: string | Record<string, string>;
   title?: string;
   logo?: string | false;
+  favicon?: string;
   sections?: string[];
   defaultSection?: string;
   routing?: 'history' | 'hash';
@@ -142,10 +143,26 @@ Logo shown next to the title text.
 
 `'sdocs'` shows the built-in sdocs mascot. Any other string is used as an
 image URL (`/logo.svg` from your static assets, or a full `http(s)://` URL).
-`false` hides the logo.
+`false` hides the logo. A root-absolute path is prefixed with
+[`base`](#base) automatically, so it resolves under a sub-path deploy.
 
 ```js
 logo: '/acme-logo.svg'
+```
+
+### `favicon`
+
+The browser-tab icon.
+
+- **Type:** `string`
+- **Default:** the built-in sdocs icon
+
+A path (`/logo.svg` from your [`static`](#static) folder) or full URL; point
+it at the same file as `logo` for a matching mark. Base-prefixed like other
+assets on build.
+
+```js
+favicon: '/logo.svg'
 ```
 
 ### `sections`

@@ -16,6 +16,9 @@ export interface SdocsConfig {
 	title?: string;
 	/** Header logo: 'sdocs' for the built-in mascot, an image URL, or false to hide. Default: 'sdocs' */
 	logo?: string | false;
+	/** Browser-tab favicon — a path (e.g. '/logo.svg' from the static folder)
+	 * or URL. Default: the built-in sdocs icon. */
+	favicon?: string;
 	/** Top-bar section order. Sections come from `@Section/...` title prefixes;
 	 * unlisted sections follow alphabetically. Default: default section first,
 	 * rest alphabetical. */
@@ -94,6 +97,8 @@ export interface ResolvedSdocsConfig {
 	static: string | null;
 	title: string;
 	logo: string | false;
+	/** Favicon href for the built page; the built-in sdocs icon by default. */
+	favicon: string;
 	sections: string[];
 	defaultSection: string;
 	/** null = per-mode default (standalone: history, embedded: hash) */

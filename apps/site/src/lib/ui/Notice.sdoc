@@ -2,7 +2,7 @@
 	import Notice from './Notice.svelte';
 </script>
 
-[DOCS title="Notice" description="Kitchen sink: every documented feature in one component — text, number, boolean, and union props; events; plain and parameterized snippets; methods; exported state; and annotated CSS custom properties."]
+[SHOWCASE title="Notice" description="Kitchen sink: every documented feature in one component — text, number, boolean, and union props; events; plain and parameterized snippets; methods; exported state; and annotated CSS custom properties."]
 
 	[preview component={Notice} args={{ title: 'Build finished', tone: 'success', dismissible: true, count: 1 }}]
 		<Notice {...args}>
@@ -41,4 +41,4 @@
 		</div>
 	[/example]
 
-[/DOCS]
+[/SHOWCASE]

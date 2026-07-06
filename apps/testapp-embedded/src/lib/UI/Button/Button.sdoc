@@ -2,7 +2,7 @@
 	import Button from './Button.svelte';
 </script>
 
-[DOCS title="UI / Button" description="A flexible button component."]
+[SHOWCASE title="UI / Button" description="A flexible button component."]
 
 	[preview component={Button} args={{ label: 'Click me', variant: 'primary', size: 'md', disabled: false }}]
 		<Button {...args} />
@@ -20,4 +20,4 @@
 		<Button label="Disabled" disabled />
 	[/example]
 
-[/DOCS]
+[/SHOWCASE]

@@ -3,7 +3,7 @@
 	import Terminal from '@lucide/svelte/icons/terminal';
 </script>
 
-[DOCS title="Card" description="Linked card with an icon tile, body text, and a call-to-action line."]
+[SHOWCASE title="Card" description="Linked card with an icon tile, body text, and a call-to-action line."]
 
 	[preview component={Card} args={{ href: '#', title: 'CLI', linkText: 'Command reference' }}]
 		<Card {...args}>
@@ -32,4 +32,4 @@
 		</div>
 	[/example]
 
-[/DOCS]
+[/SHOWCASE]

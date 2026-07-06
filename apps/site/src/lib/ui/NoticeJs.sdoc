@@ -3,7 +3,7 @@
 	import Notice from "./Notice.svelte";
 </script>
 
-[DOCS title="NoticeJs"  description="The plain-JavaScript twin of Notice: the same full feature surface documented through JSDoc (@typedef + @property) instead of TypeScript — compare the two pages."]
+[SHOWCASE title="NoticeJs"  description="The plain-JavaScript twin of Notice: the same full feature surface documented through JSDoc (@typedef + @property) instead of TypeScript — compare the two pages."]
 
 	[preview component={NoticeJs} args={{ title: 'Build finished', tone: 'success', dismissible: true, count: 1 }}]
 		<NoticeJs {...args}
@@ -37,7 +37,7 @@
 	[example title=""]
 		<div></div>
 	[/example]
-[/DOCS]
+[/SHOWCASE]
 
 [PAGE title="something"]
 	abc

@@ -2,7 +2,7 @@
 	import LinkButton from './LinkButton.svelte';
 </script>
 
-[DOCS title="LinkButton" description="Button-shaped link used for the site's calls to action."]
+[SHOWCASE title="LinkButton" description="Button-shaped link used for the site's calls to action."]
 
 	[preview component={LinkButton} args={{ href: '#', variant: 'primary', external: false }}]
 		<LinkButton {...args}>Get started</LinkButton>
@@ -19,4 +19,4 @@
 		</div>
 	[/example]
 
-[/DOCS]
+[/SHOWCASE]

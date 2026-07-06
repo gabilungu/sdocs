@@ -2,11 +2,11 @@
 	import Disclosure from './Disclosure.svelte';
 </script>
 
-[DOCS title="Disclosure" description="Expandable panel with a children snippet, a parameterized marker snippet, and an ontoggle event."]
+[SHOWCASE title="Disclosure" description="Expandable panel with a children snippet, a parameterized marker snippet, and an ontoggle event."]
 
 	[preview component={Disclosure} args={{ summary: 'What is a .sdoc file?', open: false }}]
 		<Disclosure {...args}>
-			A file of <code>[DOCS]</code>, <code>[PAGE]</code>, and <code>[LAYOUT]</code>
+			A file of <code>[SHOWCASE]</code>, <code>[PAGE]</code>, and <code>[LAYOUT]</code>
 			blocks, rendered by the Explorer with live previews and controls.
 		</Disclosure>
 	[/preview]
@@ -27,4 +27,4 @@
 		</Disclosure>
 	[/example]
 
-[/DOCS]
+[/SHOWCASE]

@@ -2,7 +2,7 @@
 	import Chip from './Chip.svelte';
 </script>
 
-[DOCS title="Chip" description="A pill-shaped tag using a host-only dependency (clsx)."]
+[SHOWCASE title="Chip" description="A pill-shaped tag using a host-only dependency (clsx)."]
 
 	[preview component={Chip} args={{ label: 'Hello', active: false }}]
 		<Chip {...args} />
@@ -16,4 +16,4 @@
 		<Chip label="Closable" onremove={() => alert('removed')} />
 	[/example]
 
-[/DOCS]
+[/SHOWCASE]

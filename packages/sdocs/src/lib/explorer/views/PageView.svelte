@@ -6,22 +6,30 @@
 		doc: DocEntry;
 		/** Native doc/page components from `virtual:sdocs`, keyed by contentKey. */
 		pageModules?: Record<string, () => Promise<{ default: unknown }>>;
+		/** Already-resolved content components: the prerenderer passes all of
+		 * them (effects never run server-side) and the built app's entry passes
+		 * the current route's, so hydration matches the static HTML. */
+		preloaded?: Record<string, Component>;
 	}
 
-	let { doc, pageModules = {} }: Props = $props();
+	let { doc, pageModules = {}, preloaded = {} }: Props = $props();
 
 	// A PAGE body is plain Svelte compiled to its own component. It renders
 	// here in the docs context — sdocs CSS variables, no stage tooling, no
 	// iframe — inside the same max-width container DOC pages use.
-	let PageComponent = $state<Component | null>(null);
+	let loaded = $state<Component | null>(null);
+	const PageComponent = $derived(
+		(doc.contentKey ? preloaded[doc.contentKey] : undefined) ?? loaded,
+	);
 
 	$effect(() => {
+		if (doc.contentKey && preloaded[doc.contentKey]) return;
 		const load = doc.contentKey ? pageModules[doc.contentKey] : undefined;
-		PageComponent = null;
+		loaded = null;
 		if (!load) return;
 		let stale = false;
 		load().then((mod) => {
-			if (!stale) PageComponent = mod.default as Component;
+			if (!stale) loaded = mod.default as Component;
 		});
 		return () => {
 			stale = true;

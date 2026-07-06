@@ -44,11 +44,14 @@
 
 	## History mode (standalone CLI)
 
-	`sdocs dev` / `sdocs run` serve the app shell for any path, and
-	`sdocs build` writes a physical `index.html` per route into `dist/` — deep
-	links work on any static host (GitHub Pages included) with no rewrite
-	rules. Old `#/…` bookmarks from earlier sdocs versions are translated on
-	load.
+	`sdocs dev` / `sdocs run` serve the app shell for any path and render
+	client-side — a live SPA. `sdocs build` goes further: it **prerenders**
+	every route into its own `index.html` — the sidebar, the prose, a
+	per-route `<title>` (and the showcase description as the meta
+	description) are real HTML in the file, and the app hydrates on load.
+	Crawlers and no-JS readers get full pages; deep links work on any static
+	host (GitHub Pages included) with no rewrite rules. Old `#/…` bookmarks
+	from earlier sdocs versions are translated on load.
 
 	## Hash mode (embedded)
 

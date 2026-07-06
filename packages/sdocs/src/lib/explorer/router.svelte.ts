@@ -52,13 +52,19 @@ function parseLocation(): string[] {
 	return raw.split('/').filter(Boolean).map(decodeURIComponent);
 }
 
+let initialized = false;
+
 /**
- * Initialize the router — call once on app startup.
+ * Initialize the router — call once on app startup. Idempotent: the built
+ * app's entry initializes before hydration (the first render must already
+ * know the route), and the Explorer's own onMount call then no-ops.
  * In history mode a leftover `#/…` URL (a pre-history bookmark) is translated
  * in place: its segments were display names with spaces as hyphens, which
  * lowercased are today's slugs for almost every title.
  */
 export function initRouter(routingMode: RoutingMode, basePath = ''): void {
+	if (initialized) return;
+	initialized = true;
 	mode = routingMode;
 	base = basePath.replace(/\/$/, '');
 
@@ -78,4 +84,15 @@ export function initRouter(routingMode: RoutingMode, basePath = ''): void {
 	};
 	if (mode === 'history') window.addEventListener('popstate', onChange);
 	else window.addEventListener('hashchange', onChange);
+}
+
+/**
+ * Server-side route state for prerendering: sets mode/base/route without
+ * touching browser APIs. The build's static renderer calls this before each
+ * route render; hrefs and route resolution then match the client exactly.
+ */
+export function setServerRoute(segments: string[], basePath = ''): void {
+	mode = 'history';
+	base = basePath.replace(/\/$/, '');
+	currentRoute = segments;
 }

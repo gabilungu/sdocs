@@ -163,5 +163,20 @@ describe('sdocs build in the standalone test app', () => {
 				);
 			}
 		}
+
+		// Route pages are prerendered: real content in the app target and a
+		// per-route <title>, ready for hydration — not a bare SPA shell.
+		const aboutPage = readFileSync(join(dir, 'dist/pages/about/index.html'), 'utf8');
+		expect(aboutPage).toContain('<title>Pages / About – ');
+		expect(aboutPage).toContain('<div id="app"><!--');
+		expect(aboutPage, 'DOC prose is prerendered').toContain('without installing it');
+		const chipPage = readFileSync(join(dir, 'dist/chip/index.html'), 'utf8');
+		expect(chipPage).toContain('<title>Chip – ');
+		expect(chipPage, 'showcase description becomes the meta description').toContain(
+			'<meta name="description" content="A pill-shaped tag',
+		);
+		// The 404 fallback stays a bare shell (unknown routes boot the SPA).
+		const notFound = readFileSync(join(dir, 'dist/404.html'), 'utf8');
+		expect(notFound).toMatch(/<div id="app">\s*<\/div>/);
 	});
 });

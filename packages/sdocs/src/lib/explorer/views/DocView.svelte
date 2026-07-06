@@ -11,9 +11,13 @@
 		activeStylesheet?: string;
 		/** Native page components from `virtual:sdocs`, keyed by contentKey. */
 		pageModules?: Record<string, () => Promise<{ default: unknown }>>;
+		/** Already-resolved content components: the prerenderer passes all of
+		 * them (effects never run server-side) and the built app's entry passes
+		 * the current route's, so hydration matches the static HTML. */
+		preloaded?: Record<string, Component>;
 	}
 
-	let { doc, activeStylesheet, pageModules = {} }: Props = $props();
+	let { doc, activeStylesheet, pageModules = {}, preloaded = {} }: Props = $props();
 
 	const meta = $derived(doc.meta);
 	const toc = $derived(doc.toc ?? []);
@@ -21,16 +25,20 @@
 	// The page body compiles to its own component (prose + islands + example
 	// markers); it renders here, natively — sdocs styling, no iframe. Only the
 	// [example] stages load the project's css, each in its own PreviewFrame.
-	let PageComponent = $state<Component | null>(null);
+	let loaded = $state<Component | null>(null);
+	const PageComponent = $derived(
+		(doc.contentKey ? preloaded[doc.contentKey] : undefined) ?? loaded,
+	);
 	let container: HTMLElement | undefined = $state();
 
 	$effect(() => {
+		if (doc.contentKey && preloaded[doc.contentKey]) return;
 		const load = doc.contentKey ? pageModules[doc.contentKey] : undefined;
-		PageComponent = null;
+		loaded = null;
 		if (!load) return;
 		let stale = false;
 		load().then((mod) => {
-			if (!stale) PageComponent = mod.default as Component;
+			if (!stale) loaded = mod.default as Component;
 		});
 		return () => {
 			stale = true;

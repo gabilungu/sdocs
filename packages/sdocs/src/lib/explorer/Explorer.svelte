@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { DocEntry, SectionConfig } from '../types.js';
 	import { initRouter, getRoute, navigate, type RoutingMode } from './router.svelte.js';
-	import { buildSections, resolveRoute } from './tree-builder.js';
+	import { buildSections, resolveRoute, displayTitle } from './tree-builder.js';
 	import Sidebar from './views/Sidebar.svelte';
 	import TopBar from './views/TopBar.svelte';
 	import ComponentView from './views/ComponentView.svelte';
@@ -10,7 +10,7 @@
 	import LayoutView from './views/LayoutView.svelte';
 	import AboutPage from './views/AboutPage.svelte';
 	import ErrorScreen from './views/ErrorScreen.svelte';
-	import { onMount, setContext } from 'svelte';
+	import { onMount, setContext, type Component } from 'svelte';
 	import '../ui/styles/sdocs.css';
 
 	type ThemeMode = 'light' | 'dark';
@@ -28,6 +28,8 @@
 		previewBase?: string;
 		/** Native doc/page components from `virtual:sdocs`, keyed by contentKey. */
 		pageModules?: Record<string, () => Promise<{ default: unknown }>>;
+		/** Already-resolved content components (prerendering + hydration boot). */
+		preloaded?: Record<string, Component>;
 		/** The site's sections, in top-bar order (titles reference their slugs) */
 		sections?: SectionConfig[];
 		/** Route path of the landing page (e.g. 'guides/introduction') */
@@ -49,6 +51,7 @@
 		cssNames = [],
 		previewBase = '',
 		pageModules = {},
+		preloaded = {},
 		sections,
 		home = null,
 		routing = 'hash',
@@ -132,6 +135,19 @@
 				: (routeSection ?? sectionMap.sections[0]),
 	);
 
+	// Tab title tracks the route — same "Page – Site" shape the static build
+	// prerenders into each page's <title>; the root shows the site title alone.
+	$effect(() => {
+		let page: string | null = null;
+		if (isAboutRoute) {
+			page = 'About';
+		} else if (resolved && currentRoute.length > 0) {
+			const name = displayTitle(resolved.doc.meta.title);
+			page = resolved.snippetName ? `${name} / ${resolved.snippetName}` : name;
+		}
+		document.title = page ? `${page} – ${headerTitle}` : headerTitle;
+	});
+
 	/** History mode: internal <a> clicks route client-side instead of reloading. */
 	function onLinkClick(e: MouseEvent) {
 		if (routing !== 'history') return;
@@ -179,9 +195,9 @@
 		<main class="sdocs-main" class:sdocs-main-fullscreen={sidebarHidden}>
 			{#if resolved}
 				{#if resolved.doc.kind === 'doc'}
-					<DocView doc={resolved.doc} {activeStylesheet} {pageModules} />
+					<DocView doc={resolved.doc} {activeStylesheet} {pageModules} {preloaded} />
 				{:else if resolved.doc.kind === 'page'}
-					<PageView doc={resolved.doc} {pageModules} />
+					<PageView doc={resolved.doc} {pageModules} {preloaded} />
 				{:else if resolved.doc.kind === 'layout'}
 					<LayoutView doc={resolved.doc} {activeStylesheet} />
 				{:else}

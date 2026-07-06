@@ -137,28 +137,78 @@ function generateIndexHtml(title: string, favicon: string): string {
 </html>`;
 }
 
-/** Generate the entry.js that mounts the Explorer. `basePath` prefixes
- * history routes — set for a `sdocs build` under a sub-path, '' for dev. */
+/** The Explorer props literal shared by the client and server entries. */
+function explorerPropsJs(config: ResolvedSdocsConfig, basePath: string): string {
+	return `{
+	docs,
+	cssNames,
+	pageModules,
+	title: ${JSON.stringify(config.title)},
+	logo: ${JSON.stringify(config.logo)},
+	sections: ${JSON.stringify(config.sectionsDeclared ? config.sections : [])},
+	home: ${JSON.stringify(config.home)},
+	routing: ${JSON.stringify(config.routing ?? 'history')},
+	basePath: ${JSON.stringify(basePath)},
+	sdocsVersion: ${JSON.stringify(sdocsVersion())},
+}`;
+}
+
+/** Generate the entry.js that boots the Explorer. `basePath` prefixes
+ * history routes — set for a `sdocs build` under a sub-path, '' for dev.
+ * A prerendered page (static build output) hydrates; the router initializes
+ * and the route's content component resolves BEFORE the first client render,
+ * so it matches the server HTML. A bare shell (dev) simply mounts. */
 function generateEntryJs(config: ResolvedSdocsConfig, basePath: string): string {
-	return `import { mount } from 'svelte';
+	return `import { mount, hydrate } from 'svelte';
 import { docs, cssNames, pageModules } from 'virtual:sdocs';
 import Explorer from './explorer/Explorer.svelte';
+import { initRouter, getRoute } from './explorer/router.svelte.js';
+import { buildSections, resolveRoute } from './explorer/tree-builder.js';
 
-mount(Explorer, {
-	target: document.getElementById('app'),
-	props: {
-		docs,
-		cssNames,
-		pageModules,
-		title: ${JSON.stringify(config.title)},
-		logo: ${JSON.stringify(config.logo)},
-		sections: ${JSON.stringify(config.sectionsDeclared ? config.sections : [])},
-		home: ${JSON.stringify(config.home)},
-		routing: ${JSON.stringify(config.routing ?? 'history')},
-		basePath: ${JSON.stringify(basePath)},
-		sdocsVersion: ${JSON.stringify(sdocsVersion())},
+const props = ${explorerPropsJs(config, basePath)};
+
+async function boot() {
+	initRouter(props.routing, props.basePath);
+	const target = document.getElementById('app');
+	const prerendered = target.firstElementChild !== null;
+	const preloaded = {};
+	if (prerendered) {
+		const map = buildSections(docs, {
+			sections: props.sections.length > 0 ? props.sections : undefined,
+			home: props.home,
+		});
+		const key = resolveRoute(map, getRoute())?.doc.contentKey;
+		if (key && pageModules[key]) {
+			preloaded[key] = (await pageModules[key]()).default;
+		}
 	}
-});`;
+	(prerendered ? hydrate : mount)(Explorer, { target, props: { ...props, preloaded } });
+}
+
+boot();`;
+}
+
+/** Generate the server entry the static build renders routes through: one
+ * render() per route with the router state set explicitly and every content
+ * component resolved up front (effects never run server-side). */
+function generateServerEntryJs(config: ResolvedSdocsConfig, basePath: string): string {
+	return `import { render } from 'svelte/server';
+import { docs, cssNames, pageModules } from 'virtual:sdocs';
+import Explorer from './explorer/Explorer.svelte';
+import { setServerRoute } from './explorer/router.svelte.js';
+
+const props = ${explorerPropsJs(config, basePath)};
+
+const preloaded = {};
+for (const [key, load] of Object.entries(pageModules)) {
+	preloaded[key] = (await load()).default;
+}
+
+/** Render one route; returns svelte/server's { head, body }. */
+export function renderRoute(segments) {
+	setServerRoute(segments, props.basePath);
+	return render(Explorer, { props: { ...props, routing: 'history', preloaded } });
+}`;
 }
 
 /** Generate a preview HTML page for an iframe snippet */
@@ -274,6 +324,8 @@ export async function generateBuildFiles(
 
 	await writeFile(resolve(sdocsDir, 'index.html'), generateIndexHtml(config.title, config.favicon));
 	await writeFile(resolve(sdocsDir, 'entry.js'), generateEntryJs(config, config.base));
+	// The prerender pass builds and imports this separately (SSR bundle).
+	await writeFile(resolve(sdocsDir, 'server-entry.js'), generateServerEntryJs(config, config.base));
 
 	const inputs: Record<string, string> = {
 		main: resolve(sdocsDir, 'index.html'),

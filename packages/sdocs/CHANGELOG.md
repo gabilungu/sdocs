@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.74] - 2026-07-07
+
+### Added
+
+- **`sdocs build` prerenders every route.** Each emitted `index.html` now
+  contains the page's real HTML — sidebar, prose, Svelte pages — rendered
+  through Svelte's server renderer, plus a per-route `<title>` and, for
+  showcases, the `description` as the page's meta description. The app
+  hydrates on load and behaves as the same SPA afterwards; crawlers,
+  link-preview bots, and no-JS readers get full pages. Dev (`sdocs dev`
+  / `run`) stays a live client-rendered SPA. A route whose server render
+  throws falls back to client rendering with a build warning, and
+  `404.html` stays a bare shell so unknown paths boot the app.
+- **The tab title follows the route.** Client-side navigation updates
+  `document.title` to the same `Page – Site` shape the build prerenders.
+
 ## [0.0.73] - 2026-07-06
 
 ### Changed

@@ -75,7 +75,17 @@
 
 	Builds a static site to `dist/`. Site-structure errors — an unknown
 	`@section`, two entities on one route, an unresolvable `home` — fail the
-	build with a non-zero exit, so a broken structure can't deploy. The output is a single-page app with a pre-rendered iframe preview page per snippet, plus an `index.html` per doc route (and a `404.html` fallback) — deep links work with no rewrite rules. Deploy anywhere that serves static files (GitHub Pages, Netlify, Vercel, S3).
+	build with a non-zero exit, so a broken structure can't deploy.
+
+	Every route is **prerendered**: its `index.html` contains the page's real
+	HTML (sidebar, prose, a per-route `<title>`, the showcase description as
+	its meta description), and the app hydrates on load — crawlers and no-JS
+	readers get full pages, deep links work with no rewrite rules, and after
+	hydration it behaves as the same single-page app the dev server runs. Live
+	previews stage in their own pre-built iframe page per snippet; a `404.html`
+	fallback boots the app for unknown paths. A route whose server render fails
+	falls back to client rendering with a build warning. Deploy anywhere that
+	serves static files (GitHub Pages, Netlify, Vercel, S3).
 
 	Pass `--base <path>` when the site is served under a sub-path (a GitHub project Pages site lives at `/<repo>/`); it overrides the [`base`](/explorer/configuration#base) config, which lets CI derive it from the repo name:
 

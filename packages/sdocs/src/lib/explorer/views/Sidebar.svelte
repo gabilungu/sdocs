@@ -5,31 +5,13 @@
 	import { Icon } from '../../ui/Icon/index.js';
 	import { NavTree } from '../../ui/index.js';
 
-	type ThemeMode = 'light' | 'dark';
-
 	interface Props {
 		tree: TreeNode[];
 		currentRoute: string[];
-		title: string;
-		logo?: string | false;
-		/** Brand + actions render here unless a top bar already shows them */
-		showHeader?: boolean;
-		cssNames?: string[];
-		activeStylesheet?: string;
-		theme?: ThemeMode;
-		onToggleFullscreen?: () => void;
-		onStylesheetChange?: (name: string) => void;
-		onThemeChange?: (theme: ThemeMode) => void;
 	}
 
-	let { tree, currentRoute, title, logo = 'sdocs', showHeader = true, cssNames = [], activeStylesheet, theme = 'light', onToggleFullscreen, onStylesheetChange, onThemeChange }: Props = $props();
+	let { tree, currentRoute }: Props = $props();
 
-	const themeIcons: Record<ThemeMode, string> = { light: '\u2600', dark: '\u263D' };
-	const themeLabels: Record<ThemeMode, string> = { light: 'Light', dark: 'Dark' };
-
-	function toggleTheme() {
-		onThemeChange?.(theme === 'light' ? 'dark' : 'light');
-	}
 	let searchQuery = $state('');
 
 	// Track expanded state by path key (SvelteSet for reactivity)
@@ -189,38 +171,6 @@
 </script>
 
 <aside class="sdocs-sidebar">
-	{#if showHeader}
-		<div class="sdocs-sidebar-header">
-			<a href={routeHref([])} class="sdocs-logo">
-				{#if logo === 'sdocs'}
-					<Icon name="sdocs" --w="22px" --h="22px" --fill="#FC1D29" />
-				{:else if logo}
-					<img class="sdocs-logo-img" src={logo} alt="" />
-				{/if}
-				{title}
-			</a>
-			<div class="sdocs-header-actions">
-				{#if cssNames.length > 1}
-					<select
-						class="sdocs-css-picker"
-						value={activeStylesheet}
-						onchange={(e) => onStylesheetChange?.(e.currentTarget.value)}
-					>
-						{#each cssNames as name (name)}
-							<option value={name}>{name}</option>
-						{/each}
-					</select>
-				{/if}
-				<button class="sdocs-theme-btn" onclick={toggleTheme} title="{themeLabels[theme]} theme">
-					{themeIcons[theme]}
-				</button>
-				<button class="sdocs-fullscreen-btn" onclick={() => onToggleFullscreen?.()} title="Fullscreen">
-					&#x26F6;
-				</button>
-			</div>
-		</div>
-	{/if}
-
 	<div class="sdocs-sidebar-search">
 		<input
 			type="text"
@@ -299,66 +249,6 @@
 		flex-direction: column;
 		font-family: var(--sans);
 		font-size: 13px;
-	}
-	.sdocs-sidebar-header {
-		padding: 12px 16px;
-		border-bottom: 1px solid var(--color-base-200);
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-	}
-	.sdocs-logo {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		font-weight: 700;
-		font-size: 20px;
-		color: var(--color-base-900);
-		text-decoration: none;
-	}
-	.sdocs-logo-img {
-		width: 22px;
-		height: 22px;
-		object-fit: contain;
-	}
-	.sdocs-header-actions {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-	}
-	.sdocs-css-picker {
-		font-size: 12px;
-		padding: 2px 4px;
-		border: 1px solid var(--color-base-200);
-		border-radius: 4px;
-		background: var(--color-base-0);
-		color: var(--color-base-600);
-	}
-	.sdocs-theme-btn {
-		padding: 2px 6px;
-		border: 1px solid var(--color-base-200);
-		border-radius: 4px;
-		background: var(--color-base-0);
-		color: var(--color-base-600);
-		cursor: pointer;
-		font-size: 14px;
-		line-height: 1;
-	}
-	.sdocs-theme-btn:hover {
-		background: var(--color-base-100);
-	}
-	.sdocs-fullscreen-btn {
-		padding: 2px 6px;
-		border: 1px solid var(--color-base-200);
-		border-radius: 4px;
-		background: var(--color-base-0);
-		color: var(--color-base-600);
-		cursor: pointer;
-		font-size: 14px;
-		line-height: 1;
-	}
-	.sdocs-fullscreen-btn:hover {
-		background: var(--color-base-100);
 	}
 	.sdocs-sidebar-search {
 		padding: 8px 16px;

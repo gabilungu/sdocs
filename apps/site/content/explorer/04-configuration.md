@@ -171,7 +171,7 @@ the section — listed items sort first at their level, everything else
 follows alphabetically.
 
 - **Type:** `{ slug, title?, order? }[]`
-- **Default:** none — a single implicit `docs` section, and no top bar
+- **Default:** none — a single implicit `docs` section (the top bar shows its lone tab)
 
 ```js
 sections: [

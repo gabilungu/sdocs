@@ -57,7 +57,8 @@ Titles reference the section **slug** — the stable identity that also forms
 the URL — so renaming a tab (`title`) never breaks doc files or links.
 Referencing an undeclared section is a full-page error, as is an unprefixed
 title when no `docs` section is declared. A project that declares no
-sections keeps a single implicit `docs` section and shows no top bar.
+sections keeps a single implicit `docs` section — the top bar always
+renders (brand, tabs, theme and fullscreen controls), just with one tab.
 
 Sections make full documentation sites: a `guides` section of pure pages
 next to a `components` section of component docs, each with its own

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.69] - 2026-07-06
+
+### Changed
+
+- **The top bar always renders.** Previously it appeared only with two or
+  more declared sections; now every site gets the full-width bar — brand,
+  section tabs (a lone "Docs" tab in zero-config projects, highlighted on
+  any doc route), stylesheet picker, theme and fullscreen controls — and
+  the sidebar is always just search + tree. One consistent layout in every
+  project and in embedded mode.
+
 ## [0.0.68] - 2026-07-06
 
 ### Changed

@@ -103,20 +103,24 @@
 
 	const currentRoute = $derived(getRoute());
 	const sectionMap = $derived(buildSections(docs, { sections, home }));
-	const showTopBar = $derived(sectionMap.active && sectionMap.sections.length > 1);
-	// The section the current route sits in — undefined on the home/about
-	// screens, so no tab reads as active there.
-	const routeSection = $derived(
-		sectionMap.active ? sectionMap.sections.find((s) => s.slug === currentRoute[0]) : undefined,
-	);
-	// The section whose sidebar to show — falls back to the first when the
-	// route points nowhere (home, about, unknown), so there's always a tree.
-	const activeSection = $derived(routeSection ?? sectionMap.sections[0]);
 	// The About page (mascot + stats + sdocs version) lives at /about and is
 	// the landing page whenever the config sets no `home`.
 	const isAboutRoute = $derived(currentRoute.length === 1 && currentRoute[0] === 'about');
 	// The root route resolves to the configured home entity (or null → About).
 	const resolved = $derived(isAboutRoute ? null : resolveRoute(sectionMap, currentRoute));
+	// The tab the current route sits in. With declared sections that's the
+	// route's first segment; the implicit lone `docs` section is active on any
+	// doc route. Home/About highlight no tab.
+	const routeSection = $derived(
+		sectionMap.active
+			? sectionMap.sections.find((s) => s.slug === currentRoute[0])
+			: resolved
+				? sectionMap.sections[0]
+				: undefined,
+	);
+	// The section whose sidebar to show — falls back to the first when the
+	// route points nowhere (home, about, unknown), so there's always a tree.
+	const activeSection = $derived(routeSection ?? sectionMap.sections[0]);
 
 	/** History mode: internal <a> clicks route client-side instead of reloading. */
 	function onLinkClick(e: MouseEvent) {
@@ -138,39 +142,25 @@
 
 <svelte:window onclick={onLinkClick} />
 
-<div class="sdocs-app" class:sdocs-app-with-topbar={showTopBar}>
+<div class="sdocs-app">
 	{#if sectionMap.errors.length > 0}
 		<ErrorScreen errors={sectionMap.errors} />
 	{:else}
-	{#if showTopBar}
-		<TopBar
-			title={headerTitle}
-			logo={headerLogo}
-			sections={sectionMap.sections}
-			activeSlug={routeSection?.slug}
-			{cssNames}
-			{activeStylesheet}
-			{theme}
-			onToggleFullscreen={() => (sidebarHidden = true)}
-			onStylesheetChange={(name) => (activeStylesheet = name)}
-			onThemeChange={(t) => (theme = t)}
-		/>
-	{/if}
+	<TopBar
+		title={headerTitle}
+		logo={headerLogo}
+		sections={sectionMap.sections}
+		activeSlug={routeSection?.slug}
+		{cssNames}
+		{activeStylesheet}
+		{theme}
+		onToggleFullscreen={() => (sidebarHidden = true)}
+		onStylesheetChange={(name) => (activeStylesheet = name)}
+		onThemeChange={(t) => (theme = t)}
+	/>
 	<div class="sdocs-body">
 		{#if !sidebarHidden}
-			<Sidebar
-				tree={activeSection?.tree ?? []}
-				{currentRoute}
-				title={headerTitle}
-				logo={headerLogo}
-				showHeader={!showTopBar}
-				cssNames={showTopBar ? [] : cssNames}
-				{activeStylesheet}
-				{theme}
-				onToggleFullscreen={() => (sidebarHidden = true)}
-				onStylesheetChange={(name) => (activeStylesheet = name)}
-				onThemeChange={(t) => (theme = t)}
-			/>
+			<Sidebar tree={activeSection?.tree ?? []} {currentRoute} />
 		{:else}
 			<button class="sdocs-exit-fullscreen" onclick={() => (sidebarHidden = false)}>
 				&#9664; Exit fullscreen

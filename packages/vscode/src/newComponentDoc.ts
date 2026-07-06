@@ -27,13 +27,13 @@ export async function newComponentDoc(uri?: vscode.Uri): Promise<void> {
 	import ${componentName} from './${fileName}';
 </script>
 
-[DOCS title="${componentName}" description=""]
+[SHOWCASE title="${componentName}" description=""]
 
 	[preview component={${componentName}}]
 		<${componentName} {...args} />
 	[/preview]
 
-[/DOCS]
+[/SHOWCASE]
 `;
 
 	await vscode.workspace.fs.writeFile(sdocUri, new TextEncoder().encode(template));

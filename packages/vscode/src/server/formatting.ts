@@ -130,7 +130,7 @@ export async function formatSdoc(
 		bodies.push({ span: { start: start + lead, end: end - trail }, indent, markdown: true });
 	};
 	for (const entity of file.entities) {
-		if (entity.kind === 'DOCS') {
+		if (entity.kind === 'SHOWCASE') {
 			pushBlockBodies(entity.blocks);
 		} else if (entity.kind === 'PAGE' && entity.blocks.length > 0) {
 			let from = entity.bodySpan.start;

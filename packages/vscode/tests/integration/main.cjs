@@ -30,7 +30,7 @@ const BUTTON_SDOC = `<script lang="ts">
 	import Button from "./Button.svelte";
 </script>
 
-[DOCS title="Button" description=""]
+[SHOWCASE title="Button" description=""]
 
 	[preview component={Button} args={{ label: "Login" }}]
 		<Button {...args} />
@@ -41,7 +41,7 @@ const BUTTON_SDOC = `<script lang="ts">
 		<Button size="lg" label="Large" />
 	[/example]
 
-[/DOCS]
+[/SHOWCASE]
 `;
 
 async function main() {

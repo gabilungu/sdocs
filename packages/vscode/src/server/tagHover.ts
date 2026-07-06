@@ -9,9 +9,9 @@ import { MarkupKind, type Hover, type Position } from 'vscode-languageserver-pro
 
 const SITE = 'https://gabilungu.github.io/sdocs';
 
-const TAG_DOCS: Record<string, string> = {
-	DOCS: [
-		'**`[DOCS]`** — component documentation entity',
+const TAG_SHOWCASE: Record<string, string> = {
+	SHOWCASE: [
+		'**`[SHOWCASE]`** — component documentation entity',
 		'',
 		'Holds live `[preview]` blocks (rendered component, prop controls, extracted API) and frozen `[example]` blocks.',
 		'',
@@ -49,7 +49,7 @@ const TAG_DOCS: Record<string, string> = {
 	preview: [
 		'**`[preview]`** — live component panel',
 		'',
-		'Renders the component with editable prop controls, its extracted API tables, and its source. Several previews in one `[DOCS]` render as tabs.',
+		'Renders the component with editable prop controls, its extracted API tables, and its source. Several previews in one `[SHOWCASE]` render as tabs.',
 		'',
 		'- `component` *(required)* — an identifier imported in the file `<script>`: `component={Button}`.',
 		'- `args` — initial props, as an object literal: `args={{ label: "Hi" }}`.',
@@ -62,9 +62,9 @@ const TAG_DOCS: Record<string, string> = {
 	example: [
 		'**`[example]`** — frozen example',
 		'',
-		'A Svelte snippet rendered live on an isolated stage with the project\'s css, without controls. In `[DOCS]` it renders below the previews; in `[PAGE]` it renders in place, mid-prose — the way to showcase real components inside a documentation page.',
+		'A Svelte snippet rendered live on an isolated stage with the project\'s css, without controls. In `[SHOWCASE]` it renders below the previews; in `[PAGE]` it renders in place, mid-prose — the way to showcase real components inside a documentation page.',
 		'',
-		'- `title` *(required)* — the example heading (and, in `[DOCS]`, its sidebar sub-entry).',
+		'- `title` *(required)* — the example heading (and, in `[SHOWCASE]`, its sidebar sub-entry).',
 		'- `maxWidth` / `padding` / `direction` / `gap` — stage size & flow.',
 		'- `contentX` — horizontal: `left`/`center`/`right`/`justify`. `contentY` — vertical: `top`/`middle`/`bottom`/`justify`.',
 		'',
@@ -75,13 +75,13 @@ const TAG_DOCS: Record<string, string> = {
 /** Hover for the sdoc tag token at `position`, if the position is on one. */
 export function sdocTagHover(source: string, position: Position): Hover | null {
 	const line = source.split('\n')[position.line] ?? '';
-	const re = /\[\/?(DOCS|PAGE|LAYOUT|preview|example)\b\]?/g;
+	const re = /\[\/?(SHOWCASE|PAGE|LAYOUT|preview|example)\b\]?/g;
 	for (let m = re.exec(line); m; m = re.exec(line)) {
 		const start = m.index;
 		const end = m.index + m[0].length;
 		if (position.character >= start && position.character <= end) {
 			return {
-				contents: { kind: MarkupKind.Markdown, value: TAG_DOCS[m[1]] },
+				contents: { kind: MarkupKind.Markdown, value: TAG_SHOWCASE[m[1]] },
 				range: {
 					start: { line: position.line, character: start },
 					end: { line: position.line, character: end },

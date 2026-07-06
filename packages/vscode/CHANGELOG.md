@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.47] - 2026-07-06
+
+### Changed
+
+- **BREAKING: `[DOCS]` is renamed `[SHOWCASE]`** in grammar highlighting,
+  diagnostics, attribute completion, hovers, the Create Component
+  Documentation scaffolder, and formatting — matching sdocs 0.0.67. The
+  config completion offers `content.showcase` (was `content.docs`).
+
 ## [0.0.46] - 2026-07-06
 
 ### Added

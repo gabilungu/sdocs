@@ -108,7 +108,7 @@ describe('sdoc language server over LSP', () => {
 		expect(formatted).not.toContain('<Notice     {...args}');
 		expect(formatted).toContain('[preview component={Notice}');
 		expect(formatted).toContain('[/preview]');
-		expect(formatted).toContain('[/DOCS]');
+		expect(formatted).toContain('[/SHOWCASE]');
 		await client.changeDoc(uri, 5, source);
 	});
 
@@ -119,8 +119,8 @@ describe('sdoc language server over LSP', () => {
 				position: { line, character },
 			}) as Promise<{ contents?: { value?: string } } | null>;
 
-		const docsLine = lines.findIndex((l) => l.includes('[DOCS'));
-		const opener = await hoverAt(docsLine, lines[docsLine].indexOf('[DOCS') + 2);
+		const docsLine = lines.findIndex((l) => l.includes('[SHOWCASE'));
+		const opener = await hoverAt(docsLine, lines[docsLine].indexOf('[SHOWCASE') + 2);
 		expect(opener?.contents?.value).toContain('component documentation entity');
 		expect(opener?.contents?.value).not.toContain('{#snippet');
 
@@ -128,8 +128,8 @@ describe('sdoc language server over LSP', () => {
 		const preview = await hoverAt(previewLine, lines[previewLine].indexOf('[preview') + 3);
 		expect(preview?.contents?.value).toContain('live component panel');
 
-		const closerLine = lines.findIndex((l) => l.includes('[/DOCS]'));
-		const closer = await hoverAt(closerLine, lines[closerLine].indexOf('[/DOCS]') + 3);
+		const closerLine = lines.findIndex((l) => l.includes('[/SHOWCASE]'));
+		const closer = await hoverAt(closerLine, lines[closerLine].indexOf('[/SHOWCASE]') + 3);
 		expect(closer?.contents?.value).toContain('component documentation entity');
 
 		// past the tag token (in the attributes) there is nothing to say

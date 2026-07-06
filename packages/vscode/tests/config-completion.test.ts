@@ -22,17 +22,17 @@ describe('scanContext — which object is the cursor in', () => {
 	});
 
 	it('descends into nested objects', () => {
-		const [text, offset] = at('export default {\n\tcontent: {\n\t\tdocs: {\n\t\t\t|\n\t\t},\n\t},\n};');
-		expect(scanContext(text, offset)).toMatchObject({ path: ['content', 'docs'], valueKey: null });
+		const [text, offset] = at('export default {\n\tcontent: {\n\t\tshowcase: {\n\t\t\t|\n\t\t},\n\t},\n};');
+		expect(scanContext(text, offset)).toMatchObject({ path: ['content', 'showcase'], valueKey: null });
 	});
 
 	it('detects value position after a key', () => {
-		const [text, offset] = at('export default {\n\tcontent: {\n\t\tdocs: { contentX: |');
-		expect(scanContext(text, offset)).toMatchObject({ path: ['content', 'docs'], valueKey: 'contentX' });
+		const [text, offset] = at('export default {\n\tcontent: {\n\t\tshowcase: { contentX: |');
+		expect(scanContext(text, offset)).toMatchObject({ path: ['content', 'showcase'], valueKey: 'contentX' });
 	});
 
 	it('detects value position with the cursor inside the opening quote', () => {
-		const [text, offset] = at("export default {\n\tcontent: {\n\t\tdocs: { contentX: 'le|' }");
+		const [text, offset] = at("export default {\n\tcontent: {\n\t\tshowcase: { contentX: 'le|' }");
 		expect(scanContext(text, offset)).toMatchObject({ valueKey: 'contentX' });
 	});
 
@@ -43,7 +43,7 @@ describe('scanContext — which object is the cursor in', () => {
 	});
 
 	it('is not fooled by braces or colons inside strings and comments', () => {
-		const [text, offset] = at('export default {\n\t// docs: { nope\n\tcss: "a{b}:c",\n\tcontent: {\n\t\t|\n\t},\n};');
+		const [text, offset] = at('export default {\n\t// showcase: { nope\n\tcss: "a{b}:c",\n\tcontent: {\n\t\t|\n\t},\n};');
 		expect(scanContext(text, offset)).toMatchObject({ path: ['content'] });
 	});
 
@@ -66,7 +66,7 @@ describe('objectAt — walk the schema by path', () => {
 	});
 
 	it('descends to the docs stage keys', () => {
-		expect(Object.keys(objectAt(configSchema, ['content', 'docs'])!)).toContain('contentX');
+		expect(Object.keys(objectAt(configSchema, ['content', 'showcase'])!)).toContain('contentX');
 	});
 
 	it('returns null for a non-object path', () => {

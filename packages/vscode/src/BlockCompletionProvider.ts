@@ -11,9 +11,9 @@ interface BlockSpec {
 
 const ENTITY_BLOCKS: BlockSpec[] = [
 	{
-		label: 'DOCS',
+		label: 'SHOWCASE',
 		detail: 'Component docs: previews with controls + examples',
-		insert: 'DOCS title="$1"]\n\n\t$0\n\n[/DOCS]',
+		insert: 'SHOWCASE title="$1"]\n\n\t$0\n\n[/SHOWCASE]',
 	},
 	{
 		label: 'PAGE',
@@ -44,12 +44,12 @@ const SUB_BLOCKS: BlockSpec[] = [
  * block *allows* comes from the parser (attributeRules) — the single source of
  * truth diagnostics use — so completions never drift from validation. This map
  * only enriches them; an attribute missing here still completes. */
-const ATTR_DOCS: Record<string, string> = {
+const ATTR_SHOWCASE: Record<string, string> = {
 	title: 'Sidebar path — `/` segments nest like folders. A leading `:` on the first segment makes a group header.',
 	description: 'One sentence shown under the page title.',
 	component: "The demonstrated component: an identifier imported in the file's `<script>`. Drives prop extraction and controls.",
 	args: "This preview's control defaults — plain literals only: `args={{ label: 'Hi', disabled: false }}`.",
-	maxWidth: 'Content column ([DOCS]/[PAGE]) or stage ([LAYOUT]/[preview]/[example]) width. Overrides the config default.',
+	maxWidth: 'Content column ([SHOWCASE]/[PAGE]) or stage ([LAYOUT]/[preview]/[example]) width. Overrides the config default.',
 	padding: 'Space around the content or stage. Overrides the entity and config defaults.',
 	direction: 'Stage `flex-direction` (`row`/`column`). Overrides the entity and config defaults.',
 	gap: 'Stage `gap` between items. Overrides the entity and config defaults.',
@@ -87,7 +87,7 @@ export class BlockCompletionProvider implements vscode.CompletionItemProvider {
 		}
 
 		// A bare '[' (or '[par…') at line start → offer whole blocks. Which set
-		// depends on the entity the cursor sits inside: [DOCS] takes both
+		// depends on the entity the cursor sits inside: [SHOWCASE] takes both
 		// sub-blocks, [PAGE] takes [example] only, elsewhere entities.
 		const bare = /^\s*\[([A-Za-z]*)$/.exec(before);
 		if (bare) {
@@ -97,7 +97,7 @@ export class BlockCompletionProvider implements vscode.CompletionItemProvider {
 				(e) => offset > e.openerSpan.end && offset < e.span.end,
 			);
 			const specs =
-				host?.kind === 'DOCS'
+				host?.kind === 'SHOWCASE'
 					? SUB_BLOCKS
 					: host?.kind === 'PAGE'
 						? SUB_BLOCKS.filter((s) => s.label === 'example')
@@ -121,7 +121,7 @@ export class BlockCompletionProvider implements vscode.CompletionItemProvider {
 		}
 
 		// Attribute names on a block opener line.
-		const opener = /^\s*\[(DOCS|PAGE|LAYOUT|preview|example)\b/.exec(line);
+		const opener = /^\s*\[(SHOWCASE|PAGE|LAYOUT|preview|example)\b/.exec(line);
 		if (!opener) return undefined;
 		const rules = attributeRules(opener[1]);
 		const tagEnd = line.indexOf('[') + 1 + opener[1].length;
@@ -142,7 +142,7 @@ export class BlockCompletionProvider implements vscode.CompletionItemProvider {
 			.map(([name, rule]) => {
 				const item = new vscode.CompletionItem(name, vscode.CompletionItemKind.Property);
 				item.detail = rule.required ? `${rule.hint} (required)` : rule.hint;
-				if (ATTR_DOCS[name]) item.documentation = new vscode.MarkdownString(ATTR_DOCS[name]);
+				if (ATTR_SHOWCASE[name]) item.documentation = new vscode.MarkdownString(ATTR_SHOWCASE[name]);
 				item.insertText = new vscode.SnippetString(attrInsert(name, rule));
 				// required first, then a stable order matching the rules
 				item.sortText = `${rule.required ? '0' : '1'}${name}`;

@@ -16,6 +16,7 @@ const DEFAULTS: ResolvedSdocsConfig = {
 	sections: [],
 	defaultSection: 'Docs',
 	routing: null,
+	base: '/',
 	sidebar: {
 		order: {},
 		open: [],
@@ -93,6 +94,12 @@ async function importConfig(configPath: string): Promise<SdocsConfig> {
 	return mod.default ?? mod;
 }
 
+/** A public base path always has a leading and trailing slash: '/gabi/'. */
+export function normalizeBase(base: string | undefined): string {
+	if (!base || base === '/') return '/';
+	return `/${base.replace(/^\/+|\/+$/g, '')}/`;
+}
+
 /** Merge user config with defaults */
 export function resolveConfig(userConfig: SdocsConfig): ResolvedSdocsConfig {
 	const include = userConfig.include
@@ -125,6 +132,7 @@ export function resolveConfig(userConfig: SdocsConfig): ResolvedSdocsConfig {
 		sections: userConfig.sections ?? DEFAULTS.sections,
 		defaultSection: userConfig.defaultSection ?? DEFAULTS.defaultSection,
 		routing: userConfig.routing ?? DEFAULTS.routing,
+		base: normalizeBase(userConfig.base),
 		sidebar: {
 			order: userConfig.sidebar?.order ?? DEFAULTS.sidebar.order,
 			open: userConfig.sidebar?.open ?? DEFAULTS.sidebar.open,

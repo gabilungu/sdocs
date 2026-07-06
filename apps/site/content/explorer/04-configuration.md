@@ -31,6 +31,7 @@ interface SdocsConfig {
   sections?: string[];
   defaultSection?: string;
   routing?: 'history' | 'hash';
+  base?: string;
   sidebar?: {
     order?: Record<string, string[]>;
     open?: string[];
@@ -179,6 +180,28 @@ falls back to the app shell for any path, and `sdocs build` emits a
 physical `index.html` per route so static hosts need no rewrite rules.
 `'hash'` uses `#/` URLs, which work under any host routing — the right
 choice (and the default) when [embedding](/explorer/embedded-vite).
+
+### `base`
+
+The public base path the built site is served under — set it when the site
+lives under a sub-path rather than a domain root.
+
+- **Type:** `string`
+- **Default:** `'/'`
+
+It's normalized to a leading and trailing slash (`gabi` → `/gabi/`) and
+applies to `sdocs build` only; `sdocs dev` always serves at the root. Asset
+URLs and history routes are prefixed with it. A GitHub **project** Pages
+site is served at `https://<owner>.github.io/<repo>/`, so set
+`base: '/<repo>/'` (or pass `--base` on the CLI — handy for deriving it from
+the repo name in CI):
+
+```js
+base: '/gabi/'
+```
+
+`sdocs build` also writes a `404.html` (a copy of the shell), so an unknown
+deep link on a static host still boots the app instead of a bare 404.
 
 ### `sidebar.order`
 

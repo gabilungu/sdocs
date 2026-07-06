@@ -121,6 +121,11 @@ export const configSchema: ConfigSchema = {
 		values: ['history', 'hash'],
 		quoted: true,
 	},
+	base: {
+		detail: 'string',
+		doc: "Public base path the built site is served under, e.g. `'/repo/'` for a GitHub project Pages site. Applies to `sdocs build` only. Default: `'/'`.",
+		insert: ": '${0:/}'",
+	},
 	sidebar: {
 		detail: 'object',
 		doc: 'Sidebar ordering and default-expanded folders.',

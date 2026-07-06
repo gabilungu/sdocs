@@ -120,8 +120,9 @@ function generateIndexHtml(title: string): string {
 </html>`;
 }
 
-/** Generate the entry.js that mounts the Explorer */
-function generateEntryJs(config: ResolvedSdocsConfig): string {
+/** Generate the entry.js that mounts the Explorer. `basePath` prefixes
+ * history routes — set for a `sdocs build` under a sub-path, '' for dev. */
+function generateEntryJs(config: ResolvedSdocsConfig, basePath: string): string {
 	return `import { mount } from 'svelte';
 import { docs, cssNames, pageModules } from 'virtual:sdocs';
 import Explorer from './explorer/Explorer.svelte';
@@ -137,6 +138,7 @@ mount(Explorer, {
 		sections: ${JSON.stringify(config.sections)},
 		defaultSection: ${JSON.stringify(config.defaultSection)},
 		routing: ${JSON.stringify(config.routing ?? 'history')},
+		basePath: ${JSON.stringify(basePath)},
 		sidebarConfig: ${JSON.stringify(config.sidebar)},
 		sdocsVersion: ${JSON.stringify(sdocsVersion())},
 	}
@@ -234,7 +236,8 @@ export async function generateDevFiles(
 	await linkStagedDeps(sdocsDir, cwd);
 
 	await writeFile(resolve(sdocsDir, 'index.html'), generateIndexHtml(config.title));
-	await writeFile(resolve(sdocsDir, 'entry.js'), generateEntryJs(config));
+	// Dev always serves at the root — `base` applies to the build only.
+	await writeFile(resolve(sdocsDir, 'entry.js'), generateEntryJs(config, ''));
 
 	return sdocsDir;
 }
@@ -254,7 +257,7 @@ export async function generateBuildFiles(
 	await linkStagedDeps(sdocsDir, cwd);
 
 	await writeFile(resolve(sdocsDir, 'index.html'), generateIndexHtml(config.title));
-	await writeFile(resolve(sdocsDir, 'entry.js'), generateEntryJs(config));
+	await writeFile(resolve(sdocsDir, 'entry.js'), generateEntryJs(config, config.base));
 
 	const inputs: Record<string, string> = {
 		main: resolve(sdocsDir, 'index.html'),

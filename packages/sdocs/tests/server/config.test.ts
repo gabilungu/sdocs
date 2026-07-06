@@ -193,3 +193,17 @@ describe('sections config', () => {
 		expect(c.routing).toBe('hash');
 	});
 });
+
+describe('base path', () => {
+	it('defaults to /', () => {
+		expect(resolveConfig({}).base).toBe('/');
+	});
+
+	it('normalizes to a leading + trailing slash', () => {
+		expect(resolveConfig({ base: 'gabi' }).base).toBe('/gabi/');
+		expect(resolveConfig({ base: '/gabi' }).base).toBe('/gabi/');
+		expect(resolveConfig({ base: 'gabi/' }).base).toBe('/gabi/');
+		expect(resolveConfig({ base: '/gabi/' }).base).toBe('/gabi/');
+		expect(resolveConfig({ base: '/' }).base).toBe('/');
+	});
+});

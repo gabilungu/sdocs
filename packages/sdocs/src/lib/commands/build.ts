@@ -2,7 +2,7 @@ import { resolve } from 'node:path';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { build } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
-import { loadConfig } from '../server/config.js';
+import { loadConfig, normalizeBase } from '../server/config.js';
 import { sdocsPlugin } from '../vite.js';
 import { generateBuildFiles, cleanBuildFiles } from '../server/app-gen.js';
 import { discoverDocFiles } from '../server/discovery.js';
@@ -12,11 +12,14 @@ import { buildSections } from '../explorer/tree-builder.js';
 import type { DocEntry, ResolvedSdocsConfig } from '../types.js';
 import { svelteDedupe } from './dev.js';
 
-export async function buildCommand(): Promise<void> {
+export async function buildCommand(opts?: { base?: string }): Promise<void> {
 	const cwd = process.cwd();
 	const config = await loadConfig(cwd);
+	// A --base flag overrides the config (lets CI derive it from the repo name).
+	if (opts?.base !== undefined) config.base = normalizeBase(opts.base);
 
 	console.log('[sdocs] Building static site...');
+	if (config.base !== '/') console.log(`[sdocs] Base path: ${config.base}`);
 
 	// Generate the staging directory (in the OS temp dir) with entry + preview HTML files
 	const { sdocsDir, inputs } = await generateBuildFiles(config, cwd);
@@ -39,6 +42,9 @@ export async function buildCommand(): Promise<void> {
 				svelte(),
 				sdocsPlugin({ ...config, include: absoluteIncludes, _buildMode: true } as any),
 			],
+			// The site's public base path (config `base`, normalized) — asset
+			// URLs and the history-route prefix. '/' for a root deploy.
+			base: config.base,
 			build: {
 				outDir: resolve(cwd, 'dist'),
 				emptyOutDir: true,
@@ -98,5 +104,9 @@ async function emitRoutePages(config: ResolvedSdocsConfig, cwd: string): Promise
 		await mkdir(dir, { recursive: true });
 		await writeFile(resolve(dir, 'index.html'), shell);
 	}
+	// A 404 that boots the app: static hosts (GitHub Pages) serve it for any
+	// unmatched path, so an unknown deep link still loads the shell and lands
+	// on the home/about screen instead of a bare 404.
+	await writeFile(resolve(cwd, 'dist/404.html'), shell);
 	return keys.length;
 }

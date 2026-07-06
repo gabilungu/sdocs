@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.64] - 2026-07-06
+
+### Added
+
+- **`base` path for `sdocs build`.** Deploy under a sub-path — a GitHub
+  project Pages site at `/<repo>/`, say — by setting `base` in the config
+  or passing `--base /repo/` on the CLI (which overrides the config, so CI
+  can derive it from the repo name). Asset URLs and history routes are
+  prefixed with it; `sdocs dev` still serves at the root. The build also
+  emits a `404.html` (a copy of the shell) so an unknown deep link boots the
+  app on a static host instead of a bare 404.
+
 ## [0.0.63] - 2026-07-06
 
 ### Added

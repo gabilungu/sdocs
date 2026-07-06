@@ -27,6 +27,10 @@ export interface SdocsConfig {
 	 * needs the server to fall back to the shell), 'hash' for #/ URLs
 	 * (default when embedding — works under any host routing). */
 	routing?: 'history' | 'hash';
+	/** Public base path the built site is served under, e.g. '/gabi/' for a
+	 * GitHub project Pages site. Applies to `sdocs build` only — `sdocs dev`
+	 * always serves at the root. Default: '/'. */
+	base?: string;
 	/** Sidebar configuration */
 	sidebar?: {
 		/** Per-folder sort overrides. Keys are folder paths, 'root' for top level. '*' = unlisted items. */
@@ -94,6 +98,8 @@ export interface ResolvedSdocsConfig {
 	defaultSection: string;
 	/** null = per-mode default (standalone: history, embedded: hash) */
 	routing: 'history' | 'hash' | null;
+	/** Normalized public base path for the build (leading + trailing slash). */
+	base: string;
 	sidebar: {
 		order: Record<string, string[]>;
 		open: string[];

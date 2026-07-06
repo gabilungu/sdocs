@@ -21,16 +21,25 @@ Usage:
   sdocs <command>
 
 Commands:
-  dev       Start the Explorer dev server with live reload
-  run       Same as dev — works with npx and no local install
-  build     Build the Explorer as a static site
-  preview   Serve built site locally
-  init      Scaffold sdocs.config.js
+  dev             Start the Explorer dev server with live reload
+  run             Same as dev — works with npx and no local install
+  build           Build the Explorer as a static site
+  preview         Serve built site locally
+  init            Scaffold sdocs.config.js
 
 Options:
-  --help     Show this help message
-  --version  Show version number
+  --base <path>   Public base path for build (e.g. /repo/ for project Pages)
+  --help          Show this help message
+  --version       Show version number
 `.trim();
+
+/** Value of a `--flag value` or `--flag=value` option, if present. */
+function flag(args: string[], name: string): string | undefined {
+	const eq = args.find((a) => a.startsWith(`--${name}=`));
+	if (eq) return eq.slice(name.length + 3);
+	const i = args.indexOf(`--${name}`);
+	return i !== -1 ? args[i + 1] : undefined;
+}
 
 async function main() {
 	const args = process.argv.slice(2);
@@ -55,7 +64,7 @@ async function main() {
 		}
 		case 'build': {
 			const { buildCommand } = await import('../commands/build.js');
-			await buildCommand();
+			await buildCommand({ base: flag(args, 'base') });
 			break;
 		}
 		case 'preview': {

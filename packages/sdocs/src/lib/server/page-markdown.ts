@@ -106,6 +106,20 @@ function plainText(tokens: Token[]): string {
  * the compiled fragment, so a snippet declared anywhere is renderable from
  * anywhere on the page.
  */
+/**
+ * Prefix root-absolute src/href URLs in rendered page HTML with the build's
+ * public base path. Markdown like `![x](/sample.svg)` or `[a](/guides/colors)`
+ * refers to the site root; under a sub-path deploy (GitHub project Pages) the
+ * site root is `/repo/`, and Vite only rewrites assets it processes — not
+ * URLs inside runtime HTML strings. Protocol-relative (`//`) URLs and dev
+ * virtual paths (`/@`) pass through; a root base is a no-op.
+ */
+export function applyBaseToHtml(html: string, base: string): string {
+	if (!base.startsWith('/') || base === '/') return html;
+	const prefix = base.replace(/\/$/, '');
+	return html.replace(/\b(src|href)="\/(?!\/|@)/g, `$1="${prefix}/`);
+}
+
 export async function renderPageMarkdown(source: string): Promise<RenderedPage> {
 	const toc: TocHeading[] = [];
 	const usedIds = new Set<string>();

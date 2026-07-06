@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { renderPageMarkdown } from '../../src/lib/server/page-markdown.js';
+import { applyBaseToHtml, renderPageMarkdown } from '../../src/lib/server/page-markdown.js';
 
 describe('renderPageMarkdown', () => {
 	it('renders markdown prose with escaped quotes', async () => {
@@ -208,5 +208,26 @@ describe('fence languages', () => {
 		expect(html).toContain('shiki');
 		expect(html).toContain('hello world');
 		expect(html).not.toMatch(/<pre><code>/);
+	});
+});
+
+describe('applyBaseToHtml', () => {
+	it('prefixes root-absolute src and href with the base', () => {
+		const html = '<img src="/sample.svg" alt=""><a href="/guides/colors">c</a>';
+		expect(applyBaseToHtml(html, '/gabi/')).toBe(
+			'<img src="/gabi/sample.svg" alt=""><a href="/gabi/guides/colors">c</a>',
+		);
+	});
+
+	it('leaves protocol-relative, dev-virtual, relative, and http URLs alone', () => {
+		const html =
+			'<img src="//cdn.example/x.png"><img src="/@sdocs/preview/x"><img src="./rel.png"><a href="https://a.b">x</a>';
+		expect(applyBaseToHtml(html, '/gabi/')).toBe(html);
+	});
+
+	it('is a no-op for a root or relative base', () => {
+		const html = '<img src="/sample.svg">';
+		expect(applyBaseToHtml(html, '/')).toBe(html);
+		expect(applyBaseToHtml(html, './')).toBe(html);
 	});
 });

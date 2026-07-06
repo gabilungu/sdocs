@@ -9,7 +9,7 @@ import {
 	extractImports,
 	resolveComponentImport,
 } from './server/doc-model.js';
-import { renderPageMarkdown } from './server/page-markdown.js';
+import { renderPageMarkdown, applyBaseToHtml } from './server/page-markdown.js';
 import { highlight, disposeHighlighter } from './server/highlighter.js';
 import {
 	parseIframeId,
@@ -466,7 +466,10 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				// [example] blocks are staged in iframes (with the project css),
 				// cascading block attributes over the content.showcase stage defaults.
 				const rendered = await renderPageMarkdown(entity.body);
-				snippets[0].body = rendered.html;
+				// Root-absolute asset/link URLs in the prose carry the build's
+				// base; SvelteKit's relative base ('./') is handled at runtime via
+				// previewBase instead, matching the preview URLs.
+				snippets[0].body = applyBaseToHtml(rendered.html, base);
 				entry.content = snippets[0];
 				entry.toc = rendered.toc;
 				entry.padding = entity.sizing.padding ?? config.content.page.padding;

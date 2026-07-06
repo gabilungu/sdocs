@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.70] - 2026-07-06
+
+### Fixed
+
+- **Root-absolute URLs in page markdown resolve under a sub-path deploy.**
+  `![x](/sample.svg)` and `[link](/guides/colors)` in a page refer to the
+  site root; on a base deploy (GitHub project Pages) they now get the base
+  prefix at build time, so images load and absolute internal links route.
+
 ## [0.0.69] - 2026-07-06
 
 ### Changed

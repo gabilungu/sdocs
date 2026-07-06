@@ -1,4 +1,4 @@
-[PAGE title="@language/Layout Docs"]
+[DOC title="@language/Layout Docs"]
 
 
 	A `[LAYOUT]` block is a full-page sketch — a composition of components on a
@@ -57,8 +57,9 @@
 	- **[Component doc](/language/component-docs)** — one component, with
 	  controls, examples, and extracted API. Its `[example]` blocks cover small
 	  variants of that component.
-	- **[Page](/language/page-docs)** — markdown prose with component islands.
+	- **[Doc](/language/doc-pages)** — markdown prose with component islands.
+	- **[Svelte page](/language/svelte-pages)** — a docs-context page built in plain Svelte.
 	- **Layout** — many components working together at the page or feature
 	  level, on an isolated full-page stage.
 
-[/PAGE]
+[/DOC]

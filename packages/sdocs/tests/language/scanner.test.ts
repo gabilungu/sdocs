@@ -17,7 +17,7 @@ const FULL = `<script lang="ts">
 
 [/SHOWCASE]
 
-[PAGE title="Guides / Usage"]
+[DOC title="Guides / Usage"]
 
 	## When to use
 
@@ -27,7 +27,7 @@ const FULL = `<script lang="ts">
 	[preview looks like a tag but is content]
 	\`\`\`
 
-[/PAGE]
+[/DOC]
 
 [LAYOUT title="Patterns / Login" padding="48px"]
 	<Button label="Sign in" />
@@ -52,7 +52,7 @@ describe('scanSdoc structure', () => {
 	});
 
 	it('finds all three entities in order', () => {
-		expect(file.entities.map((e) => e.kind)).toEqual(['SHOWCASE', 'PAGE', 'LAYOUT']);
+		expect(file.entities.map((e) => e.kind)).toEqual(['SHOWCASE', 'DOC', 'LAYOUT']);
 	});
 
 	it('parses entity attributes with kinds', () => {
@@ -106,7 +106,7 @@ describe('scanSdoc details', () => {
 	});
 
 	it('allows comments between blocks', () => {
-		const file = scanSdoc('<!-- a note\nspanning lines -->\n[PAGE title="X"]\nhi\n[/PAGE]\n');
+		const file = scanSdoc('<!-- a note\nspanning lines -->\n[DOC title="X"]\nhi\n[/DOC]\n');
 		expect(file.errors).toEqual([]);
 		expect(file.entities).toHaveLength(1);
 	});
@@ -159,7 +159,7 @@ describe('scanSdoc errors', () => {
 		expect(codes('[SHOWCASE title="X"]\n[preview component={B}]\nx\n[/SHOWCASE]\n')).toContain(
 			'unclosed-block',
 		);
-		expect(codes('[PAGE title="X"]\ntext\n')).toContain('unclosed-block');
+		expect(codes('[DOC title="X"]\ntext\n')).toContain('unclosed-block');
 	});
 
 	it('reports stray closers and duplicate attributes', () => {
@@ -168,18 +168,18 @@ describe('scanSdoc errors', () => {
 	});
 
 	it('enforces file anatomy: script top, style bottom', () => {
-		expect(codes('[PAGE title="X"]\nx\n[/PAGE]\n<script>\nlet a;\n</script>\n')).toContain(
+		expect(codes('[DOC title="X"]\nx\n[/DOC]\n<script>\nlet a;\n</script>\n')).toContain(
 			'script-position',
 		);
-		expect(codes('<style>\n.a {}\n</style>\n[PAGE title="X"]\nx\n[/PAGE]\n')).toContain(
+		expect(codes('<style>\n.a {}\n</style>\n[DOC title="X"]\nx\n[/DOC]\n')).toContain(
 			'style-position',
 		);
 	});
 
 	it('recovers when an entity opener appears inside an unclosed [SHOWCASE]', () => {
-		const file = scanSdoc('[SHOWCASE title="A"]\n[PAGE title="B"]\nx\n[/PAGE]\n');
+		const file = scanSdoc('[SHOWCASE title="A"]\n[DOC title="B"]\nx\n[/DOC]\n');
 		expect(file.errors.map((e) => e.code)).toContain('unclosed-block');
-		expect(file.entities.map((e) => e.kind)).toEqual(['SHOWCASE', 'PAGE']);
+		expect(file.entities.map((e) => e.kind)).toEqual(['SHOWCASE', 'DOC']);
 		expect(file.entities[1].body.trim()).toBe('x');
 	});
 });

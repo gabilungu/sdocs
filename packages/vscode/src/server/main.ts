@@ -6,7 +6,7 @@
  * path inside the embedded svelte-language-server, forwards editor requests
  * with identity position mapping, and republishes the embedded server's
  * diagnostics filtered down to authored, verbatim lines. Formatting is
- * fragment-wise prettier (Svelte bodies via prettier-plugin-svelte, PAGE
+ * fragment-wise prettier (Svelte bodies via prettier-plugin-svelte, DOC
  * bodies via the markdown parser) — block tags are never touched.
  */
 
@@ -143,7 +143,7 @@ function forwardParams<T extends { textDocument: { uri: string } }>(params: T): 
 /**
  * Only verbatim-projected lines carry authored Svelte the embedded server
  * can speak about. Block tags project to `{#snippet}` wrappers — answering
- * there would describe the wrapper (snippet docs on a `[PAGE …]` line), so
+ * there would describe the wrapper (snippet docs on a `[DOC …]` line), so
  * position-based requests on generated lines are answered locally with null.
  */
 function isVerbatimLine(uri: string, line: number): boolean {

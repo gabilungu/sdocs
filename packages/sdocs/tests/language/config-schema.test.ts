@@ -11,8 +11,9 @@ describe('configSchema (drives config completion without an install)', () => {
 
 	it('nests the content stages with their own keys', () => {
 		const content = configSchema.content.object!;
-		expect(Object.keys(content)).toEqual(['page', 'showcase', 'layout']);
-		expect(Object.keys(content.page.object!)).toEqual(['maxWidth', 'padding', 'toc', 'contentX']);
+		expect(Object.keys(content)).toEqual(['doc', 'page', 'showcase', 'layout']);
+		expect(Object.keys(content.doc.object!)).toEqual(['maxWidth', 'padding', 'toc', 'contentX']);
+		expect(Object.keys(content.page.object!)).toEqual(['maxWidth', 'padding', 'contentX']);
 		expect(Object.keys(content.showcase.object!)).toEqual([
 			'maxWidth', 'padding', 'direction', 'gap', 'contentX', 'contentY',
 		]);
@@ -24,6 +25,6 @@ describe('configSchema (drives config completion without an install)', () => {
 		expect(docs.contentX.values).toEqual(['left', 'center', 'right', 'justify']);
 		expect(docs.contentY.values).toEqual(['top', 'middle', 'bottom', 'justify']);
 		expect(docs.contentX.quoted).toBe(true);
-		expect(configSchema.content.object!.page.object!.toc.values).toEqual(['true', 'false']);
+		expect(configSchema.content.object!.doc.object!.toc.values).toEqual(['true', 'false']);
 	});
 });

@@ -1,4 +1,4 @@
-[PAGE title="@explorer/Features / Routing"]
+[DOC title="@explorer/Features / Routing"]
 
 
 	Every doc page has its own URL. The standalone CLI uses real paths (history
@@ -83,4 +83,4 @@
 	- [Sidebar](/explorer/features/sidebar) — where titles, groups, and sections come from
 	- [Configuration](/explorer/configuration) — the `routing` option
 
-[/PAGE]
+[/DOC]

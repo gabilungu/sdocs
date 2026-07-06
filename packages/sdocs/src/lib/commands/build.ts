@@ -94,7 +94,14 @@ async function buildSiteMap(config: ResolvedSdocsConfig, cwd: string) {
 		const doc = parseSdoc(await readFile(filePath, 'utf-8'));
 		for (const entity of doc.entities) {
 			stubs.push({
-				kind: entity.kind === 'SHOWCASE' ? 'component' : entity.kind === 'PAGE' ? 'page' : 'layout',
+				kind:
+					entity.kind === 'SHOWCASE'
+						? 'component'
+						: entity.kind === 'DOC'
+							? 'doc'
+							: entity.kind === 'PAGE'
+								? 'page'
+								: 'layout',
 				filePath,
 				entitySlug: entity.slug,
 				meta: { title: entity.title },

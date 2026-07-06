@@ -50,10 +50,12 @@ function getExplorerSourceDir(): string {
 	return resolve(__dirname, '../explorer');
 }
 
-/** Copy the Explorer app plus the ui/ tree it imports (styles, fonts, components) */
+/** Copy the Explorer app plus the ui/ tree it imports (styles, fonts,
+ * components) and the grammar the client highlighter loads for sdoc fences. */
 async function copyExplorerApp(sdocsDir: string): Promise<void> {
 	await copyDir(getExplorerSourceDir(), resolve(sdocsDir, 'explorer'));
 	await copyDir(resolve(__dirname, '../ui'), resolve(sdocsDir, 'ui'));
+	await copyDir(resolve(__dirname, '../grammar'), resolve(sdocsDir, 'grammar'));
 }
 
 /** Nearest node_modules walking up from dir (mirrors Node's resolution) */
@@ -229,7 +231,7 @@ async function discoverSnippets(
 			results.push({
 				filePath,
 				entitySlug: entity.slug,
-				// Iframe pages only: a PAGE's content compiles natively in the Explorer.
+				// Iframe pages only: DOC and PAGE content compiles natively in the Explorer.
 				snippetSlugs: planIframeSnippets(entity).map((s) => s.slug),
 			});
 		}

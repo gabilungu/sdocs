@@ -30,7 +30,7 @@ export interface Sizing {
 	contentX: string | null;
 	/** vertical alignment of preview/example stage contents */
 	contentY: string | null;
-	/** table-of-contents visibility (PAGE) */
+	/** table-of-contents visibility (DOC) */
 	toc: boolean | null;
 }
 
@@ -75,6 +75,27 @@ export interface ShowcaseEntity {
 	span: Span;
 }
 
+export interface DocEntity {
+	kind: 'DOC';
+	title: string;
+	slug: string;
+	/** Explicit route leaf from slug="…"; null → slugified title segment */
+	routeSlug: string | null;
+	/** `hide` flag: routable but never listed in a sidebar */
+	hide: boolean;
+	sizing: Sizing;
+	/** Prose body with each [example] block replaced by a
+	 * `{@render __sdocsExample?.(i)}` marker the doc renderer resolves. */
+	body: string;
+	/** The doc's [example] blocks, in marker order */
+	examples: ExampleBlock[];
+	bodySpan: Span;
+	openerSpan: Span;
+	span: Span;
+}
+
+/** A Svelte-built page in the docs app's own context: the body is plain
+ * Svelte (no markdown), rendered as a real page without stage tooling. */
 export interface PageEntity {
 	kind: 'PAGE';
 	title: string;
@@ -84,11 +105,7 @@ export interface PageEntity {
 	/** `hide` flag: routable but never listed in a sidebar */
 	hide: boolean;
 	sizing: Sizing;
-	/** Prose body with each [example] block replaced by a
-	 * `{@render __sdocsExample?.(i)}` marker the page renderer resolves. */
 	body: string;
-	/** The page's [example] blocks, in marker order */
-	examples: ExampleBlock[];
 	bodySpan: Span;
 	openerSpan: Span;
 	span: Span;
@@ -109,7 +126,7 @@ export interface LayoutEntity {
 	span: Span;
 }
 
-export type SdocEntity = ShowcaseEntity | PageEntity | LayoutEntity;
+export type SdocEntity = ShowcaseEntity | DocEntity | PageEntity | LayoutEntity;
 
 export interface SdocDocument {
 	script: TagBlock | null;
@@ -206,13 +223,20 @@ const ENTITY_ATTR_RULES: Record<string, Record<string, AttrRule>> = {
 		...SIZING_ATTR_RULES,
 		...STAGE_LAYOUT_ATTR_RULES,
 	},
-	PAGE: {
+	DOC: {
 		title: { required: true, kind: 'string', hint: 'title="Group / Name"' },
 		...ROUTE_ATTR_RULES,
 		...SIZING_ATTR_RULES,
-		// On PAGE, contentX aligns the content column (with its toc), not a stage.
+		// On DOC, contentX aligns the content column (with its toc), not a stage.
 		contentX: { required: false, kind: 'string', hint: 'contentX="center"' },
 		toc: { required: false, kind: 'string', hint: 'toc="false"' },
+	},
+	PAGE: {
+		title: { required: true, kind: 'string', hint: 'title="Name"' },
+		...ROUTE_ATTR_RULES,
+		...SIZING_ATTR_RULES,
+		// On PAGE, contentX places the content container inside the view.
+		contentX: { required: false, kind: 'string', hint: 'contentX="center"' },
 	},
 	LAYOUT: {
 		title: { required: true, kind: 'string', hint: 'title="Group / Name"' },
@@ -237,8 +261,8 @@ const SUB_BLOCK_ATTR_RULES: Record<string, Record<string, AttrRule>> = {
 };
 
 /** Allowed attributes and their value shapes for a block, keyed by kind
- * ('SHOWCASE'|'PAGE'|'LAYOUT'|'preview'|'example'). Single source of truth for
- * both diagnostics and editor attribute completions. */
+ * ('SHOWCASE'|'DOC'|'PAGE'|'LAYOUT'|'preview'|'example'). Single source of
+ * truth for both diagnostics and editor attribute completions. */
 export function attributeRules(kind: string): Record<string, AttrRule> {
 	return ENTITY_ATTR_RULES[kind] ?? SUB_BLOCK_ATTR_RULES[kind] ?? {};
 }
@@ -408,7 +432,7 @@ function parsePreview(block: SubBlock, diagnostics: ScanError[]): PreviewBlock {
 function parseExample(
 	block: SubBlock,
 	seenTitles: Set<string>,
-	owner: 'SHOWCASE' | 'PAGE',
+	owner: 'SHOWCASE' | 'DOC',
 	diagnostics: ScanError[],
 ): ExampleBlock {
 	checkAttrs('[example]', block.attrs, SUB_BLOCK_ATTR_RULES.example, block.openerSpan, diagnostics);
@@ -471,7 +495,7 @@ function parseShowcase(entity: Entity, diagnostics: ScanError[]): ShowcaseEntity
 }
 
 /**
- * Replace each [example] block in a PAGE's raw body with a
+ * Replace each [example] block in a DOC's raw body with a
  * `{@render __sdocsExample?.(i)}` marker at the opener's indentation, so the
  * markdown renderer passes it through verbatim and the Explorer renders the
  * example's stage in place.
@@ -491,16 +515,16 @@ function spliceExampleMarkers(entity: Entity): string {
 	return out;
 }
 
-function parsePage(entity: Entity, diagnostics: ScanError[]): PageEntity {
-	checkAttrs('[PAGE]', entity.attrs, ENTITY_ATTR_RULES.PAGE, entity.openerSpan, diagnostics);
+function parseDoc(entity: Entity, diagnostics: ScanError[]): DocEntity {
+	checkAttrs('[DOC]', entity.attrs, ENTITY_ATTR_RULES.DOC, entity.openerSpan, diagnostics);
 	const examples: ExampleBlock[] = [];
 	const exampleTitles = new Set<string>();
 	for (const block of entity.blocks) {
-		examples.push(parseExample(block, exampleTitles, 'PAGE', diagnostics));
+		examples.push(parseExample(block, exampleTitles, 'DOC', diagnostics));
 	}
 	const title = stringAttr(entity.attrs, 'title') ?? '';
 	return {
-		kind: 'PAGE',
+		kind: 'DOC',
 		title,
 		slug: slugifyTitle(title),
 		routeSlug: routeSlugAttr(entity.attrs, diagnostics),
@@ -524,13 +548,15 @@ export function parseSdoc(source: string): SdocDocument {
 		let typed: SdocEntity;
 		if (entity.kind === 'SHOWCASE') {
 			typed = parseShowcase(entity, diagnostics);
-		} else if (entity.kind === 'PAGE') {
-			typed = parsePage(entity, diagnostics);
+		} else if (entity.kind === 'DOC') {
+			typed = parseDoc(entity, diagnostics);
 		} else {
-			checkAttrs('[LAYOUT]', entity.attrs, ENTITY_ATTR_RULES.LAYOUT, entity.openerSpan, diagnostics);
+			// PAGE and LAYOUT share the shape: a plain Svelte body.
+			const kind = entity.kind;
+			checkAttrs(`[${kind}]`, entity.attrs, ENTITY_ATTR_RULES[kind], entity.openerSpan, diagnostics);
 			const title = stringAttr(entity.attrs, 'title') ?? '';
 			typed = {
-				kind: 'LAYOUT',
+				kind,
 				title,
 				slug: slugifyTitle(title),
 				routeSlug: routeSlugAttr(entity.attrs, diagnostics),
@@ -540,7 +566,7 @@ export function parseSdoc(source: string): SdocDocument {
 				bodySpan: entity.bodySpan,
 				openerSpan: entity.openerSpan,
 				span: entity.span,
-			};
+			} as PageEntity | LayoutEntity;
 		}
 		if (slugs.has(typed.slug)) {
 			diagnostics.push({

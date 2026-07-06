@@ -1,4 +1,4 @@
-[PAGE title="@explorer/Types"]
+[DOC title="@explorer/Types"]
 
 
 	Public TypeScript types exported from `sdocs`.
@@ -188,4 +188,4 @@
 	- [Prop extraction](/explorer/features/prop-extraction) — what gets populated into these types
 	- [Embedded usage](/explorer/embedded-vite) — consuming `virtual:sdocs`
 
-[/PAGE]
+[/DOC]

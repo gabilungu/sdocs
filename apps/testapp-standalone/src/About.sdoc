@@ -2,7 +2,7 @@
 	import Chip from './Chip.svelte';
 </script>
 
-[PAGE title=":Pages / About"]
+[DOC title=":Pages / About"]
 
 	# standalone
 
@@ -22,4 +22,4 @@
 		<Chip label="Two" />
 	[/example]
 
-[/PAGE]
+[/DOC]

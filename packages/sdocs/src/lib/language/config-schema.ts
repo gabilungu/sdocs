@@ -137,22 +137,38 @@ export const configSchema: ConfigSchema = {
 		doc: 'Content presentation per entity kind. Entity and block attributes override these.',
 		insert: ': {\n\t$0\n}',
 		object: {
-			page: {
+			doc: {
 				detail: 'object',
-				doc: '`[PAGE]` content. Defaults: `maxWidth` `1200px`, `padding` `32px`, `toc` `true`, `contentX` `left`.',
+				doc: '`[DOC]` content. Defaults: `maxWidth` `1200px`, `padding` `32px`, `toc` `true`, `contentX` `left`.',
 				insert: ': {\n\t$0\n}',
 				object: {
 					maxWidth,
 					padding,
 					toc: {
 						detail: 'boolean',
-						doc: 'Show the page table of contents. Default: `true`.',
+						doc: 'Show the doc table of contents. Default: `true`.',
 						insert: ': ${0:true}',
 						values: ['true', 'false'],
 					},
 					contentX: {
 						detail: "'left' | 'center' | 'right'",
-						doc: 'Horizontal alignment of the page content column (with its toc). Default: `left`.',
+						doc: 'Horizontal alignment of the doc content column (with its toc). Default: `left`.',
+						insert: ": '${0:center}'",
+						values: ['left', 'center', 'right'],
+						quoted: true,
+					},
+				},
+			},
+			page: {
+				detail: 'object',
+				doc: '`[PAGE]` content: the Svelte body renders inside a container. Defaults: `maxWidth` `1200px`, `padding` `32px`, `contentX` `left`.',
+				insert: ': {\n\t$0\n}',
+				object: {
+					maxWidth,
+					padding,
+					contentX: {
+						detail: "'left' | 'center' | 'right'",
+						doc: 'Horizontal placement of the page content container. Default: `left`.',
 						insert: ": '${0:center}'",
 						values: ['left', 'center', 'right'],
 						quoted: true,

@@ -1,4 +1,4 @@
-[PAGE title="@explorer/Features / Overview"]
+[DOC title="@explorer/Features / Overview"]
 
 	# Features
 
@@ -10,4 +10,4 @@
 	- [Sidebar](/explorer/features/sidebar) — structure, ordering, groups, search
 	- [Routing](/explorer/features/routing) — URL format and deep linking
 
-[/PAGE]
+[/DOC]

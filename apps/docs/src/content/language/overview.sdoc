@@ -1,4 +1,4 @@
-[PAGE title="@language/Overview"]
+[DOC title="@language/Overview"]
 
 	# The sdoc Language
 
@@ -12,13 +12,14 @@
 
 	1. **`<script>`** — at the top, optional. Imports and shared values, in
 	   JavaScript or TypeScript. Available to every entity in the file.
-	2. **Entities** — the middle. Any number of `[SHOWCASE]`, `[PAGE]`, and
-	   `[LAYOUT]` blocks, in any mix. Each entity is its own sidebar entry.
+	2. **Entities** — the middle. Any number of `[SHOWCASE]`, `[DOC]`, `[PAGE]`,
+	   and `[LAYOUT]` blocks, in any mix. Each entity is its own route (and
+	   usually its own sidebar entry).
 	3. **`<style>`** — at the bottom, optional. CSS available to the file's
 	   previews and examples.
 
 	Only the entities are required — and a file doesn't have to be attached to a
-	component at all: `About.sdoc` can hold a single `[PAGE]`, `Dashboard.sdoc` a
+	component at all: `About.sdoc` can hold a single `[DOC]`, `Dashboard.sdoc` a
 	single `[LAYOUT]`, and a `[SHOWCASE]` block can even skip the preview and carry
 	only examples.
 
@@ -39,26 +40,27 @@
 
 	[/SHOWCASE]
 
-	[PAGE title="Forms / Button usage guide"]
+	[DOC title="Forms / Button usage guide"]
 
 		## When to use a button
 
 		Buttons trigger actions. For navigation, use a link — see <Button label="the demo" />
 		rendered right here in prose.
 
-	[/PAGE]
+	[/DOC]
 
 	<style>
 		.demo-row { display: flex; gap: 8px; }
 	</style>
 	```
 
-	## The three entities
+	## The four entities
 
 	| Entity | Documents | Details |
 	|---|---|---|
 	| [`[SHOWCASE]`](/language/component-docs) | components | live previews with controls (tabs when several), titled examples, extracted API |
-	| [`[PAGE]`](/language/page-docs) | freeform content | markdown-first, auto table of contents |
+	| [`[DOC]`](/language/doc-pages) | freeform content | markdown-first, auto table of contents |
+	| [`[PAGE]`](/language/svelte-pages) | a Svelte-built page | plain Svelte in the docs context — landing pages, custom routes |
 	| [`[LAYOUT]`](/language/layout-docs) | a full-page sketch | rendered in an isolated frame |
 
 	The `title` attribute places each entity in the sidebar — path segments
@@ -96,4 +98,4 @@
 	- Svelte code is valid only **inside** blocks. Body text outside any block is
 	  an error.
 
-[/PAGE]
+[/DOC]

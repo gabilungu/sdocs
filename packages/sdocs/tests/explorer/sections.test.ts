@@ -16,7 +16,7 @@ import type { DocEntry } from '../../src/lib/types.js';
 
 function doc(
 	title: string,
-	kind: DocEntry['kind'] = 'page',
+	kind: DocEntry['kind'] = 'doc',
 	extra: Partial<DocEntry> = {},
 ): DocEntry {
 	return {
@@ -113,6 +113,41 @@ describe('buildSections with declared sections', () => {
 		const messages = map.errors.map((e) => e.message).join('\n');
 		expect(messages).toContain('must be lowercase');
 		expect(messages).toContain('share the slug "a"');
+	});
+});
+
+describe('sectionless pages', () => {
+	const sections = [{ slug: 'guides' }, { slug: 'components' }];
+
+	it('an unprefixed PAGE routes at the site root with no section', () => {
+		const map = buildSections([doc('Welcome', 'page'), doc('@guides/Intro')], { sections });
+		expect(map.errors).toEqual([]);
+		expect(map.routes.has('welcome')).toBe(true);
+		expect(map.routes.get('welcome')?.section).toBeUndefined();
+		expect(map.routes.get('guides/intro')?.section).toBe('guides');
+		// not listed in any section tree
+		expect(map.sections.every((s) => s.tree.every((n) => n.name !== 'Welcome'))).toBe(true);
+	});
+
+	it('non-PAGE kinds still need a section', () => {
+		const map = buildSections([doc('Loose', 'doc'), doc('Alone', 'layout')], { sections });
+		expect(map.errors.length).toBe(2);
+	});
+
+	it('a root page route may not shadow a section slug or /about', () => {
+		const map = buildSections(
+			[doc('Guides', 'page'), doc('About', 'page')],
+			{ sections },
+		);
+		const messages = map.errors.map((e) => e.message).join('\n');
+		expect(messages).toContain('collides with the "guides" section');
+		expect(messages).toContain('reserved');
+	});
+
+	it('home may point at a root page', () => {
+		const map = buildSections([doc('Welcome', 'page')], { sections, home: 'welcome' });
+		expect(map.errors).toEqual([]);
+		expect(map.home?.doc.meta.title).toBe('Welcome');
 	});
 });
 

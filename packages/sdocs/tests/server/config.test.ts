@@ -5,7 +5,8 @@ import { parseSdoc, attributeRules } from '../../src/lib/language/index.js';
 describe('content sizing config', () => {
 	it('applies the documented defaults', () => {
 		const c = resolveConfig({});
-		expect(c.content.page).toEqual({ maxWidth: '1200px', padding: '32px', toc: true, contentX: 'left' });
+		expect(c.content.doc).toEqual({ maxWidth: '1200px', padding: '32px', toc: true, contentX: 'left' });
+		expect(c.content.page).toEqual({ maxWidth: '1200px', padding: '32px', contentX: 'left' });
 		expect(c.content.showcase).toEqual({
 			maxWidth: '1200px',
 			padding: '16px',
@@ -20,12 +21,12 @@ describe('content sizing config', () => {
 	it('merges partial overrides per kind', () => {
 		const c = resolveConfig({
 			content: {
-				page: { padding: '48px', toc: false },
+				doc: { padding: '48px', toc: false },
 				showcase: { direction: 'column', contentX: 'center' },
 				layout: { maxWidth: '900px' },
 			},
 		});
-		expect(c.content.page).toEqual({ maxWidth: '1200px', padding: '48px', toc: false, contentX: 'left' });
+		expect(c.content.doc).toEqual({ maxWidth: '1200px', padding: '48px', toc: false, contentX: 'left' });
 		expect(c.content.showcase).toEqual({
 			maxWidth: '1200px',
 			padding: '16px',
@@ -57,9 +58,9 @@ describe('sizing attributes', () => {
 			'',
 			'[/SHOWCASE]',
 			'',
-			'[PAGE title="P" maxWidth="900px" padding="20px"]',
+			'[DOC title="P" maxWidth="900px" padding="20px"]',
 			'\thi',
-			'[/PAGE]',
+			'[/DOC]',
 			'',
 			'[LAYOUT title="L" maxWidth="80%" padding="0"]',
 			'\t<B />',
@@ -77,7 +78,7 @@ describe('sizing attributes', () => {
 		}
 	});
 
-	it('accepts direction/gap on stages and toc on PAGE', () => {
+	it('accepts direction/gap on stages and toc on DOC', () => {
 		const source = [
 			'<script>',
 			"\timport B from './B.svelte';",
@@ -91,9 +92,9 @@ describe('sizing attributes', () => {
 			'',
 			'[/SHOWCASE]',
 			'',
-			'[PAGE title="P" toc="false"]',
+			'[DOC title="P" toc="false"]',
 			'\thi',
-			'[/PAGE]',
+			'[/DOC]',
 		].join('\n');
 		const doc = parseSdoc(source);
 		expect(doc.diagnostics).toEqual([]);
@@ -105,11 +106,13 @@ describe('sizing attributes', () => {
 		}
 	});
 
-	it('rejects toc on non-PAGE entities and direction on PAGE', () => {
+	it('rejects toc on non-DOC entities and direction on DOC', () => {
 		const bad1 = parseSdoc('[SHOWCASE title="D" toc="false"]\n[/SHOWCASE]\n');
 		expect(bad1.diagnostics.map((d) => d.code)).toContain('unknown-attr');
-		const bad2 = parseSdoc('[PAGE title="P" direction="row"]\nx\n[/PAGE]\n');
+		const bad2 = parseSdoc('[DOC title="P" direction="row"]\nx\n[/DOC]\n');
 		expect(bad2.diagnostics.map((d) => d.code)).toContain('unknown-attr');
+		const bad3 = parseSdoc('[PAGE title="P" toc="false"]\n<div>x</div>\n[/PAGE]\n');
+		expect(bad3.diagnostics.map((d) => d.code)).toContain('unknown-attr');
 	});
 });
 
@@ -121,8 +124,11 @@ describe('attributeRules (shared by diagnostics and completions)', () => {
 		expect(Object.keys(attributeRules('example'))).toEqual([
 			'title', 'maxWidth', 'padding', 'direction', 'gap', 'contentX', 'contentY',
 		]);
-		expect(Object.keys(attributeRules('PAGE'))).toEqual([
+		expect(Object.keys(attributeRules('DOC'))).toEqual([
 			'title', 'slug', 'hide', 'maxWidth', 'padding', 'contentX', 'toc',
+		]);
+		expect(Object.keys(attributeRules('PAGE'))).toEqual([
+			'title', 'slug', 'hide', 'maxWidth', 'padding', 'contentX',
 		]);
 		expect(Object.keys(attributeRules('SHOWCASE'))).toContain('gap');
 		expect(Object.keys(attributeRules('SHOWCASE'))).toContain('slug');
@@ -149,13 +155,13 @@ describe('static assets folder', () => {
 	});
 });
 
-describe('page content alignment', () => {
-	it('accepts contentX on [PAGE] and resolves the config default', () => {
-		const doc = parseSdoc('[PAGE title="P" contentX="center"]\n\thi\n[/PAGE]\n');
+describe('doc content alignment', () => {
+	it('accepts contentX on [DOC] and resolves the config default', () => {
+		const doc = parseSdoc('[DOC title="P" contentX="center"]\n\thi\n[/DOC]\n');
 		expect(doc.diagnostics).toEqual([]);
 		expect(doc.entities[0].sizing.contentX).toBe('center');
-		expect(resolveConfig({}).content.page.contentX).toBe('left');
-		expect(resolveConfig({ content: { page: { contentX: 'center' } } }).content.page.contentX).toBe('center');
+		expect(resolveConfig({}).content.doc.contentX).toBe('left');
+		expect(resolveConfig({ content: { doc: { contentX: 'center' } } }).content.doc.contentX).toBe('center');
 	});
 });
 

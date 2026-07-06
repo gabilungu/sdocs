@@ -1,4 +1,4 @@
-[PAGE title="@extension/Language Support"]
+[DOC title="@extension/Language Support"]
 
 
 	`.sdoc` files are served by the extension's own **sdoc language server**. It
@@ -23,22 +23,22 @@
 
 	**Format Document** formats fragment-wise: the file `<script>` and
 	`<style>` and every `[preview]`/`[example]`/`[LAYOUT]` body run through
-	prettier with the Svelte plugin independently. In `[PAGE]` bodies, `[example]`
+	prettier with the Svelte plugin independently. In `[DOC]` bodies, `[example]`
 	blocks format as Svelte fragments, Svelte islands (snippets, HTML sections,
 	component tags) too, and the markdown prose between them through prettier's
 	markdown formatter (markup normalized; prose lines never re-wrapped).
 	Everything reassembles at the structural indentation: entity tags sit at
 	column 0, `[preview]`/`[example]` tags one level in, bodies one level
-	deeper — a misplaced `[/example]` or `[/PAGE]` snaps back into place.
+	deeper — a misplaced `[/example]` or `[/DOC]` snaps back into place.
 	Tag attributes are never reformatted.
 
 	## sdoc syntax highlighting
 
 	The extension ships a TextMate grammar for the block-based
-	[sdoc language](/language/overview): `[SHOWCASE]`, `[PAGE]`, and `[LAYOUT]` entities,
+	[sdoc language](/language/overview): `[SHOWCASE]`, `[DOC]`, and `[LAYOUT]` entities,
 	`[preview]` and `[example]` blocks, and Svelte-style attributes, with
 	embedded TypeScript, Svelte, and CSS coloring inside `<script>`, block
-	bodies, and `<style>`. `[PAGE]` bodies color as markdown — headings, bold,
+	bodies, and `<style>`. `[DOC]` bodies color as markdown — headings, bold,
 	lists, fences. The grammar also injects into markdown, so
 	` ```sdoc ` code fences in any README or markdown file highlight properly.
 	Entity blocks fold, and `.sdoc` files get bracket and comment support.
@@ -81,7 +81,7 @@
 
 	## Current limitations
 
-	- Code inside `[PAGE]` fences and inline code gets highlighting but no
+	- Code inside `[DOC]` fences and inline code gets highlighting but no
 	  language intelligence (it's display-only content).
 	- Cross-file rename and find-references don't reach into `.sdoc` files that
 	  aren't open.
@@ -95,4 +95,4 @@
 	most file icon themes map `.js`/`.ts` themselves and take precedence in the
 	explorer for config files.
 
-[/PAGE]
+[/DOC]

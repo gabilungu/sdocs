@@ -1,4 +1,4 @@
-[PAGE title="@extension/Overview"]
+[DOC title="@extension/Overview"]
 
 	# VS Code Extension
 
@@ -33,4 +33,4 @@
 	with the component import and a `[SHOWCASE]` block wrapping a `[preview]`. If the
 	doc already exists, it opens instead.
 
-[/PAGE]
+[/DOC]

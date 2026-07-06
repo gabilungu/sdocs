@@ -16,8 +16,13 @@ const ENTITY_BLOCKS: BlockSpec[] = [
 		insert: 'SHOWCASE title="$1"]\n\n\t$0\n\n[/SHOWCASE]',
 	},
 	{
-		label: 'PAGE',
+		label: 'DOC',
 		detail: 'Freeform markdown page',
+		insert: 'DOC title="$1"]\n\n\t$0\n\n[/DOC]',
+	},
+	{
+		label: 'PAGE',
+		detail: 'Svelte page in the docs app (landing pages, custom routes)',
 		insert: 'PAGE title="$1"]\n\n\t$0\n\n[/PAGE]',
 	},
 	{
@@ -49,11 +54,11 @@ const ATTR_SHOWCASE: Record<string, string> = {
 	description: 'One sentence shown under the page title.',
 	component: "The demonstrated component: an identifier imported in the file's `<script>`. Drives prop extraction and controls.",
 	args: "This preview's control defaults — plain literals only: `args={{ label: 'Hi', disabled: false }}`.",
-	maxWidth: 'Content column ([SHOWCASE]/[PAGE]) or stage ([LAYOUT]/[preview]/[example]) width. Overrides the config default.',
+	maxWidth: 'Content column ([SHOWCASE]/[DOC]/[PAGE]) or stage ([LAYOUT]/[preview]/[example]) width. Overrides the config default.',
 	padding: 'Space around the content or stage. Overrides the entity and config defaults.',
 	direction: 'Stage `flex-direction` (`row`/`column`). Overrides the entity and config defaults.',
 	gap: 'Stage `gap` between items. Overrides the entity and config defaults.',
-	contentX: 'Horizontal alignment of stage contents: `left` · `center` · `right` · `justify` (spread). On `[PAGE]`, aligns the content column instead: `left` · `center` · `right`.',
+	contentX: 'Horizontal alignment of stage contents: `left` · `center` · `right` · `justify` (spread). On `[DOC]`/`[PAGE]`, places the content column instead: `left` · `center` · `right`.',
 	contentY: 'Vertical alignment of stage contents: `top` · `middle` · `bottom` · `justify` (spread).',
 	toc: '`toc="false"` hides the table of contents for this page.',
 	slug: 'Overrides the URL segment for this entity (lowercase letters, digits, hyphens). Defaults to the slugified last title segment.',
@@ -89,7 +94,7 @@ export class BlockCompletionProvider implements vscode.CompletionItemProvider {
 
 		// A bare '[' (or '[par…') at line start → offer whole blocks. Which set
 		// depends on the entity the cursor sits inside: [SHOWCASE] takes both
-		// sub-blocks, [PAGE] takes [example] only, elsewhere entities.
+		// sub-blocks, [DOC] takes [example] only, elsewhere entities.
 		const bare = /^\s*\[([A-Za-z]*)$/.exec(before);
 		if (bare) {
 			const file = scanSdoc(document.getText());
@@ -100,7 +105,7 @@ export class BlockCompletionProvider implements vscode.CompletionItemProvider {
 			const specs =
 				host?.kind === 'SHOWCASE'
 					? SUB_BLOCKS
-					: host?.kind === 'PAGE'
+					: host?.kind === 'DOC'
 						? SUB_BLOCKS.filter((s) => s.label === 'example')
 						: ENTITY_BLOCKS;
 			// The editor auto-closes '[' — swallow the ']' sitting after the cursor.
@@ -122,7 +127,7 @@ export class BlockCompletionProvider implements vscode.CompletionItemProvider {
 		}
 
 		// Attribute names on a block opener line.
-		const opener = /^\s*\[(SHOWCASE|PAGE|LAYOUT|preview|example)\b/.exec(line);
+		const opener = /^\s*\[(SHOWCASE|DOC|PAGE|LAYOUT|preview|example)\b/.exec(line);
 		if (!opener) return undefined;
 		const rules = attributeRules(opener[1]);
 		const tagEnd = line.indexOf('[') + 1 + opener[1].length;

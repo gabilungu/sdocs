@@ -1,4 +1,4 @@
-[PAGE title=":Pages / About"]
+[DOC title=":Pages / About"]
 
 	# About sdocs
 
@@ -22,7 +22,7 @@
 	## Entities
 
 	- **`[SHOWCASE]`** — component documentation with previews and examples
-	- **`[PAGE]`** — standalone content pages
+	- **`[DOC]`** — standalone content pages
 	- **`[LAYOUT]`** — full-page layout previews
 
-[/PAGE]
+[/DOC]

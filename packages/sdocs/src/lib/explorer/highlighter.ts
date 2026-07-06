@@ -27,9 +27,45 @@ async function getHighlighter(): Promise<HighlighterCore> {
 
 /** Highlight Svelte code, matching the build-time highlighter's output shape */
 export async function highlightSvelte(code: string): Promise<string> {
+	return highlightCode(code, 'svelte');
+}
+
+/** Load a fence language into the shared highlighter on demand. Unknown
+ * names fall back to plaintext; 'sdoc' loads the shipped grammar plus the
+ * scopes it embeds. */
+async function ensureLanguage(highlighter: HighlighterCore, lang: string): Promise<string> {
+	if (lang === 'text' || lang === 'plain' || lang === 'txt') return 'text';
+	if (highlighter.getLoadedLanguages().includes(lang)) return lang;
+	if (lang === 'sdoc') {
+		const [{ bundledLanguages }, grammar] = await Promise.all([
+			import('shiki/langs'),
+			import('../grammar/sdoc.tmLanguage.json'),
+		]);
+		await highlighter.loadLanguage(
+			bundledLanguages.javascript,
+			bundledLanguages.typescript,
+			bundledLanguages.css,
+			bundledLanguages.html,
+			bundledLanguages.markdown,
+			bundledLanguages.svelte,
+			{ ...(grammar.default ?? grammar), name: 'sdoc' } as never,
+		);
+		return 'sdoc';
+	}
+	const { bundledLanguages } = await import('shiki/langs');
+	const loader = (bundledLanguages as Record<string, unknown>)[lang];
+	if (!loader) return 'text';
+	await highlighter.loadLanguage(loader as never);
+	return lang;
+}
+
+/** Highlight code in any bundled shiki language (plus 'sdoc'), lazily
+ * loading the grammar on first use. Matches the build-time output shape. */
+export async function highlightCode(code: string, lang: string = 'svelte'): Promise<string> {
 	const highlighter = await getHighlighter();
+	const resolved = await ensureLanguage(highlighter, lang);
 	return highlighter.codeToHtml(code, {
-		lang: 'svelte',
+		lang: resolved,
 		themes: {
 			light: 'github-light',
 			dark: 'github-dark',

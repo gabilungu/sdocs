@@ -98,6 +98,8 @@ export class SdocDiagnostics implements vscode.Disposable {
 				if (!attr || attr.kind !== 'string') continue;
 				const raw = attr.raw;
 				if (!raw.trimStart().startsWith('@')) {
+					// A sectionless PAGE is legal: it routes at the site root.
+					if (entity.kind === 'PAGE') continue;
 					if (!declaredSlugs.includes('docs')) {
 						diagnostics.push(
 							new vscode.Diagnostic(

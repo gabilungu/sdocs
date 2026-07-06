@@ -1,7 +1,7 @@
 /**
  * Fragment-wise formatting for .sdoc files: the file <script> and <style>
  * and every Svelte block body format independently through prettier with
- * prettier-plugin-svelte, [PAGE] bodies through prettier's markdown parser
+ * prettier-plugin-svelte, [DOC] bodies through prettier's markdown parser
  * (prose lines are preserved, never re-wrapped), then reassemble at the
  * structural indentation: entity tags at column 0, sub-block tags one level
  * in, bodies one level deeper. Tag lines re-indent to that structure; their
@@ -42,7 +42,7 @@ function prettierOptions(options: FormattingOptions): prettier.Options {
 	} as prettier.Options;
 }
 
-/** [PAGE] bodies are markdown; normalize markup, never re-wrap prose. */
+/** [DOC] bodies are markdown; normalize markup, never re-wrap prose. */
 function markdownOptions(options: FormattingOptions): prettier.Options {
 	return {
 		parser: 'markdown',
@@ -109,7 +109,7 @@ export async function formatSdoc(
 	}
 
 	// Block bodies: Svelte fragments in [preview]/[example] and [LAYOUT];
-	// [PAGE] bodies are markdown, except their [example] blocks — those are
+	// [DOC] bodies are markdown, except their [example] blocks — those are
 	// Svelte fragments like any example, with the prose around them markdown.
 	const bodies: { span: Span; indent: string; markdown?: boolean }[] = [];
 	const pushBlockBodies = (blocks: SdocFile['entities'][number]['blocks']) => {
@@ -132,7 +132,7 @@ export async function formatSdoc(
 	for (const entity of file.entities) {
 		if (entity.kind === 'SHOWCASE') {
 			pushBlockBodies(entity.blocks);
-		} else if (entity.kind === 'PAGE' && entity.blocks.length > 0) {
+		} else if (entity.kind === 'DOC' && entity.blocks.length > 0) {
 			let from = entity.bodySpan.start;
 			for (const block of entity.blocks) {
 				let openerLineStart = block.openerSpan.start;
@@ -147,7 +147,7 @@ export async function formatSdoc(
 			bodies.push({
 				span: entity.bodySpan,
 				indent: '',
-				markdown: entity.kind === 'PAGE',
+				markdown: entity.kind === 'DOC',
 			});
 		}
 	}
@@ -166,7 +166,7 @@ export async function formatSdoc(
 		}
 	};
 
-	// [PAGE] bodies: prose formats as markdown, Svelte islands (snippets, HTML
+	// [DOC] bodies: prose formats as markdown, Svelte islands (snippets, HTML
 	// sections, component tags) as Svelte fragments — markdown tooling never
 	// touches an island. Segments reassemble with one blank line between.
 	const formatPageBody = async (dedented: string[]): Promise<string[]> => {

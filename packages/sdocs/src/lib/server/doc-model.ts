@@ -28,9 +28,9 @@ export function previewSlug(label: string): string {
 }
 
 /** The snippets one entity produces, in order: previews then examples for
- * SHOWCASE, the 'content' body then examples for PAGE, the single 'content'
- * body for LAYOUT. A PAGE's content renders natively in the Explorer — it
- * is never served as an iframe page (see planIframeSnippets). */
+ * SHOWCASE, the 'content' body then examples for DOC, the single 'content'
+ * body for PAGE and LAYOUT. DOC and PAGE content renders natively in the
+ * Explorer — never served as an iframe page (see planIframeSnippets). */
 export function planEntitySnippets(entity: SdocEntity): PlannedSnippet[] {
 	const example = (e: { title: string; body: string }) => ({
 		name: e.title,
@@ -50,18 +50,19 @@ export function planEntitySnippets(entity: SdocEntity): PlannedSnippet[] {
 		];
 	}
 	const content = { name: 'Content', slug: 'content', role: 'content' as const, body: entity.body };
-	if (entity.kind === 'PAGE') {
+	if (entity.kind === 'DOC') {
 		return [content, ...entity.examples.map(example)];
 	}
 	return [content];
 }
 
 /** The snippets of an entity that are served as iframe preview pages:
- * everything except a PAGE's content (which references the Explorer-provided
+ * everything except DOC and PAGE content, which render natively in the
+ * docs context (a DOC's body also references the Explorer-provided
  * `__sdocsExample` snippet and only compiles there). */
 export function planIframeSnippets(entity: SdocEntity): PlannedSnippet[] {
 	return planEntitySnippets(entity).filter(
-		(s) => !(entity.kind === 'PAGE' && s.role === 'content'),
+		(s) => !((entity.kind === 'DOC' || entity.kind === 'PAGE') && s.role === 'content'),
 	);
 }
 

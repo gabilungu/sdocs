@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.72] - 2026-07-06
+
+### Changed
+
+- **`[PAGE]` split into `[DOC]` and `[PAGE]`.** The markdown-prose entity is
+  now `[DOC]` — same body, same attributes (`toc`, `contentX`, examples,
+  islands), new name. `[PAGE]` now means a page you *build*: a plain Svelte
+  body rendered as a real page of the docs app — docs-context CSS, no stage
+  tooling, no toc — inside the same max-width container DOCs use
+  (`maxWidth`, `padding`, `contentX`; `maxWidth="100%"` for full-bleed).
+  The config key follows: `content.doc` holds the old `content.page`
+  defaults, and `content.page` now sizes Svelte pages.
+
+### Added
+
+- **Sectionless pages.** A `[PAGE]` without a `@section/` title prefix
+  routes at the **site root** (`title="Welcome"` → `/welcome`) with no
+  sidebar and no active tab — landing pages, `/pricing`-style routes. Point
+  `home` at one for a landing page. Only PAGE may be sectionless; a root
+  route that shadows a section slug or `/about` is a build error.
+- **`CodeBlock` component.** `import { CodeBlock } from 'sdocs/ui'` renders
+  highlighted code inside Svelte pages — any bundled shiki language plus
+  `sdoc` itself, loaded lazily in the browser. Resolves in standalone
+  projects too (the CLI provides its own copy).
+
+### Fixed
+
+- **Import rewriting no longer reaches into string literals.** The script
+  prelude's relative-import resolution now anchors to real import
+  statements, so an import-shaped line inside a string — a code sample fed
+  to `CodeBlock`, say — stays exactly as written.
+
 ## [0.0.71] - 2026-07-06
 
 ### Added

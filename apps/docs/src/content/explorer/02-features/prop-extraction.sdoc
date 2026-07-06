@@ -1,4 +1,4 @@
-[PAGE title="@explorer/Features / Prop Extraction"]
+[DOC title="@explorer/Features / Prop Extraction"]
 
 
 	For each component documented in a `.sdoc` file, sdocs parses the component's source and extracts its public API. This page describes what's extracted and how to influence it.
@@ -181,4 +181,4 @@
 	- [Interactive controls](/explorer/features/interactive-controls) — how extracted props become UI controls
 	- [Writing component docs](/language/component-docs)
 
-[/PAGE]
+[/DOC]

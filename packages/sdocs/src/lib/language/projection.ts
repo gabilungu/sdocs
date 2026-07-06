@@ -43,7 +43,7 @@ function lineOfOffset(starts: number[], offset: number): number {
 	return lo;
 }
 
-/** Mask markdown code so a PAGE body reads as Svelte-safe prose: fence lines
+/** Mask markdown code so a DOC body reads as Svelte-safe prose: fence lines
  * and fence interiors go blank; inline `code` spans are space-overwritten
  * (column-preserving). Everything else — prose, {expressions}, component
  * islands — stays verbatim. */
@@ -123,12 +123,12 @@ export function projectSdoc(file: SdocFile): SdocProjection {
 		snippets.push({ name, withArgs });
 	};
 
-	/** A PAGE with [example] blocks: the prose regions and each example body
+	/** A DOC with [example] blocks: the prose regions and each example body
 	 * become SIBLING snippets, split in place — the example opener line closes
 	 * the running prose snippet and opens the example's, the example closer
 	 * does the reverse. Siblings (not nested) so the trailer can render every
 	 * one of them, keeping imports used only by examples free of unused noise. */
-	const wrapPageWithExamples = (entity: Entity, e: number) => {
+	const wrapDocWithExamples = (entity: Entity, e: number) => {
 		const openFirst = lineOfOffset(starts, entity.openerSpan.start);
 		const openLast = lineOfOffset(starts, Math.max(entity.openerSpan.start, entity.openerSpan.end - 1));
 		out[openFirst] = `{#snippet __sdocs$${e}_p0()}`;
@@ -186,8 +186,8 @@ export function projectSdoc(file: SdocFile): SdocProjection {
 					if (/^[A-Z][A-Za-z0-9_]*$/.test(name)) componentRefs.add(name);
 				}
 			});
-		} else if (entity.kind === 'PAGE' && entity.blocks.length > 0) {
-			wrapPageWithExamples(entity, e);
+		} else if (entity.kind === 'DOC' && entity.blocks.length > 0) {
+			wrapDocWithExamples(entity, e);
 		} else {
 			wrapBlock(
 				`__sdocs$${e}`,
@@ -195,7 +195,7 @@ export function projectSdoc(file: SdocFile): SdocProjection {
 				entity.bodySpan,
 				entity.span,
 				false,
-				entity.kind === 'PAGE',
+				entity.kind === 'DOC',
 			);
 		}
 	});

@@ -6,7 +6,7 @@
 
 	[preview component={Disclosure} args={{ summary: 'What is a .sdoc file?', open: false }}]
 		<Disclosure {...args}>
-			A file of <code>[SHOWCASE]</code>, <code>[PAGE]</code>, and <code>[LAYOUT]</code>
+			A file of <code>[SHOWCASE]</code>, <code>[DOC]</code>, and <code>[LAYOUT]</code>
 			blocks, rendered by the Explorer with live previews and controls.
 		</Disclosure>
 	[/preview]

@@ -3,7 +3,7 @@
 	const version = "0.0.3";
 </script>
 
-[PAGE title="Markdown"]
+[DOC title="Markdown"]
 
 	# Markdown showcase
 
@@ -105,4 +105,4 @@
 		<Button label="Danger" intent="danger" size="lg" />
 	[/example]
 
-[/PAGE]
+[/DOC]

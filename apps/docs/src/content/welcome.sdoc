@@ -1,0 +1,85 @@
+<script lang="ts">
+	import { CodeBlock } from "sdocs/ui";
+	import LinkButton from "../ui/LinkButton.svelte";
+	import Card from "../ui/Card.svelte";
+
+	// Line-array, not a template literal: a literal `import ...` line inside a
+	// string would match the script-prelude import rewriting.
+	const sample = [
+		'<script lang="ts">',
+		"\timport Button from './Button.svelte';",
+		'</' + 'script>',
+		'',
+		'[SHOWCASE title="@components/Button" description="A flexible button."]',
+		'',
+		"\t[preview component={Button} args={{ label: 'Click me' }}]",
+		'\t\t<Button {...args} />',
+		'\t[/preview]',
+		'',
+		'\t[example title="Sizes"]',
+		'\t\t<Button label="Small" size="sm" />',
+		'\t\t<Button label="Large" size="lg" />',
+		'\t[/example]',
+		'',
+		'[/SHOWCASE]',
+	].join('\n');
+</script>
+
+[PAGE title="Welcome" contentX="center" maxWidth="880px"]
+
+	<h1 style="font-size: 40px; font-weight: 750; margin: 24px 0 8px; color: var(--color-base-900);">sdocs</h1>
+
+	<p style="font-size: 17px; margin: 0 0 20px; color: var(--color-base-600);">
+		A lightweight documentation tool for Svelte 5 components.
+	</p>
+
+	<div style="max-width: 400px; margin: 0 0 16px;">
+		<CodeBlock code="npm install -D sdocs" lang="bash" />
+	</div>
+
+	<div style="display: flex; gap: 12px; margin: 8px 0 40px;">
+		<LinkButton href="/explorer/getting-started">Get started</LinkButton>
+		<LinkButton href="/explorer/overview" variant="secondary">Documentation</LinkButton>
+	</div>
+
+	<h2 style="font-size: 20px; font-weight: 650; margin: 0 0 8px; color: var(--color-base-900);">
+		One small file per component
+	</h2>
+
+	<p style="line-height: 1.7; margin: 0 0 16px;">
+		Drop a <code>.sdoc</code> file next to a component and it appears in an
+		interactive explorer: live preview, controls generated from
+		<code>args</code>, and a prop table extracted from the component itself.
+		No stories API to learn — a doc file <em>is</em> a Svelte file, with
+		snippets for every state you want to show.
+	</p>
+
+	<CodeBlock code={sample} lang="sdoc" />
+
+	<h2 style="font-size: 20px; font-weight: 650; margin: 40px 0 8px; color: var(--color-base-900);">
+		The three faces of sdocs
+	</h2>
+
+	<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 16px 0;">
+		<Card href="/explorer/overview" title="Explorer" linkText="Explore the docs">
+			The interactive component browser built from your .sdoc files — live
+			previews, prop controls, theming, and search.
+		</Card>
+		<Card href="/cli/overview" title="CLI" linkText="Command reference">
+			npx sdocs run starts the Explorer in any project with zero install, and
+			sdocs build ships it as a static site.
+		</Card>
+		<Card href="/extension/overview" title="VS Code Extension" linkText="Extension guide">
+			Full Svelte IntelliSense in .sdoc files, plus a Projects view that runs
+			and shows your docs inside the editor.
+		</Card>
+	</div>
+
+	<p style="line-height: 1.7; margin: 16px 0 24px;">
+		This site is built with sdocs itself — the <a href="/demo/notice">Demo</a>
+		section showcases the site's own components, every guide you're reading is
+		a <code>[DOC]</code> entity, and this landing page is a
+		<a href="/language/svelte-pages"><code>[PAGE]</code></a>.
+	</p>
+
+[/PAGE]

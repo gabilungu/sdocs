@@ -23,7 +23,7 @@ const SOURCE = `<script lang="ts">
 
 [/SHOWCASE]
 
-[PAGE title="Guide"]
+[DOC title="Guide"]
 
 	## Heading
 
@@ -35,7 +35,7 @@ const SOURCE = `<script lang="ts">
 
 	Inline \`{code}\` is masked.
 
-[/PAGE]
+[/DOC]
 
 <style>
 	.x { color: red; }

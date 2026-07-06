@@ -20,7 +20,8 @@ const DEFAULTS: ResolvedSdocsConfig = {
 	routing: null,
 	base: '/',
 	content: {
-		page: { maxWidth: '1200px', padding: '32px', toc: true, contentX: 'left' },
+		doc: { maxWidth: '1200px', padding: '32px', toc: true, contentX: 'left' },
+		page: { maxWidth: '1200px', padding: '32px', contentX: 'left' },
 		showcase: {
 			maxWidth: '1200px',
 			padding: '16px',
@@ -155,6 +156,7 @@ export function resolveConfig(userConfig: SdocsConfig): ResolvedSdocsConfig {
 		routing: userConfig.routing ?? DEFAULTS.routing,
 		base: normalizeBase(userConfig.base),
 		content: {
+			doc: { ...DEFAULTS.content.doc, ...userConfig.content?.doc },
 			page: { ...DEFAULTS.content.page, ...userConfig.content?.page },
 			showcase: { ...DEFAULTS.content.showcase, ...userConfig.content?.showcase },
 			layout: { ...DEFAULTS.content.layout, ...userConfig.content?.layout },

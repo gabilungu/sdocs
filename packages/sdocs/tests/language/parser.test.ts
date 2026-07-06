@@ -90,7 +90,7 @@ x
 describe('parseSdoc validation', () => {
 	it('requires entity titles', () => {
 		expect(diagnosticCodes('[SHOWCASE]\n[/SHOWCASE]\n')).toContain('missing-attr');
-		expect(diagnosticCodes('[PAGE]\nx\n[/PAGE]\n')).toContain('missing-attr');
+		expect(diagnosticCodes('[DOC]\nx\n[/DOC]\n')).toContain('missing-attr');
 	});
 
 	it('requires component on previews and title on examples', () => {
@@ -104,13 +104,13 @@ describe('parseSdoc validation', () => {
 
 	it('rejects unknown attributes', () => {
 		expect(diagnosticCodes('[SHOWCASE title="X" component={B}]\n[/SHOWCASE]\n')).toContain('unknown-attr');
-		expect(diagnosticCodes('[PAGE title="X" bogus="4px"]\nx\n[/PAGE]\n')).toContain(
+		expect(diagnosticCodes('[DOC title="X" bogus="4px"]\nx\n[/DOC]\n')).toContain(
 			'unknown-attr',
 		);
 	});
 
 	it('parses slug and the bare hide flag on entities', () => {
-		const doc = parseSdoc('[PAGE title="Intro" slug="intro-page" hide]\nx\n[/PAGE]\n');
+		const doc = parseSdoc('[DOC title="Intro" slug="intro-page" hide]\nx\n[/DOC]\n');
 		expect(doc.diagnostics).toEqual([]);
 		expect(doc.entities[0]).toMatchObject({ routeSlug: 'intro-page', hide: true });
 		const plain = parseSdoc('[LAYOUT title="L"]\nx\n[/LAYOUT]\n');
@@ -118,7 +118,7 @@ describe('parseSdoc validation', () => {
 	});
 
 	it('rejects malformed slug values', () => {
-		const doc = parseSdoc('[PAGE title="Intro" slug="Not OK"]\nx\n[/PAGE]\n');
+		const doc = parseSdoc('[DOC title="Intro" slug="Not OK"]\nx\n[/DOC]\n');
 		expect(doc.diagnostics.map((d) => d.code)).toContain('invalid-slug');
 	});
 
@@ -152,7 +152,7 @@ describe('parseSdoc validation', () => {
 
 	it('rejects colliding entity addresses in one file', () => {
 		expect(
-			diagnosticCodes('[PAGE title="A B"]\nx\n[/PAGE]\n[PAGE title="A / B"]\ny\n[/PAGE]\n'),
+			diagnosticCodes('[DOC title="A B"]\nx\n[/DOC]\n[DOC title="A / B"]\ny\n[/DOC]\n'),
 		).toContain('duplicate-entity-title');
 	});
 
@@ -221,7 +221,7 @@ describe('normalizeBody', () => {
 	});
 
 	it('dedents PAGE bodies so markdown does not become code blocks', () => {
-		const doc = parseSdoc('[PAGE title="X"]\n\t## Heading\n\n\ttext\n[/PAGE]\n');
+		const doc = parseSdoc('[DOC title="X"]\n\t## Heading\n\n\ttext\n[/DOC]\n');
 		expect((doc.entities[0] as PageEntity).body).toBe('## Heading\n\ntext');
 	});
 });

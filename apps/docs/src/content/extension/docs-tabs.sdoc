@@ -1,4 +1,4 @@
-[PAGE title="@extension/Docs Tabs"]
+[DOC title="@extension/Docs Tabs"]
 
 
 	Running a project from the [Projects view](/extension/projects-view) opens
@@ -32,4 +32,4 @@
 	- To inspect the tab itself, run **Developer: Open Webview Developer Tools**
 	  from the command palette while the tab is focused.
 
-[/PAGE]
+[/DOC]

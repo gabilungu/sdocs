@@ -2,9 +2,9 @@
  * Syntactic scanner for v2 .sdoc files.
  *
  * A .sdoc file is: optional <script> at the top, entity blocks in the
- * middle ([SHOWCASE] / [PAGE] / [LAYOUT], with lowercase sub-blocks [preview] /
- * [example] inside [SHOWCASE] and [example] inside [PAGE]), optional <style>
- * at the bottom.
+ * middle ([SHOWCASE] / [DOC] / [PAGE] / [LAYOUT], with lowercase sub-blocks
+ * [preview] / [example] inside [SHOWCASE] and [example] inside [DOC]),
+ * optional <style> at the bottom.
  *
  * The scanner is line-anchored and non-balancing: tags are recognized only
  * at the start of a line and only where the current state allows them, so
@@ -22,10 +22,10 @@ export interface Span {
 	end: number;
 }
 
-export type EntityKind = 'SHOWCASE' | 'PAGE' | 'LAYOUT';
+export type EntityKind = 'SHOWCASE' | 'DOC' | 'PAGE' | 'LAYOUT';
 export type SubBlockKind = 'preview' | 'example';
 
-export const ENTITY_KINDS: readonly EntityKind[] = ['SHOWCASE', 'PAGE', 'LAYOUT'];
+export const ENTITY_KINDS: readonly EntityKind[] = ['SHOWCASE', 'DOC', 'PAGE', 'LAYOUT'];
 export const SUB_BLOCK_KINDS: readonly SubBlockKind[] = ['preview', 'example'];
 
 export interface AttrValue {
@@ -54,9 +54,10 @@ export interface SubBlock {
 export interface Entity {
 	kind: EntityKind;
 	attrs: Attrs;
-	/** SHOWCASE: preview/example sub-blocks. PAGE: example sub-blocks. LAYOUT: always empty. */
+	/** SHOWCASE: preview/example sub-blocks. DOC: example sub-blocks.
+	 * PAGE/LAYOUT: always empty. */
 	blocks: SubBlock[];
-	/** PAGE/LAYOUT: the raw body (for PAGE it includes any [example] blocks,
+	/** DOC/PAGE/LAYOUT: the raw body (for DOC it includes any [example] blocks,
 	 * addressable via their spans). SHOWCASE: '' (body text between blocks is an error). */
 	body: string;
 	bodySpan: Span;
@@ -471,12 +472,12 @@ export function scanSdoc(source: string): SdocFile {
 		return lines.length;
 	}
 
-	/** Scan the inside of a [PAGE] entity until its closer: prose lines are
+	/** Scan the inside of a [DOC] entity until its closer: prose lines are
 	 * body text, [example] openers capture sub-blocks. Lines inside markdown
 	 * code fences are always prose, so a fence may show block syntax without
 	 * escaping. The body keeps the raw text of the whole range — example
 	 * blocks included — so consumers can splice by span. */
-	function scanPageBody(startLi: number, entity: Entity): number {
+	function scanDocBody(startLi: number, entity: Entity): number {
 		const bodyStart = startLi < lines.length ? lines[startLi].start : source.length;
 		let bodyEnd = bodyStart;
 		let inFence = false;
@@ -495,11 +496,11 @@ export function scanSdoc(source: string): SdocFile {
 				i++;
 				continue;
 			}
-			if (trimmed === '[/PAGE]') {
-				const tagStart = line.start + line.text.indexOf('[/PAGE]');
+			if (trimmed === '[/DOC]') {
+				const tagStart = line.start + line.text.indexOf('[/DOC]');
 				entity.body = source.slice(bodyStart, Math.max(bodyStart, bodyEnd));
 				entity.bodySpan = { start: bodyStart, end: Math.max(bodyStart, bodyEnd) };
-				entity.span.end = tagStart + '[/PAGE]'.length;
+				entity.span.end = tagStart + '[/DOC]'.length;
 				return i + 1;
 			}
 			const token = tagToken(trimmed);
@@ -530,7 +531,7 @@ export function scanSdoc(source: string): SdocFile {
 			if (token && !token.closer && token.name === 'preview') {
 				errors.push({
 					code: 'unknown-tag',
-					message: '[preview] is only valid inside [SHOWCASE] — pages showcase with [example].',
+					message: '[preview] is only valid inside [SHOWCASE] — docs showcase with [example].',
 					span: { start: line.start + line.text.indexOf('['), end: line.end },
 				});
 				i++;
@@ -542,7 +543,7 @@ export function scanSdoc(source: string): SdocFile {
 		}
 		errors.push({
 			code: 'unclosed-block',
-			message: 'Missing [/PAGE].',
+			message: 'Missing [/DOC].',
 			span: entity.openerSpan,
 		});
 		entity.body = source.slice(bodyStart);
@@ -622,8 +623,8 @@ export function scanSdoc(source: string): SdocFile {
 			entities.push(entity);
 			if (token.name === 'SHOWCASE') {
 				li = scanShowcaseBody(opener.nextLi, entity);
-			} else if (token.name === 'PAGE') {
-				li = scanPageBody(opener.nextLi, entity);
+			} else if (token.name === 'DOC') {
+				li = scanDocBody(opener.nextLi, entity);
 			} else {
 				const captured = captureBody(opener.nextLi, `[/${token.name}]`);
 				if (!captured) {
@@ -660,7 +661,7 @@ export function scanSdoc(source: string): SdocFile {
 				code: 'block-outside-entity',
 				message:
 					token.name === 'example'
-						? '[example] is only valid inside a [SHOWCASE] or [PAGE] entity.'
+						? '[example] is only valid inside a [SHOWCASE] or [DOC] entity.'
 						: '[preview] is only valid inside a [SHOWCASE] entity.',
 				span,
 			});

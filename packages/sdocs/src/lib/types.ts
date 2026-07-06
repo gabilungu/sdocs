@@ -37,12 +37,19 @@ export interface SdocsConfig {
 
 	/** Content presentation per entity kind; entity/block attributes override these. */
 	content?: {
-		/** [PAGE] content. Defaults: maxWidth '1200px', padding '32px', toc true. */
-		page?: ContentSizing & {
+		/** [DOC] content. Defaults: maxWidth '1200px', padding '32px', toc true. */
+		doc?: ContentSizing & {
 			/** Show the table of contents. Default: true */
 			toc?: boolean;
 			/** Horizontal alignment of the content column (with its toc) inside
 			 * the view: 'left'|'center'|'right'. Default: 'left' */
+			contentX?: string;
+		};
+		/** [PAGE] content: the Svelte body renders inside a centered-capable
+		 * container. Defaults: maxWidth '1200px', padding '32px'. */
+		page?: ContentSizing & {
+			/** Horizontal alignment of the content container inside the view:
+			 * 'left'|'center'|'right'. Default: 'left' */
 			contentX?: string;
 		};
 		/** [SHOWCASE] pages: maxWidth is the content column (default '1200px');
@@ -113,13 +120,14 @@ export interface ResolvedSdocsConfig {
 	/** Normalized public base path for the build (leading + trailing slash). */
 	base: string;
 	content: {
-		page: Required<ContentSizing> & { toc: boolean; contentX: string };
+		doc: Required<ContentSizing> & { toc: boolean; contentX: string };
+		page: Required<ContentSizing> & { contentX: string };
 		showcase: Required<ContentSizing> & { direction: string; gap: string; contentX: string; contentY: string };
 		layout: Required<ContentSizing>;
 	};
 }
 
-/** Entity metadata from a [SHOWCASE]/[PAGE]/[LAYOUT] opener */
+/** Entity metadata from a [SHOWCASE]/[DOC]/[PAGE]/[LAYOUT] opener */
 export interface SdocMeta {
 	/** Sidebar path (e.g. 'Demo / Button') */
 	title: string;
@@ -200,7 +208,7 @@ export interface PreviewEntry {
 	snippet: ExtractedSnippet;
 }
 
-/** A table of contents heading (for pages) */
+/** A table of contents heading (for docs) */
 export interface TocHeading {
 	text: string;
 	level: number;
@@ -209,8 +217,8 @@ export interface TocHeading {
 
 /** A complete doc entry (one entity of one .sdoc file) */
 export interface DocEntry {
-	/** Doc kind: SHOWCASE / PAGE / LAYOUT */
-	kind: 'component' | 'page' | 'layout';
+	/** Doc kind: SHOWCASE / DOC / PAGE / LAYOUT */
+	kind: 'component' | 'doc' | 'page' | 'layout';
 	/** Absolute path to the .sdoc file */
 	filePath: string;
 	/** URL-safe entity id, unique within the file */
@@ -219,24 +227,24 @@ export interface DocEntry {
 	meta: SdocMeta;
 	/** Live previews (component kind; empty otherwise) */
 	previews: PreviewEntry[];
-	/** Frozen examples (component and page kinds; empty otherwise) */
+	/** Frozen examples (component and doc kinds; empty otherwise) */
 	examples: ExtractedSnippet[];
-	/** The rendered body (page/layout kind; null otherwise) */
+	/** The body (doc/page/layout kind; null otherwise) */
 	content: ExtractedSnippet | null;
-	/** Table of contents headings (pages only) */
+	/** Table of contents headings (doc kind only) */
 	toc?: TocHeading[];
-	/** Resolved content-column max width (component and page kinds) */
+	/** Resolved content-column max width (component, doc, and page kinds) */
 	maxWidth?: string;
-	/** Resolved page padding (pages only) */
+	/** Resolved view padding (doc and page kinds) */
 	padding?: string;
-	/** Resolved horizontal alignment of the content column (pages only) */
+	/** Resolved horizontal alignment of the content column (doc and page kinds) */
 	contentX?: string;
-	/** Resolved table-of-contents visibility (pages only) */
+	/** Resolved table-of-contents visibility (doc kind only) */
 	showToc?: boolean;
 	/** The body's `#` heading, shown as the page title instead of the entity
-	 * title (pages only) */
+	 * title (doc kind only) */
 	bodyTitle?: string;
-	/** Key into the virtual module's pageModules map (pages only) */
+	/** Key into the virtual module's pageModules map (doc and page kinds) */
 	contentKey?: string;
 	/** Explicit route leaf from slug="…"; the slugified title segment otherwise */
 	routeSlug?: string;

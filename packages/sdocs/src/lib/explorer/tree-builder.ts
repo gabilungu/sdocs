@@ -1,6 +1,6 @@
 import type { DocEntry, SectionConfig } from '../types.js';
 
-export type TreeNodeType = 'folder' | 'group' | 'component' | 'page' | 'layout';
+export type TreeNodeType = 'folder' | 'group' | 'component' | 'doc' | 'page' | 'layout';
 
 export interface TreeNode {
 	name: string;
@@ -36,6 +36,9 @@ export interface SectionTree {
 export interface RouteTarget {
 	doc: DocEntry;
 	snippetName?: string;
+	/** Slug of the section the route lives in; unset for sectionless pages,
+	 * which render without a sidebar. */
+	section?: string;
 }
 
 /** A site-structure problem: shown full-page in dev, fails the build. */
@@ -132,10 +135,17 @@ export function buildSections(docs: DocEntry[], opts?: BuildSectionsOptions): Se
 		seenSlugs.add(s.slug);
 	}
 
-	// Partition docs by section slug. Unprefixed titles belong to `docs`.
+	// Partition docs by section slug. Unprefixed titles belong to `docs` —
+	// except PAGE entities in a declared-sections site, which live at the
+	// site root (a landing page, /pricing, …) with no sidebar.
+	const rootPages: DocEntry[] = [];
 	const bySlug = new Map<string, DocEntry[]>(sections.map((s) => [s.slug, []]));
 	for (const doc of docs) {
 		const { section } = splitSection(doc.meta.title);
+		if (section === null && doc.kind === 'page' && active) {
+			rootPages.push(doc);
+			continue;
+		}
 		const slug = section ?? 'docs';
 		const list = bySlug.get(slug);
 		if (!list) {
@@ -158,7 +168,7 @@ export function buildSections(docs: DocEntry[], opts?: BuildSectionsOptions): Se
 	const sectionTrees: SectionTree[] = sections.map((section) => {
 		const prefix = active ? [section.slug] : [];
 		const tree = buildTree(bySlug.get(section.slug) ?? [], prefix, errors);
-		registerRoutes(tree, routes, routeOwners, errors);
+		registerRoutes(tree, routes, routeOwners, errors, section.slug);
 		orderTree(tree, section.order, prefix.length);
 		return {
 			slug: section.slug,
@@ -168,6 +178,31 @@ export function buildSections(docs: DocEntry[], opts?: BuildSectionsOptions): Se
 		};
 	});
 	for (const s of sectionTrees) s.firstRoute = firstDocRoute(s.tree);
+
+	// Sectionless pages: root-level routes with no sidebar entry anywhere.
+	// Their first segment must not shadow a section or the built-in /about.
+	const rootTree = buildTree(rootPages, [], errors);
+	registerRoutes(rootTree, routes, routeOwners, errors);
+	const checkRootRoutes = (nodes: TreeNode[]) => {
+		for (const node of nodes) {
+			if (node.doc) {
+				const key = node.route.join('/');
+				if (seenSlugs.has(node.route[0])) {
+					errors.push({
+						message: `Page route "/${key}" collides with the "${node.route[0]}" section — give "${node.doc.meta.title}" a different slug or a @section prefix.`,
+						file: node.doc.filePath,
+					});
+				} else if (key === 'about') {
+					errors.push({
+						message: `Page route "/about" is reserved for the built-in About page — give "${node.doc.meta.title}" a different slug.`,
+						file: node.doc.filePath,
+					});
+				}
+			}
+			checkRootRoutes(node.children);
+		}
+	};
+	checkRootRoutes(rootTree);
 
 	// The root route: the configured home entity, or the About page when unset.
 	let home: RouteTarget | null = null;
@@ -336,6 +371,7 @@ function registerRoutes(
 	routes: Map<string, RouteTarget>,
 	owners: Map<string, DocEntry>,
 	errors: SiteError[],
+	section?: string,
 ): void {
 	for (const node of nodes) {
 		if (node.doc) {
@@ -343,10 +379,10 @@ function registerRoutes(
 			const owner = owners.get(key);
 			if (owner === undefined) {
 				owners.set(key, node.doc);
-				routes.set(
-					key,
-					node.snippetName ? { doc: node.doc, snippetName: node.snippetName } : { doc: node.doc },
-				);
+				const target: RouteTarget = { doc: node.doc };
+				if (node.snippetName) target.snippetName = node.snippetName;
+				if (section) target.section = section;
+				routes.set(key, target);
 			} else if (owner !== node.doc) {
 				errors.push({
 					message: `Two entities share the route "/${key}": "${owner.meta.title}" and "${node.doc.meta.title}". Give one a slug="…".`,
@@ -354,7 +390,7 @@ function registerRoutes(
 				});
 			}
 		}
-		if (node.children.length > 0) registerRoutes(node.children, routes, owners, errors);
+		if (node.children.length > 0) registerRoutes(node.children, routes, owners, errors, section);
 	}
 }
 

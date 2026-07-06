@@ -1,4 +1,4 @@
-[PAGE title=":Pages / Welcome"]
+[DOC title=":Pages / Welcome"]
 
 	# testapp
 
@@ -8,8 +8,8 @@
 	## What it covers
 
 	- **Component docs** — `Button.sdoc` with a preview and examples
-	- **Pages** — this file's `[PAGE]` block
+	- **Pages** — this file's `[DOC]` block
 	- **Layouts** — the `[LAYOUT]` block in `Demo.sdoc`
 	- **Embedded mode** — the explorer mounted at `/docs`
 
-[/PAGE]
+[/DOC]

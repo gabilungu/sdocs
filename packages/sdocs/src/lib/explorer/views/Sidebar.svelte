@@ -91,6 +91,7 @@
 				}
 				if (node.name === 'Docs') return 'file-code';
 				return 'bookmark';
+			case 'doc':
 			case 'page': return 'file-text';
 			case 'layout': return 'panels-top-left';
 			default: return 'file';
@@ -104,6 +105,7 @@
 				if (node.children.length > 0) return 'var(--color-component-500)';
 				if (node.name === 'Docs') return 'var(--color-docs-500)';
 				return 'var(--color-example-500)';
+			case 'doc':
 			case 'page': return 'var(--color-page-550)';
 			case 'layout': return 'var(--color-layout-500)';
 			default: return 'inherit';
@@ -113,6 +115,7 @@
 	function expanderActiveColor(node: TreeNode): string {
 		switch (node.type) {
 			case 'component': return 'var(--color-component-400)';
+			case 'doc':
 			case 'page': return 'var(--color-page-400)';
 			case 'layout': return 'var(--color-layout-400)';
 			default: return 'var(--color-base-400)';
@@ -122,6 +125,7 @@
 	function expanderHoverColor(node: TreeNode): string {
 		switch (node.type) {
 			case 'component': return 'var(--color-component-600)';
+			case 'doc':
 			case 'page': return 'var(--color-page-600)';
 			case 'layout': return 'var(--color-layout-600)';
 			default: return 'var(--color-base-500)';
@@ -134,6 +138,7 @@
 				if (node.children.length > 0) return 'var(--color-component-50)';
 				if (node.name === 'Docs') return 'var(--color-docs-50)';
 				return 'var(--color-example-50)';
+			case 'doc':
 			case 'page': return 'var(--color-page-50)';
 			case 'layout': return 'var(--color-layout-50)';
 			default: return 'var(--color-base-100)';
@@ -146,6 +151,7 @@
 				if (node.children.length > 0) return 'var(--color-component-100)';
 				if (node.name === 'Docs') return 'var(--color-docs-100)';
 				return 'var(--color-example-100)';
+			case 'doc':
 			case 'page': return 'var(--color-page-100)';
 			case 'layout': return 'var(--color-layout-100)';
 			default: return 'var(--color-base-100)';
@@ -158,6 +164,7 @@
 				if (node.children.length > 0) return 'var(--color-component-150)';
 				if (node.name === 'Docs') return 'var(--color-docs-150)';
 				return 'var(--color-example-150)';
+			case 'doc':
 			case 'page': return 'var(--color-page-150)';
 			case 'layout': return 'var(--color-layout-150)';
 			default: return 'var(--color-base-150)';

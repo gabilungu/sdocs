@@ -1,4 +1,4 @@
-[PAGE title="@extension/Projects View"]
+[DOC title="@extension/Projects View"]
 
 
 	The mascot in the activity bar opens the sdocs Projects view: one card per
@@ -31,4 +31,4 @@
 
 	Server logs stream to the **sdocs** output channel.
 
-[/PAGE]
+[/DOC]

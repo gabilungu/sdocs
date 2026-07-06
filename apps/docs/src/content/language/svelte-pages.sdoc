@@ -1,0 +1,94 @@
+[DOC title="@language/Svelte Pages"]
+
+	# Svelte Pages
+
+	A `[PAGE]` block is a page you **build**, not prose you write: its body is
+	plain Svelte — components, HTML, snippets, expressions — rendered as a real
+	page of the docs app. No markdown, no table of contents, no stage tooling.
+	This site's landing page is a `[PAGE]`.
+
+	Pages render in the **docs context**: the app's CSS variables are available
+	and the project's `css` never loads. That's the difference from a
+	[`[LAYOUT]`](/language/layout-docs), which stages a full-page composition
+	*of your product* in the project context, with dev tools (show code, full
+	page) around it. A PAGE has no chrome — it *is* the page.
+
+	```sdoc
+	<script lang="ts">
+		import { CodeBlock } from 'sdocs/ui';
+		import Hero from './Hero.svelte';
+	</script>
+
+	[PAGE title="Welcome" contentX="center" maxWidth="880px"]
+
+		<Hero title="my-library" tagline="Small components, sharp edges." />
+
+		<CodeBlock code="npm install -D my-library" lang="bash" />
+
+	[/PAGE]
+	```
+
+	## Attributes
+
+	| Attribute | Required | Meaning |
+	|---|---|---|
+	| `title` | yes | Sidebar path when sectioned; the route name when sectionless |
+	| `maxWidth` | no | Width of the content container (default `1200px`; use `100%` for full-bleed) |
+	| `padding` | no | Space around the page content (default `32px`) |
+	| `contentX` | no | Places the container: `left`/`center`/`right` (default `left`) |
+	| `slug` | no | Overrides the URL segment (default: slugified title segment) |
+	| `hide` | no | A bare flag: routable, but never listed in a sidebar |
+
+	The body renders inside the same max-width container `[DOC]` pages use, so
+	a PAGE sits naturally next to prose pages. There is no automatic heading —
+	the `title` names the route and the sidebar entry; what renders is entirely
+	your markup.
+
+	## In a section, or at the site root
+
+	A PAGE with a `@section/` title behaves like any entity: it's listed in
+	that section's sidebar (opt out with `hide`) and routes under the section
+	slug.
+
+	A PAGE **without** a section prefix is special — it routes at the **site
+	root**: `title="Welcome"` serves at `/welcome`, `title="Pricing"` at
+	`/pricing`. Root pages appear in no sidebar and highlight no top-bar tab;
+	they're reached by links — or by being the home page:
+
+	```js
+	// sdocs.config.js
+	home: 'welcome'
+	```
+
+	Only PAGE entities may be sectionless; every other kind still needs a
+	section. A root page's route must not shadow a section slug or the
+	built-in `/about` — both are build errors.
+
+	## Highlighted code with CodeBlock
+
+	Markdown fences don't exist inside a PAGE, so sdocs ships a docs-context
+	component for showing code:
+
+	```svelte
+	<script lang="ts">
+		import { CodeBlock } from 'sdocs/ui';
+	</script>
+
+	<CodeBlock code={source} lang="sdoc" />
+	```
+
+	`lang` takes anything shiki bundles, plus `sdoc` itself; unknown names fall
+	back to plaintext. The grammar loads lazily in the browser, so pages stay
+	light. `sdocs/ui` resolves even in standalone projects where sdocs isn't
+	installed — the CLI provides its own copy.
+
+	## When to reach for a page
+
+	- **Page** — a designed screen of the docs site itself: the landing page,
+	  a pricing page, a custom index.
+	- **[Doc](/language/doc-pages)** — prose. If you're mostly writing
+	  paragraphs, markdown is faster and gives you a toc for free.
+	- **[Layout](/language/layout-docs)** — a full-page composition of *your
+	  product's* components, staged in the project context.
+
+[/DOC]

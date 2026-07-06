@@ -1,5 +1,6 @@
 import type { Plugin, ViteDevServer } from 'vite';
 import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 import { loadRawConfig, resolveAndFinalize } from './server/config.js';
 import { discoverDocFiles } from './server/discovery.js';
 import { parseComponent } from './server/prop-parser.js';
@@ -52,13 +53,13 @@ interface PlannedPreview {
 	htmlFileName: string;
 }
 
-/** Every iframe-served snippet of an entry, in order. A PAGE's content
+/** Every iframe-served snippet of an entry, in order. DOC and PAGE content
  * renders natively in the Explorer (via pageModules), never as an iframe. */
 function allSnippets(entry: DocEntry): ExtractedSnippet[] {
 	return [
 		...entry.previews.map((p) => p.snippet),
 		...entry.examples,
-		...(entry.content && entry.kind !== 'page' ? [entry.content] : []),
+		...(entry.content && entry.kind !== 'doc' && entry.kind !== 'page' ? [entry.content] : []),
 	];
 }
 
@@ -262,6 +263,10 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 			if (id.startsWith(IFRAME_PREFIX)) return '\0' + id;
 			if (id.startsWith(MOUNT_PREFIX)) return '\0' + id;
 			if (id.startsWith(PAGE_PREFIX)) return '\0' + id;
+			// `sdocs/ui` from doc-file scripts (e.g. CodeBlock in a [PAGE]) must
+			// resolve even in standalone projects where sdocs isn't installed —
+			// point it at this package's own copy.
+			if (id === 'sdocs/ui') return fileURLToPath(new URL('./ui/index.js', import.meta.url));
 		},
 
 		load(id) {
@@ -296,7 +301,7 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				);
 			}
 
-			// Virtual native content component for a PAGE entity
+			// Virtual native content component for a DOC or PAGE entity
 			if (id.startsWith('\0' + PAGE_PREFIX)) {
 				const parsed = parsePageId(id.slice(1));
 				if (!parsed) return null;
@@ -379,7 +384,14 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 			}));
 
 			const entry: DocEntry = {
-				kind: entity.kind === 'SHOWCASE' ? 'component' : entity.kind === 'PAGE' ? 'page' : 'layout',
+				kind:
+					entity.kind === 'SHOWCASE'
+						? 'component'
+						: entity.kind === 'DOC'
+							? 'doc'
+							: entity.kind === 'PAGE'
+								? 'page'
+								: 'layout',
 				filePath,
 				entitySlug: entity.slug,
 				meta: { title: entity.title },
@@ -391,7 +403,14 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 			};
 
 			// Sizing cascade: block attribute -> entity attribute -> config default.
-			const kindKey = entity.kind === 'SHOWCASE' ? 'showcase' : entity.kind === 'PAGE' ? 'page' : 'layout';
+			const kindKey =
+				entity.kind === 'SHOWCASE'
+					? 'showcase'
+					: entity.kind === 'DOC'
+						? 'doc'
+						: entity.kind === 'PAGE'
+							? 'page'
+							: 'layout';
 			const kindDefaults = config.content[kindKey];
 			const stageOf = (block?: {
 				maxWidth: string | null;
@@ -419,8 +438,8 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 					: {}),
 			});
 			entry.maxWidth = entity.sizing.maxWidth ?? kindDefaults.maxWidth;
-			if (entity.kind === 'PAGE') {
-				entry.showToc = entity.sizing.toc ?? config.content.page.toc;
+			if (entity.kind === 'DOC') {
+				entry.showToc = entity.sizing.toc ?? config.content.doc.toc;
 			}
 
 			if (entity.kind === 'SHOWCASE') {
@@ -461,8 +480,8 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				for (const example of entry.examples) {
 					example.highlightedHtml = await highlight(example.body);
 				}
-			} else if (entity.kind === 'PAGE') {
-				// The page body renders natively in the Explorer; only its
+			} else if (entity.kind === 'DOC') {
+				// The doc body renders natively in the Explorer; only its
 				// [example] blocks are staged in iframes (with the project css),
 				// cascading block attributes over the content.showcase stage defaults.
 				const rendered = await renderPageMarkdown(entity.body);
@@ -472,8 +491,8 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				snippets[0].body = applyBaseToHtml(rendered.html, base);
 				entry.content = snippets[0];
 				entry.toc = rendered.toc;
-				entry.padding = entity.sizing.padding ?? config.content.page.padding;
-				entry.contentX = entity.sizing.contentX ?? config.content.page.contentX;
+				entry.padding = entity.sizing.padding ?? config.content.doc.padding;
+				entry.contentX = entity.sizing.contentX ?? config.content.doc.contentX;
 				entry.bodyTitle = rendered.bodyTitle;
 				entry.contentKey = encodeEntityId(filePath, entity.slug);
 
@@ -493,6 +512,15 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				for (const example of entry.examples) {
 					example.highlightedHtml = await highlight(example.body);
 				}
+			} else if (entity.kind === 'PAGE') {
+				// The page body is plain Svelte rendered natively in the docs
+				// context — no stage, no iframe. Root-absolute src/href carry the
+				// build's base prefix, same as doc prose.
+				snippets[0].body = applyBaseToHtml(snippets[0].body, base);
+				entry.content = snippets[0];
+				entry.padding = entity.sizing.padding ?? config.content.page.padding;
+				entry.contentX = entity.sizing.contentX ?? config.content.page.contentX;
+				entry.contentKey = encodeEntityId(filePath, entity.slug);
 			} else {
 				snippets[0].stage = stageOf();
 				entry.content = snippets[0];
@@ -525,8 +553,12 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 			meta: e.meta,
 			previews: e.previews.map((p) => ({ ...p, snippet: withUrl(e, p.snippet) })),
 			examples: e.examples.map((s) => withUrl(e, s)),
-			// Page content renders natively (no iframe URL); see pageModules below.
-			content: e.content ? (e.kind === 'page' ? e.content : withUrl(e, e.content)) : null,
+			// Doc and page content renders natively (no iframe URL); see pageModules below.
+			content: e.content
+				? e.kind === 'doc' || e.kind === 'page'
+					? e.content
+					: withUrl(e, e.content)
+				: null,
 			toc: e.toc,
 			maxWidth: e.maxWidth,
 			padding: e.padding,
@@ -542,11 +574,11 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 			? Object.keys(config.css)
 			: [];
 
-		// Native page components, as static dynamic imports so every mode (dev,
-		// embedded build, CLI build) code-splits them through the module graph —
-		// shared Svelte runtime, component CSS handled by Vite's import helper.
+		// Native doc/page components, as static dynamic imports so every mode
+		// (dev, embedded build, CLI build) code-splits them through the module
+		// graph — shared Svelte runtime, component CSS via Vite's import helper.
 		const pageImports = Array.from(docEntries.values())
-			.filter((e) => e.kind === 'page')
+			.filter((e) => e.kind === 'doc' || e.kind === 'page')
 			.map(
 				(e) =>
 					`\t${JSON.stringify(encodeEntityId(e.filePath, e.entitySlug))}: () => import(${JSON.stringify(
@@ -578,7 +610,7 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 						server.moduleGraph.invalidateModule(iframeMod);
 					}
 				}
-				if (entry.kind === 'page') {
+				if (entry.kind === 'doc' || entry.kind === 'page') {
 					const pageMod = server.moduleGraph.getModuleById(
 						'\0' + pageVirtualId(docFilePath, entry.entitySlug),
 					);

@@ -1,4 +1,4 @@
-[PAGE title="@explorer/Features / Sidebar"]
+[DOC title="@explorer/Features / Sidebar"]
 
 
 	The sidebar organizes your docs into a navigable tree. Its structure comes from each doc's `title`, split on `/`.
@@ -55,11 +55,13 @@
 	Titles reference the section **slug** — the stable identity that also forms
 	the URL — so renaming a tab (`title`) never breaks doc files or links.
 	Referencing an undeclared section is a full-page error, as is an unprefixed
-	title when no `docs` section is declared. A project that declares no
-	sections keeps a single implicit `docs` section — the top bar always
+	title when no `docs` section is declared — with one exception: an
+	unprefixed [`[PAGE]`](/language/svelte-pages) routes at the site root
+	(a landing page) and belongs to no sidebar at all. A project that declares
+	no sections keeps a single implicit `docs` section — the top bar always
 	renders (brand, tabs, theme and fullscreen controls), just with one tab.
 
-	Sections make full documentation sites: a `guides` section of pure pages
+	Sections make full documentation sites: a `guides` section of pure docs
 	next to a `components` section of component docs, each with its own
 	sidebar.
 
@@ -106,4 +108,4 @@
 	- [Configuration reference](/explorer/configuration) — full `sidebar` option
 	- [Routing](/explorer/features/routing) — how sidebar selections map to URLs
 
-[/PAGE]
+[/DOC]

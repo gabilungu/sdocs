@@ -1,5 +1,5 @@
 /**
- * Formatting for [PAGE] bodies that contain [example] blocks: the prose
+ * Formatting for [DOC] bodies that contain [example] blocks: the prose
  * around the blocks formats as markdown, the example bodies format as Svelte
  * fragments, the tags and the blank lines separating them stay put.
  */
@@ -12,7 +12,7 @@ const OPTIONS = { tabSize: 4, insertSpaces: false };
 describe('formatting PAGE bodies with examples', () => {
 	it('formats example bodies as Svelte and prose as markdown', async () => {
 		const source = [
-			'[PAGE title="Colors"]',
+			'[DOC title="Colors"]',
 			'',
 			'\t#    Colors',
 			'',
@@ -24,7 +24,7 @@ describe('formatting PAGE bodies with examples', () => {
 			'',
 			'\tAfter.',
 			'',
-			'[/PAGE]',
+			'[/DOC]',
 			'',
 		].join('\n');
 
@@ -43,7 +43,7 @@ describe('formatting PAGE bodies with examples', () => {
 
 	it('leaves an already-formatted page with examples unchanged', async () => {
 		const source = [
-			'[PAGE title="P"]',
+			'[DOC title="P"]',
 			'',
 			'\tProse.',
 			'',
@@ -51,7 +51,7 @@ describe('formatting PAGE bodies with examples', () => {
 			'\t\t<b>x</b>',
 			'\t[/example]',
 			'',
-			'[/PAGE]',
+			'[/DOC]',
 			'',
 		].join('\n');
 		expect(await formatSdoc(source, OPTIONS)).toBeNull();
@@ -61,7 +61,7 @@ describe('formatting PAGE bodies with examples', () => {
 describe('tag indentation normalization', () => {
 	it('re-indents entity and sub-block tags to the structure', async () => {
 		const source = [
-			'  [PAGE title="P"]',
+			'  [DOC title="P"]',
 			'',
 			'\t\t\tProse.',
 			'',
@@ -69,27 +69,27 @@ describe('tag indentation normalization', () => {
 			'\t<b>x</b>',
 			'\t\t\t\t\t[/example]',
 			'',
-			'\t\t[/PAGE]',
+			'\t\t[/DOC]',
 			'',
 		].join('\n');
 		const result = await formatSdoc(source, OPTIONS);
 		expect(result).not.toBeNull();
 		const lines = result!.split('\n');
-		expect(lines).toContain('[PAGE title="P"]');
+		expect(lines).toContain('[DOC title="P"]');
 		expect(lines).toContain('\tProse.');
 		expect(lines).toContain('\t[example title="A"]');
 		expect(lines).toContain('\t\t<b>x</b>');
 		expect(lines).toContain('\t[/example]');
-		expect(lines).toContain('[/PAGE]');
+		expect(lines).toContain('[/DOC]');
 	});
 
 	it('leaves an unclosed block\'s lines alone', async () => {
-		// No [/PAGE]: the opener still normalizes, nothing else is guessed at.
-		const source = ['\t[PAGE title="P"]', '', '\tProse.', ''].join('\n');
+		// No [/DOC]: the opener still normalizes, nothing else is guessed at.
+		const source = ['\t[DOC title="P"]', '', '\tProse.', ''].join('\n');
 		const result = await formatSdoc(source, OPTIONS);
 		expect(result).not.toBeNull();
-		expect(result!.split('\n')[0]).toBe('[PAGE title="P"]');
-		expect(result).not.toContain('[/PAGE]');
+		expect(result!.split('\n')[0]).toBe('[DOC title="P"]');
+		expect(result).not.toContain('[/DOC]');
 	});
 });
 
@@ -115,7 +115,7 @@ describe('fences survive formatting (mangling regression)', () => {
 		expect(buttonLine).toBeLessThan(closeAfter);
 		// nothing ever joins block tags with other content
 		expect(lines.some((l) => l.includes('[/example]') && l !== '[/example]')).toBe(false);
-		expect(lines.some((l) => l.includes('[/PAGE]') && l !== '[/PAGE]')).toBe(false);
+		expect(lines.some((l) => l.includes('[/DOC]') && l !== '[/DOC]')).toBe(false);
 		// headings keep their own lines (the mangled output joined them)
 		expect(lines).toContain('## Separators');
 	});

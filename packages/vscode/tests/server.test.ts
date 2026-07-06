@@ -140,7 +140,7 @@ describe('sdoc language server over LSP', () => {
 	it('formats PAGE bodies as markdown, leaving expressions and tags alone', async () => {
 		const pageUri = 'file://' + resolve(DOCS, 'src/ui/__fmt-page.sdoc');
 		const page = [
-			'[PAGE title="T"]',
+			'[DOC title="T"]',
 			'',
 			'\t# Hello',
 			'',
@@ -149,7 +149,7 @@ describe('sdoc language server over LSP', () => {
 			'',
 			"\t{@render colorBox('#ff0000')}",
 			'',
-			'[/PAGE]',
+			'[/DOC]',
 			'',
 		].join('\n');
 		await client.openDoc(pageUri, page);
@@ -165,14 +165,14 @@ describe('sdoc language server over LSP', () => {
 		expect(formatted).toContain('\t# Hello');
 		// the island formats as a Svelte fragment (prettier's double quotes)
 		expect(formatted).toContain('{@render colorBox("#ff0000")}');
-		expect(formatted).toContain('[PAGE title="T"]');
-		expect(formatted).toContain('[/PAGE]');
+		expect(formatted).toContain('[DOC title="T"]');
+		expect(formatted).toContain('[/DOC]');
 	});
 
 	it('re-indents messy Svelte islands as Svelte fragments (multi-section PAGE)', async () => {
 		const pageUri = 'file://' + resolve(DOCS, 'src/ui/__fmt-islands.sdoc');
 		const page = [
-			'[PAGE title="Sections"]',
+			'[DOC title="Sections"]',
 			'',
 			'\t## One',
 			'',
@@ -190,7 +190,7 @@ describe('sdoc language server over LSP', () => {
 			"\t\t{@render colorBox('#ff0000')}",
 			'\t</div>',
 			'',
-			'[/PAGE]',
+			'[/DOC]',
 			'',
 		].join('\n');
 		await client.openDoc(pageUri, page);

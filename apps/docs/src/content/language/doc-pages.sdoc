@@ -1,11 +1,11 @@
-[PAGE title="@language/Page Docs"]
+[DOC title="@language/Doc Pages"]
 
 
-	A `[PAGE]` block is freeform prose — install guides, design tokens,
+	A `[DOC]` block is freeform prose — install guides, design tokens,
 	principles — anything that isn't documenting a single component. Its body is
 	**markdown**, rendered as a page with an auto-generated table of contents.
 
-	Pages are documentation, so the prose renders with the docs app's own
+	Docs are documentation, so the prose renders with the docs app's own
 	typography — the project's `css` never touches it. To showcase real
 	components or tokens *in the project's context*, drop an `[example]` block
 	anywhere in the flow: it renders in place on an isolated stage that loads
@@ -17,7 +17,7 @@
 		const version = '2.0';
 	</script>
 
-	[PAGE title="Docs / Getting Started"]
+	[DOC title="Docs / Getting Started"]
 
 		## Installation
 
@@ -41,7 +41,7 @@
 		| `sdocs dev` | dev server |
 		| `sdocs build` | static site |
 
-	[/PAGE]
+	[/DOC]
 	```
 
 	## Attributes
@@ -148,7 +148,7 @@
 	anywhere — before or after, in any section:
 
 	```sdoc
-	[PAGE title="Colors"]
+	[DOC title="Colors"]
 
 		{#snippet swatch(color: string)}
 			<div style="background: {color}; width: 100px; height: 100px;"></div>
@@ -167,7 +167,7 @@
 			{@render swatch('#3b82f6')}
 		</div>
 
-	[/PAGE]
+	[/DOC]
 	```
 
 	What a page does **not** have: controls and prop extraction. If you find
@@ -184,13 +184,15 @@
 	`#getting-started`. The page header shows the entity `title`; a top-level
 	`#` heading in the body is neither required nor listed.
 
-	## When to reach for a page
+	## When to reach for a doc
 
-	- **Page** — content that doesn't map to one component: guides, overviews,
+	- **Doc** — content that doesn't map to one component: guides, overviews,
 	  conventions.
 	- **[Component doc](/language/component-docs)** — one component, with
 	  controls and extracted API.
+	- **[Svelte page](/language/svelte-pages)** — a designed page built in
+	  plain Svelte: landing pages, custom routes.
 	- **[Layout](/language/layout-docs)** — components composed together on a
 	  full-page stage.
 
-[/PAGE]
+[/DOC]

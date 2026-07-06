@@ -5,6 +5,7 @@
 	import Sidebar from './views/Sidebar.svelte';
 	import TopBar from './views/TopBar.svelte';
 	import ComponentView from './views/ComponentView.svelte';
+	import DocView from './views/DocView.svelte';
 	import PageView from './views/PageView.svelte';
 	import LayoutView from './views/LayoutView.svelte';
 	import AboutPage from './views/AboutPage.svelte';
@@ -25,7 +26,7 @@
 		cssNames?: string[];
 		/** URL prefix for preview pages when the host app is served under a sub-path (e.g. SvelteKit's base). */
 		previewBase?: string;
-		/** Native page components from `virtual:sdocs`, keyed by contentKey. */
+		/** Native doc/page components from `virtual:sdocs`, keyed by contentKey. */
 		pageModules?: Record<string, () => Promise<{ default: unknown }>>;
 		/** The site's sections, in top-bar order (titles reference their slugs) */
 		sections?: SectionConfig[];
@@ -118,9 +119,18 @@
 				? sectionMap.sections[0]
 				: undefined,
 	);
-	// The section whose sidebar to show — falls back to the first when the
-	// route points nowhere (home, about, unknown), so there's always a tree.
-	const activeSection = $derived(routeSection ?? sectionMap.sections[0]);
+	// The section whose sidebar to show: the resolved target's own section
+	// when it has one (covers the home route rendering a section entity), the
+	// URL's section otherwise, and the first section as a fallback for About
+	// and unknown routes. A sectionless page has no section — no sidebar.
+	const isSectionlessPage = $derived(!!resolved && !resolved.section);
+	const activeSection = $derived(
+		resolved?.section
+			? sectionMap.sections.find((s) => s.slug === resolved.section)
+			: isSectionlessPage
+				? undefined
+				: (routeSection ?? sectionMap.sections[0]),
+	);
 
 	/** History mode: internal <a> clicks route client-side instead of reloading. */
 	function onLinkClick(e: MouseEvent) {
@@ -159,17 +169,19 @@
 		onThemeChange={(t) => (theme = t)}
 	/>
 	<div class="sdocs-body">
-		{#if !sidebarHidden}
-			<Sidebar tree={activeSection?.tree ?? []} {currentRoute} />
-		{:else}
+		{#if sidebarHidden}
 			<button class="sdocs-exit-fullscreen" onclick={() => (sidebarHidden = false)}>
 				&#9664; Exit fullscreen
 			</button>
+		{:else if activeSection}
+			<Sidebar tree={activeSection.tree} {currentRoute} />
 		{/if}
 		<main class="sdocs-main" class:sdocs-main-fullscreen={sidebarHidden}>
 			{#if resolved}
-				{#if resolved.doc.kind === 'page'}
-					<PageView doc={resolved.doc} {activeStylesheet} {pageModules} />
+				{#if resolved.doc.kind === 'doc'}
+					<DocView doc={resolved.doc} {activeStylesheet} {pageModules} />
+				{:else if resolved.doc.kind === 'page'}
+					<PageView doc={resolved.doc} {pageModules} />
 				{:else if resolved.doc.kind === 'layout'}
 					<LayoutView doc={resolved.doc} {activeStylesheet} />
 				{:else}

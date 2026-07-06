@@ -1,4 +1,4 @@
-[PAGE title="@explorer/Configuration"]
+[DOC title="@explorer/Configuration"]
 
 
 	sdocs reads its configuration from `sdocs.config.js` (or `.ts` / `.mjs`) in the project root. When used as a Vite plugin, options can also be passed directly to `sdocsPlugin()` — those override the config file.
@@ -187,7 +187,7 @@
 	Route path of the landing page — what the root URL and the logo show.
 
 	- **Type:** `string`
-	- **Default:** none — the root shows the [About page](/language/page-docs#about-page)
+	- **Default:** none — the root shows the [About page](/language/doc-pages#about-page)
 
 	```js
 	home: 'guides/introduction'
@@ -237,17 +237,20 @@
 	Content sizing per entity kind. Any CSS length works; `padding` takes CSS
 	shorthand.
 
-	- **Type:** `{ page?, showcase?, layout? }`, each `{ maxWidth?: string; padding?: string }`
+	- **Type:** `{ doc?, page?, showcase?, layout? }`, each `{ maxWidth?: string; padding?: string }`
 	- **Defaults:**
 
 	| kind | option | default | applies to |
 	|---|---|---|---|
-	| `page` | `maxWidth` | `1200px` | the page's content column |
-	| `page` | `padding` | `32px` | space around the page prose |
-	| `page` | `toc` | `true` | table-of-contents visibility |
-	| `page` | `contentX` | `left` | aligns the content column: `left`/`center`/`right` |
+	| `doc` | `maxWidth` | `1200px` | the doc's content column |
+	| `doc` | `padding` | `32px` | space around the doc prose |
+	| `doc` | `toc` | `true` | table-of-contents visibility |
+	| `doc` | `contentX` | `left` | aligns the content column: `left`/`center`/`right` |
+	| `page` | `maxWidth` | `1200px` | the page's content container |
+	| `page` | `padding` | `32px` | space around the page content |
+	| `page` | `contentX` | `left` | places the container: `left`/`center`/`right` |
 	| `showcase` | `maxWidth` | `1200px` | the showcase content column |
-	| `showcase` | `padding` | `16px` | preview & example stages (in `[SHOWCASE]` and `[PAGE]`) |
+	| `showcase` | `padding` | `16px` | preview & example stages (in `[SHOWCASE]` and `[DOC]`) |
 	| `showcase` | `direction` | `row` | stage `flex-direction` |
 	| `showcase` | `gap` | `16px` | stage `gap` |
 	| `showcase` | `contentX` | `left` | horizontal: `left`/`center`/`right`/`justify` |
@@ -255,7 +258,7 @@
 	| `layout` | `maxWidth` | `100%` | the full-page stage |
 	| `layout` | `padding` | `0px` | space inside the stage |
 
-	A page's `maxWidth` constrains the content column together with its table
+	A doc's `maxWidth` constrains the content column together with its table
 	of contents; hide the toc and the prose takes the full width. `contentX`
 	places that column inside the view.
 
@@ -268,13 +271,13 @@
 
 	```js
 	content: {
-	  page: { maxWidth: '900px', toc: false },
+	  doc: { maxWidth: '900px', toc: false },
 	  showcase: { padding: '24px', direction: 'column' },
 	}
 	```
 
 	Entities and blocks override these in place with the same attributes:
-	`[PAGE title="…" maxWidth="800px" toc="false"]`,
+	`[DOC title="…" maxWidth="800px" toc="false"]`,
 	`[preview component={X} direction="column" gap="8px"]` — block beats
 	entity beats config.
 
@@ -305,4 +308,4 @@
 	- [Theming](/explorer/features/theming) — named stylesheets and light/dark
 	- [Types](/explorer/types) — full `SdocsConfig` type
 
-[/PAGE]
+[/DOC]

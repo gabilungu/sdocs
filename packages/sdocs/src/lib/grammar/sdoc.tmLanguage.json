@@ -34,6 +34,9 @@
 			"include": "#docs"
 		},
 		{
+			"include": "#doc"
+		},
+		{
 			"include": "#page"
 		},
 		{
@@ -208,6 +211,55 @@
 				}
 			]
 		},
+		"doc": {
+			"name": "meta.block.doc.sdoc",
+			"begin": "^\\s*(\\[)(DOC)\\b(.*)$",
+			"beginCaptures": {
+				"1": {
+					"name": "punctuation.definition.tag.begin.sdoc"
+				},
+				"2": {
+					"name": "keyword.control.entity.sdoc"
+				},
+				"3": {
+					"patterns": [
+						{
+							"include": "#attributes"
+						}
+					]
+				}
+			},
+			"end": "^\\s*(\\[/)(DOC)(\\])\\s*$",
+			"endCaptures": {
+				"1": {
+					"name": "punctuation.definition.tag.begin.sdoc"
+				},
+				"2": {
+					"name": "keyword.control.entity.sdoc"
+				},
+				"3": {
+					"name": "punctuation.definition.tag.end.sdoc"
+				}
+			},
+			"patterns": [
+				{
+					"begin": "(^|\\G)",
+					"while": "(^|\\G)(?!\\s*\\[/DOC\\]\\s*$)(?:\\t|[ ]{1,4})?",
+					"contentName": "meta.embedded.block.markdown",
+					"patterns": [
+						{
+							"include": "#page-example"
+						},
+						{
+							"include": "#page-svelte-block"
+						},
+						{
+							"include": "text.html.markdown"
+						}
+					]
+				}
+			]
+		},
 		"page": {
 			"name": "meta.block.page.sdoc",
 			"begin": "^\\s*(\\[)(PAGE)\\b(.*)$",
@@ -241,17 +293,10 @@
 			"patterns": [
 				{
 					"begin": "(^|\\G)",
-					"while": "(^|\\G)(?!\\s*\\[/PAGE\\]\\s*$)(?:\\t|[ ]{1,4})?",
-					"contentName": "meta.embedded.block.markdown",
+					"while": "(^|\\G)(?!\\s*\\[/PAGE\\]\\s*$)",
 					"patterns": [
 						{
-							"include": "#page-example"
-						},
-						{
-							"include": "#page-svelte-block"
-						},
-						{
-							"include": "text.html.markdown"
+							"include": "source.svelte"
 						}
 					]
 				}

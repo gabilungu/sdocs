@@ -1,4 +1,4 @@
-[PAGE title="@explorer/Features / Theming"]
+[DOC title="@explorer/Features / Theming"]
 
 
 	sdocs has two independent theming systems:
@@ -64,4 +64,4 @@
 	- [Configuration reference](/explorer/configuration)
 	- [Sidebar](/explorer/features/sidebar) — where the theme toggle and stylesheet picker live
 
-[/PAGE]
+[/DOC]

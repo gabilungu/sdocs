@@ -1,5 +1,5 @@
 /**
- * [example] blocks inside [PAGE]: the scanner captures them as sub-blocks,
+ * [example] blocks inside [DOC]: the scanner captures them as sub-blocks,
  * the parser replaces them with `{@render __sdocsExample?.(i)}` markers and
  * extracts the example bodies, the snippet plan stages them as iframes while
  * the page content stays native, and the projection splits prose and example
@@ -21,7 +21,7 @@ const SOURCE = [
 	"\timport Button from './Button.svelte';",
 	'</script>',
 	'',
-	'[PAGE title="Colors"]',
+	'[DOC title="Colors"]',
 	'',
 	'\t# Colors',
 	'',
@@ -38,17 +38,17 @@ const SOURCE = [
 	'\t\t<Button label="Three" />',
 	'\t[/example]',
 	'',
-	'[/PAGE]',
+	'[/DOC]',
 	'',
 ].join('\n');
 
-describe('scanner: [example] inside [PAGE]', () => {
+describe('scanner: [example] inside [DOC]', () => {
 	const file = scanSdoc(SOURCE);
 
 	it('captures example sub-blocks with spans', () => {
 		expect(file.errors).toEqual([]);
 		const page = file.entities[0];
-		expect(page.kind).toBe('PAGE');
+		expect(page.kind).toBe('DOC');
 		expect(page.blocks.map((b) => b.kind)).toEqual(['example', 'example']);
 		expect(SOURCE.slice(page.blocks[0].span.start, page.blocks[0].span.end)).toMatch(
 			/^\[example title="Ramp"[\s\S]*\[\/example\]$/,
@@ -63,15 +63,15 @@ describe('scanner: [example] inside [PAGE]', () => {
 		expect(body).toContain('More prose.');
 	});
 
-	it('rejects [preview] inside [PAGE] with a pointed message', () => {
-		const bad = scanSdoc('[PAGE title="P"]\n\t[preview component={X}]\n\t\t<X />\n\t[/preview]\n[/PAGE]\n');
+	it('rejects [preview] inside [DOC] with a pointed message', () => {
+		const bad = scanSdoc('[DOC title="P"]\n\t[preview component={X}]\n\t\t<X />\n\t[/preview]\n[/DOC]\n');
 		expect(bad.errors.map((e) => e.code)).toContain('unknown-tag');
 		expect(bad.errors[0].message).toContain('[example]');
 	});
 
 	it('leaves block syntax inside markdown fences as prose', () => {
 		const fenced = scanSdoc(
-			'[PAGE title="P"]\n\t```\n\t[example title="not real"]\n\t[preview]\n\t```\n[/PAGE]\n',
+			'[DOC title="P"]\n\t```\n\t[example title="not real"]\n\t[preview]\n\t```\n[/DOC]\n',
 		);
 		expect(fenced.errors).toEqual([]);
 		expect(fenced.entities[0].blocks).toEqual([]);
@@ -84,11 +84,11 @@ describe('parser: markers and extracted examples', () => {
 
 	it('parses clean and typed', () => {
 		expect(doc.diagnostics).toEqual([]);
-		expect(page.kind).toBe('PAGE');
+		expect(page.kind).toBe('DOC');
 	});
 
 	it('replaces each example with an indexed render marker', () => {
-		if (page.kind !== 'PAGE') throw new Error('not a page');
+		if (page.kind !== 'DOC') throw new Error('not a page');
 		expect(page.body).toContain('{@render __sdocsExample?.(0)}');
 		expect(page.body).toContain('{@render __sdocsExample?.(1)}');
 		expect(page.body).not.toContain('[example');
@@ -98,7 +98,7 @@ describe('parser: markers and extracted examples', () => {
 	});
 
 	it('extracts the example bodies with sizing', () => {
-		if (page.kind !== 'PAGE') throw new Error('not a page');
+		if (page.kind !== 'DOC') throw new Error('not a page');
 		expect(page.examples.map((e) => e.title)).toEqual(['Ramp', 'Solo']);
 		expect(page.examples[0].body).toBe('<Button label="One" />\n<Button label="Two" />');
 		expect(page.examples[0].sizing).toMatchObject({ direction: 'row', gap: '8px' });
@@ -106,14 +106,14 @@ describe('parser: markers and extracted examples', () => {
 
 	it('flags duplicate example titles within a page', () => {
 		const dup = parseSdoc(
-			'[PAGE title="P"]\n\t[example title="A"]\n\t\t<b>x</b>\n\t[/example]\n\t[example title="A"]\n\t\t<b>y</b>\n\t[/example]\n[/PAGE]\n',
+			'[DOC title="P"]\n\t[example title="A"]\n\t\t<b>x</b>\n\t[/example]\n\t[example title="A"]\n\t\t<b>y</b>\n\t[/example]\n[/DOC]\n',
 		);
 		expect(dup.diagnostics.map((d) => d.code)).toContain('duplicate-example-title');
-		expect(dup.diagnostics[0].message).toContain('[PAGE]');
+		expect(dup.diagnostics[0].message).toContain('[DOC]');
 	});
 
 	it('requires a title on page examples', () => {
-		const bare = parseSdoc('[PAGE title="P"]\n\t[example]\n\t\t<b>x</b>\n\t[/example]\n[/PAGE]\n');
+		const bare = parseSdoc('[DOC title="P"]\n\t[example]\n\t\t<b>x</b>\n\t[/example]\n[/DOC]\n');
 		expect(bare.diagnostics.map((d) => d.code)).toContain('missing-attr');
 	});
 });

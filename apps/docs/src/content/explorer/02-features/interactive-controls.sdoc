@@ -1,4 +1,4 @@
-[PAGE title="@explorer/Features / Interactive Controls"]
+[DOC title="@explorer/Features / Interactive Controls"]
 
 
 	The `Default` snippet of a component doc gets a live controls panel. Each control is chosen automatically based on the prop's TypeScript type.
@@ -104,4 +104,4 @@
 	- [Prop extraction](/explorer/features/prop-extraction) — how sdocs parses your component
 	- [Writing component docs](/language/component-docs) — the `Default` snippet and `args`
 
-[/PAGE]
+[/DOC]

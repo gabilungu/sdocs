@@ -100,14 +100,14 @@ A `.sdoc` file is `<script>` at the top, entity blocks in the middle, and an
 optional `<style>` at the bottom. Every entity is its own sidebar entry, so
 one file can hold several.
 
-### Component docs — `[DOCS]`
+### Component docs — `[SHOWCASE]`
 
 ```sdoc
 <script lang="ts">
 	import Button from './Button.svelte';
 </script>
 
-[DOCS title="Components / Button" description="A flexible button component."]
+[SHOWCASE title="Components / Button" description="A flexible button component."]
 
 	[preview component={Button} args={{ label: 'Click me', disabled: false }}]
 		<Button {...args} />
@@ -117,30 +117,50 @@ one file can hold several.
 		<Button><Icon name="settings" /> Settings</Button>
 	[/example]
 
-[/DOCS]
+[/SHOWCASE]
 ```
 
 - **`[preview]`** — a live showcase with interactive controls.
   `component={X}` names the previewed component (its props, events,
   snippets, methods, state, and CSS custom properties are extracted
-  automatically) and `args` sets the control defaults. A `[DOCS]` block can
+  automatically) and `args` sets the control defaults. A `[SHOWCASE]` block can
   hold several previews — they render as tabs, each fully live.
 - **`[example]`** — frozen showcases rendered exactly as written, shown
   below the preview area. Each needs a unique `title`.
 - **`title`** — slash-separated path for sidebar navigation.
 
-### Pages — `[PAGE]`
+### Doc pages — `[DOC]`
 
 Freeform markdown content with `{expression}` interpolation and Svelte
 component islands; code fences are inert. The table of contents is generated
 from the headings.
 
 ```sdoc
-[PAGE title="Docs / Getting Started"]
+[DOC title="Docs / Getting Started"]
 
 	## Installation
 
 	Run `npm install sdocs` and create your first doc file.
+
+[/DOC]
+```
+
+### Svelte pages — `[PAGE]`
+
+A page built in plain Svelte, rendered in the docs app's own context — for
+landing pages and custom routes. A `[PAGE]` without a `@section/` title
+prefix routes at the site root and belongs to no sidebar; point the config's
+`home` at it for a landing page.
+
+```sdoc
+<script lang="ts">
+	import { CodeBlock } from 'sdocs/ui';
+</script>
+
+[PAGE title="Welcome" contentX="center" maxWidth="880px"]
+
+	<h1>my-library</h1>
+	<CodeBlock code="npm install -D my-library" lang="bash" />
 
 [/PAGE]
 ```
@@ -168,7 +188,7 @@ Full-page component compositions rendered on an isolated stage.
 ```
 
 The full language reference lives at
-[gabilungu.github.io/sdocs/language](https://gabilungu.github.io/sdocs/language).
+[gabilungu.github.io/sdocs/language/overview](https://gabilungu.github.io/sdocs/language/overview).
 
 ## Prop Extraction
 

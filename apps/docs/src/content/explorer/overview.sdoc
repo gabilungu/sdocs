@@ -1,4 +1,4 @@
-[PAGE title="@explorer/Overview"]
+[DOC title="@explorer/Overview"]
 
 	# The Explorer
 
@@ -34,4 +34,4 @@
 	- [CLI](/cli) — run, build, and scaffold from the command line
 	- [VS Code extension](/extension) — `.sdoc` IntelliSense and one-click docs inside the editor
 
-[/PAGE]
+[/DOC]

@@ -13,7 +13,7 @@
 	let { docs, title, logo = 'sdocs', sdocsVersion }: Props = $props();
 
 	const componentCount = $derived(docs.filter((d) => d.kind === 'component').length);
-	const pageCount = $derived(docs.filter((d) => d.kind === 'page').length);
+	const pageCount = $derived(docs.filter((d) => d.kind === 'doc' || d.kind === 'page').length);
 	const layoutCount = $derived(docs.filter((d) => d.kind === 'layout').length);
 </script>
 

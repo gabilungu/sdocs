@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.49] - 2026-07-06
+
+### Changed
+
+- **The `[PAGE]` split lands in the editor.** The markdown-prose entity is
+  now `[DOC]`; `[PAGE]` is a plain-Svelte page in the docs context. The
+  grammar highlights DOC bodies as markdown and PAGE bodies as Svelte;
+  formatting routes the same way (DOC prose through the markdown formatter,
+  PAGE bodies as Svelte fragments); block completions offer both entities
+  and their attribute sets; tag hovers describe the new semantics.
+- **Sectionless pages lint clean.** The section-prefix check skips `[PAGE]`
+  entities — a PAGE without `@section/` legitimately routes at the site
+  root.
+
 ## [0.0.48] - 2026-07-06
 
 ### Added

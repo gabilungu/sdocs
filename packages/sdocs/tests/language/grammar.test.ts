@@ -46,11 +46,11 @@ const MULTI_BLOCK = `<script lang="ts">
 
 [/SHOWCASE]
 
-[PAGE title="Guide"]
+[DOC title="Guide"]
 
 	## Heading with {expression}
 
-[/PAGE]
+[/DOC]
 
 <style>
 	.x { color: red; }
@@ -75,9 +75,9 @@ function assertSdocScopes(tokens: Tokens, source: string) {
 		['second [preview', colorOf(tokens, lines, '[preview', lines.findIndex((l) => l.includes('[/preview]')))],
 		['[example opener', colorOf(tokens, lines, '[example')],
 		['[/SHOWCASE] closer', colorOf(tokens, lines, '[/SHOWCASE]')],
-		['[PAGE after SHOWCASE', colorOf(tokens, lines, '[PAGE', firstDocs + 1)],
+		['[DOC after SHOWCASE', colorOf(tokens, lines, '[DOC', firstDocs + 1)],
 		['markdown heading in PAGE body', colorOf(tokens, lines, '## Heading')],
-		['[/PAGE] closer', colorOf(tokens, lines, '[/PAGE]')],
+		['[/DOC] closer', colorOf(tokens, lines, '[/DOC]')],
 	];
 	for (const [label, color] of checks) {
 		expect(color, label).not.toBe('MISSING');

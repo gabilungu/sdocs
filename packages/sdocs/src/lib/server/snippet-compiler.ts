@@ -70,9 +70,12 @@ export function resolveImportsToAbsolute(
  */
 export function resolveScriptImports(script: string, docFilePath: string): string {
 	const docDir = dirname(docFilePath);
+	// Anchored to line-starting import statements (spanning multi-line named
+	// imports up to the first `;`), so an import-shaped substring inside a
+	// string literal — a code sample, say — is never rewritten.
 	return script.replace(
-		/(\bfrom\s+|\bimport\s+)(['"])(\.\.?\/[^'"]*)\2/g,
-		(_m, keyword, quote, spec) => `${keyword}${quote}${resolve(docDir, spec)}${quote}`,
+		/^([ \t]*import\b(?:[^;'"]|(['"])(?:(?!\2)[^\\]|\\.)*\2)*?\bfrom\s+|[ \t]*import\s+)(['"])(\.\.?\/[^'"]*)\3/gm,
+		(_m, keyword, _q, quote, spec) => `${keyword}${quote}${resolve(docDir, spec)}${quote}`,
 	);
 }
 
@@ -235,10 +238,11 @@ ${stateBroadcast}
 }
 
 /**
- * Generate the Svelte component for a [PAGE] body, rendered natively inside
- * the Explorer (sdocs styling — the project's css never loads here). Prose
- * arrives as rendered markdown, islands verbatim; `{@render __sdocsExample?.(i)}`
- * markers render the example stages the Explorer passes in as a snippet prop.
+ * Generate the Svelte component for a [DOC] or [PAGE] body, rendered natively
+ * inside the Explorer (sdocs styling — the project's css never loads here).
+ * DOC prose arrives as rendered markdown with islands verbatim, and
+ * `{@render __sdocsExample?.(i)}` markers render the example stages the
+ * Explorer passes in as a snippet prop; a PAGE body is plain Svelte.
  */
 export function generatePageComponent(scriptPrelude: string, renderedBody: string): string {
 	const importBlock = scriptPrelude.trim() ? scriptPrelude.trim() + '\n' : '';
@@ -368,7 +372,7 @@ export function buildPreviewUrl(docFilePath: string, entitySlug: string, snippet
 	return `/previews/${encodeEntityId(docFilePath, entitySlug)}/${snippetSlug}.html`;
 }
 
-/** Virtual module ID for a PAGE entity's native content component */
+/** Virtual module ID for a DOC/PAGE entity's native content component */
 export function pageVirtualId(docFilePath: string, entitySlug: string): string {
 	return `/@sdocs/page/${encodeEntityId(docFilePath, entitySlug)}.svelte`;
 }

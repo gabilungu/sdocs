@@ -1,4 +1,4 @@
-[PAGE title="@explorer/Getting Started"]
+[DOC title="@explorer/Getting Started"]
 
 
 	sdocs is a documentation tool for Svelte 5 components. This page walks you through install, a first `.sdoc` file, and running the dev server.
@@ -89,8 +89,8 @@
 
 	## Next steps
 
-	- [Write page docs](/language/page-docs) for freeform content with auto-generated table of contents
+	- [Write doc pages](/language/doc-pages) for freeform content with auto-generated table of contents
 	- [Write layout docs](/language/layout-docs) for component compositions
 	- [Explore interactive controls](/explorer/features/interactive-controls) to see what prop types get auto-generated UI
 
-[/PAGE]
+[/DOC]

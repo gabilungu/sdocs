@@ -43,6 +43,25 @@ describe('script prelude (shared values)', () => {
 		expect(resolved).toContain("import Button from '/proj/src/Button.svelte'");
 		expect(resolved).toContain("import '/proj/src/styles.css'");
 	});
+
+	it('resolves multi-line named imports', () => {
+		const script = "import {\n\tA,\n\tB,\n} from './pair.js';";
+		const resolved = resolveScriptImports(script, '/proj/src/Widget.sdoc');
+		expect(resolved).toContain("from '/proj/src/pair.js'");
+	});
+
+	it('never rewrites import-shaped text inside string literals (code samples)', () => {
+		const script = [
+			"import Real from './Real.svelte';",
+			'const sample = [',
+			'\t\'<script lang="ts">\',',
+			`\t"\\timport Button from './Button.svelte';",`,
+			"].join('\\n');",
+		].join('\n');
+		const resolved = resolveScriptImports(script, '/proj/src/Widget.sdoc');
+		expect(resolved).toContain("import Real from '/proj/src/Real.svelte'");
+		expect(resolved).toContain("import Button from './Button.svelte'");
+	});
 });
 
 describe('stage sizing', () => {

@@ -23,19 +23,32 @@ const TAG_SHOWCASE: Record<string, string> = {
 		'',
 		`[Component docs reference](${SITE}/language/component-docs)`,
 	].join('\n'),
-	PAGE: [
-		'**`[PAGE]`** — standalone page',
+	DOC: [
+		'**`[DOC]`** — markdown documentation page',
 		'',
 		'Markdown prose rendered with the docs app\'s own styling, with Svelte islands: component tags, HTML sections, and `{#snippet}` blocks pass to Svelte untouched; `{expressions}` interpolate values from the file `<script>`. `[example]` blocks stage code in the project context — they are the only place the configured `css` loads.',
 		'',
 		'- `title` *(required)* — sidebar path, `/`-separated; a leading `:` groups, a leading `@slug/` picks the section.',
 		'- `maxWidth` — width of the content column, toc included (default `1200px`).',
-		'- `padding` — space around the page content (default `32px`).',
+		'- `padding` — space around the doc content (default `32px`).',
 		'- `contentX` — aligns the content column: `left`/`center`/`right`.',
 		'- `toc` — `toc="false"` hides the table of contents.',
 		'- `slug` — overrides the URL segment; `hide` — routable but not listed in the sidebar.',
 		'',
-		`[Page docs reference](${SITE}/language/page-docs)`,
+		`[Doc pages reference](${SITE}/language/doc-pages)`,
+	].join('\n'),
+	PAGE: [
+		'**`[PAGE]`** — Svelte page in the docs app',
+		'',
+		'A plain Svelte body rendered as a real page — docs-context CSS, no stage tooling, no table of contents. Inside a max-width container like a `[DOC]`. With a `@section/` title it joins that section\'s sidebar; without one it routes at the site root (a landing page, `/pricing`, …) with no sidebar at all.',
+		'',
+		'- `title` *(required)* — sidebar path when sectioned; the route name when sectionless.',
+		'- `maxWidth` — width of the content container (default `1200px`; `100%` for full-bleed).',
+		'- `padding` — space around the page content (default `32px`).',
+		'- `contentX` — places the container: `left`/`center`/`right`.',
+		'- `slug` — overrides the URL segment; `hide` — routable but not listed in the sidebar.',
+		'',
+		`[Svelte pages reference](${SITE}/language/svelte-pages)`,
 	].join('\n'),
 	LAYOUT: [
 		'**`[LAYOUT]`** — full-page composition',
@@ -65,7 +78,7 @@ const TAG_SHOWCASE: Record<string, string> = {
 	example: [
 		'**`[example]`** — frozen example',
 		'',
-		'A Svelte snippet rendered live on an isolated stage with the project\'s css, without controls. In `[SHOWCASE]` it renders below the previews; in `[PAGE]` it renders in place, mid-prose — the way to showcase real components inside a documentation page.',
+		'A Svelte snippet rendered live on an isolated stage with the project\'s css, without controls. In `[SHOWCASE]` it renders below the previews; in `[DOC]` it renders in place, mid-prose — the way to showcase real components inside a documentation page.',
 		'',
 		'- `title` *(required)* — the example heading (and, in `[SHOWCASE]`, its sidebar sub-entry).',
 		'- `maxWidth` / `padding` / `direction` / `gap` — stage size & flow.',
@@ -78,7 +91,7 @@ const TAG_SHOWCASE: Record<string, string> = {
 /** Hover for the sdoc tag token at `position`, if the position is on one. */
 export function sdocTagHover(source: string, position: Position): Hover | null {
 	const line = source.split('\n')[position.line] ?? '';
-	const re = /\[\/?(SHOWCASE|PAGE|LAYOUT|preview|example)\b\]?/g;
+	const re = /\[\/?(SHOWCASE|DOC|PAGE|LAYOUT|preview|example)\b\]?/g;
 	for (let m = re.exec(line); m; m = re.exec(line)) {
 		const start = m.index;
 		const end = m.index + m[0].length;

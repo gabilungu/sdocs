@@ -1,4 +1,4 @@
-[PAGE title="@explorer/Embedded in Vite & SvelteKit" slug="embedded-vite"]
+[DOC title="@explorer/Embedded in Vite & SvelteKit" slug="embedded-vite"]
 
 
 	Mount sdocs inside your existing Vite or SvelteKit app as a route, rather than running a separate server.
@@ -120,4 +120,4 @@
 	- [Configuration reference](/explorer/configuration) — full list of plugin options
 	- [Standalone CLI](/cli/commands) — if you don't need to embed
 
-[/PAGE]
+[/DOC]

@@ -1,4 +1,4 @@
-[PAGE title="@language/Component Docs"]
+[DOC title="@language/Component Docs"]
 
 
 	A `[SHOWCASE]` block documents components: live previews wired to interactive
@@ -111,7 +111,7 @@
 
 	Examples belong to the page, not to a tab: they render below the preview
 	area and stay visible whichever tab is active. The same block also works
-	inside a [`[PAGE]`](/language/page-docs) — there it renders in place,
+	inside a [`[DOC]`](/language/doc-pages) — there it renders in place,
 	mid-prose.
 
 	An example may carry its own `<script>` for local state, layered on top of
@@ -133,4 +133,4 @@
 	public API — props, events, snippets, methods, states, and CSS custom
 	properties. See [prop extraction](/explorer/features/prop-extraction).
 
-[/PAGE]
+[/DOC]

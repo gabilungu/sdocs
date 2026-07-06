@@ -1,4 +1,4 @@
-[PAGE title="@cli/Commands"]
+[DOC title="@cli/Commands"]
 
 
 	Full reference for every sdocs command and flag.
@@ -94,4 +94,4 @@
 	- [Embedded in Vite / SvelteKit](/explorer/embedded-vite) — run sdocs inside an existing app
 	- [Configuration reference](/explorer/configuration)
 
-[/PAGE]
+[/DOC]

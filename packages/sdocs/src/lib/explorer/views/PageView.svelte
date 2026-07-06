@@ -66,9 +66,13 @@
 				}
 				scroller = scroller.parentElement;
 			}
+			// A page too short to scroll is "at the top", not "at the bottom" —
+			// the walk above only yields a scroller that actually overflows.
 			const atBottom = scroller
 				? scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 2
-				: window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
+				: document.documentElement.scrollHeight >
+						document.documentElement.clientHeight + 1 &&
+					window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
 			if (atBottom) {
 				activeId = ids[ids.length - 1];
 				return;

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.62] - 2026-07-06
+
+### Fixed
+
+- **Short pages no longer highlight the last TOC entry.** The scrollspy's
+  bottom-of-scroll snap only applies when the page actually scrolls; a page
+  that fits the viewport highlights its first section.
+
 ## [0.0.61] - 2026-07-06
 
 ### Added

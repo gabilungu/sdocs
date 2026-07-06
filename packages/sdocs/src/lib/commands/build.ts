@@ -45,9 +45,15 @@ export async function buildCommand(opts?: { base?: string }): Promise<void> {
 			// The site's public base path (config `base`, normalized) — asset
 			// URLs and the history-route prefix. '/' for a root deploy.
 			base: config.base,
+			// Don't minify CSS. Vite 8's default minifier is lightningcss, a
+			// strict parser that rejects custom-property names browsers accept
+			// (e.g. `--bg+100`) — and the project's stylesheet is ours to serve,
+			// not to validate. ('esbuild' isn't an option: rolldown-vite doesn't
+			// bundle it.) JS is still minified; the CSS gain isn't worth the risk.
 			build: {
 				outDir: resolve(cwd, 'dist'),
 				emptyOutDir: true,
+				cssMinify: false,
 				rollupOptions: {
 					input: inputs,
 				},

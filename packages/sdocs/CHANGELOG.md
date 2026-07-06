@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.65] - 2026-07-06
+
+### Fixed
+
+- **`sdocs build` no longer minifies the project's CSS.** Vite 8's default
+  minifier (lightningcss) is a strict parser that rejects custom-property
+  names browsers accept (e.g. `--bg+100`), so a project whose stylesheet
+  used them failed to build. The project's CSS is served verbatim now; JS is
+  still minified.
+
 ## [0.0.64] - 2026-07-06
 
 ### Added

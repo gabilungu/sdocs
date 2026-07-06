@@ -32,8 +32,9 @@ identity (`gabilungu.sdocs`); build it with `npm run vscode:build`.
 
 ## Documentation site
 
-The documentation site is built with sdocs itself: every page in [apps/docs/src/content](apps/docs/src/content)
-is a `[DOC]` entity, the top-bar sections come from [apps/docs/sdocs.config.js](apps/docs/sdocs.config.js),
+The documentation site is built with sdocs itself: every guide in [apps/docs/src/docs](apps/docs/src/docs)
+is a `[DOC]` entity, the landing page in [apps/docs/src/pages](apps/docs/src/pages) is a `[PAGE]`,
+the top-bar sections come from [apps/docs/sdocs.config.js](apps/docs/sdocs.config.js),
 and the Demo section showcases the site's own components ([apps/docs/src/ui](apps/docs/src/ui)) as
 live `[SHOWCASE]` docs.
 

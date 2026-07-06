@@ -1,4 +1,5 @@
 import { createHighlighter, type Highlighter } from 'shiki';
+import sdocGrammar from '../grammar/sdoc.tmLanguage.json' with { type: 'json' };
 
 let highlighterPromise: Promise<Highlighter> | null = null;
 
@@ -10,6 +11,9 @@ async function getHighlighter(): Promise<Highlighter> {
 			langs: [
 				'svelte', 'typescript', 'javascript', 'css', 'html',
 				'bash', 'json', 'markdown', 'yaml', 'diff',
+				// The tool's own language: ```sdoc fences highlight with the
+				// shipped grammar (it embeds the svelte/ts/css scopes above).
+				{ ...sdocGrammar, name: 'sdoc' } as never,
 			],
 		});
 	}

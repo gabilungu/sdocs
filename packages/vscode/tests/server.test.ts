@@ -8,9 +8,9 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { startClient, type LspClient, SERVER, SITE } from './helpers/lsp';
+import { startClient, type LspClient, SERVER, DOCS } from './helpers/lsp';
 
-const NOTICE = resolve(SITE, 'src/lib/ui/Notice.sdoc');
+const NOTICE = resolve(DOCS, 'src/ui/Notice.sdoc');
 const uri = 'file://' + NOTICE;
 const source = readFileSync(NOTICE, 'utf-8');
 const lines = source.split('\n');
@@ -18,7 +18,7 @@ const lines = source.split('\n');
 let client: LspClient;
 
 beforeAll(async () => {
-	client = await startClient(SERVER, 'stdio', SITE);
+	client = await startClient(SERVER, 'stdio', DOCS);
 	await client.openDoc(uri, source);
 });
 
@@ -138,7 +138,7 @@ describe('sdoc language server over LSP', () => {
 	});
 
 	it('formats PAGE bodies as markdown, leaving expressions and tags alone', async () => {
-		const pageUri = 'file://' + resolve(SITE, 'src/lib/ui/__fmt-page.sdoc');
+		const pageUri = 'file://' + resolve(DOCS, 'src/ui/__fmt-page.sdoc');
 		const page = [
 			'[PAGE title="T"]',
 			'',
@@ -170,7 +170,7 @@ describe('sdoc language server over LSP', () => {
 	});
 
 	it('re-indents messy Svelte islands as Svelte fragments (multi-section PAGE)', async () => {
-		const pageUri = 'file://' + resolve(SITE, 'src/lib/ui/__fmt-islands.sdoc');
+		const pageUri = 'file://' + resolve(DOCS, 'src/ui/__fmt-islands.sdoc');
 		const page = [
 			'[PAGE title="Sections"]',
 			'',

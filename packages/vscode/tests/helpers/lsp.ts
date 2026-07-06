@@ -14,7 +14,7 @@ import {
 
 export const SERVER = resolve(__dirname, '../../dist/server.js');
 export const REPO = resolve(__dirname, '../../../..');
-export const SITE = resolve(REPO, 'apps/site');
+export const DOCS = resolve(REPO, 'apps/docs');
 
 export interface LspClient {
 	connection: ProtocolConnection;

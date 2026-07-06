@@ -1,0 +1,196 @@
+[PAGE title="@language/Page Docs"]
+
+
+	A `[PAGE]` block is freeform prose — install guides, design tokens,
+	principles — anything that isn't documenting a single component. Its body is
+	**markdown**, rendered as a page with an auto-generated table of contents.
+
+	Pages are documentation, so the prose renders with the docs app's own
+	typography — the project's `css` never touches it. To showcase real
+	components or tokens *in the project's context*, drop an `[example]` block
+	anywhere in the flow: it renders in place on an isolated stage that loads
+	the configured `css`, exactly like an example in a `[SHOWCASE]` entity.
+
+	```sdoc
+	<script lang="ts">
+		import Button from './Button.svelte';
+		const version = '2.0';
+	</script>
+
+	[PAGE title="Docs / Getting Started"]
+
+		## Installation
+
+		Install sdocs (currently {version}) and create your first doc file:
+
+		```bash
+		npm install -D sdocs
+		```
+
+		## Buttons in context
+
+		Components render on a stage, in your project's own css:
+
+		[example title="Buttons" direction="row" gap="8px"]
+			<Button label="Save" />
+			<Button label="Delete" intent="danger" />
+		[/example]
+
+		| Command | Does |
+		|---|---|
+		| `sdocs dev` | dev server |
+		| `sdocs build` | static site |
+
+	[/PAGE]
+	```
+
+	## Attributes
+
+	| Attribute | Required | Meaning |
+	|---|---|---|
+	| `title` | yes | Sidebar path, `/`-separated like every entity |
+	| `maxWidth` | no | Width of the content column, toc included (default from config, `1200px`) |
+	| `padding` | no | Space around the page content (default `32px`) |
+	| `contentX` | no | Aligns the content column: `left`/`center`/`right` (default `left`) |
+	| `toc` | no | `toc="false"` hides the table of contents (default `true`) |
+	| `slug` | no | Overrides the URL segment (default: slugified title segment) |
+	| `hide` | no | A bare flag: routable, but never listed in a sidebar |
+
+	The `maxWidth` box holds the prose *and* the table of contents; when the toc
+	is hidden (or the page has no headings), the prose takes its space. A body
+	that opens with a `#` heading uses it as the page's displayed title — the
+	`title` attribute then only names the sidebar entry.
+
+	## Home page
+
+	The landing page is picked in the config, by route path:
+
+	```js
+	// sdocs.config.js
+	home: 'guides/introduction'
+	```
+
+	That entity renders at the root route and is what the logo/title links to
+	— any entity kind works. It stays listed in its section's sidebar; add the
+	`hide` flag to its opener to make the logo its only link. A `home` path
+	that resolves nowhere is an error. When no `home` is set, the root shows
+	the built-in [About page](#about-page) instead.
+
+	## About page
+
+	Every site has an **About** page at `/about`: the project logo, the counts
+	of components, pages, and layouts, and the sdocs version that built the
+	site. It's the default landing page whenever the config sets no `home`, and
+	it stays reachable at `/about` either way.
+
+	## Examples in pages
+
+	An `[example]` inside a page works like an
+	\[example in a component doc](/language/component-docs): a frozen Svelte
+	snippet rendered live, with a collapsed code panel under it. It is the only
+	part of a page where the configured `css` loads, which makes the boundary
+	easy to reason about: **prose is docs-styled, stages are project-styled**.
+
+	| Attribute | Required | Meaning |
+	|---|---|---|
+	| `title` | yes | The example heading |
+	| `maxWidth` / `padding` | no | Stage size (defaults from `content.showcase`) |
+	| `direction` / `gap` | no | Stage flex flow (defaults from `content.showcase`) |
+	| `contentX` / `contentY` | no | Stage alignment (defaults from `content.showcase`) |
+
+	Each example is self-contained: it sees the file `<script>` (imports and
+	shared values), but not snippets declared in the prose — the two compile
+	into different worlds.
+
+	## The markdown dialect
+
+	The body is markdown first, with two Svelte conveniences:
+
+	- **`{expression}` interpolation** — values from the file's `<script>` drop
+	  into the prose: `currently {version}`. The inside of a balanced `{…}` is
+	  passed to Svelte verbatim, so string literals and operators are fine:
+	  `{format("0.0.1")}`.
+	- **Svelte islands** — markup blocks that pass to Svelte untouched. A line
+	  that starts with a component or HTML tag (`<Button`, `<div`) or a Svelte
+	  block (`{#snippet`, `{@render`), sitting after a blank line, begins an
+	  island; the island runs until its tags and blocks are balanced — blank
+	  lines inside are fine. Markdown never reformats or splits an island.
+
+	Islands run in the **docs context** — they're for structuring the page
+	itself (custom layouts around prose, repeated markup via snippets). Anything
+	that should look like your product belongs in an `[example]`.
+
+	Everything else is GitHub-flavored markdown: headings, links, images,
+	tables (with `:---:` alignment), lists, task lists (`- [x]`),
+	`~~strikethrough~~`, blockquotes, horizontal rules, and code fences.
+	**Fences are inert** — code inside them is displayed and highlighted, never
+	executed, even if it looks like a component tag (an `[example]` opener
+	inside a fence is content too). The same goes for `` `inline code` ``. For a
+	literal brace in prose, escape it: `\{`.
+
+	Some details worth knowing:
+
+	- **Fence languages** — anything shiki knows (`svelte`, `ts`, `bash`, …)
+	  plus `sdoc` itself, so docs about `.sdoc` files highlight natively.
+	- **Alerts** — a blockquote whose first line is `[!NOTE]`, `[!TIP]`,
+	  `[!IMPORTANT]`, `[!WARNING]`, or `[!CAUTION]` renders as a tinted callout,
+	  GitHub-style.
+	- **Links** — external (`http…`) links open in a new tab; internal and
+	  relative links stay in the app.
+	- **Images** — `![alt](/hero.png)` works with a [`static`
+	  folder](/explorer/configuration#static) configured; assets are served at
+	  the site root in dev and copied into the build.
+
+	## Snippets
+
+	Pages support [snippets](https://svelte.dev/docs/svelte/snippet) for repeated
+	markup. Declare one anywhere in the body as its own island, then render it
+	anywhere — before or after, in any section:
+
+	```sdoc
+	[PAGE title="Colors"]
+
+		{#snippet swatch(color: string)}
+			<div style="background: {color}; width: 100px; height: 100px;"></div>
+		{/snippet}
+
+		## Reds
+
+		<div style="display: flex;">
+			{@render swatch('#ff0000')}
+			{@render swatch('#b91c1c')}
+		</div>
+
+		## Blues
+
+		<div style="display: flex;">
+			{@render swatch('#3b82f6')}
+		</div>
+
+	[/PAGE]
+	```
+
+	What a page does **not** have: controls and prop extraction. If you find
+	yourself wanting stateful logic, the content is probably a
+	[component doc](/language/component-docs) or a
+	[layout](/language/layout-docs).
+
+	## Table of contents
+
+	A table of contents is generated from the page's `##`–`####` headings and
+	shown on the right; as the page scrolls, the entry for the section in view
+	highlights. Heading IDs are slugified — lowercased, non-word characters
+	stripped, spaces as hyphens — so `## Getting Started` anchors at
+	`#getting-started`. The page header shows the entity `title`; a top-level
+	`#` heading in the body is neither required nor listed.
+
+	## When to reach for a page
+
+	- **Page** — content that doesn't map to one component: guides, overviews,
+	  conventions.
+	- **[Component doc](/language/component-docs)** — one component, with
+	  controls and extracted API.
+	- **[Layout](/language/layout-docs)** — components composed together on a
+	  full-page stage.
+
+[/PAGE]

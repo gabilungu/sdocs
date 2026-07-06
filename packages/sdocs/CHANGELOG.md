@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.71] - 2026-07-06
+
+### Added
+
+- **` ```sdoc ` fences highlight in pages.** The shipped sdoc TextMate
+  grammar is registered with the highlighter, so fenced code blocks
+  labeled `sdoc` render block tags, attributes, and embedded Svelte with
+  full colors instead of plaintext.
+
 ## [0.0.70] - 2026-07-06
 
 ### Fixed

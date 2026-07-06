@@ -1,0 +1,14 @@
+{
+	"name": "docs",
+	"private": true,
+	"version": "0.0.0",
+	"type": "module",
+	"scripts": {
+		"dev": "node ../../packages/sdocs/bin/sdocs.js dev",
+		"build": "node ../../packages/sdocs/bin/sdocs.js build"
+	},
+	"devDependencies": {
+		"svelte": "^5.56.1",
+		"@lucide/svelte": "^1.23.0"
+	}
+}

@@ -1,0 +1,32 @@
+[PAGE title="@cli/Overview"]
+
+	# CLI
+
+	The sdocs CLI runs the [Explorer](/explorer/overview) as its own dev server — no host
+	app required — and builds it into a deployable static site.
+
+	The fastest way to see it: in any project that has `.sdoc` files, run
+
+	```bash
+	npx sdocs run
+	```
+
+	Nothing is added to your project — npm fetches sdocs into its cache and starts
+	the dev server against your files. Your components' dependencies (Tailwind,
+	three.js, anything in the project's `node_modules`) resolve from the project
+	as usual, and when the project has its own `svelte`, previews use it rather
+	than the cached copy.
+
+	For everything the CLI can do, see the [command reference](/cli/commands):
+
+	| Command | Description |
+	|---|---|
+	| `sdocs init` | Scaffold a `sdocs.config.js` |
+	| `sdocs dev` / `sdocs run` | Start the dev server with live reload |
+	| `sdocs build` | Build a static documentation site |
+	| `sdocs preview` | Serve the built site locally |
+
+	All commands read [`sdocs.config.js`](/explorer/configuration) from the
+	current directory.
+
+[/PAGE]

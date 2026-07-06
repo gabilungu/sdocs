@@ -95,7 +95,7 @@ describe('projectSdoc', () => {
 
 describe('projectSdoc over the real corpus', () => {
 	const dirs = [
-		resolve(__dirname, '../../../../apps/site/src/lib/ui'),
+		resolve(__dirname, '../../../../apps/docs/src'),
 		resolve(__dirname, '../../../../apps/testapp-embedded/src/lib/UI'),
 		resolve(__dirname, '../../../../apps/testapp-standalone/src'),
 	];

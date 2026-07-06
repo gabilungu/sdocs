@@ -109,7 +109,7 @@ describe('sdoc grammar (Oniguruma engine, as in VS Code)', () => {
 		});
 		for (const file of ['Notice.sdoc', 'NoticeJs.sdoc', 'Card.sdoc']) {
 			const source = readFileSync(
-				resolve(__dirname, '../../../../apps/site/src/lib/ui', file),
+				resolve(__dirname, '../../../../apps/docs/src/ui', file),
 				'utf8',
 			);
 			const { tokens } = hl.codeToTokens(source, { lang: 'sdoc', theme: 'github-dark' });

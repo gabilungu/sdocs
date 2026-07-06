@@ -14,10 +14,10 @@ import { mkdtempSync, mkdirSync, copyFileSync, readdirSync, realpathSync, rmSync
 import { readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { startClient, type LspClient, REPO, SITE } from './helpers/lsp';
+import { startClient, type LspClient, REPO, DOCS } from './helpers/lsp';
 
 const DIST = resolve(__dirname, '../dist');
-const NOTICE = resolve(SITE, 'src/lib/ui/NoticeJs.sdoc');
+const NOTICE = resolve(DOCS, 'src/ui/NoticeJs.sdoc');
 const uri = 'file://' + NOTICE;
 
 let fakeInstall: string;

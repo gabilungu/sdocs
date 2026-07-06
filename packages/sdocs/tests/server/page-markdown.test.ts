@@ -231,3 +231,15 @@ describe('applyBaseToHtml', () => {
 		expect(applyBaseToHtml(html, './')).toBe(html);
 	});
 });
+
+describe('sdoc fences', () => {
+	it('highlights ```sdoc fences with the shipped grammar', async () => {
+		const { html } = await renderPageMarkdown(
+			'```sdoc\n[SHOWCASE title="X"]\n[/SHOWCASE]\n```',
+		);
+		expect(html).toContain('shiki');
+		expect(html).toContain('SHOWCASE');
+		// colored tokens, not the plaintext fallback
+		expect(html.match(/style="color:/g)!.length).toBeGreaterThan(1);
+	});
+});

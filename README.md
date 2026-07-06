@@ -8,7 +8,7 @@ A lightweight documentation tool for Svelte 5 components. This repository is an 
 |------|-------------|
 | [packages/sdocs](packages/sdocs) | The `sdocs` npm package — CLI, Vite plugin, and Svelte UI |
 | [packages/vscode](packages/vscode) | VS Code extension — `.sdoc` language support |
-| [apps/site](apps/site) | The documentation website — markdown-driven SvelteKit app |
+| [apps/docs](apps/docs) | The documentation website — built with sdocs itself |
 | [apps/testapp-embedded](apps/testapp-embedded) | Test app — SvelteKit app with sdocs embedded as a dependency |
 | [apps/testapp-standalone](apps/testapp-standalone) | Test app — no sdocs installed, exercises the standalone CLI |
 
@@ -18,8 +18,8 @@ A lightweight documentation tool for Svelte 5 components. This repository is an 
 npm install            # install all workspaces
 npm run build          # build the sdocs library
 npm run dev            # sdocs dev server (dogfoods its own docs)
-npm run site:dev          # run the documentation site
-npm run site:build        # build the documentation site
+npm run docs:dev          # run the documentation site
+npm run docs:build        # build the documentation site
 npm run embedded:dev      # run the embedded test app (sdocs as dependency)
 npm run standalone:run    # run the standalone test app via the local CLI
 npm run standalone:build  # static-build the standalone test app
@@ -32,12 +32,12 @@ identity (`gabilungu.sdocs`); build it with `npm run vscode:build`.
 
 ## Documentation site
 
-The site's content lives in [apps/site/content/docs](apps/site/content/docs) as plain markdown —
-the single source of truth for the docs. Directory nesting defines the sidebar sections, numeric
-filename prefixes (`01-…`) define order (and are stripped from URLs), and each file's frontmatter
-carries only a `title`.
+The documentation site is built with sdocs itself: every page in [apps/docs/src/content](apps/docs/src/content)
+is a `[PAGE]` entity, the top-bar sections come from [apps/docs/sdocs.config.js](apps/docs/sdocs.config.js),
+and the Demo section showcases the site's own components ([apps/docs/src/ui](apps/docs/src/ui)) as
+live `[SHOWCASE]` docs.
 
-Deployment to GitHub Pages is handled by [deploy-site.yml](.github/workflows/deploy-site.yml)
+Deployment to GitHub Pages is handled by [deploy-docs.yml](.github/workflows/deploy-docs.yml)
 on every push to `main`. The repo's Pages source must be set to "GitHub Actions".
 
 ## License

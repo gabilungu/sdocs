@@ -1,0 +1,71 @@
+name: Deploy docs to GitHub Pages
+
+# Builds the documentation site (apps/docs) with sdocs itself and publishes
+# it to GitHub Pages. The base path is derived from the repo name so the
+# site works under the project sub-path (https://<owner>.github.io/<repo>/).
+#
+# One-time setup: repo Settings → Pages → Source → "GitHub Actions".
+
+on:
+  push:
+    branches: main
+  workflow_dispatch:
+
+# Allow one concurrent deployment; let an in-progress run finish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The docs run the workspace sdocs package straight from the repo
+      - name: Build sdocs
+        run: npm run build
+
+      - name: Build docs
+        run: npm run build -w docs -- --base "/${{ github.event.repository.name }}/"
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: apps/docs/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      # Pages deployments fail transiently ("try again later") now and then;
+      # one automatic retry absorbs it.
+      - name: Deploy
+        id: deployment
+        continue-on-error: true
+        uses: actions/deploy-pages@v5
+
+      - name: Wait before retrying
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 60
+
+      - name: Retry deploy
+        if: steps.deployment.outcome == 'failure'
+        id: deployment-retry
+        uses: actions/deploy-pages@v5

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.44] - 2026-07-06
+
+### Added
+
+- **`home` attribute on `[PAGE]`.** Recognized in diagnostics and offered in
+  attribute completion (a bare flag) — marks a page as the site landing page.
+
 ## [0.0.43] - 2026-07-06
 
 ### Changed

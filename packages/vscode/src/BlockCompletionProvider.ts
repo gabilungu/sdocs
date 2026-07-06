@@ -56,11 +56,13 @@ const ATTR_DOCS: Record<string, string> = {
 	contentX: 'Horizontal alignment of stage contents: `left` · `center` · `right` · `justify` (spread). On `[PAGE]`, aligns the content column instead: `left` · `center` · `right`.',
 	contentY: 'Vertical alignment of stage contents: `top` · `middle` · `bottom` · `justify` (spread).',
 	toc: '`toc="false"` hides the table of contents for this page.',
+	home: 'Marks this page as the site landing page: it renders at the root route, is reached via the logo, and never appears in a sidebar.',
 };
 
 /** Snippet body for an attribute, from its value kind (special-cased for args). */
 function attrInsert(name: string, rule: AttrRule): string {
 	if (name === 'args') return 'args={{ $1 }}';
+	if (rule.kind === 'bare') return name;
 	return rule.kind === 'expression' ? `${name}={$1}` : `${name}="$1"`;
 }
 

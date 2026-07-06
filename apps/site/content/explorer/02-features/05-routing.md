@@ -9,8 +9,9 @@ route structure.
 ## URL format
 
 Routes are built from the doc's `title`: one slug per segment, with the
-[section](/explorer/features/sidebar#sections-top-bar) first when sections
-are in use.
+[section](/explorer/features/sidebar#sections-top-bar) slug first when
+sections are declared. An entity can override its own (last) segment with
+`slug="…"` in its opener.
 
 ```
 https://example.com/components/button
@@ -27,9 +28,11 @@ punctuation stripped, spaces as hyphens.
 |---|---|
 | `'Components / Button'` | `/components/button` |
 | `'Patterns / Login Form'` | `/patterns/login-form` |
-| `'@Guides/Getting Started'` | `/guides/getting-started` |
+| `'@guides/Getting Started'` | `/guides/getting-started` |
 
-Two siblings that slugify identically get numbered (`/thing`, `/thing-2`).
+Two entities that resolve to the same route are an **error** (shown
+full-page in dev; `sdocs build` fails) — give one a `slug="…"`. URLs never
+silently renumber.
 
 ## Sub-pages
 
@@ -58,18 +61,18 @@ if your host serves a fallback.
 
 ## Deep linking
 
-Any URL can be bookmarked, shared, or linked to. Links written *without* a
-section prefix (`/components/button` while sections are active) resolve
-into the default section, so URLs from before you introduced sections keep
-working. (Folders keep their default expand state — deep-linking doesn't
-auto-expand the path to the entry.)
+Any URL can be bookmarked, shared, or linked to. (Folders keep their
+default expand state — deep-linking doesn't auto-expand the path to the
+entry.)
 
 ## Home and About
 
-The root route shows the page marked [`home`](/language/page-docs#home-page)
-if there is one, otherwise the built-in **About** page (project logo, doc
-counts, and the sdocs version). About is always reachable at `/about`. The
-logo/title always links to the root.
+The root route shows the entity the config's
+[`home`](/explorer/configuration#home) path points at, otherwise the
+built-in **About** page (project logo, doc counts, and the sdocs version).
+About is always reachable at `/about`. The logo/title always links to the
+root. An entity marked `hide` keeps its route but never appears in a
+sidebar — useful for link-only pages.
 
 ## Fullscreen mode
 

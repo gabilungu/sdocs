@@ -28,6 +28,8 @@ controls, frozen examples, and each previewed component's extracted API.
 | Attribute | Required | Meaning |
 |---|---|---|
 | `title` | yes | Sidebar path and display name — `"Forms / Button"` nests under Forms |
+| `slug` | no | Overrides the URL segment (default: slugified title segment) |
+| `hide` | no | A bare flag: routable, but never listed in a sidebar |
 | `description` | no | Short text under the page title |
 | `maxWidth` | no | Content column width (default from config, `1200px`) |
 | `padding` | no | Default stage padding for this entity's previews and examples (default `16px`) |

@@ -1,7 +1,7 @@
 import { pathToFileURL } from 'node:url';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import type { SdocsConfig, ResolvedSdocsConfig } from '../types.js';
+import type { SdocsConfig, ResolvedSdocsConfig, SectionConfig } from '../types.js';
 
 const CONFIG_NAMES = ['sdocs.config.ts', 'sdocs.config.mjs', 'sdocs.config.js'];
 
@@ -14,14 +14,11 @@ const DEFAULTS: ResolvedSdocsConfig = {
 	title: 'sdocs',
 	logo: 'sdocs',
 	favicon: './explorer/favicon.png',
-	sections: [],
-	defaultSection: 'Docs',
+	sections: [{ slug: 'docs', title: 'Docs', order: [] }],
+	sectionsDeclared: false,
+	home: null,
 	routing: null,
 	base: '/',
-	sidebar: {
-		order: {},
-		open: [],
-	},
 	content: {
 		page: { maxWidth: '1200px', padding: '32px', toc: true, contentX: 'left' },
 		showcase: {
@@ -95,6 +92,27 @@ async function importConfig(configPath: string): Promise<SdocsConfig> {
 	return mod.default ?? mod;
 }
 
+/** Sections with defaults filled in; the implicit `docs` section when none
+ * are declared. Slug validity and duplicates are checked at site validation. */
+function normalizeSections(sections: SectionConfig[] | undefined): Required<SectionConfig>[] {
+	if (!sections || sections.length === 0) return DEFAULTS.sections;
+	return sections.map((s) => ({
+		slug: String(s.slug ?? ''),
+		title: s.title ?? capitalize(String(s.slug ?? '')),
+		order: s.order ?? [],
+	}));
+}
+
+function capitalize(s: string): string {
+	return s ? s[0].toUpperCase() + s.slice(1) : s;
+}
+
+/** The home route as bare segments ('guides/introduction'), or null. */
+function normalizeHome(home: string | undefined): string | null {
+	if (!home) return null;
+	return home.replace(/^\/+|\/+$/g, '');
+}
+
 /** A public base path always has a leading and trailing slash: '/gabi/'. */
 export function normalizeBase(base: string | undefined): string {
 	if (!base || base === '/') return '/';
@@ -131,14 +149,11 @@ export function resolveConfig(userConfig: SdocsConfig): ResolvedSdocsConfig {
 		title: title ?? DEFAULTS.title,
 		logo: logo ?? DEFAULTS.logo,
 		favicon: userConfig.favicon ?? DEFAULTS.favicon,
-		sections: userConfig.sections ?? DEFAULTS.sections,
-		defaultSection: userConfig.defaultSection ?? DEFAULTS.defaultSection,
+		sections: normalizeSections(userConfig.sections),
+		sectionsDeclared: (userConfig.sections?.length ?? 0) > 0,
+		home: normalizeHome(userConfig.home),
 		routing: userConfig.routing ?? DEFAULTS.routing,
 		base: normalizeBase(userConfig.base),
-		sidebar: {
-			order: userConfig.sidebar?.order ?? DEFAULTS.sidebar.order,
-			open: userConfig.sidebar?.open ?? DEFAULTS.sidebar.open,
-		},
 		content: {
 			page: { ...DEFAULTS.content.page, ...userConfig.content?.page },
 			showcase: { ...DEFAULTS.content.showcase, ...userConfig.content?.showcase },

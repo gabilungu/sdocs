@@ -1,7 +1,7 @@
 /**
- * Sections + slug routes: `@Section/` title prefixes group docs under top-bar
- * sections, everything else lands in the default section, and every navigable
- * node gets a slugified URL route.
+ * Declared sections + slug routes: config section objects define the top bar
+ * and the valid `@slug/` title prefixes; every navigable node gets a
+ * slugified route. Structure problems surface as errors, never as repairs.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -17,142 +17,193 @@ import type { DocEntry } from '../../src/lib/types.js';
 function doc(
 	title: string,
 	kind: DocEntry['kind'] = 'page',
-	examples: string[] = [],
-	home = false,
+	extra: Partial<DocEntry> = {},
 ): DocEntry {
 	return {
 		kind,
-		filePath: `/x/${title}.sdoc`,
+		filePath: `/x/${title.replace(/[^A-Za-z]+/g, '_')}.sdoc`,
 		entitySlug: 'e',
 		meta: { title },
 		previews: [],
-		examples: examples.map((name) => ({ name, slug: slugifySegment(name), role: 'example', body: '' })),
+		examples: (extra.examples as DocEntry['examples']) ?? [],
 		content: null,
-		home,
+		...extra,
 	};
 }
 
+function examples(names: string[]): DocEntry['examples'] {
+	return names.map((name) => ({ name, slug: slugifySegment(name), role: 'example', body: '' }));
+}
+
 describe('splitSection', () => {
-	it('splits an @Section first segment off', () => {
-		expect(splitSection('@Guides/Installation')).toEqual({
-			section: 'Guides',
+	it('splits an @slug first segment off', () => {
+		expect(splitSection('@guides/Installation')).toEqual({
+			section: 'guides',
 			rest: 'Installation',
 		});
-		expect(splitSection('@Components/:Form / Button')).toEqual({
-			section: 'Components',
+		expect(splitSection('@components/:Form / Button')).toEqual({
+			section: 'components',
 			rest: ':Form / Button',
 		});
 	});
 
 	it('leaves plain titles alone', () => {
 		expect(splitSection('Markdown')).toEqual({ section: null, rest: 'Markdown' });
-		expect(splitSection(':Form / Button')).toEqual({ section: null, rest: ':Form / Button' });
 	});
 });
 
 describe('displayTitle', () => {
 	it('strips the section prefix and the group sigil', () => {
-		expect(displayTitle('@Components/:Form / Button')).toBe('Form / Button');
-		expect(displayTitle(':Form / Button')).toBe('Form / Button');
+		expect(displayTitle('@components/:Form / Button')).toBe('Form / Button');
 		expect(displayTitle('Markdown')).toBe('Markdown');
 	});
 });
 
-describe('buildSections', () => {
-	it('no @sections → a single default section, routes without a prefix', () => {
+describe('buildSections without declared sections', () => {
+	it('everything lands in the implicit docs section, routes unprefixed', () => {
 		const map = buildSections([doc('Markdown'), doc(':Form / Button', 'component')]);
 		expect(map.active).toBe(false);
-		expect(map.sections).toHaveLength(1);
-		expect(map.sections[0].isDefault).toBe(true);
+		expect(map.errors).toEqual([]);
+		expect(map.sections.map((s) => s.slug)).toEqual(['docs']);
 		expect(map.routes.has('markdown')).toBe(true);
 		expect(map.routes.has('form/button')).toBe(true);
 	});
 
-	it('@sections split docs; default section holds the rest and comes first', () => {
-		const map = buildSections(
-			[doc('@Guides/Installation'), doc('Markdown'), doc('@Guides/Theming')],
-			undefined,
-			{ defaultSection: 'Docs' },
-		);
-		expect(map.active).toBe(true);
-		expect(map.sections.map((s) => s.name)).toEqual(['Docs', 'Guides']);
-		expect(map.routes.has('docs/markdown')).toBe(true);
-		expect(map.routes.has('guides/installation')).toBe(true);
-	});
-
-	it('config order wins; unlisted sections follow alphabetically', () => {
-		const map = buildSections(
-			[doc('@Alpha/A'), doc('@Zeta/Z'), doc('@Mid/M'), doc('Home')],
-			undefined,
-			{ defaultSection: 'Docs', order: ['Zeta', 'Docs'] },
-		);
-		expect(map.sections.map((s) => s.name)).toEqual(['Zeta', 'Docs', 'Alpha', 'Mid']);
-	});
-
-	it('routes are slugified; sibling collisions get numbered', () => {
-		const map = buildSections([doc('Getting Started!'), doc('Getting  started')]);
-		expect(map.routes.has('getting-started')).toBe(true);
-		expect(map.routes.has('getting-started-2')).toBe(true);
-	});
-
-	it('component examples get child routes carrying the snippet name', () => {
-		const map = buildSections([doc(':Form / Button', 'component', ['Sizes'])]);
-		const example = map.routes.get('form/button/sizes');
-		expect(example?.snippetName).toBe('Sizes');
-		expect(map.routes.get('form/button')?.snippetName).toBeUndefined();
-	});
-
-	it('each section knows its first doc route for the tab target', () => {
-		const map = buildSections([doc('@Guides/Installation'), doc('@Guides/Theming')]);
-		expect(map.sections.find((s) => s.name === 'Guides')?.firstRoute).toEqual([
-			'guides',
-			'installation',
-		]);
+	it('an @prefix is an error when no sections are declared', () => {
+		const map = buildSections([doc('@guides/Intro')]);
+		expect(map.errors.some((e) => e.message.includes('Unknown section "@guides"'))).toBe(true);
 	});
 });
 
-describe('home page', () => {
-	it('is recorded, excluded from sidebars, and not routed', () => {
-		const map = buildSections([
-			doc('Introduction', 'page', [], true),
-			doc('@Guides/Colors'),
-			doc('@Guides/Markdown'),
+describe('buildSections with declared sections', () => {
+	const sections = [
+		{ slug: 'guides', title: 'Guides' },
+		{ slug: 'components' },
+	];
+
+	it('partitions docs by slug; routes carry the section; titles default', () => {
+		const map = buildSections(
+			[doc('@guides/Installation'), doc('@components/:Form / Button', 'component')],
+			{ sections },
+		);
+		expect(map.active).toBe(true);
+		expect(map.errors).toEqual([]);
+		expect(map.sections.map((s) => s.title)).toEqual(['Guides', 'Components']);
+		expect(map.routes.has('guides/installation')).toBe(true);
+		expect(map.routes.has('components/form/button')).toBe(true);
+	});
+
+	it('unknown @section and missing docs section are errors', () => {
+		const map = buildSections([doc('@nope/X'), doc('Loose')], { sections });
+		const messages = map.errors.map((e) => e.message).join('\n');
+		expect(messages).toContain('Unknown section "@nope"');
+		expect(messages).toContain('no "docs" section is declared');
+	});
+
+	it('unprefixed docs are fine when a docs section is declared', () => {
+		const map = buildSections([doc('Loose')], {
+			sections: [{ slug: 'docs' }, { slug: 'guides' }],
+		});
+		expect(map.errors).toEqual([]);
+		expect(map.routes.has('docs/loose')).toBe(true);
+	});
+
+	it('invalid or duplicate section slugs are errors', () => {
+		const map = buildSections([], { sections: [{ slug: 'Bad Slug' }, { slug: 'a' }, { slug: 'a' }] });
+		const messages = map.errors.map((e) => e.message).join('\n');
+		expect(messages).toContain('must be lowercase');
+		expect(messages).toContain('share the slug "a"');
+	});
+});
+
+describe('routes', () => {
+	it('slug attribute overrides the leaf; collisions are errors', () => {
+		const clash = buildSections([doc('Getting Started!'), doc('Getting  started')]);
+		expect(clash.errors.some((e) => e.message.includes('share the route "/getting-started"'))).toBe(
+			true,
+		);
+
+		const fixed = buildSections([
+			doc('Getting Started!'),
+			doc('Getting  started', 'page', { routeSlug: 'getting-started-guide' }),
 		]);
+		expect(fixed.errors).toEqual([]);
+		expect(fixed.routes.has('getting-started')).toBe(true);
+		expect(fixed.routes.has('getting-started-guide')).toBe(true);
+	});
+
+	it('component examples get child routes carrying the snippet name', () => {
+		const map = buildSections([
+			doc(':Form / Button', 'component', { examples: examples(['Sizes']) }),
+		]);
+		expect(map.routes.get('form/button/sizes')?.snippetName).toBe('Sizes');
+		expect(map.routes.get('form/button')?.snippetName).toBeUndefined();
+	});
+});
+
+describe('hide', () => {
+	it('hidden entities keep their route but leave the sidebar', () => {
+		const map = buildSections([doc('Secret', 'page', { hide: true }), doc('Markdown')]);
+		expect(map.errors).toEqual([]);
+		expect(map.routes.has('secret')).toBe(true);
+		const names = map.sections[0].tree.map((n) => n.name);
+		expect(names).toContain('Markdown');
+		expect(names).not.toContain('Secret');
+	});
+
+	it('a folder emptied by hiding disappears', () => {
+		const map = buildSections([doc('Internal / Secret', 'page', { hide: true })]);
+		expect(map.sections[0].tree).toEqual([]);
+		expect(map.routes.has('internal/secret')).toBe(true);
+	});
+});
+
+describe('home', () => {
+	it('the config home path resolves the root route (hidden entities too)', () => {
+		const map = buildSections([doc('Introduction', 'page', { hide: true }), doc('Markdown')], {
+			home: 'introduction',
+		});
+		expect(map.errors).toEqual([]);
 		expect(map.home?.doc.meta.title).toBe('Introduction');
-		// not in any sidebar tree
-		const names = map.sections.flatMap((s) => s.tree.map((n) => n.name));
-		expect(names).not.toContain('Introduction');
-		// not registered as a route
-		expect([...map.routes.keys()].some((k) => k.includes('introduction'))).toBe(false);
-		// the other pages still route
-		expect(map.routes.has('guides/colors')).toBe(true);
+		expect(resolveRoute(map, [])?.doc.meta.title).toBe('Introduction');
 	});
 
-	it('null when no page is marked home', () => {
-		const map = buildSections([doc('Markdown')]);
-		expect(map.home).toBeNull();
+	it('an unresolvable home path is an error; no home → root resolves null', () => {
+		const bad = buildSections([doc('Markdown')], { home: 'nope' });
+		expect(bad.errors.some((e) => e.message.includes('home "nope"'))).toBe(true);
+		const none = buildSections([doc('Markdown')]);
+		expect(resolveRoute(none, [])).toBeNull();
+	});
+});
+
+describe('section order arrays', () => {
+	it('listed relative paths sort first, the rest alphabetical', () => {
+		const map = buildSections(
+			[doc('@guides/Theming'), doc('@guides/Introduction'), doc('@guides/Colors')],
+			{ sections: [{ slug: 'guides', order: ['introduction', 'colors'] }] },
+		);
+		expect(map.sections[0].tree.map((n) => n.name)).toEqual([
+			'Introduction',
+			'Colors',
+			'Theming',
+		]);
 	});
 
-	it('a home page with @Section does not create an empty section', () => {
-		const map = buildSections([doc('@Guides/Intro', 'page', [], true), doc('Markdown')]);
-		// Guides had only the home page → no Guides section remains
-		expect(map.sections.map((s) => s.name)).toEqual(['Docs']);
-		expect(map.home?.doc.meta.title).toBe('@Guides/Intro');
+	it('order reaches nested levels via relative route paths', () => {
+		const map = buildSections(
+			[doc('@g/Stuff / Beta'), doc('@g/Stuff / Alpha')],
+			{ sections: [{ slug: 'g', order: ['stuff/beta'] }] },
+		);
+		const stuff = map.sections[0].tree.find((n) => n.name === 'Stuff')!;
+		expect(stuff.children.map((n) => n.name)).toEqual(['Beta', 'Alpha']);
 	});
 });
 
 describe('resolveRoute', () => {
-	it('resolves exact routes and falls back into the default section', () => {
-		const map = buildSections([doc('@Guides/Installation'), doc('Markdown')], undefined, {
-			defaultSection: 'Docs',
-		});
-		expect(resolveRoute(map, ['guides', 'installation'])?.doc.meta.title).toBe(
-			'@Guides/Installation',
-		);
-		expect(resolveRoute(map, ['docs', 'markdown'])?.doc.meta.title).toBe('Markdown');
-		// a link from before sections existed
-		expect(resolveRoute(map, ['markdown'])?.doc.meta.title).toBe('Markdown');
+	it('resolves exact routes only; unknown → null', () => {
+		const map = buildSections([doc('@guides/Colors')], { sections: [{ slug: 'guides' }] });
+		expect(resolveRoute(map, ['guides', 'colors'])?.doc.meta.title).toBe('@guides/Colors');
+		expect(resolveRoute(map, ['colors'])).toBeNull();
 		expect(resolveRoute(map, ['nope'])).toBeNull();
-		expect(resolveRoute(map, [])).toBeNull();
 	});
 });

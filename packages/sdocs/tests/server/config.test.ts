@@ -122,10 +122,11 @@ describe('attributeRules (shared by diagnostics and completions)', () => {
 			'title', 'maxWidth', 'padding', 'direction', 'gap', 'contentX', 'contentY',
 		]);
 		expect(Object.keys(attributeRules('PAGE'))).toEqual([
-			'title', 'maxWidth', 'padding', 'contentX', 'toc', 'home',
+			'title', 'slug', 'hide', 'maxWidth', 'padding', 'contentX', 'toc',
 		]);
 		expect(Object.keys(attributeRules('SHOWCASE'))).toContain('gap');
-		expect(Object.keys(attributeRules('LAYOUT'))).toEqual(['title', 'maxWidth', 'padding']);
+		expect(Object.keys(attributeRules('SHOWCASE'))).toContain('slug');
+		expect(Object.keys(attributeRules('LAYOUT'))).toEqual(['title', 'slug', 'hide', 'maxWidth', 'padding']);
 	});
 
 	it('carries value kind and required flag for each attribute', () => {
@@ -184,18 +185,25 @@ describe('header title/logo (renamed from logo/icon)', () => {
 });
 
 describe('sections config', () => {
-	it('defaults', () => {
+	it('defaults to the implicit docs section', () => {
 		const c = resolveConfig({});
-		expect(c.sections).toEqual([]);
-		expect(c.defaultSection).toBe('Docs');
+		expect(c.sections).toEqual([{ slug: 'docs', title: 'Docs', order: [] }]);
+		expect(c.sectionsDeclared).toBe(false);
+		expect(c.home).toBeNull();
 		expect(c.routing).toBeNull();
 	});
 
-	it('passes through', () => {
-		const c = resolveConfig({ sections: ['Guides'], defaultSection: 'Reference', routing: 'hash' });
-		expect(c.sections).toEqual(['Guides']);
-		expect(c.defaultSection).toBe('Reference');
-		expect(c.routing).toBe('hash');
+	it('normalizes declared sections and the home path', () => {
+		const c = resolveConfig({
+			sections: [{ slug: 'guides' }, { slug: 'api', title: 'API', order: ['intro'] }],
+			home: '/guides/introduction/',
+		});
+		expect(c.sections).toEqual([
+			{ slug: 'guides', title: 'Guides', order: [] },
+			{ slug: 'api', title: 'API', order: ['intro'] },
+		]);
+		expect(c.sectionsDeclared).toBe(true);
+		expect(c.home).toBe('guides/introduction');
 	});
 });
 

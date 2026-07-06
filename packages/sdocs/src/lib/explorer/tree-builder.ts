@@ -1,4 +1,4 @@
-import type { DocEntry } from '../types.js';
+import type { DocEntry, SectionConfig } from '../types.js';
 
 export type TreeNodeType = 'folder' | 'group' | 'component' | 'page' | 'layout';
 
@@ -13,6 +13,8 @@ export interface TreeNode {
 	children: TreeNode[];
 	/** The doc entry (only for component/page/layout nodes) */
 	doc?: DocEntry;
+	/** True on the entity's own node (not its Docs/example children) */
+	entity?: boolean;
 	/** Set on example child nodes: the example this node opens */
 	snippetName?: string;
 	/** Example titles for component nodes (sidebar sub-pages) */
@@ -21,16 +23,10 @@ export interface TreeNode {
 	defaultExpanded?: boolean;
 }
 
-interface SidebarConfig {
-	order?: Record<string, string[]>;
-	open?: string[];
-}
-
-/** One top-bar section: a name and its own sidebar tree */
+/** One top-bar section: a tab label and its own sidebar tree */
 export interface SectionTree {
-	name: string;
 	slug: string;
-	isDefault: boolean;
+	title: string;
 	tree: TreeNode[];
 	/** Route of the section's first document (top-bar tab target) */
 	firstRoute: string[] | null;
@@ -42,14 +38,23 @@ export interface RouteTarget {
 	snippetName?: string;
 }
 
+/** A site-structure problem: shown full-page in dev, fails the build. */
+export interface SiteError {
+	message: string;
+	/** Absolute .sdoc path when the error points at one file */
+	file?: string;
+}
+
 /** Everything the Explorer needs to render sections and resolve URLs */
 export interface SectionMap {
 	sections: SectionTree[];
 	routes: Map<string, RouteTarget>;
-	/** True once any doc declares an `@Section` — routes carry the section slug */
+	/** True when the config declared sections — routes carry the section slug */
 	active: boolean;
-	/** The page marked `home`, rendered at the root route — never in a sidebar */
+	/** What the root route renders (from the config `home` path) */
 	home: RouteTarget | null;
+	/** Structure problems: unknown sections, route collisions, a bad home path */
+	errors: SiteError[];
 }
 
 /** Slug for one route segment — same rules as page heading anchors. */
@@ -63,7 +68,21 @@ export function slugifySegment(text: string): string {
 	);
 }
 
-/** Split an optional `@Section` first segment off a title. */
+/** Sections with defaults filled in; the implicit `docs` section when none
+ * are declared. */
+export function normalizeSections(sections: SectionConfig[] | undefined): Required<SectionConfig>[] {
+	if (!sections || sections.length === 0) return [{ slug: 'docs', title: 'Docs', order: [] }];
+	return sections.map((s) => {
+		const slug = String(s.slug ?? '');
+		return {
+			slug,
+			title: s.title ?? (slug ? slug[0].toUpperCase() + slug.slice(1) : slug),
+			order: s.order ?? [],
+		};
+	});
+}
+
+/** Split an optional `@section-slug` first segment off a title. */
 export function splitSection(title: string | null | undefined): {
 	section: string | null;
 	rest: string;
@@ -78,101 +97,106 @@ export function splitSection(title: string | null | undefined): {
 	};
 }
 
-/**
- * Group docs into sections (from `@Section/` title prefixes, the rest into the
- * default section), build each section's tree, and register every navigable
- * route. Section order: the config list first, unlisted after (default
- * section first, then alphabetical).
- */
-export function buildSections(
-	docs: DocEntry[],
-	sidebar?: SidebarConfig,
-	opts?: { defaultSection?: string; order?: string[] },
-): SectionMap {
-	const defaultName = opts?.defaultSection ?? 'Docs';
-	const byName = new Map<string, DocEntry[]>();
-	let active = false;
+const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
-	// The home page renders at the root route and is reached via the logo — it
-	// never appears in a section or sidebar. First one wins.
-	const homeDoc = docs.find((d) => d.home) ?? null;
-
-	for (const doc of docs) {
-		if (doc === homeDoc) continue;
-		const { section } = splitSection(doc.meta.title);
-		if (section) active = true;
-		const name = section ?? defaultName;
-		const list = byName.get(name);
-		if (list) list.push(doc);
-		else byName.set(name, [doc]);
-	}
-
-	const configOrder = opts?.order ?? [];
-	const names = [...byName.keys()].sort((a, b) => {
-		const ai = configOrder.indexOf(a);
-		const bi = configOrder.indexOf(b);
-		if (ai !== -1 || bi !== -1) return (ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi);
-		if (a === defaultName) return -1;
-		if (b === defaultName) return 1;
-		return a.localeCompare(b);
-	});
-
-	const routes = new Map<string, RouteTarget>();
-	const usedSectionSlugs = new Set<string>();
-	const sections: SectionTree[] = names.map((name) => {
-		const slug = uniqueSlug(slugifySegment(name), usedSectionSlugs);
-		const prefix = active ? [slug] : [];
-		const tree = buildTree(byName.get(name)!, sidebar, prefix);
-		registerRoutes(tree, routes);
-		return {
-			name,
-			slug,
-			isDefault: name === defaultName,
-			tree,
-			firstRoute: firstDocRoute(tree),
-		};
-	});
-
-	return { sections, routes, active, home: homeDoc ? { doc: homeDoc } : null };
+export interface BuildSectionsOptions {
+	/** Declared sections in top-bar order (raw config shape is accepted) */
+	sections?: SectionConfig[];
+	/** Route path of the landing page, e.g. 'guides/introduction' */
+	home?: string | null;
 }
 
 /**
- * Resolve URL segments to a doc. Links that omit the section — bookmarks from
- * before sections existed — fall back into the default section.
+ * Group docs into their declared sections, build each section's tree, apply
+ * the per-section `order` arrays, and register every navigable route.
+ * Structure problems — an unknown `@section`, two entities on one route, a
+ * `home` path that resolves nowhere — are collected as errors, not repaired:
+ * the Explorer shows them full-page and `sdocs build` fails on them.
  */
-export function resolveRoute(map: SectionMap, segments: string[]): RouteTarget | null {
-	if (segments.length === 0) return null;
-	const hit = map.routes.get(segments.join('/'));
-	if (hit) return hit;
-	if (map.active) {
-		const def = map.sections.find((s) => s.isDefault);
-		if (def && segments[0] !== def.slug) {
-			return map.routes.get([def.slug, ...segments].join('/')) ?? null;
+export function buildSections(docs: DocEntry[], opts?: BuildSectionsOptions): SectionMap {
+	const sections = normalizeSections(opts?.sections);
+	const active = (opts?.sections?.length ?? 0) > 0;
+	const errors: SiteError[] = [];
+
+	// Config-level checks: slugs must be URL-safe and unique.
+	const seenSlugs = new Set<string>();
+	for (const s of sections) {
+		if (!SLUG_RE.test(s.slug)) {
+			errors.push({
+				message: `Section slug "${s.slug}" must be lowercase letters, digits, and hyphens.`,
+			});
+		}
+		if (seenSlugs.has(s.slug)) {
+			errors.push({ message: `Two sections share the slug "${s.slug}".` });
+		}
+		seenSlugs.add(s.slug);
+	}
+
+	// Partition docs by section slug. Unprefixed titles belong to `docs`.
+	const bySlug = new Map<string, DocEntry[]>(sections.map((s) => [s.slug, []]));
+	for (const doc of docs) {
+		const { section } = splitSection(doc.meta.title);
+		const slug = section ?? 'docs';
+		const list = bySlug.get(slug);
+		if (!list) {
+			const declared = sections.map((s) => `"${s.slug}"`).join(', ');
+			errors.push({
+				message:
+					section === null
+						? `"${doc.meta.title}" has no @section prefix and no "docs" section is declared (sections: ${declared}).`
+						: `Unknown section "@${section}" in title "${doc.meta.title}" (sections: ${declared}).`,
+				file: doc.filePath,
+			});
+			continue;
+		}
+		list.push(doc);
+	}
+
+	const routes = new Map<string, RouteTarget>();
+	const routeOwners = new Map<string, DocEntry>();
+
+	const sectionTrees: SectionTree[] = sections.map((section) => {
+		const prefix = active ? [section.slug] : [];
+		const tree = buildTree(bySlug.get(section.slug) ?? [], prefix, errors);
+		registerRoutes(tree, routes, routeOwners, errors);
+		orderTree(tree, section.order, prefix.length);
+		return {
+			slug: section.slug,
+			title: section.title,
+			tree: pruneHidden(tree),
+			firstRoute: null,
+		};
+	});
+	for (const s of sectionTrees) s.firstRoute = firstDocRoute(s.tree);
+
+	// The root route: the configured home entity, or the About page when unset.
+	let home: RouteTarget | null = null;
+	if (opts?.home) {
+		home = routes.get(opts.home.replace(/^\/+|\/+$/g, '')) ?? null;
+		if (!home) {
+			errors.push({
+				message: `home "${opts.home}" doesn't match any entity route.`,
+			});
 		}
 	}
-	return null;
+
+	return { sections: sectionTrees, routes, active, home, errors };
+}
+
+/** Resolve URL segments to a doc. */
+export function resolveRoute(map: SectionMap, segments: string[]): RouteTarget | null {
+	if (segments.length === 0) return map.home;
+	return map.routes.get(segments.join('/')) ?? null;
 }
 
 /** Build a tree from flat doc entries; routes get `routePrefix` prepended. */
 export function buildTree(
 	docs: DocEntry[],
-	sidebar?: SidebarConfig,
 	routePrefix: string[] = [],
+	errors?: SiteError[],
 ): TreeNode[] {
 	const root: TreeNode[] = [];
 	const folderMap = new Map<string, TreeNode>();
-	// Slugs claimed per parent (keyed by display path) — collisions get -2, -3…
-	const claimed = new Map<string, Set<string>>();
-
-	const childRoute = (parentPath: string[], parentRoute: string[], name: string): string[] => {
-		const key = parentPath.join('/');
-		let used = claimed.get(key);
-		if (!used) {
-			used = new Set();
-			claimed.set(key, used);
-		}
-		return [...parentRoute, uniqueSlug(slugifySegment(name), used)];
-	};
 
 	for (const doc of docs) {
 		const title = splitSection(doc.meta.title).rest || 'Untitled';
@@ -192,7 +216,6 @@ export function buildTree(
 			const isGroup = i === 0 && segName.startsWith(':');
 			if (isGroup) segName = segName.slice(1).trim();
 
-			const parentPath = [...currentPath];
 			currentPath.push(segName);
 			const key = currentPath.join('/');
 
@@ -207,9 +230,9 @@ export function buildTree(
 						name: segName,
 						type: isGroup ? 'group' : 'folder',
 						path: [...currentPath],
-						route: childRoute(parentPath, parentRoute, segName),
+						route: [...parentRoute, slugifySegment(segName)],
 						children: [],
-						defaultExpanded: isGroup || sidebar?.open?.includes(segName),
+						defaultExpanded: isGroup,
 					};
 					parent.push(folder);
 				}
@@ -217,6 +240,15 @@ export function buildTree(
 			}
 			parent = folder.children;
 			parentRoute = folder.route;
+		}
+
+		// The route leaf: the explicit slug attribute, or the slugified segment.
+		const leaf = doc.routeSlug ?? slugifySegment(itemName);
+		if (doc.routeSlug && !SLUG_RE.test(doc.routeSlug) && errors) {
+			errors.push({
+				message: `slug="${doc.routeSlug}" in "${doc.meta.title}" must be lowercase letters, digits, and hyphens.`,
+				file: doc.filePath,
+			});
 		}
 
 		// Create the item node
@@ -231,13 +263,14 @@ export function buildTree(
 				name: itemName,
 				type: 'component',
 				path: itemPath,
-				route: childRoute(currentPath, parentRoute, itemName),
+				route: [...parentRoute, leaf],
 				children: [],
 			};
 
 			// Upgrade folder to component and attach doc data
 			componentNode.type = 'component';
 			componentNode.doc = doc;
+			componentNode.entity = true;
 			componentNode.examples = examples;
 
 			// Add "Docs" child — same doc, same route as the component itself
@@ -272,20 +305,16 @@ export function buildTree(
 				name: itemName,
 				type: kind,
 				path: itemPath,
-				route: childRoute(currentPath, parentRoute, itemName),
+				route: [...parentRoute, leaf],
 				children: [],
 				doc,
+				entity: true,
 			});
 		}
 	}
 
 	// Reorder component children: Docs → examples → sub-components (sorted by name)
 	reorderComponentChildren(root);
-
-	// Apply ordering
-	if (sidebar?.order) {
-		applyOrder(root, 'root', sidebar.order);
-	}
 
 	return root;
 }
@@ -300,19 +329,64 @@ function uniqueSlug(slug: string, used: Set<string>): string {
 	return candidate;
 }
 
-/** Register every doc-bearing node's route; example children carry the name. */
-function registerRoutes(nodes: TreeNode[], routes: Map<string, RouteTarget>): void {
+/** Register every doc-bearing node's route; two entities on one route is an
+ * error (the component's own "Docs" child shares its parent's route by design). */
+function registerRoutes(
+	nodes: TreeNode[],
+	routes: Map<string, RouteTarget>,
+	owners: Map<string, DocEntry>,
+	errors: SiteError[],
+): void {
 	for (const node of nodes) {
 		if (node.doc) {
 			const key = node.route.join('/');
-			if (!routes.has(key)) {
+			const owner = owners.get(key);
+			if (owner === undefined) {
+				owners.set(key, node.doc);
 				routes.set(
 					key,
 					node.snippetName ? { doc: node.doc, snippetName: node.snippetName } : { doc: node.doc },
 				);
+			} else if (owner !== node.doc) {
+				errors.push({
+					message: `Two entities share the route "/${key}": "${owner.meta.title}" and "${node.doc.meta.title}". Give one a slug="…".`,
+					file: node.doc.filePath,
+				});
 			}
 		}
-		if (node.children.length > 0) registerRoutes(node.children, routes);
+		if (node.children.length > 0) registerRoutes(node.children, routes, owners, errors);
+	}
+}
+
+/** Drop hidden entities (and their subtrees) from the sidebar; their routes
+ * stay registered. Folders left empty disappear with them. */
+function pruneHidden(nodes: TreeNode[]): TreeNode[] {
+	const out: TreeNode[] = [];
+	for (const node of nodes) {
+		if (node.entity && node.doc?.hide) continue;
+		const children = pruneHidden(node.children);
+		if ((node.type === 'folder' || node.type === 'group') && children.length === 0) continue;
+		out.push({ ...node, children });
+	}
+	return out;
+}
+
+/**
+ * Sort each level: items whose section-relative route path appears in the
+ * section's `order` array come first (in array order), the rest follow
+ * alphabetically. Component children keep their Docs → examples order.
+ */
+function orderTree(nodes: TreeNode[], order: string[], prefixLen: number): void {
+	const rank = (node: TreeNode): number => {
+		const rel = node.route.slice(prefixLen).join('/');
+		const i = order.indexOf(rel);
+		return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+	};
+	nodes.sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
+	for (const node of nodes) {
+		if (node.children.length > 0 && (node.type === 'folder' || node.type === 'group')) {
+			orderTree(node.children, order, prefixLen);
+		}
 	}
 }
 
@@ -356,63 +430,8 @@ function reorderComponentChildren(nodes: TreeNode[]): void {
 	}
 }
 
-/** Apply sort order to children at each level */
-function applyOrder(
-	nodes: TreeNode[],
-	folderKey: string,
-	orderConfig: Record<string, string[]>,
-): void {
-	const order = orderConfig[folderKey];
-	if (order) {
-		sortByOrder(nodes, order);
-	} else {
-		// Default: alphabetical
-		nodes.sort((a, b) => a.name.localeCompare(b.name));
-	}
-
-	// Recurse into folders/groups
-	for (const node of nodes) {
-		if (node.children.length > 0 && (node.type === 'folder' || node.type === 'group')) {
-			const childKey = folderKey === 'root' ? node.name : `${folderKey}/${node.name}`;
-			applyOrder(node.children, childKey, orderConfig);
-		}
-	}
-}
-
-/** Sort nodes by explicit order, with * as wildcard for the rest */
-function sortByOrder(nodes: TreeNode[], order: string[]): void {
-	const wildcardIndex = order.indexOf('*');
-	const before = wildcardIndex >= 0 ? order.slice(0, wildcardIndex) : order;
-	const after = wildcardIndex >= 0 ? order.slice(wildcardIndex + 1) : [];
-
-	const named = new Map<string, TreeNode>();
-	const rest: TreeNode[] = [];
-
-	for (const node of nodes) {
-		if (before.includes(node.name) || after.includes(node.name)) {
-			named.set(node.name, node);
-		} else {
-			rest.push(node);
-		}
-	}
-
-	// Rest sorted alphabetically
-	rest.sort((a, b) => a.name.localeCompare(b.name));
-
-	nodes.length = 0;
-	for (const name of before) {
-		const node = named.get(name);
-		if (node) nodes.push(node);
-	}
-	nodes.push(...rest);
-	for (const name of after) {
-		const node = named.get(name);
-		if (node) nodes.push(node);
-	}
-}
-
 /**
- * The title shown to users. The `@Section/` prefix routes to a top-bar
+ * The title shown to users. The `@section/` prefix routes to a top-bar
  * section and a leading ':' on the first segment is a sidebar grouping
  * directive (see buildTree) — neither is part of the displayed title.
  */

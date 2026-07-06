@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import { readFileSync, existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { parseSdoc, scanSdoc } from 'sdocs/language';
 import { importedIdentifiers } from './sdocSource';
 
@@ -86,6 +88,42 @@ export class SdocDiagnostics implements vscode.Disposable {
 			}
 		}
 
+		// Section references must name a section declared in sdocs.config.
+		// Config-less projects (or configs too dynamic to read) are skipped.
+		const declaredSlugs = declaredSectionSlugs(doc.uri.fsPath);
+		if (declaredSlugs) {
+			const list = declaredSlugs.map((s) => `"${s}"`).join(', ');
+			for (const entity of scanned.entities) {
+				const attr = entity.attrs.title;
+				if (!attr || attr.kind !== 'string') continue;
+				const raw = attr.raw;
+				if (!raw.trimStart().startsWith('@')) {
+					if (!declaredSlugs.includes('docs')) {
+						diagnostics.push(
+							new vscode.Diagnostic(
+								rangeAt(doc, attr.valueSpan.start, Math.max(1, raw.length)),
+								`sdocs: no @section prefix, and no "docs" section is declared (sections: ${list}).`,
+								vscode.DiagnosticSeverity.Warning,
+							),
+						);
+					}
+					continue;
+				}
+				const m = raw.match(/^(\s*@)([^/]*)/);
+				if (!m) continue;
+				const ref = m[2].trim();
+				if (!declaredSlugs.includes(ref)) {
+					diagnostics.push(
+						new vscode.Diagnostic(
+							rangeAt(doc, attr.valueSpan.start + m[1].length - 1, ref.length + 1),
+							`sdocs: unknown section "@${ref}" (sections: ${list}).`,
+							vscode.DiagnosticSeverity.Warning,
+						),
+					);
+				}
+			}
+		}
+
 		this.collection.set(doc.uri, diagnostics);
 	}
 
@@ -99,4 +137,33 @@ export class SdocDiagnostics implements vscode.Disposable {
 
 function rangeAt(doc: vscode.TextDocument, offset: number, length: number): vscode.Range {
 	return new vscode.Range(doc.positionAt(offset), doc.positionAt(offset + length));
+}
+
+/**
+ * Section slugs declared by the project's sdocs.config (found walking up from
+ * the doc file). null means "don't check": no config on disk, or a config
+ * whose sections can't be read statically. No `sections` key means the
+ * implicit lone `docs` section.
+ */
+function declaredSectionSlugs(docPath: string): string[] | null {
+	let dir = dirname(docPath);
+	for (let depth = 0; depth < 24; depth++) {
+		for (const name of ['sdocs.config.ts', 'sdocs.config.mjs', 'sdocs.config.js']) {
+			const candidate = join(dir, name);
+			if (!existsSync(candidate)) continue;
+			let text: string;
+			try {
+				text = readFileSync(candidate, 'utf-8');
+			} catch {
+				return null;
+			}
+			if (!/\bsections\s*:/.test(text)) return ['docs'];
+			const slugs = [...text.matchAll(/\bslug\s*:\s*['"]([^'"]+)['"]/g)].map((m) => m[1]);
+			return slugs.length > 0 ? slugs : null;
+		}
+		const parent = dirname(dir);
+		if (parent === dir) break;
+		dir = parent;
+	}
+	return null;
 }

@@ -66,9 +66,10 @@ separated by `/` create groups, exactly like folders:
 `title="Forms / Button"` puts Button inside the Forms group. Within a group,
 entities appear in document order, then by file path. Two prefixes on the
 first segment add structure above folders: `:` makes a bold sidebar group
-(`title=":Forms / Button"`), and `@` assigns the entity to a top-bar
-[section](/explorer/features/sidebar#sections-top-bar)
-(`title="@Components/Forms / Button"`).
+(`title=":Forms / Button"`), and `@slug/` assigns the entity to a top-bar
+[section](/explorer/features/sidebar#sections-top-bar) declared in the
+config (`title="@components/Forms / Button"`); an unknown slug is a
+full-page error.
 
 ## Multiple entities per file
 

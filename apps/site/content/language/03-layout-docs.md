@@ -28,6 +28,8 @@ clean, isolated stage: a login form, a dashboard shell, a card grid.
 | Attribute | Required | Meaning |
 |---|---|---|
 | `title` | yes | Sidebar path, `/`-separated |
+| `slug` | no | Overrides the URL segment (default: slugified title segment) |
+| `hide` | no | A bare flag: routable, but never listed in a sidebar |
 | `maxWidth` | no | Stage width (default `100%`; narrower stages center) |
 | `padding` | no | Space around the sketch inside the frame (default `0px`) |
 

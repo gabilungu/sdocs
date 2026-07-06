@@ -8,7 +8,7 @@ import { generateBuildFiles, cleanBuildFiles } from '../server/app-gen.js';
 import { discoverDocFiles } from '../server/discovery.js';
 import { parseSdoc } from '../language/index.js';
 import { planEntitySnippets } from '../server/doc-model.js';
-import { buildSections } from '../explorer/tree-builder.js';
+import { buildSections, type SectionMap } from '../explorer/tree-builder.js';
 import type { DocEntry, ResolvedSdocsConfig } from '../types.js';
 import { svelteDedupe } from './dev.js';
 
@@ -20,6 +20,17 @@ export async function buildCommand(opts?: { base?: string }): Promise<void> {
 
 	console.log('[sdocs] Building static site...');
 	if (config.base !== '/') console.log(`[sdocs] Base path: ${config.base}`);
+
+	// Validate the site structure up front — an unknown @section, a route
+	// collision, or a bad home path must fail the build, not deploy broken.
+	const map = await buildSiteMap(config, cwd);
+	if (map.errors.length > 0) {
+		console.error(`[sdocs] ${map.errors.length} site structure error(s):`);
+		for (const e of map.errors) {
+			console.error(`  ✗ ${e.message}${e.file ? `\n    ${e.file}` : ''}`);
+		}
+		process.exit(1);
+	}
 
 	// Generate the staging directory (in the OS temp dir) with entry + preview HTML files
 	const { sdocsDir, inputs } = await generateBuildFiles(config, cwd);
@@ -64,7 +75,7 @@ export async function buildCommand(opts?: { base?: string }): Promise<void> {
 		// shell — asset URLs are root-absolute), so deep links work on any
 		// static host with no rewrite rules.
 		if ((config.routing ?? 'history') === 'history') {
-			const count = await emitRoutePages(config, cwd);
+			const count = await emitRoutePages(map, cwd);
 			console.log(`[sdocs] Emitted ${count} route page(s)`);
 		}
 
@@ -74,8 +85,9 @@ export async function buildCommand(opts?: { base?: string }): Promise<void> {
 	}
 }
 
-/** Re-derive the route map from the doc files and copy the shell into each route. */
-async function emitRoutePages(config: ResolvedSdocsConfig, cwd: string): Promise<number> {
+/** The site's section/route map, derived from the doc files exactly as the
+ * Explorer derives it — one validation, two consumers. */
+async function buildSiteMap(config: ResolvedSdocsConfig, cwd: string) {
 	const files = await discoverDocFiles(config.include, cwd);
 	const stubs: DocEntry[] = [];
 	for (const filePath of files) {
@@ -94,14 +106,19 @@ async function emitRoutePages(config: ResolvedSdocsConfig, cwd: string): Promise
 								.map((s) => ({ name: s.name, slug: s.slug, role: s.role, body: '' }))
 						: [],
 				content: null,
+				routeSlug: entity.routeSlug ?? undefined,
+				hide: entity.hide,
 			});
 		}
 	}
-
-	const map = buildSections(stubs, config.sidebar, {
-		defaultSection: config.defaultSection,
-		order: config.sections,
+	return buildSections(stubs, {
+		sections: config.sectionsDeclared ? config.sections : undefined,
+		home: config.home,
 	});
+}
+
+/** Copy the built shell into each route directory. */
+async function emitRoutePages(map: SectionMap, cwd: string): Promise<number> {
 	const shell = await readFile(resolve(cwd, 'dist/index.html'), 'utf-8');
 	// Every doc route, plus the always-present /about page.
 	const keys = [...map.routes.keys(), 'about'];

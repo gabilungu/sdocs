@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.68] - 2026-07-06
+
+### Changed
+
+- **BREAKING: sections are declared, validated, and slug-referenced.** The
+  config's `sections` is now an array of `{ slug, title?, order? }` objects
+  in top-bar order; titles reference sections by slug
+  (`title="@guides/Installation"`). An unknown `@section`, two entities on
+  one route, or an unresolvable `home` renders a full-page error in dev and
+  **fails `sdocs build`** — a broken structure can't deploy. Route
+  collisions no longer auto-number. `defaultSection`, `sidebar.order`, and
+  `sidebar.open` are removed: unprefixed titles belong to a declared (or,
+  with no sections, the implicit) `docs` section, and sidebar ordering
+  lives in each section's `order` array of route paths (listed first,
+  alphabetical after).
+- **BREAKING: the landing page moves to config.** `home: 'guides/introduction'`
+  (a route path) replaces the `home` flag on `[PAGE]`. The home entity stays
+  listed in its sidebar; the new bare `hide` flag on any entity keeps it
+  routable but unlisted.
+
+### Added
+
+- **`slug` attribute on entities** — overrides the URL segment
+  (`slug="my-page"`; lowercase letters, digits, hyphens); the escape hatch
+  for route collisions.
+- **`hide` attribute on entities** — routable, never listed in a sidebar.
+
 ## [0.0.67] - 2026-07-06
 
 ### Changed

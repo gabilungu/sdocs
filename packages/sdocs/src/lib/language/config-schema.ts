@@ -110,14 +110,14 @@ export const configSchema: ConfigSchema = {
 		insert: ": '${0:/logo.svg}'",
 	},
 	sections: {
-		detail: 'string[]',
-		doc: 'Top-bar section order. Sections come from `@Section/…` title prefixes; unlisted sections follow alphabetically.',
-		insert: ': [$0]',
+		detail: '{ slug, title?, order? }[]',
+		doc: "The site's sections, in top-bar order. Titles reference a section by slug: `title=\"@guides/…\"`. `title` defaults to the capitalized slug; `order` lists route paths to pin first in the sidebar. Without sections, a single implicit `docs` section exists (no top bar).",
+		insert: ": [\n\t{ slug: '$1' },$0\n]",
 	},
-	defaultSection: {
+	home: {
 		detail: 'string',
-		doc: 'Section for docs without an `@Section/` title prefix. Default: `Docs`.',
-		insert: ": '${0:Docs}'",
+		doc: "Route path of the landing page, e.g. `'guides/introduction'`. Must resolve to an entity; without it the root shows the About page.",
+		insert: ": '$0'",
 	},
 	routing: {
 		detail: "'history' | 'hash'",
@@ -131,23 +131,7 @@ export const configSchema: ConfigSchema = {
 		doc: "Public base path the built site is served under, e.g. `'/repo/'` for a GitHub project Pages site. Applies to `sdocs build` only. Default: `'/'`.",
 		insert: ": '${0:/}'",
 	},
-	sidebar: {
-		detail: 'object',
-		doc: 'Sidebar ordering and default-expanded folders.',
-		insert: ': {\n\t$0\n}',
-		object: {
-			order: {
-				detail: 'Record<string, string[]>',
-				doc: "Per-folder sort overrides. Keys are folder paths (`'root'` for the top level); `'*'` stands for unlisted items.",
-				insert: ': {\n\t$0\n}',
-			},
-			open: {
-				detail: 'string[]',
-				doc: 'Folders expanded by default on load.',
-				insert: ': [$0]',
-			},
-		},
-	},
+
 	content: {
 		detail: 'object',
 		doc: 'Content presentation per entity kind. Entity and block attributes override these.',

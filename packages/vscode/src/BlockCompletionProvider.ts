@@ -56,7 +56,8 @@ const ATTR_SHOWCASE: Record<string, string> = {
 	contentX: 'Horizontal alignment of stage contents: `left` · `center` · `right` · `justify` (spread). On `[PAGE]`, aligns the content column instead: `left` · `center` · `right`.',
 	contentY: 'Vertical alignment of stage contents: `top` · `middle` · `bottom` · `justify` (spread).',
 	toc: '`toc="false"` hides the table of contents for this page.',
-	home: 'Marks this page as the site landing page: it renders at the root route, is reached via the logo, and never appears in a sidebar.',
+	slug: 'Overrides the URL segment for this entity (lowercase letters, digits, hyphens). Defaults to the slugified last title segment.',
+	hide: 'Keeps this entity routable but out of every sidebar — for pages reached by link only (a home page, say).',
 };
 
 /** Snippet body for an attribute, from its value kind (special-cased for args). */

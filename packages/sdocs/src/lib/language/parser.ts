@@ -63,6 +63,10 @@ export interface ShowcaseEntity {
 	kind: 'SHOWCASE';
 	title: string;
 	slug: string;
+	/** Explicit route leaf from slug="…"; null → slugified title segment */
+	routeSlug: string | null;
+	/** `hide` flag: routable but never listed in a sidebar */
+	hide: boolean;
 	description: string | null;
 	sizing: Sizing;
 	previews: PreviewBlock[];
@@ -75,8 +79,10 @@ export interface PageEntity {
 	kind: 'PAGE';
 	title: string;
 	slug: string;
-	/** `home` flag: this page is the site's landing page (root route). */
-	home: boolean;
+	/** Explicit route leaf from slug="…"; null → slugified title segment */
+	routeSlug: string | null;
+	/** `hide` flag: routable but never listed in a sidebar */
+	hide: boolean;
 	sizing: Sizing;
 	/** Prose body with each [example] block replaced by a
 	 * `{@render __sdocsExample?.(i)}` marker the page renderer resolves. */
@@ -92,6 +98,10 @@ export interface LayoutEntity {
 	kind: 'LAYOUT';
 	title: string;
 	slug: string;
+	/** Explicit route leaf from slug="…"; null → slugified title segment */
+	routeSlug: string | null;
+	/** `hide` flag: routable but never listed in a sidebar */
+	hide: boolean;
 	sizing: Sizing;
 	body: string;
 	bodySpan: Span;
@@ -183,23 +193,30 @@ function sizingOf(attrs: Attrs): Sizing {
 	};
 }
 
+const ROUTE_ATTR_RULES: Record<string, AttrRule> = {
+	slug: { required: false, kind: 'string', hint: 'slug="url-segment"' },
+	hide: { required: false, kind: 'bare', hint: 'hide' },
+};
+
 const ENTITY_ATTR_RULES: Record<string, Record<string, AttrRule>> = {
 	SHOWCASE: {
 		title: { required: true, kind: 'string', hint: 'title="Group / Name"' },
 		description: { required: false, kind: 'string', hint: 'description="…"' },
+		...ROUTE_ATTR_RULES,
 		...SIZING_ATTR_RULES,
 		...STAGE_LAYOUT_ATTR_RULES,
 	},
 	PAGE: {
 		title: { required: true, kind: 'string', hint: 'title="Group / Name"' },
+		...ROUTE_ATTR_RULES,
 		...SIZING_ATTR_RULES,
 		// On PAGE, contentX aligns the content column (with its toc), not a stage.
 		contentX: { required: false, kind: 'string', hint: 'contentX="center"' },
 		toc: { required: false, kind: 'string', hint: 'toc="false"' },
-		home: { required: false, kind: 'bare', hint: 'home' },
 	},
 	LAYOUT: {
 		title: { required: true, kind: 'string', hint: 'title="Group / Name"' },
+		...ROUTE_ATTR_RULES,
 		...SIZING_ATTR_RULES,
 	},
 };
@@ -267,9 +284,24 @@ function stringAttr(attrs: Attrs, name: string): string | null {
 	return v && v.kind === 'string' ? v.raw : null;
 }
 
-/** A bare flag attribute (`home`) is true when present. */
+/** A bare flag attribute (`hide`) is true when present. */
 function bareAttr(attrs: Attrs, name: string): boolean {
 	return attrs[name]?.kind === 'bare';
+}
+
+/** slug="…" must be a URL-safe segment: lowercase letters, digits, hyphens. */
+function routeSlugAttr(attrs: Attrs, diagnostics: ScanError[]): string | null {
+	const v = attrs['slug'];
+	if (!v || v.kind !== 'string') return null;
+	if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(v.raw)) {
+		diagnostics.push({
+			code: 'invalid-slug',
+			message: `slug="${v.raw}" must be lowercase letters, digits, and hyphens (e.g. slug="my-page").`,
+			span: v.span,
+		});
+		return null;
+	}
+	return v.raw;
 }
 
 /**
@@ -427,6 +459,8 @@ function parseShowcase(entity: Entity, diagnostics: ScanError[]): ShowcaseEntity
 		kind: 'SHOWCASE',
 		title,
 		slug: slugifyTitle(title),
+		routeSlug: routeSlugAttr(entity.attrs, diagnostics),
+		hide: bareAttr(entity.attrs, 'hide'),
 		description: stringAttr(entity.attrs, 'description'),
 		sizing: sizingOf(entity.attrs),
 		previews,
@@ -469,7 +503,8 @@ function parsePage(entity: Entity, diagnostics: ScanError[]): PageEntity {
 		kind: 'PAGE',
 		title,
 		slug: slugifyTitle(title),
-		home: bareAttr(entity.attrs, 'home'),
+		routeSlug: routeSlugAttr(entity.attrs, diagnostics),
+		hide: bareAttr(entity.attrs, 'hide'),
 		sizing: sizingOf(entity.attrs),
 		body: normalizeBody(spliceExampleMarkers(entity)),
 		examples,
@@ -498,6 +533,8 @@ export function parseSdoc(source: string): SdocDocument {
 				kind: 'LAYOUT',
 				title,
 				slug: slugifyTitle(title),
+				routeSlug: routeSlugAttr(entity.attrs, diagnostics),
+				hide: bareAttr(entity.attrs, 'hide'),
 				sizing: sizingOf(entity.attrs),
 				body: normalizeBody(entity.body),
 				bodySpan: entity.bodySpan,

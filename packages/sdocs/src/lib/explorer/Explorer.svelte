@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { DocEntry } from '../types.js';
+	import type { DocEntry, SectionConfig } from '../types.js';
 	import { initRouter, getRoute, navigate, type RoutingMode } from './router.svelte.js';
 	import { buildSections, resolveRoute } from './tree-builder.js';
 	import Sidebar from './views/Sidebar.svelte';
@@ -8,6 +8,7 @@
 	import PageView from './views/PageView.svelte';
 	import LayoutView from './views/LayoutView.svelte';
 	import AboutPage from './views/AboutPage.svelte';
+	import ErrorScreen from './views/ErrorScreen.svelte';
 	import { onMount, setContext } from 'svelte';
 	import '../ui/styles/sdocs.css';
 
@@ -26,14 +27,10 @@
 		previewBase?: string;
 		/** Native page components from `virtual:sdocs`, keyed by contentKey. */
 		pageModules?: Record<string, () => Promise<{ default: unknown }>>;
-		sidebarConfig?: {
-			order?: Record<string, string[]>;
-			open?: string[];
-		};
-		/** Top-bar section order (unlisted sections follow alphabetically) */
-		sections?: string[];
-		/** Section for docs without an `@Section/` title prefix. Default: 'Docs' */
-		defaultSection?: string;
+		/** The site's sections, in top-bar order (titles reference their slugs) */
+		sections?: SectionConfig[];
+		/** Route path of the landing page (e.g. 'guides/introduction') */
+		home?: string | null;
 		/** 'history' for real paths (server must fall back to the shell),
 		 * 'hash' for #/ URLs. Embedded default: 'hash'. */
 		routing?: RoutingMode;
@@ -51,9 +48,8 @@
 		cssNames = [],
 		previewBase = '',
 		pageModules = {},
-		sidebarConfig,
 		sections,
-		defaultSection = 'Docs',
+		home = null,
 		routing = 'hash',
 		basePath = '',
 		sdocsVersion
@@ -106,10 +102,8 @@
 	});
 
 	const currentRoute = $derived(getRoute());
-	const sectionMap = $derived(
-		buildSections(docs, sidebarConfig, { defaultSection, order: sections }),
-	);
-	const showTopBar = $derived(sectionMap.sections.length > 1);
+	const sectionMap = $derived(buildSections(docs, { sections, home }));
+	const showTopBar = $derived(sectionMap.active && sectionMap.sections.length > 1);
 	// The section the current route sits in — undefined on the home/about
 	// screens, so no tab reads as active there.
 	const routeSection = $derived(
@@ -117,18 +111,12 @@
 	);
 	// The section whose sidebar to show — falls back to the first when the
 	// route points nowhere (home, about, unknown), so there's always a tree.
-	const activeSection = $derived(
-		routeSection ??
-			sectionMap.sections.find((s) => s.isDefault) ??
-			sectionMap.sections[0],
-	);
+	const activeSection = $derived(routeSection ?? sectionMap.sections[0]);
 	// The About page (mascot + stats + sdocs version) lives at /about and is
-	// the landing page whenever no page is marked `home`.
+	// the landing page whenever the config sets no `home`.
 	const isAboutRoute = $derived(currentRoute.length === 1 && currentRoute[0] === 'about');
-	const resolved = $derived(resolveRoute(sectionMap, currentRoute));
-	// Root or an unknown route lands on the home page, or About as the fallback.
-	const atRoot = $derived(!isAboutRoute && !resolved);
-	const landing = $derived(atRoot ? sectionMap.home : null);
+	// The root route resolves to the configured home entity (or null → About).
+	const resolved = $derived(isAboutRoute ? null : resolveRoute(sectionMap, currentRoute));
 
 	/** History mode: internal <a> clicks route client-side instead of reloading. */
 	function onLinkClick(e: MouseEvent) {
@@ -151,6 +139,9 @@
 <svelte:window onclick={onLinkClick} />
 
 <div class="sdocs-app" class:sdocs-app-with-topbar={showTopBar}>
+	{#if sectionMap.errors.length > 0}
+		<ErrorScreen errors={sectionMap.errors} />
+	{:else}
 	{#if showTopBar}
 		<TopBar
 			title={headerTitle}
@@ -186,9 +177,7 @@
 			</button>
 		{/if}
 		<main class="sdocs-main" class:sdocs-main-fullscreen={sidebarHidden}>
-			{#if landing}
-				<PageView doc={landing.doc} {activeStylesheet} {pageModules} />
-			{:else if resolved}
+			{#if resolved}
 				{#if resolved.doc.kind === 'page'}
 					<PageView doc={resolved.doc} {activeStylesheet} {pageModules} />
 				{:else if resolved.doc.kind === 'layout'}
@@ -201,6 +190,7 @@
 			{/if}
 		</main>
 	</div>
+	{/if}
 </div>
 
 <style>

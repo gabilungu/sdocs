@@ -52,7 +52,7 @@
 				aria-current={section.slug === activeSlug ? 'page' : undefined}
 				href={routeHref(section.firstRoute ?? [section.slug])}
 			>
-				{section.name}
+				{section.title}
 			</a>
 		{/each}
 	</nav>

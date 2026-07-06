@@ -150,11 +150,10 @@ mount(Explorer, {
 		pageModules,
 		title: ${JSON.stringify(config.title)},
 		logo: ${JSON.stringify(config.logo)},
-		sections: ${JSON.stringify(config.sections)},
-		defaultSection: ${JSON.stringify(config.defaultSection)},
+		sections: ${JSON.stringify(config.sectionsDeclared ? config.sections : [])},
+		home: ${JSON.stringify(config.home)},
 		routing: ${JSON.stringify(config.routing ?? 'history')},
 		basePath: ${JSON.stringify(basePath)},
-		sidebarConfig: ${JSON.stringify(config.sidebar)},
 		sdocsVersion: ${JSON.stringify(sdocsVersion())},
 	}
 });`;

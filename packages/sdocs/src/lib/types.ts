@@ -19,13 +19,13 @@ export interface SdocsConfig {
 	/** Browser-tab favicon — a path (e.g. '/logo.svg' from the static folder)
 	 * or URL. Default: the built-in sdocs icon. */
 	favicon?: string;
-	/** Top-bar section order. Sections come from `@Section/...` title prefixes;
-	 * unlisted sections follow alphabetically. Default: default section first,
-	 * rest alphabetical. */
-	sections?: string[];
-	/** Name of the section that docs without an `@Section/` prefix belong to.
-	 * Default: 'Docs' */
-	defaultSection?: string;
+	/** The site's sections, in top-bar order. Titles reference a section by
+	 * its slug (`title="@guides/…"`); an unknown slug is an error. When
+	 * absent, a single implicit `docs` section exists and no top bar renders. */
+	sections?: SectionConfig[];
+	/** Route path of the landing page (e.g. 'guides/introduction'). Must
+	 * resolve to an entity; when absent the root shows the About page. */
+	home?: string;
 	/** URL style: 'history' for real paths (default in the standalone CLI,
 	 * needs the server to fall back to the shell), 'hash' for #/ URLs
 	 * (default when embedding — works under any host routing). */
@@ -34,13 +34,7 @@ export interface SdocsConfig {
 	 * GitHub project Pages site. Applies to `sdocs build` only — `sdocs dev`
 	 * always serves at the root. Default: '/'. */
 	base?: string;
-	/** Sidebar configuration */
-	sidebar?: {
-		/** Per-folder sort overrides. Keys are folder paths, 'root' for top level. '*' = unlisted items. */
-		order?: Record<string, string[]>;
-		/** Folders expanded by default on load. */
-		open?: string[];
-	};
+
 	/** Content presentation per entity kind; entity/block attributes override these. */
 	content?: {
 		/** [PAGE] content. Defaults: maxWidth '1200px', padding '32px', toc true. */
@@ -67,6 +61,17 @@ export interface SdocsConfig {
 		/** [LAYOUT] stages. Defaults: maxWidth '100%', padding '0px'. */
 		layout?: ContentSizing;
 	};
+}
+
+/** One top-bar section. */
+export interface SectionConfig {
+	/** URL-safe identity — the first route segment and the `@slug/` titles use. */
+	slug: string;
+	/** Tab label. Default: the capitalized slug. */
+	title?: string;
+	/** Sidebar ordering: route paths relative to the section. Listed items
+	 * sort first at their level; the rest follow alphabetically. */
+	order?: string[];
 }
 
 /** Content sizing knobs (any CSS length; padding takes CSS shorthand) */
@@ -99,16 +104,14 @@ export interface ResolvedSdocsConfig {
 	logo: string | false;
 	/** Favicon href for the built page; the built-in sdocs icon by default. */
 	favicon: string;
-	sections: string[];
-	defaultSection: string;
+	sections: Required<SectionConfig>[];
+	/** True when the config declared sections (drives strict validation + top bar) */
+	sectionsDeclared: boolean;
+	home: string | null;
 	/** null = per-mode default (standalone: history, embedded: hash) */
 	routing: 'history' | 'hash' | null;
 	/** Normalized public base path for the build (leading + trailing slash). */
 	base: string;
-	sidebar: {
-		order: Record<string, string[]>;
-		open: string[];
-	};
 	content: {
 		page: Required<ContentSizing> & { toc: boolean; contentX: string };
 		showcase: Required<ContentSizing> & { direction: string; gap: string; contentX: string; contentY: string };
@@ -235,7 +238,8 @@ export interface DocEntry {
 	bodyTitle?: string;
 	/** Key into the virtual module's pageModules map (pages only) */
 	contentKey?: string;
-	/** `home` flag: this page is the site's landing page, at the root route
-	 * and reached via the logo — never listed in a sidebar (pages only). */
-	home?: boolean;
+	/** Explicit route leaf from slug="…"; the slugified title segment otherwise */
+	routeSlug?: string;
+	/** `hide` flag: routable but never listed in a sidebar */
+	hide?: boolean;
 }

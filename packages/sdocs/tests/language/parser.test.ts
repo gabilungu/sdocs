@@ -109,12 +109,17 @@ describe('parseSdoc validation', () => {
 		);
 	});
 
-	it('parses the bare home flag on a PAGE', () => {
-		const home = parseSdoc('[PAGE title="Intro" home]\nx\n[/PAGE]\n');
-		expect(home.diagnostics).toEqual([]);
-		expect((home.entities[0] as { home: boolean }).home).toBe(true);
-		const plain = parseSdoc('[PAGE title="Intro"]\nx\n[/PAGE]\n');
-		expect((plain.entities[0] as { home: boolean }).home).toBe(false);
+	it('parses slug and the bare hide flag on entities', () => {
+		const doc = parseSdoc('[PAGE title="Intro" slug="intro-page" hide]\nx\n[/PAGE]\n');
+		expect(doc.diagnostics).toEqual([]);
+		expect(doc.entities[0]).toMatchObject({ routeSlug: 'intro-page', hide: true });
+		const plain = parseSdoc('[LAYOUT title="L"]\nx\n[/LAYOUT]\n');
+		expect(plain.entities[0]).toMatchObject({ routeSlug: null, hide: false });
+	});
+
+	it('rejects malformed slug values', () => {
+		const doc = parseSdoc('[PAGE title="Intro" slug="Not OK"]\nx\n[/PAGE]\n');
+		expect(doc.diagnostics.map((d) => d.code)).toContain('invalid-slug');
 	});
 
 	it('rejects wrong attribute value kinds', () => {

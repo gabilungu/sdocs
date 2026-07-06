@@ -74,7 +74,9 @@ You still need `.sdoc` files for it to have something to show; see
 
 ## `sdocs build`
 
-Builds a static site to `dist/`. The output is a single-page app with a pre-rendered iframe preview page per snippet, plus an `index.html` per doc route (and a `404.html` fallback) — deep links work with no rewrite rules. Deploy anywhere that serves static files (GitHub Pages, Netlify, Vercel, S3).
+Builds a static site to `dist/`. Site-structure errors — an unknown
+`@section`, two entities on one route, an unresolvable `home` — fail the
+build with a non-zero exit, so a broken structure can't deploy. The output is a single-page app with a pre-rendered iframe preview page per snippet, plus an `index.html` per doc route (and a `404.html` fallback) — deep links work with no rewrite rules. Deploy anywhere that serves static files (GitHub Pages, Netlify, Vercel, S3).
 
 Pass `--base <path>` when the site is served under a sub-path (a GitHub project Pages site lives at `/<repo>/`); it overrides the [`base`](/explorer/configuration#base) config, which lets CI derive it from the repo name:
 

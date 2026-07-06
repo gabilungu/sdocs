@@ -29,14 +29,10 @@ interface SdocsConfig {
   title?: string;
   logo?: string | false;
   favicon?: string;
-  sections?: string[];
-  defaultSection?: string;
+  sections?: { slug: string; title?: string; order?: string[] }[];
+  home?: string;
   routing?: 'history' | 'hash';
   base?: string;
-  sidebar?: {
-    order?: Record<string, string[]>;
-    open?: string[];
-  };
   static?: string;
   content?: {
     page?: { maxWidth?: string; padding?: string; toc?: boolean; contentX?: string };
@@ -167,23 +163,41 @@ favicon: '/logo.svg'
 
 ### `sections`
 
-Top-bar section order. Sections come from `@Section/` title prefixes; any
-sections not listed here follow alphabetically.
+The site's sections, declared in top-bar order. Each has a URL-safe `slug`
+(its identity — the first route segment, and what titles reference via
+`title="@slug/…"`), an optional `title` for the tab (defaults to the
+capitalized slug), and an optional `order` array of route paths relative to
+the section — listed items sort first at their level, everything else
+follows alphabetically.
 
-- **Type:** `string[]`
-- **Default:** `[]` (default section first, rest alphabetical)
+- **Type:** `{ slug, title?, order? }[]`
+- **Default:** none — a single implicit `docs` section, and no top bar
 
 ```js
-sections: ['Guides', 'Components', 'Reference']
+sections: [
+  { slug: 'guides', title: 'Guides', order: ['introduction', 'colors'] },
+  { slug: 'components' },
+]
 ```
 
-### `defaultSection`
+Referencing an undeclared section (or writing an unprefixed title when no
+`docs` section is declared) is an error: the Explorer shows it full-page and
+`sdocs build` fails.
 
-Name of the section that docs *without* an `@Section/` title prefix belong
-to. Only relevant once at least one doc declares a section.
+### `home`
+
+Route path of the landing page — what the root URL and the logo show.
 
 - **Type:** `string`
-- **Default:** `'Docs'`
+- **Default:** none — the root shows the [About page](/language/page-docs#about-page)
+
+```js
+home: 'guides/introduction'
+```
+
+The path must resolve to an entity (an unresolvable `home` is an error). The
+home entity stays listed in its section's sidebar; add `hide` to its opener
+to keep it reachable only via the logo.
 
 ### `routing`
 
@@ -219,37 +233,6 @@ base: '/gabi/'
 
 `sdocs build` also writes a `404.html` (a copy of the shell), so an unknown
 deep link on a static host still boots the app instead of a bare 404.
-
-### `sidebar.order`
-
-Per-folder ordering overrides. Key is the folder *path* from the root, slash-joined for nested folders — `'root'` for the top level, `'Components'` for a top-level folder, `'Components/Forms'` for a nested one. Value is an array of labels.
-
-- **Type:** `Record<string, string[]>`
-- **Default:** `{}`
-
-`'*'` acts as a wildcard for any items not explicitly listed, in alphabetical order.
-
-```js
-sidebar: {
-  order: {
-    root: ['Getting Started', 'Components', '*', 'Advanced'],
-    Components: ['Button', 'Input', '*'],
-  },
-}
-```
-
-### `sidebar.open`
-
-Folders to expand by default.
-
-- **Type:** `string[]`
-- **Default:** `[]`
-
-```js
-sidebar: {
-  open: ['Components', 'Forms'],
-}
-```
 
 ### `content`
 
@@ -306,17 +289,14 @@ export default {
   port: 3001,
   open: true,
   title: 'Acme Design System',
-  sections: ['Guides', 'Components'],
+  sections: [
+    { slug: 'guides', title: 'Guides', order: ['getting-started'] },
+    { slug: 'components', order: ['button', 'input', 'select'] },
+  ],
+  home: 'guides/getting-started',
   css: {
     light: './src/styles/light.css',
     dark: './src/styles/dark.css',
-  },
-  sidebar: {
-    order: {
-      root: ['Getting Started', 'Components', '*'],
-      Components: ['Button', 'Input', 'Select', '*'],
-    },
-    open: ['Components'],
   },
 };
 ```

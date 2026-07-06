@@ -34,46 +34,49 @@ The group reads as a section heading but is still collapsible like any folder. T
 
 ## Sections (top bar)
 
-Above folders and groups sits a third level: a *first* title segment prefixed with `@` assigns the doc to a **section**, shown as a tab in a full-width top bar. Each section has its own sidebar tree:
+Above folders and groups sits a third level: **sections**, declared in the
+config and shown as tabs in a full-width top bar. A title's leading
+`@slug/` segment places the entity in that section; each section has its
+own sidebar tree:
 
 ```js
-title: '@Guides/Installation'
-title: '@Components/:Form / Button'
-title: 'Loose notes'                 // no @ → the default section
+// sdocs.config.js
+sections: [
+  { slug: 'guides', title: 'Guides' },
+  { slug: 'components' },
+]
 ```
 
-Docs without an `@Section/` prefix land in the default section (named by [`defaultSection`](/explorer/configuration#defaultsection), `'Docs'` unless configured). The top bar only appears once more than one section exists — a project with no `@` prefixes looks exactly as before. Tab order comes from [`sections`](/explorer/configuration#sections) in the config, or alphabetically with the default section first.
+```js
+title: '@guides/Installation'
+title: '@components/:Form / Button'
+title: 'Loose notes'                // no @ → the `docs` section, if declared
+```
 
-Sections make full documentation sites: a `@Guides` section of pure pages next to a `@Components` section of component docs, each with its own sidebar.
+Titles reference the section **slug** — the stable identity that also forms
+the URL — so renaming a tab (`title`) never breaks doc files or links.
+Referencing an undeclared section is a full-page error, as is an unprefixed
+title when no `docs` section is declared. A project that declares no
+sections keeps a single implicit `docs` section and shows no top bar.
+
+Sections make full documentation sites: a `guides` section of pure pages
+next to a `components` section of component docs, each with its own
+sidebar.
 
 ## Ordering
 
-By default, entries within each folder are sorted alphabetically. Override this with `sidebar.order` in your config:
+Entries at every level sort alphabetically. To pin items first, list their
+route paths (relative to the section) in the section's `order` array:
 
 ```js
-sidebar: {
-  order: {
-    root: ['Getting Started', 'Components', '*'],
-    Components: ['Button', 'Input', 'Select', '*'],
-  },
-}
+sections: [
+  { slug: 'guides', order: ['introduction', 'colors'] },
+]
 ```
 
-- Keys are folder paths from the root, with `'root'` for the top level (nested folders are slash-joined, e.g. `'Components/Forms'`)
-- `'*'` is a wildcard — any items not listed by name go here, alphabetically
-- Items not matched by any rule fall back to alphabetical
-
-## Initial open state
-
-Choose which folders are expanded when the app loads:
-
-```js
-sidebar: {
-  open: ['Components', 'Forms'],
-}
-```
-
-Users can still collapse/expand any folder; this only sets the initial state.
+Listed paths sort first at their level, in array order; everything else
+follows alphabetically. Paths reach nested levels too
+(`order: ['form/button']` pins Button inside the Form group).
 
 ## Search
 

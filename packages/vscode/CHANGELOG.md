@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.48] - 2026-07-06
+
+### Added
+
+- **Section references are checked against `sdocs.config`.** An
+  `@section/` title prefix that names an undeclared section — or an
+  unprefixed title when no `docs` section is declared — gets a diagnostic
+  on the title attribute (matching sdocs 0.0.68's declared sections).
+- **`slug` and `hide` attributes** complete, lint, and appear in entity
+  hovers; the config completion offers the new `sections` object shape and
+  `home` (and drops `defaultSection`/`sidebar`).
+
 ## [0.0.47] - 2026-07-06
 
 ### Changed

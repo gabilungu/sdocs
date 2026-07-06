@@ -386,6 +386,8 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				previews: [],
 				examples: [],
 				content: null,
+				routeSlug: entity.routeSlug ?? undefined,
+				hide: entity.hide,
 			};
 
 			// Sizing cascade: block attribute -> entity attribute -> config default.
@@ -471,7 +473,7 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				entry.contentX = entity.sizing.contentX ?? config.content.page.contentX;
 				entry.bodyTitle = rendered.bodyTitle;
 				entry.contentKey = encodeEntityId(filePath, entity.slug);
-				entry.home = entity.home;
+
 				entry.examples = snippets.filter((s) => s.role === 'example');
 				entity.examples.forEach((example, i) => {
 					if (entry.examples[i]) {
@@ -529,7 +531,8 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 			showToc: e.showToc,
 			bodyTitle: e.bodyTitle,
 			contentKey: e.contentKey,
-			home: e.home,
+			routeSlug: e.routeSlug,
+			hide: e.hide,
 		}));
 		// Extract named CSS stylesheet names (empty array if single string or null)
 		const cssNames = config.css && typeof config.css === 'object'

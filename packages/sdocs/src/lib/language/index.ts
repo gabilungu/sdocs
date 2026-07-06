@@ -43,7 +43,7 @@ export {
 	type Sizing,
 	type PreviewBlock,
 	type ExampleBlock,
-	type DocsEntity,
+	type ShowcaseEntity,
 	type PageEntity,
 	type LayoutEntity,
 	type SdocEntity,

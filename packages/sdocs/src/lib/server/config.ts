@@ -24,7 +24,7 @@ const DEFAULTS: ResolvedSdocsConfig = {
 	},
 	content: {
 		page: { maxWidth: '1200px', padding: '32px', toc: true, contentX: 'left' },
-		docs: {
+		showcase: {
 			maxWidth: '1200px',
 			padding: '16px',
 			direction: 'row',
@@ -141,7 +141,7 @@ export function resolveConfig(userConfig: SdocsConfig): ResolvedSdocsConfig {
 		},
 		content: {
 			page: { ...DEFAULTS.content.page, ...userConfig.content?.page },
-			docs: { ...DEFAULTS.content.docs, ...userConfig.content?.docs },
+			showcase: { ...DEFAULTS.content.showcase, ...userConfig.content?.showcase },
 			layout: { ...DEFAULTS.content.layout, ...userConfig.content?.layout },
 		},
 	};

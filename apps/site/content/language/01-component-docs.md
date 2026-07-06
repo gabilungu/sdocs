@@ -2,7 +2,7 @@
 title: Component Docs
 ---
 
-A `[DOCS]` block documents components: live previews wired to interactive
+A `[SHOWCASE]` block documents components: live previews wired to interactive
 controls, frozen examples, and each previewed component's extracted API.
 
 ```sdoc
@@ -10,7 +10,7 @@ controls, frozen examples, and each previewed component's extracted API.
 	import Button from './Button.svelte';
 </script>
 
-[DOCS title="Forms / Button" description="A flexible button."]
+[SHOWCASE title="Forms / Button" description="A flexible button."]
 
 	[preview component={Button} args={{ label: 'Click me', disabled: false }}]
 		<Button {...args} />
@@ -20,10 +20,10 @@ controls, frozen examples, and each previewed component's extracted API.
 		<Button label="Can't touch this" disabled />
 	[/example]
 
-[/DOCS]
+[/SHOWCASE]
 ```
 
-## `[DOCS]` attributes
+## `[SHOWCASE]` attributes
 
 | Attribute | Required | Meaning |
 |---|---|---|
@@ -63,13 +63,13 @@ Inside the body, `args` is in scope — spread it, pick from it, or ignore it.
 
 ## Multiple previews — tabs
 
-A `[DOCS]` block holds any number of previews. With one, the page is a plain
+A `[SHOWCASE]` block holds any number of previews. With one, the page is a plain
 component page. With several, the page grows a **tab bar**: each tab is that
 preview with its own controls and its component's API tables — every tab
 fully live.
 
 ```sdoc
-[DOCS title="Navigation / Tabs"]
+[SHOWCASE title="Navigation / Tabs"]
 
 	[preview component={Tabs} args={{ active: 0 }}]
 		<Tabs {...args}>
@@ -84,7 +84,7 @@ fully live.
 		</Tabs>
 	[/preview]
 
-[/DOCS]
+[/SHOWCASE]
 ```
 
 Tab labels default to the component name (`Tabs`, `Tab` above); set
@@ -94,7 +94,7 @@ the *same* component stay distinguishable.
 This is made for components that belong together: compound families like
 `Tabs`/`Tab` or `Select`/`Option` whose children never stand alone (wrap the
 child in its parent inside the body, as above), or a component and its close
-twin. Unrelated components read better as separate `[DOCS]` blocks — one
+twin. Unrelated components read better as separate `[SHOWCASE]` blocks — one
 file can hold several.
 
 A block with **zero** previews is valid too: an examples-only page, with no
@@ -104,7 +104,7 @@ controls and no API tables.
 
 Examples are frozen showcases: each renders **exactly what you wrote**,
 always — the controls never touch them. Every example requires a `title`
-(any text — spaces and punctuation welcome), unique within its `[DOCS]`
+(any text — spaces and punctuation welcome), unique within its `[SHOWCASE]`
 block. `maxWidth`, `padding`, `direction`, `gap`, `contentX`, and `contentY` tune
 its stage, like on `[preview]`.
 

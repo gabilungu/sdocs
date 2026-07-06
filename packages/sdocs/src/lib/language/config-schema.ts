@@ -24,7 +24,7 @@ export interface ConfigFieldSchema {
 /** A config object shape: its keys mapped to their field descriptions. */
 export type ConfigSchema = Record<string, ConfigFieldSchema>;
 
-// Sizing knobs shared by the page/docs/layout content objects.
+// Sizing knobs shared by the page/showcase/layout content objects.
 const maxWidth: ConfigFieldSchema = {
 	detail: 'string',
 	doc: 'Content column max width — any CSS length (`1200px`, `80ch`, `100%`).',
@@ -36,7 +36,7 @@ const padding: ConfigFieldSchema = {
 	insert: ": '$0'",
 };
 
-// Stage-layout knobs shared by the docs preview/example stages.
+// Stage-layout knobs shared by the showcase preview/example stages.
 const direction: ConfigFieldSchema = {
 	detail: "'row' | 'column'",
 	doc: 'Preview/example stage `flex-direction`. Default: `row`.',
@@ -175,9 +175,9 @@ export const configSchema: ConfigSchema = {
 					},
 				},
 			},
-			docs: {
+			showcase: {
 				detail: 'object',
-				doc: '`[DOCS]` pages. `maxWidth` is the content column; `padding`/`direction`/`gap`/`contentX`/`contentY` are the default preview & example stage layout.',
+				doc: '`[SHOWCASE]` pages. `maxWidth` is the content column; `padding`/`direction`/`gap`/`contentX`/`contentY` are the default preview & example stage layout.',
 				insert: ': {\n\t$0\n}',
 				object: { maxWidth, padding, direction, gap, contentX, contentY },
 			},

@@ -16,12 +16,12 @@
 
 	## Getting Started
 
-	Create a `.sdoc` file next to your component and add a `[DOCS]` block
+	Create a `.sdoc` file next to your component and add a `[SHOWCASE]` block
 	with a `[preview]` naming the component.
 
 	## Entities
 
-	- **`[DOCS]`** — component documentation with previews and examples
+	- **`[SHOWCASE]`** — component documentation with previews and examples
 	- **`[PAGE]`** — standalone content pages
 	- **`[LAYOUT]`** — full-page layout previews
 

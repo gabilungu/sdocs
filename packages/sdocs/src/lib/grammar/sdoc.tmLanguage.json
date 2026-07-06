@@ -165,7 +165,7 @@
 		},
 		"docs": {
 			"name": "meta.block.docs.sdoc",
-			"begin": "^\\s*(\\[)(DOCS)\\b(.*)$",
+			"begin": "^\\s*(\\[)(SHOWCASE)\\b(.*)$",
 			"beginCaptures": {
 				"1": {
 					"name": "punctuation.definition.tag.begin.sdoc"
@@ -181,7 +181,7 @@
 					]
 				}
 			},
-			"end": "^\\s*(\\[/)(DOCS)(\\])\\s*$",
+			"end": "^\\s*(\\[/)(SHOWCASE)(\\])\\s*$",
 			"endCaptures": {
 				"1": {
 					"name": "punctuation.definition.tag.begin.sdoc"

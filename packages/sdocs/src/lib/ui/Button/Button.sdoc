@@ -3,7 +3,7 @@
 	import { Icon } from '../Icon/index.js';
 </script>
 
-[DOCS title="Button" description="A flexible button with optional left and right snippet slots for icons or badges."]
+[SHOWCASE title="Button" description="A flexible button with optional left and right snippet slots for icons or badges."]
 
 	[preview component={Button}]
 		<Button {...args}>Click me</Button>
@@ -46,4 +46,4 @@
 		<Button disabled>Can't click</Button>
 	[/example]
 
-[/DOCS]
+[/SHOWCASE]

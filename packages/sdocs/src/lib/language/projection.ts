@@ -177,7 +177,7 @@ export function projectSdoc(file: SdocFile): SdocProjection {
 	};
 
 	file.entities.forEach((entity: Entity, e: number) => {
-		if (entity.kind === 'DOCS') {
+		if (entity.kind === 'SHOWCASE') {
 			entity.blocks.forEach((block: SubBlock, b: number) => {
 				wrapBlock(`__sdocs$${e}_${b}`, block.openerSpan, block.bodySpan, block.span, true, false);
 				const component = block.attrs.component;

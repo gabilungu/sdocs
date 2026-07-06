@@ -11,7 +11,7 @@ const SOURCE = `<script lang="ts">
 	const shared = 1;
 </script>
 
-[DOCS title="Nav / Tabs" description="A tab bar."]
+[SHOWCASE title="Nav / Tabs" description="A tab bar."]
 
 	[preview component={Tabs} args={{ active: 0 }}]
 		<Tabs {...args} active={shared}>x</Tabs>
@@ -21,7 +21,7 @@ const SOURCE = `<script lang="ts">
 		<Tabs><Tab {...args} /></Tabs>
 	[/example]
 
-[/DOCS]
+[/SHOWCASE]
 
 [PAGE title="Guide"]
 
@@ -71,7 +71,7 @@ describe('projectSdoc', () => {
 	});
 
 	it('blanks entity tags and masks PAGE code while keeping prose live', () => {
-		expect(lines[at('[DOCS')]).toBe('');
+		expect(lines[at('[SHOWCASE')]).toBe('');
 		const proseLine = sourceLines.findIndex((l) => l.includes('Uses {shared}'));
 		expect(lines[proseLine]).toBe(sourceLines[proseLine]);
 		const fenceBody = sourceLines.findIndex((l) => l.includes('NotReal'));

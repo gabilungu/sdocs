@@ -2,7 +2,7 @@
 	import Frame from './Frame.svelte';
 </script>
 
-[DOCS title="Frame" description="A flexible holy-grail layout with top, bottom, left, right, and center regions."]
+[SHOWCASE title="Frame" description="A flexible holy-grail layout with top, bottom, left, right, and center regions."]
 
 	[preview component={Frame}]
 		<div style="height: 300px; border: 1px solid #ccc;">
@@ -49,4 +49,4 @@
 		</div>
 	[/example]
 
-[/DOCS]
+[/SHOWCASE]

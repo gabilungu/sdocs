@@ -2,10 +2,10 @@
 	import Color from './Color.svelte';
 </script>
 
-[DOCS title="UI / Control / Color" description="A color picker control."]
+[SHOWCASE title="UI / Control / Color" description="A color picker control."]
 
 	[preview component={Color} args={{ label: 'Background', value: '#3b82f6' }}]
 		<Color {...args} onchange={(v) => console.log('changed:', v)} />
 	[/preview]
 
-[/DOCS]
+[/SHOWCASE]

@@ -4,7 +4,7 @@
 	import NavTree from './NavTree.svelte';
 </script>
 
-[DOCS title="NavTree / NavTree.Group" description="A collapsible section header with uppercase label. Used to organize items into named categories."]
+[SHOWCASE title="NavTree / NavTree.Group" description="A collapsible section header with uppercase label. Used to organize items into named categories."]
 
 	[preview component={Group}]
 		<NavTree>
@@ -41,4 +41,4 @@
 		</NavTree>
 	[/example]
 
-[/DOCS]
+[/SHOWCASE]

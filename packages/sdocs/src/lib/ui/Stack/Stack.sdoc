@@ -3,7 +3,7 @@
 	import { Button } from '../Button/index.js';
 </script>
 
-[DOCS title="Stack" description="A flex container with configurable direction, gap, alignment, and styling."]
+[SHOWCASE title="Stack" description="A flex container with configurable direction, gap, alignment, and styling."]
 
 	[preview component={Stack}]
 		<Stack>
@@ -47,4 +47,4 @@
 		</Stack>
 	[/example]
 
-[/DOCS]
+[/SHOWCASE]

@@ -2,7 +2,7 @@
 	import Icon from './Icon.svelte';
 </script>
 
-[DOCS title="Icon" description="Displays an SVG icon by name. Supports sizing and color via CSS custom properties."]
+[SHOWCASE title="Icon" description="Displays an SVG icon by name. Supports sizing and color via CSS custom properties."]
 
 	[preview component={Icon} args={{ name: 'chevron-right' }}]
 		<Icon name="chevron-right" --w="24px" --h="24px" --fill="currentColor" />
@@ -37,4 +37,4 @@
 		</div>
 	[/example]
 
-[/DOCS]
+[/SHOWCASE]

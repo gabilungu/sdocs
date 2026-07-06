@@ -54,13 +54,13 @@ Given a Svelte component `src/lib/Button.svelte`, create `src/lib/Button.sdoc` n
   import Button from './Button.svelte';
 </script>
 
-[DOCS title="Components / Button" description="A flexible button."]
+[SHOWCASE title="Components / Button" description="A flexible button."]
 
 	[preview component={Button} args={{ label: 'Click me', disabled: false }}]
 		<Button {...args} />
 	[/preview]
 
-[/DOCS]
+[/SHOWCASE]
 ```
 
 That's the minimum. The preview gets interactive controls wired up to its `args`.

@@ -2,10 +2,10 @@
 	import Number from './Number.svelte';
 </script>
 
-[DOCS title="UI / Control / Number" description="A numeric input control."]
+[SHOWCASE title="UI / Control / Number" description="A numeric input control."]
 
 	[preview component={Number} args={{ label: 'Count', value: 42 }}]
 		<Number {...args} onchange={(v) => console.log('changed:', v)} />
 	[/preview]
 
-[/DOCS]
+[/SHOWCASE]

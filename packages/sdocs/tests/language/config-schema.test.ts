@@ -11,16 +11,16 @@ describe('configSchema (drives config completion without an install)', () => {
 
 	it('nests the content stages with their own keys', () => {
 		const content = configSchema.content.object!;
-		expect(Object.keys(content)).toEqual(['page', 'docs', 'layout']);
+		expect(Object.keys(content)).toEqual(['page', 'showcase', 'layout']);
 		expect(Object.keys(content.page.object!)).toEqual(['maxWidth', 'padding', 'toc', 'contentX']);
-		expect(Object.keys(content.docs.object!)).toEqual([
+		expect(Object.keys(content.showcase.object!)).toEqual([
 			'maxWidth', 'padding', 'direction', 'gap', 'contentX', 'contentY',
 		]);
 		expect(Object.keys(content.layout.object!)).toEqual(['maxWidth', 'padding']);
 	});
 
 	it('carries enum values for aligned keys', () => {
-		const docs = configSchema.content.object!.docs.object!;
+		const docs = configSchema.content.object!.showcase.object!;
 		expect(docs.contentX.values).toEqual(['left', 'center', 'right', 'justify']);
 		expect(docs.contentY.values).toEqual(['top', 'middle', 'bottom', 'justify']);
 		expect(docs.contentX.quoted).toBe(true);

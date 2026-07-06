@@ -2,8 +2,8 @@
  * Syntactic scanner for v2 .sdoc files.
  *
  * A .sdoc file is: optional <script> at the top, entity blocks in the
- * middle ([DOCS] / [PAGE] / [LAYOUT], with lowercase sub-blocks [preview] /
- * [example] inside [DOCS] and [example] inside [PAGE]), optional <style>
+ * middle ([SHOWCASE] / [PAGE] / [LAYOUT], with lowercase sub-blocks [preview] /
+ * [example] inside [SHOWCASE] and [example] inside [PAGE]), optional <style>
  * at the bottom.
  *
  * The scanner is line-anchored and non-balancing: tags are recognized only
@@ -22,10 +22,10 @@ export interface Span {
 	end: number;
 }
 
-export type EntityKind = 'DOCS' | 'PAGE' | 'LAYOUT';
+export type EntityKind = 'SHOWCASE' | 'PAGE' | 'LAYOUT';
 export type SubBlockKind = 'preview' | 'example';
 
-export const ENTITY_KINDS: readonly EntityKind[] = ['DOCS', 'PAGE', 'LAYOUT'];
+export const ENTITY_KINDS: readonly EntityKind[] = ['SHOWCASE', 'PAGE', 'LAYOUT'];
 export const SUB_BLOCK_KINDS: readonly SubBlockKind[] = ['preview', 'example'];
 
 export interface AttrValue {
@@ -54,10 +54,10 @@ export interface SubBlock {
 export interface Entity {
 	kind: EntityKind;
 	attrs: Attrs;
-	/** DOCS: preview/example sub-blocks. PAGE: example sub-blocks. LAYOUT: always empty. */
+	/** SHOWCASE: preview/example sub-blocks. PAGE: example sub-blocks. LAYOUT: always empty. */
 	blocks: SubBlock[];
 	/** PAGE/LAYOUT: the raw body (for PAGE it includes any [example] blocks,
-	 * addressable via their spans). DOCS: '' (body text between blocks is an error). */
+	 * addressable via their spans). SHOWCASE: '' (body text between blocks is an error). */
 	body: string;
 	bodySpan: Span;
 	openerSpan: Span;
@@ -382,8 +382,8 @@ export function scanSdoc(source: string): SdocFile {
 		return null;
 	}
 
-	/** Scan the inside of a [DOCS] entity until its closer. */
-	function scanDocsBody(startLi: number, entity: Entity): number {
+	/** Scan the inside of a [SHOWCASE] entity until its closer. */
+	function scanShowcaseBody(startLi: number, entity: Entity): number {
 		let i = startLi;
 		while (i < lines.length) {
 			const line = lines[i];
@@ -397,9 +397,9 @@ export function scanSdoc(source: string): SdocFile {
 				continue;
 			}
 			const token = tagToken(trimmed);
-			if (token && token.closer && token.name === 'DOCS' && trimmed === '[/DOCS]') {
-				const tagStart = line.start + line.text.indexOf('[/DOCS]');
-				entity.span.end = tagStart + '[/DOCS]'.length;
+			if (token && token.closer && token.name === 'SHOWCASE' && trimmed === '[/SHOWCASE]') {
+				const tagStart = line.start + line.text.indexOf('[/SHOWCASE]');
+				entity.span.end = tagStart + '[/SHOWCASE]'.length;
 				return i + 1;
 			}
 			if (token && !token.closer && isSubBlockKind(token.name)) {
@@ -438,7 +438,7 @@ export function scanSdoc(source: string): SdocFile {
 			if (token && !token.closer && isEntityKind(token.name)) {
 				errors.push({
 					code: 'unclosed-block',
-					message: `Missing [/DOCS] before the next entity.`,
+					message: `Missing [/SHOWCASE] before the next entity.`,
 					span,
 				});
 				entity.span.end = line.start;
@@ -448,8 +448,8 @@ export function scanSdoc(source: string): SdocFile {
 				errors.push({
 					code: token.closer ? 'stray-closer' : 'unknown-tag',
 					message: token.closer
-						? `Unexpected closer [/${token.name}] inside [DOCS].`
-						: `Unknown block [${token.name}] inside [DOCS] — expected [preview] or [example].`,
+						? `Unexpected closer [/${token.name}] inside [SHOWCASE].`
+						: `Unknown block [${token.name}] inside [SHOWCASE] — expected [preview] or [example].`,
 					span,
 				});
 				i++;
@@ -457,14 +457,14 @@ export function scanSdoc(source: string): SdocFile {
 			}
 			errors.push({
 				code: 'text-outside-blocks',
-				message: 'Text inside [DOCS] must be inside a [preview] or [example] block.',
+				message: 'Text inside [SHOWCASE] must be inside a [preview] or [example] block.',
 				span,
 			});
 			i++;
 		}
 		errors.push({
 			code: 'unclosed-block',
-			message: 'Missing [/DOCS].',
+			message: 'Missing [/SHOWCASE].',
 			span: entity.openerSpan,
 		});
 		entity.span.end = source.length;
@@ -530,7 +530,7 @@ export function scanSdoc(source: string): SdocFile {
 			if (token && !token.closer && token.name === 'preview') {
 				errors.push({
 					code: 'unknown-tag',
-					message: '[preview] is only valid inside [DOCS] — pages showcase with [example].',
+					message: '[preview] is only valid inside [SHOWCASE] — pages showcase with [example].',
 					span: { start: line.start + line.text.indexOf('['), end: line.end },
 				});
 				i++;
@@ -620,8 +620,8 @@ export function scanSdoc(source: string): SdocFile {
 				span: { start: opener.openerSpan.start, end: opener.openerSpan.end },
 			};
 			entities.push(entity);
-			if (token.name === 'DOCS') {
-				li = scanDocsBody(opener.nextLi, entity);
+			if (token.name === 'SHOWCASE') {
+				li = scanShowcaseBody(opener.nextLi, entity);
 			} else if (token.name === 'PAGE') {
 				li = scanPageBody(opener.nextLi, entity);
 			} else {
@@ -660,8 +660,8 @@ export function scanSdoc(source: string): SdocFile {
 				code: 'block-outside-entity',
 				message:
 					token.name === 'example'
-						? '[example] is only valid inside a [DOCS] or [PAGE] entity.'
-						: '[preview] is only valid inside a [DOCS] entity.',
+						? '[example] is only valid inside a [SHOWCASE] or [PAGE] entity.'
+						: '[preview] is only valid inside a [SHOWCASE] entity.',
 				span,
 			});
 			li++;

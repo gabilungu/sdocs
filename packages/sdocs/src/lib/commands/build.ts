@@ -82,13 +82,13 @@ async function emitRoutePages(config: ResolvedSdocsConfig, cwd: string): Promise
 		const doc = parseSdoc(await readFile(filePath, 'utf-8'));
 		for (const entity of doc.entities) {
 			stubs.push({
-				kind: entity.kind === 'DOCS' ? 'component' : entity.kind === 'PAGE' ? 'page' : 'layout',
+				kind: entity.kind === 'SHOWCASE' ? 'component' : entity.kind === 'PAGE' ? 'page' : 'layout',
 				filePath,
 				entitySlug: entity.slug,
 				meta: { title: entity.title },
 				previews: [],
 				examples:
-					entity.kind === 'DOCS'
+					entity.kind === 'SHOWCASE'
 						? planEntitySnippets(entity)
 								.filter((s) => s.role === 'example')
 								.map((s) => ({ name: s.name, slug: s.slug, role: s.role, body: '' }))

@@ -6,7 +6,7 @@ describe('content sizing config', () => {
 	it('applies the documented defaults', () => {
 		const c = resolveConfig({});
 		expect(c.content.page).toEqual({ maxWidth: '1200px', padding: '32px', toc: true, contentX: 'left' });
-		expect(c.content.docs).toEqual({
+		expect(c.content.showcase).toEqual({
 			maxWidth: '1200px',
 			padding: '16px',
 			direction: 'row',
@@ -21,12 +21,12 @@ describe('content sizing config', () => {
 		const c = resolveConfig({
 			content: {
 				page: { padding: '48px', toc: false },
-				docs: { direction: 'column', contentX: 'center' },
+				showcase: { direction: 'column', contentX: 'center' },
 				layout: { maxWidth: '900px' },
 			},
 		});
 		expect(c.content.page).toEqual({ maxWidth: '1200px', padding: '48px', toc: false, contentX: 'left' });
-		expect(c.content.docs).toEqual({
+		expect(c.content.showcase).toEqual({
 			maxWidth: '1200px',
 			padding: '16px',
 			direction: 'column',
@@ -45,7 +45,7 @@ describe('sizing attributes', () => {
 			"\timport B from './B.svelte';",
 			'</script>',
 			'',
-			'[DOCS title="D" maxWidth="1000px" padding="8px"]',
+			'[SHOWCASE title="D" maxWidth="1000px" padding="8px"]',
 			'',
 			'\t[preview component={B} maxWidth="600px" padding="4px"]',
 			'\t\t<B />',
@@ -55,7 +55,7 @@ describe('sizing attributes', () => {
 			'\t\t<B />',
 			'\t[/example]',
 			'',
-			'[/DOCS]',
+			'[/SHOWCASE]',
 			'',
 			'[PAGE title="P" maxWidth="900px" padding="20px"]',
 			'\thi',
@@ -71,7 +71,7 @@ describe('sizing attributes', () => {
 		expect(docs.sizing).toMatchObject({ maxWidth: '1000px', padding: '8px' });
 		expect(page.sizing).toMatchObject({ maxWidth: '900px', padding: '20px' });
 		expect(layout.sizing).toMatchObject({ maxWidth: '80%', padding: '0' });
-		if (docs.kind === 'DOCS') {
+		if (docs.kind === 'SHOWCASE') {
 			expect(docs.previews[0].sizing).toMatchObject({ maxWidth: '600px', padding: '4px' });
 			expect(docs.examples[0].sizing).toMatchObject({ maxWidth: '700px', padding: '12px' });
 		}
@@ -83,13 +83,13 @@ describe('sizing attributes', () => {
 			"\timport B from './B.svelte';",
 			'</script>',
 			'',
-			'[DOCS title="D" direction="column" gap="8px"]',
+			'[SHOWCASE title="D" direction="column" gap="8px"]',
 			'',
 			'\t[preview component={B} direction="row" gap="4px"]',
 			'\t\t<B />',
 			'\t[/preview]',
 			'',
-			'[/DOCS]',
+			'[/SHOWCASE]',
 			'',
 			'[PAGE title="P" toc="false"]',
 			'\thi',
@@ -100,13 +100,13 @@ describe('sizing attributes', () => {
 		const [docs, page] = doc.entities;
 		expect(docs.sizing).toMatchObject({ direction: 'column', gap: '8px' });
 		expect(page.sizing).toMatchObject({ toc: false });
-		if (docs.kind === 'DOCS') {
+		if (docs.kind === 'SHOWCASE') {
 			expect(docs.previews[0].sizing).toMatchObject({ direction: 'row', gap: '4px' });
 		}
 	});
 
 	it('rejects toc on non-PAGE entities and direction on PAGE', () => {
-		const bad1 = parseSdoc('[DOCS title="D" toc="false"]\n[/DOCS]\n');
+		const bad1 = parseSdoc('[SHOWCASE title="D" toc="false"]\n[/SHOWCASE]\n');
 		expect(bad1.diagnostics.map((d) => d.code)).toContain('unknown-attr');
 		const bad2 = parseSdoc('[PAGE title="P" direction="row"]\nx\n[/PAGE]\n');
 		expect(bad2.diagnostics.map((d) => d.code)).toContain('unknown-attr');
@@ -124,7 +124,7 @@ describe('attributeRules (shared by diagnostics and completions)', () => {
 		expect(Object.keys(attributeRules('PAGE'))).toEqual([
 			'title', 'maxWidth', 'padding', 'contentX', 'toc', 'home',
 		]);
-		expect(Object.keys(attributeRules('DOCS'))).toContain('gap');
+		expect(Object.keys(attributeRules('SHOWCASE'))).toContain('gap');
 		expect(Object.keys(attributeRules('LAYOUT'))).toEqual(['title', 'maxWidth', 'padding']);
 	});
 

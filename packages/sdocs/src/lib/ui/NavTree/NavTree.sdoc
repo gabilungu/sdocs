@@ -4,7 +4,7 @@
 	import { Icon } from '../Icon/index.js';
 </script>
 
-[DOCS title="NavTree" description="A composable tree navigation with Item and Group subcomponents."]
+[SHOWCASE title="NavTree" description="A composable tree navigation with Item and Group subcomponents."]
 
 	[preview component={NavTreeRoot}]
 		<NavTree>
@@ -114,4 +114,4 @@
 		</NavTree>
 	[/example]
 
-[/DOCS]
+[/SHOWCASE]

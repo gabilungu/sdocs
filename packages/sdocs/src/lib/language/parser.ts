@@ -59,8 +59,8 @@ export interface ExampleBlock {
 	span: Span;
 }
 
-export interface DocsEntity {
-	kind: 'DOCS';
+export interface ShowcaseEntity {
+	kind: 'SHOWCASE';
 	title: string;
 	slug: string;
 	description: string | null;
@@ -99,7 +99,7 @@ export interface LayoutEntity {
 	span: Span;
 }
 
-export type SdocEntity = DocsEntity | PageEntity | LayoutEntity;
+export type SdocEntity = ShowcaseEntity | PageEntity | LayoutEntity;
 
 export interface SdocDocument {
 	script: TagBlock | null;
@@ -184,7 +184,7 @@ function sizingOf(attrs: Attrs): Sizing {
 }
 
 const ENTITY_ATTR_RULES: Record<string, Record<string, AttrRule>> = {
-	DOCS: {
+	SHOWCASE: {
 		title: { required: true, kind: 'string', hint: 'title="Group / Name"' },
 		description: { required: false, kind: 'string', hint: 'description="…"' },
 		...SIZING_ATTR_RULES,
@@ -220,7 +220,7 @@ const SUB_BLOCK_ATTR_RULES: Record<string, Record<string, AttrRule>> = {
 };
 
 /** Allowed attributes and their value shapes for a block, keyed by kind
- * ('DOCS'|'PAGE'|'LAYOUT'|'preview'|'example'). Single source of truth for
+ * ('SHOWCASE'|'PAGE'|'LAYOUT'|'preview'|'example'). Single source of truth for
  * both diagnostics and editor attribute completions. */
 export function attributeRules(kind: string): Record<string, AttrRule> {
 	return ENTITY_ATTR_RULES[kind] ?? SUB_BLOCK_ATTR_RULES[kind] ?? {};
@@ -376,7 +376,7 @@ function parsePreview(block: SubBlock, diagnostics: ScanError[]): PreviewBlock {
 function parseExample(
 	block: SubBlock,
 	seenTitles: Set<string>,
-	owner: 'DOCS' | 'PAGE',
+	owner: 'SHOWCASE' | 'PAGE',
 	diagnostics: ScanError[],
 ): ExampleBlock {
 	checkAttrs('[example]', block.attrs, SUB_BLOCK_ATTR_RULES.example, block.openerSpan, diagnostics);
@@ -398,8 +398,8 @@ function parseExample(
 	};
 }
 
-function parseDocs(entity: Entity, diagnostics: ScanError[]): DocsEntity {
-	checkAttrs('[DOCS]', entity.attrs, ENTITY_ATTR_RULES.DOCS, entity.openerSpan, diagnostics);
+function parseShowcase(entity: Entity, diagnostics: ScanError[]): ShowcaseEntity {
+	checkAttrs('[SHOWCASE]', entity.attrs, ENTITY_ATTR_RULES.SHOWCASE, entity.openerSpan, diagnostics);
 	const previews: PreviewBlock[] = [];
 	const examples: ExampleBlock[] = [];
 	const exampleTitles = new Set<string>();
@@ -418,13 +418,13 @@ function parseDocs(entity: Entity, diagnostics: ScanError[]): DocsEntity {
 			previewLabels.add(preview.label);
 			previews.push(preview);
 		} else {
-			examples.push(parseExample(block, exampleTitles, 'DOCS', diagnostics));
+			examples.push(parseExample(block, exampleTitles, 'SHOWCASE', diagnostics));
 		}
 	}
 
 	const title = stringAttr(entity.attrs, 'title') ?? '';
 	return {
-		kind: 'DOCS',
+		kind: 'SHOWCASE',
 		title,
 		slug: slugifyTitle(title),
 		description: stringAttr(entity.attrs, 'description'),
@@ -487,8 +487,8 @@ export function parseSdoc(source: string): SdocDocument {
 
 	for (const entity of scanned.entities) {
 		let typed: SdocEntity;
-		if (entity.kind === 'DOCS') {
-			typed = parseDocs(entity, diagnostics);
+		if (entity.kind === 'SHOWCASE') {
+			typed = parseShowcase(entity, diagnostics);
 		} else if (entity.kind === 'PAGE') {
 			typed = parsePage(entity, diagnostics);
 		} else {

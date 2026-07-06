@@ -10,7 +10,7 @@ Pages are documentation, so the prose renders with the docs app's own
 typography — the project's `css` never touches it. To showcase real
 components or tokens *in the project's context*, drop an `[example]` block
 anywhere in the flow: it renders in place on an isolated stage that loads
-the configured `css`, exactly like an example in a `[DOCS]` entity.
+the configured `css`, exactly like an example in a `[SHOWCASE]` entity.
 
 ```sdoc
 <script lang="ts">
@@ -99,9 +99,9 @@ easy to reason about: **prose is docs-styled, stages are project-styled**.
 | Attribute | Required | Meaning |
 |---|---|---|
 | `title` | yes | The example heading |
-| `maxWidth` / `padding` | no | Stage size (defaults from `content.docs`) |
-| `direction` / `gap` | no | Stage flex flow (defaults from `content.docs`) |
-| `contentX` / `contentY` | no | Stage alignment (defaults from `content.docs`) |
+| `maxWidth` / `padding` | no | Stage size (defaults from `content.showcase`) |
+| `direction` / `gap` | no | Stage flex flow (defaults from `content.showcase`) |
+| `contentX` / `contentY` | no | Stage alignment (defaults from `content.showcase`) |
 
 Each example is self-contained: it sees the file `<script>` (imports and
 shared values), but not snippets declared in the prose — the two compile

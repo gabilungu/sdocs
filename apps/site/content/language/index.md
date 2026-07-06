@@ -12,14 +12,14 @@ Every `.sdoc` file has the same three-part shape, in this order:
 
 1. **`<script>`** — at the top, optional. Imports and shared values, in
    JavaScript or TypeScript. Available to every entity in the file.
-2. **Entities** — the middle. Any number of `[DOCS]`, `[PAGE]`, and
+2. **Entities** — the middle. Any number of `[SHOWCASE]`, `[PAGE]`, and
    `[LAYOUT]` blocks, in any mix. Each entity is its own sidebar entry.
 3. **`<style>`** — at the bottom, optional. CSS available to the file's
    previews and examples.
 
 Only the entities are required — and a file doesn't have to be attached to a
 component at all: `About.sdoc` can hold a single `[PAGE]`, `Dashboard.sdoc` a
-single `[LAYOUT]`, and a `[DOCS]` block can even skip the preview and carry
+single `[LAYOUT]`, and a `[SHOWCASE]` block can even skip the preview and carry
 only examples.
 
 ```sdoc
@@ -27,7 +27,7 @@ only examples.
 	import Button from './Button.svelte';
 </script>
 
-[DOCS title="Forms / Button" description="A flexible button."]
+[SHOWCASE title="Forms / Button" description="A flexible button."]
 
 	[preview component={Button} args={{ label: 'Click me', disabled: false }}]
 		<Button {...args} />
@@ -37,7 +37,7 @@ only examples.
 		<Button label="This label would never fit in an identifier" />
 	[/example]
 
-[/DOCS]
+[/SHOWCASE]
 
 [PAGE title="Forms / Button usage guide"]
 
@@ -57,7 +57,7 @@ only examples.
 
 | Entity | Documents | Details |
 |---|---|---|
-| [`[DOCS]`](/language/component-docs) | components | live previews with controls (tabs when several), titled examples, extracted API |
+| [`[SHOWCASE]`](/language/component-docs) | components | live previews with controls (tabs when several), titled examples, extracted API |
 | [`[PAGE]`](/language/page-docs) | freeform content | markdown-first, auto table of contents |
 | [`[LAYOUT]`](/language/layout-docs) | a full-page sketch | rendered in an isolated frame |
 
@@ -87,7 +87,7 @@ example renders isolated, so each gets its own copy of anything mutable.
 
 ## Blocks and attributes
 
-- Tags are line-anchored square brackets: `[DOCS …]` opens, `[/DOCS]` closes,
+- Tags are line-anchored square brackets: `[SHOWCASE …]` opens, `[/SHOWCASE]` closes,
   each on its own line. Entity tags are UPPERCASE; the blocks inside them
   (`[preview]`, `[example]`) are lowercase. Casing is strict.
 - Attributes use Svelte syntax: `title="text"` for strings,

@@ -2,10 +2,10 @@
 	import Select from './Select.svelte';
 </script>
 
-[DOCS title="UI / Control / Select" description="A dropdown select control."]
+[SHOWCASE title="UI / Control / Select" description="A dropdown select control."]
 
 	[preview component={Select} args={{ label: 'Size', value: 'md' }}]
 		<Select {...args} options={['sm', 'md', 'lg']} onchange={(v) => console.log('changed:', v)} />
 	[/preview]
 
-[/DOCS]
+[/SHOWCASE]

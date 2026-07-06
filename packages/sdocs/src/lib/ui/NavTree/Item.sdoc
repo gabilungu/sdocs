@@ -4,7 +4,7 @@
 	import { Icon } from '../Icon/index.js';
 </script>
 
-[DOCS title="NavTree / NavTree.Item" description="A tree node that acts as a leaf (link/button) or expandable folder when children are provided. Supports left and right snippet slots for custom content."]
+[SHOWCASE title="NavTree / NavTree.Item" description="A tree node that acts as a leaf (link/button) or expandable folder when children are provided. Supports left and right snippet slots for custom content."]
 
 	[preview component={Item} args={{ label: 'Label' }}]
 		<NavTree>
@@ -62,4 +62,4 @@
 		</NavTree>
 	[/example]
 
-[/DOCS]
+[/SHOWCASE]

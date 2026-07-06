@@ -36,7 +36,7 @@ Tag attributes are never reformatted.
 ## sdoc syntax highlighting
 
 The extension ships a TextMate grammar for the block-based
-[sdoc language](/language): `[DOCS]`, `[PAGE]`, and `[LAYOUT]` entities,
+[sdoc language](/language): `[SHOWCASE]`, `[PAGE]`, and `[LAYOUT]` entities,
 `[preview]` and `[example]` blocks, and Svelte-style attributes, with
 embedded TypeScript, Svelte, and CSS coloring inside `<script>`, block
 bodies, and `<style>`. `[PAGE]` bodies color as markdown — headings, bold,
@@ -50,7 +50,7 @@ On top of the language server, the extension understands the block format:
 
 - **Attribute completion** — inside a block opener, completions offer that
   block's attributes with documentation (`title` and `description` on
-  `[DOCS]`, `component` / `args` / `title` on `[preview]`, …), skipping
+  `[SHOWCASE]`, `component` / `args` / `title` on `[preview]`, …), skipping
   attributes already present.
 - **`component={…}` value completion** — suggests the identifiers imported
   in the file's `<script>`.
@@ -62,7 +62,7 @@ installed, the config's `/** @type {import('sdocs').SdocsConfig} */`
 annotation gives you the real thing — completion, hover, and type-checking
 straight off the config type. When `sdocs` isn't installed — a standalone
 project driven with `npx sdocs` — the extension fills in from a bundled
-schema: keys at every level (`content` → `docs` → `contentX`…), value
+schema: keys at every level (`content` → `showcase` → `contentX`…), value
 suggestions for the enumerated options (`contentX`, `contentY`, `direction`,
 `toc`, …), and inline docs. The extension detects which case applies per
 project and steps aside when the real types are present.

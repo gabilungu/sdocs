@@ -379,7 +379,7 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 			}));
 
 			const entry: DocEntry = {
-				kind: entity.kind === 'DOCS' ? 'component' : entity.kind === 'PAGE' ? 'page' : 'layout',
+				kind: entity.kind === 'SHOWCASE' ? 'component' : entity.kind === 'PAGE' ? 'page' : 'layout',
 				filePath,
 				entitySlug: entity.slug,
 				meta: { title: entity.title },
@@ -389,7 +389,7 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 			};
 
 			// Sizing cascade: block attribute -> entity attribute -> config default.
-			const kindKey = entity.kind === 'DOCS' ? 'docs' : entity.kind === 'PAGE' ? 'page' : 'layout';
+			const kindKey = entity.kind === 'SHOWCASE' ? 'showcase' : entity.kind === 'PAGE' ? 'page' : 'layout';
 			const kindDefaults = config.content[kindKey];
 			const stageOf = (block?: {
 				maxWidth: string | null;
@@ -399,20 +399,20 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				contentX: string | null;
 				contentY: string | null;
 			}) => ({
-				// Entity-level maxWidth on DOCS/PAGE is the content column, not the
+				// Entity-level maxWidth on SHOWCASE/PAGE is the content column, not the
 				// stage; stages inside them span their panel unless the block says so.
 				maxWidth:
 					block?.maxWidth ??
 					(entity.kind === 'LAYOUT' ? (entity.sizing.maxWidth ?? kindDefaults.maxWidth) : '100%'),
 				padding: block?.padding ?? entity.sizing.padding ?? kindDefaults.padding,
 				// direction/gap/contentX flex the preview/example stages only
-				...(entity.kind === 'DOCS' && block
+				...(entity.kind === 'SHOWCASE' && block
 					? {
 							direction:
-								block.direction ?? entity.sizing.direction ?? config.content.docs.direction,
-							gap: block.gap ?? entity.sizing.gap ?? config.content.docs.gap,
-							contentX: block.contentX ?? entity.sizing.contentX ?? config.content.docs.contentX,
-							contentY: block.contentY ?? entity.sizing.contentY ?? config.content.docs.contentY,
+								block.direction ?? entity.sizing.direction ?? config.content.showcase.direction,
+							gap: block.gap ?? entity.sizing.gap ?? config.content.showcase.gap,
+							contentX: block.contentX ?? entity.sizing.contentX ?? config.content.showcase.contentX,
+							contentY: block.contentY ?? entity.sizing.contentY ?? config.content.showcase.contentY,
 						}
 					: {}),
 			});
@@ -421,7 +421,7 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				entry.showToc = entity.sizing.toc ?? config.content.page.toc;
 			}
 
-			if (entity.kind === 'DOCS') {
+			if (entity.kind === 'SHOWCASE') {
 				if (entity.description) entry.meta.description = entity.description;
 				for (const [i, preview] of entity.previews.entries()) {
 					const snippet = snippets[i];
@@ -462,7 +462,7 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 			} else if (entity.kind === 'PAGE') {
 				// The page body renders natively in the Explorer; only its
 				// [example] blocks are staged in iframes (with the project css),
-				// cascading block attributes over the content.docs stage defaults.
+				// cascading block attributes over the content.showcase stage defaults.
 				const rendered = await renderPageMarkdown(entity.body);
 				snippets[0].body = rendered.html;
 				entry.content = snippets[0];
@@ -477,11 +477,11 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 					if (entry.examples[i]) {
 						entry.examples[i].stage = {
 							maxWidth: example.sizing.maxWidth ?? '100%',
-							padding: example.sizing.padding ?? config.content.docs.padding,
-							direction: example.sizing.direction ?? config.content.docs.direction,
-							gap: example.sizing.gap ?? config.content.docs.gap,
-							contentX: example.sizing.contentX ?? config.content.docs.contentX,
-							contentY: example.sizing.contentY ?? config.content.docs.contentY,
+							padding: example.sizing.padding ?? config.content.showcase.padding,
+							direction: example.sizing.direction ?? config.content.showcase.direction,
+							gap: example.sizing.gap ?? config.content.showcase.gap,
+							contentX: example.sizing.contentX ?? config.content.showcase.contentX,
+							contentY: example.sizing.contentY ?? config.content.showcase.contentY,
 						};
 					}
 				});

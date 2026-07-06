@@ -51,10 +51,10 @@ export interface SdocsConfig {
 			 * the view: 'left'|'center'|'right'. Default: 'left' */
 			contentX?: string;
 		};
-		/** [DOCS] pages: maxWidth is the content column (default '1200px');
+		/** [SHOWCASE] pages: maxWidth is the content column (default '1200px');
 		 * padding/direction/gap are the default preview/example stage layout
 		 * (defaults '16px', 'row', '16px'). */
-		docs?: ContentSizing & {
+		showcase?: ContentSizing & {
 			/** Stage flex-direction. Default: 'row' */
 			direction?: string;
 			/** Stage gap. Default: '16px' */
@@ -111,12 +111,12 @@ export interface ResolvedSdocsConfig {
 	};
 	content: {
 		page: Required<ContentSizing> & { toc: boolean; contentX: string };
-		docs: Required<ContentSizing> & { direction: string; gap: string; contentX: string; contentY: string };
+		showcase: Required<ContentSizing> & { direction: string; gap: string; contentX: string; contentY: string };
 		layout: Required<ContentSizing>;
 	};
 }
 
-/** Entity metadata from a [DOCS]/[PAGE]/[LAYOUT] opener */
+/** Entity metadata from a [SHOWCASE]/[PAGE]/[LAYOUT] opener */
 export interface SdocMeta {
 	/** Sidebar path (e.g. 'Demo / Button') */
 	title: string;
@@ -180,7 +180,7 @@ export interface ExtractedSnippet {
 	stage?: StageLayout;
 }
 
-/** One [preview] of a DOCS entity: a live showcase of one component */
+/** One [preview] of a SHOWCASE entity: a live showcase of one component */
 export interface PreviewEntry {
 	/** Tab label (title override or the component name) */
 	label: string;
@@ -206,7 +206,7 @@ export interface TocHeading {
 
 /** A complete doc entry (one entity of one .sdoc file) */
 export interface DocEntry {
-	/** Doc kind: DOCS / PAGE / LAYOUT */
+	/** Doc kind: SHOWCASE / PAGE / LAYOUT */
 	kind: 'component' | 'page' | 'layout';
 	/** Absolute path to the .sdoc file */
 	filePath: string;

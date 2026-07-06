@@ -2,10 +2,10 @@
 	import Text from './Text.svelte';
 </script>
 
-[DOCS title="UI / Control / Text" description="A text input control for string values."]
+[SHOWCASE title="UI / Control / Text" description="A text input control for string values."]
 
 	[preview component={Text} args={{ label: 'Name', value: 'Hello' }}]
 		<Text {...args} onchange={(v) => console.log('changed:', v)} />
 	[/preview]
 
-[/DOCS]
+[/SHOWCASE]

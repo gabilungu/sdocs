@@ -5,7 +5,7 @@ const FULL = `<script lang="ts">
 	import Button from './Button.svelte';
 </script>
 
-[DOCS title="Forms / Button" description="A flexible button."]
+[SHOWCASE title="Forms / Button" description="A flexible button."]
 
 	[preview component={Button} args={{ label: 'Hi', count: 2 }}]
 		<Button {...args} />
@@ -15,13 +15,13 @@ const FULL = `<script lang="ts">
 		<Button label="Nope" disabled />
 	[/example]
 
-[/DOCS]
+[/SHOWCASE]
 
 [PAGE title="Guides / Usage"]
 
 	## When to use
 
-	A [reference link][DOCS] and a fence:
+	A [reference link][SHOWCASE] and a fence:
 
 	\`\`\`svelte
 	[preview looks like a tag but is content]
@@ -52,7 +52,7 @@ describe('scanSdoc structure', () => {
 	});
 
 	it('finds all three entities in order', () => {
-		expect(file.entities.map((e) => e.kind)).toEqual(['DOCS', 'PAGE', 'LAYOUT']);
+		expect(file.entities.map((e) => e.kind)).toEqual(['SHOWCASE', 'PAGE', 'LAYOUT']);
 	});
 
 	it('parses entity attributes with kinds', () => {
@@ -75,7 +75,7 @@ describe('scanSdoc structure', () => {
 
 	it('keeps bracket-looking lines inside bodies as content', () => {
 		const page = file.entities[1];
-		expect(page.body).toContain('[reference link][DOCS]');
+		expect(page.body).toContain('[reference link][SHOWCASE]');
 		expect(page.body).toContain('[preview looks like a tag but is content]');
 		expect(file.entities).toHaveLength(3);
 	});
@@ -83,9 +83,9 @@ describe('scanSdoc structure', () => {
 	it('tracks spans that slice back to the source', () => {
 		const docs = file.entities[0];
 		expect(FULL.slice(docs.openerSpan.start, docs.openerSpan.end)).toBe(
-			'[DOCS title="Forms / Button" description="A flexible button."]',
+			'[SHOWCASE title="Forms / Button" description="A flexible button."]',
 		);
-		expect(FULL.slice(docs.span.start, docs.span.end).endsWith('[/DOCS]')).toBe(true);
+		expect(FULL.slice(docs.span.start, docs.span.end).endsWith('[/SHOWCASE]')).toBe(true);
 		const preview = docs.blocks[0];
 		expect(FULL.slice(preview.bodySpan.start, preview.bodySpan.end)).toBe(preview.body);
 	});
@@ -94,14 +94,14 @@ describe('scanSdoc structure', () => {
 describe('scanSdoc details', () => {
 	it('supports multi-line openers', () => {
 		const file = scanSdoc(
-			'[DOCS\n\ttitle="Forms / Button"\n\tdescription="Long."\n]\n[/DOCS]\n',
+			'[SHOWCASE\n\ttitle="Forms / Button"\n\tdescription="Long."\n]\n[/SHOWCASE]\n',
 		);
 		expect(file.errors).toEqual([]);
 		expect(file.entities[0].attrs.title.raw).toBe('Forms / Button');
 	});
 
 	it('supports bare attributes', () => {
-		const file = scanSdoc('[DOCS title="X" draft]\n[/DOCS]\n');
+		const file = scanSdoc('[SHOWCASE title="X" draft]\n[/SHOWCASE]\n');
 		expect(file.entities[0].attrs.draft).toMatchObject({ kind: 'bare', raw: '' });
 	});
 
@@ -113,7 +113,7 @@ describe('scanSdoc details', () => {
 
 	it('tolerates CRLF line endings and a BOM', () => {
 		const file = scanSdoc(
-			'﻿[DOCS title="X"]\r\n[preview component={B}]\r\n<B />\r\n[/preview]\r\n[/DOCS]\r\n',
+			'﻿[SHOWCASE title="X"]\r\n[preview component={B}]\r\n<B />\r\n[/preview]\r\n[/SHOWCASE]\r\n',
 		);
 		expect(file.errors).toEqual([]);
 		expect(file.entities[0].blocks[0].body).toContain('<B />');
@@ -121,7 +121,7 @@ describe('scanSdoc details', () => {
 
 	it('handles nested braces and strings in expression attributes', () => {
 		const file = scanSdoc(
-			`[DOCS title="X"]\n[preview component={Button} args={{ a: '}', b: { }, c: "]" }}]\nx\n[/preview]\n[/DOCS]\n`,
+			`[SHOWCASE title="X"]\n[preview component={Button} args={{ a: '}', b: { }, c: "]" }}]\nx\n[/preview]\n[/SHOWCASE]\n`,
 		);
 		expect(file.errors).toEqual([]);
 		expect(file.entities[0].blocks[0].attrs.args.raw).toBe(`{ a: '}', b: { }, c: "]" }`);
@@ -135,36 +135,36 @@ function codes(source: string): string[] {
 describe('scanSdoc errors', () => {
 	it('rejects text outside blocks', () => {
 		expect(codes('hello\n')).toContain('text-outside-blocks');
-		expect(codes('[DOCS title="X"]\nstray text\n[/DOCS]\n')).toContain('text-outside-blocks');
+		expect(codes('[SHOWCASE title="X"]\nstray text\n[/SHOWCASE]\n')).toContain('text-outside-blocks');
 	});
 
 	it('rejects wrong casing with a targeted message', () => {
-		expect(codes('[docs title="X"]\n[/docs]\n')).toContain('casing');
-		expect(codes('[DOCS title="X"]\n[PREVIEW component={B}]\nx\n[/PREVIEW]\n[/DOCS]\n')).toContain(
+		expect(codes('[showcase title="X"]\n[/showcase]\n')).toContain('casing');
+		expect(codes('[SHOWCASE title="X"]\n[PREVIEW component={B}]\nx\n[/PREVIEW]\n[/SHOWCASE]\n')).toContain(
 			'casing',
 		);
 	});
 
-	it('rejects sub-blocks outside DOCS and unknown blocks inside', () => {
+	it('rejects sub-blocks outside SHOWCASE and unknown blocks inside', () => {
 		expect(codes('[preview component={B}]\nx\n[/preview]\n')).toContain('block-outside-entity');
-		expect(codes('[DOCS title="X"]\n[stuff]\nx\n[/stuff]\n[/DOCS]\n')).toContain('unknown-tag');
+		expect(codes('[SHOWCASE title="X"]\n[stuff]\nx\n[/stuff]\n[/SHOWCASE]\n')).toContain('unknown-tag');
 	});
 
 	it('requires openers to be alone on their line', () => {
-		expect(codes('[DOCS title="X"] trailing\n[/DOCS]\n')).toContain('tag-not-alone');
+		expect(codes('[SHOWCASE title="X"] trailing\n[/SHOWCASE]\n')).toContain('tag-not-alone');
 	});
 
 	it('reports unclosed blocks', () => {
-		expect(codes('[DOCS title="X"]\n')).toContain('unclosed-block');
-		expect(codes('[DOCS title="X"]\n[preview component={B}]\nx\n[/DOCS]\n')).toContain(
+		expect(codes('[SHOWCASE title="X"]\n')).toContain('unclosed-block');
+		expect(codes('[SHOWCASE title="X"]\n[preview component={B}]\nx\n[/SHOWCASE]\n')).toContain(
 			'unclosed-block',
 		);
 		expect(codes('[PAGE title="X"]\ntext\n')).toContain('unclosed-block');
 	});
 
 	it('reports stray closers and duplicate attributes', () => {
-		expect(codes('[/DOCS]\n')).toContain('stray-closer');
-		expect(codes('[DOCS title="A" title="B"]\n[/DOCS]\n')).toContain('duplicate-attr');
+		expect(codes('[/SHOWCASE]\n')).toContain('stray-closer');
+		expect(codes('[SHOWCASE title="A" title="B"]\n[/SHOWCASE]\n')).toContain('duplicate-attr');
 	});
 
 	it('enforces file anatomy: script top, style bottom', () => {
@@ -176,10 +176,10 @@ describe('scanSdoc errors', () => {
 		);
 	});
 
-	it('recovers when an entity opener appears inside an unclosed [DOCS]', () => {
-		const file = scanSdoc('[DOCS title="A"]\n[PAGE title="B"]\nx\n[/PAGE]\n');
+	it('recovers when an entity opener appears inside an unclosed [SHOWCASE]', () => {
+		const file = scanSdoc('[SHOWCASE title="A"]\n[PAGE title="B"]\nx\n[/PAGE]\n');
 		expect(file.errors.map((e) => e.code)).toContain('unclosed-block');
-		expect(file.entities.map((e) => e.kind)).toEqual(['DOCS', 'PAGE']);
+		expect(file.entities.map((e) => e.kind)).toEqual(['SHOWCASE', 'PAGE']);
 		expect(file.entities[1].body.trim()).toBe('x');
 	});
 });

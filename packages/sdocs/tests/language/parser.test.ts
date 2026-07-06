@@ -4,7 +4,7 @@ import {
 	parseArgsLiteral,
 	slugifyTitle,
 	normalizeBody,
-	type DocsEntity,
+	type ShowcaseEntity,
 	type PageEntity,
 } from '../../src/lib/language/parser.js';
 import type { ScanError } from '../../src/lib/language/scanner.js';
@@ -19,7 +19,7 @@ describe('parseSdoc typed entities', () => {
 	import Tab from './Tab.svelte';
 </script>
 
-[DOCS title="Navigation / Tabs" description="A tab bar."]
+[SHOWCASE title="Navigation / Tabs" description="A tab bar."]
 
 	[preview component={Tabs} args={{ active: 0 }}]
 		<Tabs {...args}><Tab label="One">…</Tab></Tabs>
@@ -33,17 +33,17 @@ describe('parseSdoc typed entities', () => {
 		<Tabs vertical />
 	[/example]
 
-[/DOCS]
+[/SHOWCASE]
 `;
 	const doc = parseSdoc(source);
-	const docs = doc.entities[0] as DocsEntity;
+	const docs = doc.entities[0] as ShowcaseEntity;
 
 	it('parses without diagnostics', () => {
 		expect(doc.diagnostics).toEqual([]);
 	});
 
-	it('types the DOCS entity', () => {
-		expect(docs.kind).toBe('DOCS');
+	it('types the SHOWCASE entity', () => {
+		expect(docs.kind).toBe('SHOWCASE');
 		expect(docs.title).toBe('Navigation / Tabs');
 		expect(docs.slug).toBe('navigation-tabs');
 		expect(docs.description).toBe('A tab bar.');
@@ -71,17 +71,17 @@ describe('parseSdoc typed entities', () => {
 
 	it('uses title= as the tab label override', () => {
 		const overridden = parseSdoc(
-			`[DOCS title="X"]
+			`[SHOWCASE title="X"]
 [preview component={Button} title="As a link" args={{ a: 1 }}]
 x
 [/preview]
 [preview component={Button}]
 x
 [/preview]
-[/DOCS]
+[/SHOWCASE]
 `,
 		);
-		const entity = overridden.entities[0] as DocsEntity;
+		const entity = overridden.entities[0] as ShowcaseEntity;
 		expect(entity.previews.map((p) => p.label)).toEqual(['As a link', 'Button']);
 		expect(overridden.diagnostics).toEqual([]);
 	});
@@ -89,21 +89,21 @@ x
 
 describe('parseSdoc validation', () => {
 	it('requires entity titles', () => {
-		expect(diagnosticCodes('[DOCS]\n[/DOCS]\n')).toContain('missing-attr');
+		expect(diagnosticCodes('[SHOWCASE]\n[/SHOWCASE]\n')).toContain('missing-attr');
 		expect(diagnosticCodes('[PAGE]\nx\n[/PAGE]\n')).toContain('missing-attr');
 	});
 
 	it('requires component on previews and title on examples', () => {
-		expect(diagnosticCodes('[DOCS title="X"]\n[preview]\nx\n[/preview]\n[/DOCS]\n')).toContain(
+		expect(diagnosticCodes('[SHOWCASE title="X"]\n[preview]\nx\n[/preview]\n[/SHOWCASE]\n')).toContain(
 			'missing-attr',
 		);
-		expect(diagnosticCodes('[DOCS title="X"]\n[example]\nx\n[/example]\n[/DOCS]\n')).toContain(
+		expect(diagnosticCodes('[SHOWCASE title="X"]\n[example]\nx\n[/example]\n[/SHOWCASE]\n')).toContain(
 			'missing-attr',
 		);
 	});
 
 	it('rejects unknown attributes', () => {
-		expect(diagnosticCodes('[DOCS title="X" component={B}]\n[/DOCS]\n')).toContain('unknown-attr');
+		expect(diagnosticCodes('[SHOWCASE title="X" component={B}]\n[/SHOWCASE]\n')).toContain('unknown-attr');
 		expect(diagnosticCodes('[PAGE title="X" bogus="4px"]\nx\n[/PAGE]\n')).toContain(
 			'unknown-attr',
 		);
@@ -118,16 +118,16 @@ describe('parseSdoc validation', () => {
 	});
 
 	it('rejects wrong attribute value kinds', () => {
-		expect(diagnosticCodes('[DOCS title={x}]\n[/DOCS]\n')).toContain('attr-value-kind');
+		expect(diagnosticCodes('[SHOWCASE title={x}]\n[/SHOWCASE]\n')).toContain('attr-value-kind');
 		expect(
-			diagnosticCodes('[DOCS title="X"]\n[preview component="Button"]\nx\n[/preview]\n[/DOCS]\n'),
+			diagnosticCodes('[SHOWCASE title="X"]\n[preview component="Button"]\nx\n[/preview]\n[/SHOWCASE]\n'),
 		).toContain('attr-value-kind');
 	});
 
 	it('rejects non-identifier component expressions', () => {
 		expect(
 			diagnosticCodes(
-				'[DOCS title="X"]\n[preview component={Tabs.Tab}]\nx\n[/preview]\n[/DOCS]\n',
+				'[SHOWCASE title="X"]\n[preview component={Tabs.Tab}]\nx\n[/preview]\n[/SHOWCASE]\n',
 			),
 		).toContain('component-identifier');
 	});
@@ -135,12 +135,12 @@ describe('parseSdoc validation', () => {
 	it('rejects duplicate example titles and preview labels', () => {
 		expect(
 			diagnosticCodes(
-				'[DOCS title="X"]\n[example title="A"]\nx\n[/example]\n[example title="A"]\ny\n[/example]\n[/DOCS]\n',
+				'[SHOWCASE title="X"]\n[example title="A"]\nx\n[/example]\n[example title="A"]\ny\n[/example]\n[/SHOWCASE]\n',
 			),
 		).toContain('duplicate-example-title');
 		expect(
 			diagnosticCodes(
-				'[DOCS title="X"]\n[preview component={B}]\nx\n[/preview]\n[preview component={B}]\ny\n[/preview]\n[/DOCS]\n',
+				'[SHOWCASE title="X"]\n[preview component={B}]\nx\n[/preview]\n[preview component={B}]\ny\n[/preview]\n[/SHOWCASE]\n',
 			),
 		).toContain('duplicate-preview-label');
 	});

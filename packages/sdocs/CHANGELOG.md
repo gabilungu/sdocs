@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.67] - 2026-07-06
+
+### Changed
+
+- **BREAKING: the `[DOCS]` entity is renamed `[SHOWCASE]`.** Component
+  documentation blocks are now `[SHOWCASE title="…"] … [/SHOWCASE]`, and the
+  `content.docs` config key is now `content.showcase`. Rename both in your
+  `.sdoc` files and `sdocs.config`. Everything else — the per-component
+  "Docs" overview tab, `[PAGE]`, `[LAYOUT]`, `[preview]`, `[example]` — is
+  unchanged. No `[DOCS]` alias is kept.
+
 ## [0.0.66] - 2026-07-06
 
 ### Added

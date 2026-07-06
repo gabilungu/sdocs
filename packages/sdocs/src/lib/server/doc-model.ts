@@ -28,7 +28,7 @@ export function previewSlug(label: string): string {
 }
 
 /** The snippets one entity produces, in order: previews then examples for
- * DOCS, the 'content' body then examples for PAGE, the single 'content'
+ * SHOWCASE, the 'content' body then examples for PAGE, the single 'content'
  * body for LAYOUT. A PAGE's content renders natively in the Explorer — it
  * is never served as an iframe page (see planIframeSnippets). */
 export function planEntitySnippets(entity: SdocEntity): PlannedSnippet[] {
@@ -38,7 +38,7 @@ export function planEntitySnippets(entity: SdocEntity): PlannedSnippet[] {
 		role: 'example' as const,
 		body: e.body,
 	});
-	if (entity.kind === 'DOCS') {
+	if (entity.kind === 'SHOWCASE') {
 		return [
 			...entity.previews.map((p) => ({
 				name: p.label,

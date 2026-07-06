@@ -40,7 +40,7 @@ interface SdocsConfig {
   static?: string;
   content?: {
     page?: { maxWidth?: string; padding?: string; toc?: boolean; contentX?: string };
-    docs?: { maxWidth?: string; padding?: string; direction?: string; gap?: string; contentX?: string; contentY?: string };
+    showcase?: { maxWidth?: string; padding?: string; direction?: string; gap?: string; contentX?: string; contentY?: string };
     layout?: { maxWidth?: string; padding?: string };
   };
 }
@@ -256,7 +256,7 @@ sidebar: {
 Content sizing per entity kind. Any CSS length works; `padding` takes CSS
 shorthand.
 
-- **Type:** `{ page?, docs?, layout? }`, each `{ maxWidth?: string; padding?: string }`
+- **Type:** `{ page?, showcase?, layout? }`, each `{ maxWidth?: string; padding?: string }`
 - **Defaults:**
 
 | kind | option | default | applies to |
@@ -265,12 +265,12 @@ shorthand.
 | `page` | `padding` | `32px` | space around the page prose |
 | `page` | `toc` | `true` | table-of-contents visibility |
 | `page` | `contentX` | `left` | aligns the content column: `left`/`center`/`right` |
-| `docs` | `maxWidth` | `1200px` | the docs content column |
-| `docs` | `padding` | `16px` | preview & example stages (in `[DOCS]` and `[PAGE]`) |
-| `docs` | `direction` | `row` | stage `flex-direction` |
-| `docs` | `gap` | `16px` | stage `gap` |
-| `docs` | `contentX` | `left` | horizontal: `left`/`center`/`right`/`justify` |
-| `docs` | `contentY` | `top` | vertical: `top`/`middle`/`bottom`/`justify` |
+| `showcase` | `maxWidth` | `1200px` | the showcase content column |
+| `showcase` | `padding` | `16px` | preview & example stages (in `[SHOWCASE]` and `[PAGE]`) |
+| `showcase` | `direction` | `row` | stage `flex-direction` |
+| `showcase` | `gap` | `16px` | stage `gap` |
+| `showcase` | `contentX` | `left` | horizontal: `left`/`center`/`right`/`justify` |
+| `showcase` | `contentY` | `top` | vertical: `top`/`middle`/`bottom`/`justify` |
 | `layout` | `maxWidth` | `100%` | the full-page stage |
 | `layout` | `padding` | `0px` | space inside the stage |
 
@@ -288,7 +288,7 @@ apart (space-between).
 ```js
 content: {
   page: { maxWidth: '900px', toc: false },
-  docs: { padding: '24px', direction: 'column' },
+  showcase: { padding: '24px', direction: 'column' },
 }
 ```
 

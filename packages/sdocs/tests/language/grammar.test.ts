@@ -30,7 +30,7 @@ const MULTI_BLOCK = `<script lang="ts">
 	import Tab from './Tab.svelte';
 </script>
 
-[DOCS title="Nav / Tabs" description="A tab bar."]
+[SHOWCASE title="Nav / Tabs" description="A tab bar."]
 
 	[preview component={Tabs} args={{ active: 0 }}]
 		<Tabs {...args}>content ends in a tag</Tabs>
@@ -44,7 +44,7 @@ const MULTI_BLOCK = `<script lang="ts">
 		<Tabs vertical>x</Tabs>
 	[/example]
 
-[/DOCS]
+[/SHOWCASE]
 
 [PAGE title="Guide"]
 
@@ -68,14 +68,14 @@ function colorOf(tokens: Tokens, lines: string[], needle: string, from = 0): str
 
 function assertSdocScopes(tokens: Tokens, source: string) {
 	const lines = source.split('\n');
-	const firstDocs = lines.findIndex((l) => l.includes('[DOCS'));
+	const firstDocs = lines.findIndex((l) => l.includes('[SHOWCASE'));
 	const checks: [string, string][] = [
-		['[DOCS opener', colorOf(tokens, lines, '[DOCS')],
+		['[SHOWCASE opener', colorOf(tokens, lines, '[SHOWCASE')],
 		['[/preview] #1', colorOf(tokens, lines, '[/preview]')],
 		['second [preview', colorOf(tokens, lines, '[preview', lines.findIndex((l) => l.includes('[/preview]')))],
 		['[example opener', colorOf(tokens, lines, '[example')],
-		['[/DOCS] closer', colorOf(tokens, lines, '[/DOCS]')],
-		['[PAGE after DOCS', colorOf(tokens, lines, '[PAGE', firstDocs + 1)],
+		['[/SHOWCASE] closer', colorOf(tokens, lines, '[/SHOWCASE]')],
+		['[PAGE after SHOWCASE', colorOf(tokens, lines, '[PAGE', firstDocs + 1)],
 		['markdown heading in PAGE body', colorOf(tokens, lines, '## Heading')],
 		['[/PAGE] closer', colorOf(tokens, lines, '[/PAGE]')],
 	];
@@ -114,7 +114,7 @@ describe('sdoc grammar (Oniguruma engine, as in VS Code)', () => {
 			);
 			const { tokens } = hl.codeToTokens(source, { lang: 'sdoc', theme: 'github-dark' });
 			const lines = source.split('\n');
-			expect(colorOf(tokens as Tokens, lines, '[/DOCS]'), `${file} [/DOCS]`).not.toBe(PLAIN);
+			expect(colorOf(tokens as Tokens, lines, '[/SHOWCASE]'), `${file} [/SHOWCASE]`).not.toBe(PLAIN);
 			expect(colorOf(tokens as Tokens, lines, '[example'), `${file} [example`).not.toBe(PLAIN);
 		}
 		hl.dispose();

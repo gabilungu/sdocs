@@ -122,7 +122,7 @@ describe('attributeRules (shared by diagnostics and completions)', () => {
 			'title', 'maxWidth', 'padding', 'direction', 'gap', 'contentX', 'contentY',
 		]);
 		expect(Object.keys(attributeRules('PAGE'))).toEqual([
-			'title', 'maxWidth', 'padding', 'contentX', 'toc',
+			'title', 'maxWidth', 'padding', 'contentX', 'toc', 'home',
 		]);
 		expect(Object.keys(attributeRules('DOCS'))).toContain('gap');
 		expect(Object.keys(attributeRules('LAYOUT'))).toEqual(['title', 'maxWidth', 'padding']);

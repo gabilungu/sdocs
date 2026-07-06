@@ -224,4 +224,7 @@ export interface DocEntry {
 	bodyTitle?: string;
 	/** Key into the virtual module's pageModules map (pages only) */
 	contentKey?: string;
+	/** `home` flag: this page is the site's landing page, at the root route
+	 * and reached via the logo — never listed in a sidebar (pages only). */
+	home?: boolean;
 }

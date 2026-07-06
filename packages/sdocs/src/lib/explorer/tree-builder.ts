@@ -48,6 +48,8 @@ export interface SectionMap {
 	routes: Map<string, RouteTarget>;
 	/** True once any doc declares an `@Section` — routes carry the section slug */
 	active: boolean;
+	/** The page marked `home`, rendered at the root route — never in a sidebar */
+	home: RouteTarget | null;
 }
 
 /** Slug for one route segment — same rules as page heading anchors. */
@@ -91,7 +93,12 @@ export function buildSections(
 	const byName = new Map<string, DocEntry[]>();
 	let active = false;
 
+	// The home page renders at the root route and is reached via the logo — it
+	// never appears in a section or sidebar. First one wins.
+	const homeDoc = docs.find((d) => d.home) ?? null;
+
 	for (const doc of docs) {
+		if (doc === homeDoc) continue;
 		const { section } = splitSection(doc.meta.title);
 		if (section) active = true;
 		const name = section ?? defaultName;
@@ -126,7 +133,7 @@ export function buildSections(
 		};
 	});
 
-	return { sections, routes, active };
+	return { sections, routes, active, home: homeDoc ? { doc: homeDoc } : null };
 }
 
 /**

@@ -6,9 +6,11 @@
 		docs: DocEntry[];
 		title: string;
 		logo?: string | false;
+		/** Version of the sdocs that built this site */
+		sdocsVersion?: string;
 	}
 
-	let { docs, title, logo = 'sdocs' }: Props = $props();
+	let { docs, title, logo = 'sdocs', sdocsVersion }: Props = $props();
 
 	const componentCount = $derived(docs.filter((d) => d.kind === 'component').length);
 	const pageCount = $derived(docs.filter((d) => d.kind === 'page').length);
@@ -47,7 +49,11 @@
 		{/if}
 	</div>
 
-	<p class="sdocs-home-hint">Select a component or page from the sidebar to get started.</p>
+	<p class="sdocs-home-hint">
+		Built with
+		<a class="sdocs-home-link" href="https://github.com/gabilungu/sdocs">sdocs</a>{#if sdocsVersion}
+			<span class="sdocs-home-version">v{sdocsVersion}</span>{/if}.
+	</p>
 </div>
 
 <style>
@@ -100,5 +106,17 @@
 	.sdocs-home-hint {
 		font-size: 14px;
 		color: var(--color-base-400);
+	}
+	.sdocs-home-link {
+		color: var(--color-action-500);
+		text-decoration: none;
+	}
+	.sdocs-home-link:hover {
+		text-decoration: underline;
+	}
+	.sdocs-home-version {
+		font-family: var(--mono);
+		font-size: 13px;
+		margin-left: 4px;
 	}
 </style>

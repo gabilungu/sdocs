@@ -13,6 +13,15 @@ import { encodeEntityId, setDocPathRoot } from './snippet-compiler.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 
+/** The sdocs package version (this file sits at dist/server, package.json two up). */
+export function sdocsVersion(): string {
+	try {
+		return require('../../package.json').version as string;
+	} catch {
+		return '';
+	}
+}
+
 /**
  * Make the staging dir self-sufficient: the staged Explorer imports shiki
  * (and svelte) as bare specifiers, but when the staging dir sits inside a
@@ -129,6 +138,7 @@ mount(Explorer, {
 		defaultSection: ${JSON.stringify(config.defaultSection)},
 		routing: ${JSON.stringify(config.routing ?? 'history')},
 		sidebarConfig: ${JSON.stringify(config.sidebar)},
+		sdocsVersion: ${JSON.stringify(sdocsVersion())},
 	}
 });`;
 }

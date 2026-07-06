@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.63] - 2026-07-06
+
+### Added
+
+- **`home` page.** Mark any `[PAGE]` with the bare `home` flag
+  (`[PAGE title="Introduction" home]`) to make it the site's landing page:
+  it renders at the root route, is linked by the logo/title, and never
+  appears in a sidebar. First `home` wins.
+- **About page at `/about`.** The former stats/mascot landing screen is now
+  an About page — project logo, doc counts, and the sdocs version that
+  built the site — always reachable at `/about`. It's the automatic landing
+  page whenever no page is marked `home`.
+
+### Fixed
+
+- `sdocs --version` reported `unknown` (wrong package.json path); it now
+  prints the real version.
+
 ## [0.0.62] - 2026-07-06
 
 ### Fixed

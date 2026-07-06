@@ -14,7 +14,12 @@ import {
 } from '../../src/lib/explorer/tree-builder.js';
 import type { DocEntry } from '../../src/lib/types.js';
 
-function doc(title: string, kind: DocEntry['kind'] = 'page', examples: string[] = []): DocEntry {
+function doc(
+	title: string,
+	kind: DocEntry['kind'] = 'page',
+	examples: string[] = [],
+	home = false,
+): DocEntry {
 	return {
 		kind,
 		filePath: `/x/${title}.sdoc`,
@@ -23,6 +28,7 @@ function doc(title: string, kind: DocEntry['kind'] = 'page', examples: string[] 
 		previews: [],
 		examples: examples.map((name) => ({ name, slug: slugifySegment(name), role: 'example', body: '' })),
 		content: null,
+		home,
 	};
 }
 
@@ -102,6 +108,36 @@ describe('buildSections', () => {
 			'guides',
 			'installation',
 		]);
+	});
+});
+
+describe('home page', () => {
+	it('is recorded, excluded from sidebars, and not routed', () => {
+		const map = buildSections([
+			doc('Introduction', 'page', [], true),
+			doc('@Guides/Colors'),
+			doc('@Guides/Markdown'),
+		]);
+		expect(map.home?.doc.meta.title).toBe('Introduction');
+		// not in any sidebar tree
+		const names = map.sections.flatMap((s) => s.tree.map((n) => n.name));
+		expect(names).not.toContain('Introduction');
+		// not registered as a route
+		expect([...map.routes.keys()].some((k) => k.includes('introduction'))).toBe(false);
+		// the other pages still route
+		expect(map.routes.has('guides/colors')).toBe(true);
+	});
+
+	it('null when no page is marked home', () => {
+		const map = buildSections([doc('Markdown')]);
+		expect(map.home).toBeNull();
+	});
+
+	it('a home page with @Section does not create an empty section', () => {
+		const map = buildSections([doc('@Guides/Intro', 'page', [], true), doc('Markdown')]);
+		// Guides had only the home page → no Guides section remains
+		expect(map.sections.map((s) => s.name)).toEqual(['Docs']);
+		expect(map.home?.doc.meta.title).toBe('@Guides/Intro');
 	});
 });
 

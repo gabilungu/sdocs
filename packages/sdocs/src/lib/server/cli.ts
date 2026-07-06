@@ -6,7 +6,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 function getVersion(): string {
 	try {
-		const pkg = JSON.parse(readFileSync(resolve(__dirname, '..', 'package.json'), 'utf-8'));
+		// This file sits at dist/server/cli.js; package.json is two levels up.
+		const pkg = JSON.parse(readFileSync(resolve(__dirname, '..', '..', 'package.json'), 'utf-8'));
 		return pkg.version;
 	} catch {
 		return 'unknown';

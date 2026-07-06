@@ -64,10 +64,12 @@ into the default section, so URLs from before you introduced sections keep
 working. (Folders keep their default expand state — deep-linking doesn't
 auto-expand the path to the entry.)
 
-## Home page
+## Home and About
 
-Visiting the root shows a home page with counts of components, pages, and
-layouts.
+The root route shows the page marked [`home`](/language/page-docs#home-page)
+if there is one, otherwise the built-in **About** page (project logo, doc
+counts, and the sdocs version). About is always reachable at `/about`. The
+logo/title always links to the root.
 
 ## Fullscreen mode
 

@@ -109,6 +109,14 @@ describe('parseSdoc validation', () => {
 		);
 	});
 
+	it('parses the bare home flag on a PAGE', () => {
+		const home = parseSdoc('[PAGE title="Intro" home]\nx\n[/PAGE]\n');
+		expect(home.diagnostics).toEqual([]);
+		expect((home.entities[0] as { home: boolean }).home).toBe(true);
+		const plain = parseSdoc('[PAGE title="Intro"]\nx\n[/PAGE]\n');
+		expect((plain.entities[0] as { home: boolean }).home).toBe(false);
+	});
+
 	it('rejects wrong attribute value kinds', () => {
 		expect(diagnosticCodes('[DOCS title={x}]\n[/DOCS]\n')).toContain('attr-value-kind');
 		expect(

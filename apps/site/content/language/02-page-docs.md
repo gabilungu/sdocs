@@ -54,11 +54,39 @@ the configured `css`, exactly like an example in a `[DOCS]` entity.
 | `padding` | no | Space around the page content (default `32px`) |
 | `contentX` | no | Aligns the content column: `left`/`center`/`right` (default `left`) |
 | `toc` | no | `toc="false"` hides the table of contents (default `true`) |
+| `home` | no | A bare flag: makes this page the site landing page |
 
 The `maxWidth` box holds the prose *and* the table of contents; when the toc
 is hidden (or the page has no headings), the prose takes its space. A body
 that opens with a `#` heading uses it as the page's displayed title — the
 `title` attribute then only names the sidebar entry.
+
+## Home page
+
+A page marked `home` becomes the site's landing page:
+
+```
+[PAGE title="Introduction" home]
+
+	# Welcome
+
+	...
+
+[/PAGE]
+```
+
+It renders at the root route and is what the logo/title links to. A home
+page is **never listed in a sidebar** — the logo is its one link — so use it
+for a welcome or overview screen. Only one page can be `home` (the first
+wins). When no page is marked `home`, the root shows the built-in
+[About page](#about-page) instead.
+
+## About page
+
+Every site has an **About** page at `/about`: the project logo, the counts
+of components, pages, and layouts, and the sdocs version that built the
+site. It's the default landing page whenever no page is marked `home`, and
+it stays reachable at `/about` either way.
 
 ## Examples in pages
 

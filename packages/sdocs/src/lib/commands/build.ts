@@ -91,12 +91,12 @@ async function emitRoutePages(config: ResolvedSdocsConfig, cwd: string): Promise
 		order: config.sections,
 	});
 	const shell = await readFile(resolve(cwd, 'dist/index.html'), 'utf-8');
-	let count = 0;
-	for (const key of map.routes.keys()) {
+	// Every doc route, plus the always-present /about page.
+	const keys = [...map.routes.keys(), 'about'];
+	for (const key of keys) {
 		const dir = resolve(cwd, 'dist', key);
 		await mkdir(dir, { recursive: true });
 		await writeFile(resolve(dir, 'index.html'), shell);
-		count++;
 	}
-	return count;
+	return keys.length;
 }

@@ -7,7 +7,7 @@
 	import ComponentView from './views/ComponentView.svelte';
 	import PageView from './views/PageView.svelte';
 	import LayoutView from './views/LayoutView.svelte';
-	import HomePage from './views/HomePage.svelte';
+	import AboutPage from './views/AboutPage.svelte';
 	import { onMount, setContext } from 'svelte';
 	import '../ui/styles/sdocs.css';
 
@@ -39,6 +39,8 @@
 		routing?: RoutingMode;
 		/** Path prefix for history-mode routes (host app sub-path) */
 		basePath?: string;
+		/** Version of sdocs that built the site, shown on the About page */
+		sdocsVersion?: string;
 	}
 
 	let {
@@ -53,7 +55,8 @@
 		sections,
 		defaultSection = 'Docs',
 		routing = 'hash',
-		basePath = ''
+		basePath = '',
+		sdocsVersion
 	}: Props = $props();
 
 	setContext('sdocs-preview-base', previewBase);
@@ -99,14 +102,25 @@
 		buildSections(docs, sidebarConfig, { defaultSection, order: sections }),
 	);
 	const showTopBar = $derived(sectionMap.sections.length > 1);
+	// The section the current route sits in — undefined on the home/about
+	// screens, so no tab reads as active there.
+	const routeSection = $derived(
+		sectionMap.active ? sectionMap.sections.find((s) => s.slug === currentRoute[0]) : undefined,
+	);
+	// The section whose sidebar to show — falls back to the first when the
+	// route points nowhere (home, about, unknown), so there's always a tree.
 	const activeSection = $derived(
-		(sectionMap.active
-			? sectionMap.sections.find((s) => s.slug === currentRoute[0])
-			: undefined) ??
+		routeSection ??
 			sectionMap.sections.find((s) => s.isDefault) ??
 			sectionMap.sections[0],
 	);
+	// The About page (mascot + stats + sdocs version) lives at /about and is
+	// the landing page whenever no page is marked `home`.
+	const isAboutRoute = $derived(currentRoute.length === 1 && currentRoute[0] === 'about');
 	const resolved = $derived(resolveRoute(sectionMap, currentRoute));
+	// Root or an unknown route lands on the home page, or About as the fallback.
+	const atRoot = $derived(!isAboutRoute && !resolved);
+	const landing = $derived(atRoot ? sectionMap.home : null);
 
 	/** History mode: internal <a> clicks route client-side instead of reloading. */
 	function onLinkClick(e: MouseEvent) {
@@ -134,7 +148,7 @@
 			title={headerTitle}
 			logo={headerLogo}
 			sections={sectionMap.sections}
-			activeSlug={activeSection?.slug}
+			activeSlug={routeSection?.slug}
 			{cssNames}
 			{activeStylesheet}
 			{theme}
@@ -164,7 +178,9 @@
 			</button>
 		{/if}
 		<main class="sdocs-main" class:sdocs-main-fullscreen={sidebarHidden}>
-			{#if resolved}
+			{#if landing}
+				<PageView doc={landing.doc} {activeStylesheet} {pageModules} />
+			{:else if resolved}
 				{#if resolved.doc.kind === 'page'}
 					<PageView doc={resolved.doc} {activeStylesheet} {pageModules} />
 				{:else if resolved.doc.kind === 'layout'}
@@ -173,7 +189,7 @@
 					<ComponentView doc={resolved.doc} snippetName={resolved.snippetName} {activeStylesheet} />
 				{/if}
 			{:else}
-				<HomePage {docs} title={headerTitle} logo={headerLogo} />
+				<AboutPage {docs} title={headerTitle} logo={headerLogo} {sdocsVersion} />
 			{/if}
 		</main>
 	</div>

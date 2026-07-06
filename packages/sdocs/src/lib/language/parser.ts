@@ -75,6 +75,8 @@ export interface PageEntity {
 	kind: 'PAGE';
 	title: string;
 	slug: string;
+	/** `home` flag: this page is the site's landing page (root route). */
+	home: boolean;
 	sizing: Sizing;
 	/** Prose body with each [example] block replaced by a
 	 * `{@render __sdocsExample?.(i)}` marker the page renderer resolves. */
@@ -151,8 +153,8 @@ const IDENTIFIER_RE = /^[A-Z][A-Za-z0-9_]*$/;
 export interface AttrRule {
 	/** required | optional */
 	required: boolean;
-	/** expected value kind */
-	kind: 'string' | 'expression';
+	/** expected value kind ('bare' = a lone flag, no value) */
+	kind: 'string' | 'expression' | 'bare';
 	hint: string;
 }
 
@@ -194,6 +196,7 @@ const ENTITY_ATTR_RULES: Record<string, Record<string, AttrRule>> = {
 		// On PAGE, contentX aligns the content column (with its toc), not a stage.
 		contentX: { required: false, kind: 'string', hint: 'contentX="center"' },
 		toc: { required: false, kind: 'string', hint: 'toc="false"' },
+		home: { required: false, kind: 'bare', hint: 'home' },
 	},
 	LAYOUT: {
 		title: { required: true, kind: 'string', hint: 'title="Group / Name"' },
@@ -262,6 +265,11 @@ function checkAttrs(
 function stringAttr(attrs: Attrs, name: string): string | null {
 	const v = attrs[name];
 	return v && v.kind === 'string' ? v.raw : null;
+}
+
+/** A bare flag attribute (`home`) is true when present. */
+function bareAttr(attrs: Attrs, name: string): boolean {
+	return attrs[name]?.kind === 'bare';
 }
 
 /**
@@ -461,6 +469,7 @@ function parsePage(entity: Entity, diagnostics: ScanError[]): PageEntity {
 		kind: 'PAGE',
 		title,
 		slug: slugifyTitle(title),
+		home: bareAttr(entity.attrs, 'home'),
 		sizing: sizingOf(entity.attrs),
 		body: normalizeBody(spliceExampleMarkers(entity)),
 		examples,

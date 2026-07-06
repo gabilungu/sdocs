@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.45] - 2026-07-06
+
+### Added
+
+- **`base` config key** offered in `sdocs.config` completion (build sub-path
+  for GitHub project Pages).
+
 ## [0.0.44] - 2026-07-06
 
 ### Added

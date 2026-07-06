@@ -30,7 +30,7 @@ Run sdocs as its own dev server:
 
 ```bash
 npx sdocs dev      # Start dev server with HMR
-npx sdocs build    # Build static documentation site
+npx sdocs build    # Build a static site — every route prerendered to real HTML
 npx sdocs preview  # Preview the built site locally
 npx sdocs init     # Scaffold a sdocs.config.js file
 ```

@@ -75,9 +75,8 @@
 	| `title` | `string` | Header title text. Default: `'sdocs'`. |
 	| `logo` | `string \| false` | Header logo: `'sdocs'` for the built-in mascot (default), an image URL, or `false` to hide. |
 	| `previewBase` | `string` | URL prefix for preview pages when the app deploys under a sub-path. In SvelteKit, pass `base` from `$app/paths`. Default: `''`. |
-	| `sidebarConfig` | `{ order?, open? }` | Sidebar ordering & initial open state. See [sidebar](/explorer/features/sidebar). |
-	| `sections` | `string[]` | Top-bar section order (sections come from `@Section/` title prefixes). |
-	| `defaultSection` | `string` | Section for docs without an `@Section/` prefix. Default: `'Docs'`. |
+	| `sections` | `SectionConfig[]` | Declared sections in top-bar order (`{ slug, title?, order? }`), same shape as the config key. See [sidebar](/explorer/features/sidebar#sections-top-bar). |
+	| `home` | `string` | Route path of the landing page, like the config `home`. |
 	| `routing` | `'history' \| 'hash'` | URL style. Embedded default: `'hash'` — it works under any host routing. Only switch to `'history'` if the host serves a fallback for doc routes. |
 	| `basePath` | `string` | Path prefix for history-mode routes (the host sub-path the Explorer is mounted on). Default: `''`. |
 
@@ -89,6 +88,11 @@
 	static page under `previews/` in the build output, and `virtual:sdocs` points
 	the preview iframes there — embedded docs work in the deployed app, not just
 	in dev. Your `css` stylesheets are bundled into the preview pages as well.
+
+	Note that [prerendering](/explorer/features/routing#history-mode-standalone-cli)
+	is a standalone `sdocs build` feature: an embedded Explorer renders
+	client-side, and static HTML for crawlers is the host framework's job
+	(SvelteKit prerendering, for example).
 
 	When the app deploys under a sub-path (GitHub Pages, for example), pass the
 	path to the `Explorer` component so preview URLs resolve — in SvelteKit:

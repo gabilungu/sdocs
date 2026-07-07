@@ -8,6 +8,7 @@
 	import PropControl from './PropControl.svelte';
 	import CssPropControl from './CssPropControl.svelte';
 	import { displayTitle } from '../tree-builder.js';
+	import { getQueryParam, setQueryParam } from '../router.svelte.js';
 
 	interface Props {
 		doc: DocEntry;
@@ -21,12 +22,24 @@
 	const meta = $derived(doc.meta);
 	const previews = $derived(doc.previews ?? []);
 
-	// Active preview tab (one full live panel per preview)
+	// Active preview tab (one full live panel per preview). The selection is
+	// mirrored in the URL as ?tab=<preview-slug> so a tab is shareable; this
+	// effect syncs the other way — reset to 0 on entity change, or select the
+	// preview named by the query param. It runs after mount, so the first
+	// (hydration) render still matches the prerendered default tab.
 	let activeIndex = $state(0);
 	$effect(() => {
-		doc;
-		activeIndex = 0;
+		doc; // re-run when the entity changes
+		const slug = getQueryParam('tab');
+		const idx = slug ? previews.findIndex((p) => p.snippet.slug === slug) : -1;
+		activeIndex = idx >= 0 ? idx : 0;
 	});
+
+	/** Switch tab and reflect it in the URL (tab 0 is the default → clean URL). */
+	function selectTab(i: number) {
+		activeIndex = i;
+		setQueryParam('tab', i === 0 ? null : (previews[i]?.snippet.slug ?? null));
+	}
 	const activePreview = $derived(
 		previews.length > 0 ? previews[Math.min(activeIndex, previews.length - 1)] : undefined,
 	);
@@ -320,7 +333,7 @@
 						class:active={i === activeIndex}
 						role="tab"
 						aria-selected={i === activeIndex}
-						onclick={() => (activeIndex = i)}
+						onclick={() => selectTab(i)}
 					>
 						{preview.label}
 					</button>

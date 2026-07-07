@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.76] - 2026-07-07
+
+### Added
+
+- **Preview tabs are deep-linkable.** In a component doc with several
+  `[preview]` blocks, the selected tab is mirrored in the URL as
+  `?tab=<preview-slug>`, so a specific preview can be linked or shared
+  (`…/navtree?tab=navtree-item`). Loading such a URL opens that tab; the
+  first tab stays the default (clean URL), and navigating to another entity
+  drops the parameter. Hydration-safe: the prerendered page shows the
+  default tab and switches after mount.
+
 ## [0.0.75] - 2026-07-07
 
 ### Fixed

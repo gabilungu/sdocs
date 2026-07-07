@@ -174,6 +174,14 @@ export interface ComponentData {
 	methods: ParsedMethod[];
 	state: ParsedState[];
 	cssProps: ParsedCssProp[];
+	/** The component accepts `class` and merges it onto its root element.
+	 * Shown as a chip under the props, never as a prop row. */
+	acceptsClass?: boolean;
+	/** The component spreads `...rest` onto its root element. */
+	forwardsRest?: boolean;
+	/** What the rest props are typed as, when the Props interface extends a
+	 * type (e.g. `HTMLButtonAttributes`); null for untyped/JSDoc components. */
+	restType?: string | null;
 }
 
 /** A renderable snippet of an entity: a preview, an example, or the body */

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.80] - 2026-07-08
+
+### Fixed
+
+- **`class` and `...rest` forwarding render as chips, not prop rows.** The
+  standard forwarding shape — `interface Props extends HTMLAttributes<…>` with
+  a merged `class` and a `{...rest}` spread on the root element — used to
+  pollute the props table: `...rest` was mis-read as a prop and `class` showed
+  as a required row. Both are now recognized as forwarding infrastructure and
+  shown as small chips under the props table ("Also forwarded to the root
+  element"), with the rest chip labeled by the extended type when the interface
+  declares one. Detection reads the `$props()` destructuring itself, so it
+  works identically in TypeScript, plain JS, and JSDoc-typed components; an
+  explicit `class?: string` interface member is treated the same way.
+
 ## [0.0.79] - 2026-07-07
 
 ### Fixed

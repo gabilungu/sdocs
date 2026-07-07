@@ -44,6 +44,32 @@
 	}
 	```
 
+	### `class` and `...rest` forwarding
+
+	The standard forwarding shape — a merged `class` and a rest spread on the
+	root element — is recognized and kept out of the props table:
+
+	```svelte
+	<script lang="ts">
+	  import type { HTMLAttributes } from 'svelte/elements';
+
+	  interface Props extends HTMLAttributes<HTMLDivElement> {
+	    label: string;
+	  }
+	  let { label, class: className, ...rest }: Props = $props();
+	</script>
+
+	<div class={['Box', className]} {...rest}>{label}</div>
+	```
+
+	`class` and `...rest` aren't component API — they forward whatever the
+	consumer passes to the root element — so instead of rendering as (falsely
+	required) prop rows, they appear as small chips under the table: `class`,
+	and `…rest` labeled with the extended type when the interface declares one
+	(here `HTMLAttributes<HTMLDivElement>`). Detection reads the `$props()`
+	destructuring itself, so it works the same in TypeScript, plain JS, and
+	JSDoc-typed components.
+
 	## Plain JS components (JSDoc)
 
 	Components without TypeScript get the same extraction through JSDoc. Two forms

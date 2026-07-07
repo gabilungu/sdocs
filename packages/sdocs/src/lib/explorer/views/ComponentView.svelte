@@ -395,7 +395,7 @@
 			{/if}
 		{/snippet}
 
-		{#if propsRows.length > 0}
+		{#if propsRows.length > 0 || cd?.acceptsClass || cd?.forwardsRest}
 			<section class="sdocs-doc-section">
 				<h2 class="sdocs-doc-section-title">
 					<Icon name="sliders-horizontal" --w="15px" --h="15px" --fill="var(--color-base-500)" />
@@ -404,7 +404,19 @@
 						<button class="sdocs-reset-btn" onclick={handleReset}>Reset</button>
 					{/if}
 				</h2>
-				<ApiTable rows={propsRows} control={propControl} />
+				{#if propsRows.length > 0}
+					<ApiTable rows={propsRows} control={propControl} />
+				{/if}
+				{#if cd?.acceptsClass || cd?.forwardsRest}
+					<!-- class / ...rest are forwarding infrastructure, not API — chips, not rows -->
+					<div class="sdocs-forwarded">
+						<span class="sdocs-forwarded-label">Also forwarded to the root element:</span>
+						{#if cd?.acceptsClass}<code class="sdocs-forwarded-chip">class</code>{/if}
+						{#if cd?.forwardsRest}
+							<code class="sdocs-forwarded-chip" title={cd?.restType ?? undefined}>{cd?.restType ? `…rest (${cd.restType})` : '…rest'}</code>
+						{/if}
+					</div>
+				{/if}
 			</section>
 		{/if}
 
@@ -526,6 +538,26 @@
 	}
 	.sdocs-reset-btn:hover {
 		background: var(--color-base-100);
+	}
+	.sdocs-forwarded {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 8px;
+		margin-top: 10px;
+		font-size: 12px;
+	}
+	.sdocs-forwarded-label {
+		color: var(--color-base-500);
+	}
+	.sdocs-forwarded-chip {
+		padding: 2px 8px;
+		border: 1px solid var(--color-base-200);
+		border-radius: 999px;
+		background: var(--color-base-50);
+		font-family: var(--mono);
+		font-size: 11px;
+		color: var(--color-base-600);
 	}
 	.sdocs-run-btn {
 		padding: 3px 12px;

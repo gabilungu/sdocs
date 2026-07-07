@@ -22,6 +22,9 @@ export function parseComponentSource(source: string): ComponentData {
 	let props: ParsedProp[] = [];
 	let methods: ParsedMethod[] = [];
 	let state: ParsedState[] = [];
+	let acceptsClass = false;
+	let forwardsRest = false;
+	let restType: string | null = null;
 
 	if (scriptContent) {
 		const tsAst = ts.createSourceFile(
@@ -34,7 +37,7 @@ export function parseComponentSource(source: string): ComponentData {
 
 		const interfaceProps = parseInterfaceProps(tsAst);
 		const jsdocTypeProps = parseJsdocTypeProps(tsAst);
-		const destructuredProps = parsePropsDestructuring(tsAst);
+		const destructured = parsePropsDestructuring(tsAst);
 		const jsdocData = parseJsdocComments(tsAst);
 		// TS interface wins over JSDoc types when both exist (they shouldn't).
 		const interfaceNames = new Set(interfaceProps.map((p) => p.name));
@@ -42,14 +45,23 @@ export function parseComponentSource(source: string): ComponentData {
 			...interfaceProps,
 			...jsdocTypeProps.filter((p) => !interfaceNames.has(p.name)),
 		];
-		props = mergeProps(typedProps, destructuredProps, jsdocData);
+		// `class` is forwarding infrastructure, not API — surfaced as a flag
+		// (rendered as a chip), never as a prop row, wherever it's declared.
+		acceptsClass = destructured.acceptsClass || typedProps.some((p) => p.name === 'class');
+		forwardsRest = destructured.forwardsRest;
+		restType = forwardsRest ? parsePropsHeritage(tsAst) : null;
+		props = mergeProps(
+			typedProps.filter((p) => p.name !== 'class'),
+			destructured.props,
+			jsdocData,
+		);
 		methods = parseExportedFunctions(tsAst);
 		state = parseExportedState(tsAst);
 	}
 
 	const cssProps = styleContent ? parseCssProps(source, styleContent) : [];
 
-	return { props, methods, state, cssProps };
+	return { props, methods, state, cssProps, acceptsClass, forwardsRest, restType };
 }
 
 // ─── Script extraction ───
@@ -177,10 +189,18 @@ interface DestructuredProp {
 	default: string | null;
 }
 
+interface DestructuredProps {
+	props: DestructuredProp[];
+	acceptsClass: boolean;
+	forwardsRest: boolean;
+}
+
 function parsePropsDestructuring(
 	sourceFile: ts.SourceFile,
-): DestructuredProp[] {
+): DestructuredProps {
 	const props: DestructuredProp[] = [];
+	let acceptsClass = false;
+	let forwardsRest = false;
 
 	function visit(node: ts.Node) {
 		// Match: let { ... } = $props()
@@ -194,10 +214,22 @@ function parsePropsDestructuring(
 		) {
 			for (const element of node.name.elements) {
 				if (ts.isBindingElement(element)) {
+					// `...rest` is a forwarding declaration, not a prop. Detected
+					// syntactically, so it works the same in TS, JS, and JSDoc files.
+					if (element.dotDotDotToken) {
+						forwardsRest = true;
+						continue;
+					}
 					// Use propertyName when present (e.g. `class: className`)
 					const name = element.propertyName
 						? element.propertyName.getText(sourceFile)
 						: element.name.getText(sourceFile);
+					// `class` (always aliased — it's a reserved word) is a forwarded
+					// attribute, not an own prop; surfaced as a chip, not a row.
+					if (name === 'class') {
+						acceptsClass = true;
+						continue;
+					}
 					const rawDefault = element.initializer
 						? element.initializer.getText(sourceFile)
 						: null;
@@ -213,7 +245,26 @@ function parsePropsDestructuring(
 	}
 
 	visit(sourceFile);
-	return props;
+	return { props, acceptsClass, forwardsRest };
+}
+
+/** The heritage type `interface Props` extends, when present — e.g.
+ * `HTMLButtonAttributes` or `HTMLAttributes<HTMLDivElement>`. Labels what a
+ * `...rest` spread forwards; JS/JSDoc components have no heritage (null). */
+function parsePropsHeritage(sourceFile: ts.SourceFile): string | null {
+	let heritage: string | null = null;
+
+	ts.forEachChild(sourceFile, (node) => {
+		if (ts.isInterfaceDeclaration(node) && node.name.text === 'Props') {
+			const clause = node.heritageClauses?.find(
+				(c) => c.token === ts.SyntaxKind.ExtendsKeyword,
+			);
+			const first = clause?.types[0];
+			if (first) heritage = first.getText(sourceFile);
+		}
+	});
+
+	return heritage;
 }
 
 // ─── JSDoc parsing ───

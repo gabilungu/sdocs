@@ -123,6 +123,82 @@ describe('untyped JS components', () => {
 	});
 });
 
+describe('class / ...rest forwarding (chips, not prop rows)', () => {
+	it('TS: extends HTMLAttributes + class alias + rest spread', () => {
+		const data = parseComponentSource(`<script lang="ts">
+	import type { HTMLAttributes } from 'svelte/elements';
+
+	interface Props extends HTMLAttributes<HTMLDivElement> {
+		/** The label */
+		text?: string;
+	}
+
+	let { text = 'Placeholder', class: className, ...rest }: Props = $props();
+</script>
+
+<div class={['Box', className]} {...rest}>{text}</div>`);
+		// Own props only — no phantom `class` or `rest` rows
+		expect(data.props.map((p) => p.name)).toEqual(['text']);
+		expect(data.acceptsClass).toBe(true);
+		expect(data.forwardsRest).toBe(true);
+		expect(data.restType).toBe('HTMLAttributes<HTMLDivElement>');
+	});
+
+	it('TS: class declared explicitly in the interface is a chip too', () => {
+		const data = parseComponentSource(`<script lang="ts">
+	interface Props {
+		path: string;
+		class?: string;
+	}
+
+	let { path, class: className = '' }: Props = $props();
+</script>
+
+<span class="Icon {className}">{path}</span>`);
+		expect(data.props.map((p) => p.name)).toEqual(['path']);
+		expect(data.acceptsClass).toBe(true);
+		expect(data.forwardsRest).toBe(false);
+		expect(data.restType).toBe(null);
+	});
+
+	it('plain JS: detection is syntactic on the destructure, no types needed', () => {
+		const data = parseComponentSource(`<script>
+	let { label = 'x', class: cls, ...attrs } = $props();
+</script>`);
+		expect(data.props.map((p) => p.name)).toEqual(['label']);
+		expect(data.acceptsClass).toBe(true);
+		expect(data.forwardsRest).toBe(true);
+		expect(data.restType).toBe(null);
+	});
+
+	it('JSDoc-typed JS: typedef props survive, class/rest become flags', () => {
+		const data = parseComponentSource(`<script>
+	/**
+	 * @typedef {Object} Props
+	 * @property {string} [label] - The badge label
+	 */
+
+	/** @type {Props} */
+	let { label = 'Badge', class: cls, ...rest } = $props();
+</script>`);
+		expect(data.props.map((p) => p.name)).toEqual(['label']);
+		expect(byName(data.props, 'label').description).toBe('The badge label');
+		expect(data.acceptsClass).toBe(true);
+		expect(data.forwardsRest).toBe(true);
+		expect(data.restType).toBe(null);
+	});
+
+	it('components without class/rest report falsy flags', () => {
+		const data = parseComponentSource(`<script lang="ts">
+	interface Props { label?: string }
+	let { label = 'x' }: Props = $props();
+</script>`);
+		expect(data.acceptsClass).toBe(false);
+		expect(data.forwardsRest).toBe(false);
+		expect(data.restType).toBe(null);
+	});
+});
+
 describe('methods, state, and CSS custom properties', () => {
 	const source = `<script lang="ts">
 	/** Clears the value */

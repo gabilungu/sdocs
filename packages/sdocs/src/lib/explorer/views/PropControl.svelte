@@ -44,14 +44,29 @@
 		if (t === 'number') return 'number';
 		if (t === 'boolean') return 'boolean';
 		if (parseUnionOptions(prop.type)) return 'select';
+		// A type that permits a string (e.g. `number | string`) → free-text box,
+		// rather than no control at all.
+		if (/\bstring\b/.test(t)) return 'text';
 		return 'readonly';
 	});
 
 	const options = $derived(parseUnionOptions(prop.type) ?? []);
+
+	// When the type also allows a number (e.g. `number | string`), coerce a
+	// plain-numeric entry to a number so a "number means px"-style convention
+	// still works through the text box; anything else passes through as text.
+	const coercesNumber = $derived(/\bnumber\b/.test(prop.type?.toLowerCase() ?? ''));
+	function onText(v: unknown) {
+		if (coercesNumber && typeof v === 'string' && /^-?\d+(\.\d+)?$/.test(v.trim())) {
+			onchange(Number(v));
+		} else {
+			onchange(v);
+		}
+	}
 </script>
 
 {#if controlType === 'text'}
-	<TextControl value={String(value ?? prop.default ?? '')} {onchange} />
+	<TextControl value={String(value ?? prop.default ?? '')} onchange={onText} />
 {:else if controlType === 'number'}
 	<NumberControl value={Number(value ?? prop.default ?? 0)} {onchange} />
 {:else if controlType === 'boolean'}

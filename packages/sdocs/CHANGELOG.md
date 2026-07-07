@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.77] - 2026-07-07
+
+### Added
+
+- **String-permitting union props get a text control.** A prop typed
+  `number | string` (or any union that allows a string) previously showed no
+  control at all — only literal-value unions (`'sm' | 'md'`) became a select.
+  Such props now render a text box. When the type also allows a number, a
+  plain-numeric entry is coerced back to a number, so a `number | string`
+  "a bare number means px" convention keeps working through the control.
+
 ## [0.0.76] - 2026-07-07
 
 ### Added

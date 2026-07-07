@@ -57,7 +57,31 @@ const MULTI_BLOCK = `<script lang="ts">
 </style>
 `;
 
-type Tokens = { content: string; color?: string }[][];
+// A file the formatter has wrapped: openers wider than printWidth become one
+// attribute per line with the closing ] on its own line. The block-opener case
+// includes an {{…}} expression value, whose begin/end expression region used to
+// leak past its line and desync the Svelte body — the ] below turned into
+// text.svelte and everything after it lost its scopes.
+const WRAPPED = `<script lang="ts">
+	import Root from './Root.svelte';
+</script>
+
+[SHOWCASE
+	title="Wrapped / Opener"
+	description="Long enough that the opener wraps onto several lines in the formatter."
+]
+
+	[preview
+		component={Root}
+		args={{ active: 0 }}
+	]
+		<Root {...args}>body</Root>
+	[/preview]
+
+[/SHOWCASE]
+`;
+
+type Tokens = { content: string; color?: string; explanation?: { scopes: { scopeName: string }[] }[] }[][];
 
 function colorOf(tokens: Tokens, lines: string[], needle: string, from = 0): string {
 	const idx = lines.findIndex((l, i) => i >= from && l.includes(needle));
@@ -83,6 +107,28 @@ function assertSdocScopes(tokens: Tokens, source: string) {
 		expect(color, label).not.toBe('MISSING');
 		expect(color, label).not.toBe(PLAIN);
 	}
+}
+
+function assertWrappedOpener(tokens: Tokens, source: string) {
+	const lines = source.split('\n');
+	const li = (needle: string) => lines.findIndex((l) => l.includes(needle));
+	const scopeOf = (lineIdx: number, word: string) => {
+		const tok = (tokens[lineIdx] ?? []).find((t) => t.content.trim() === word);
+		const sc = tok?.explanation?.flatMap((e) => e.scopes.map((s) => s.scopeName)) ?? [];
+		return sc[sc.length - 1] ?? 'MISSING';
+	};
+	// Wrapped entity-opener attribute names are scoped, not swallowed as plain text.
+	expect(scopeOf(li('\ttitle='), 'title'), 'wrapped title=').toContain('attribute-name.sdoc');
+	expect(scopeOf(li('\tdescription='), 'description'), 'wrapped description=').toContain('attribute-name.sdoc');
+	// Wrapped block-opener attribute names, including one with an {{…}} value.
+	expect(scopeOf(li('\t\tcomponent='), 'component'), 'wrapped component=').toContain('attribute-name.sdoc');
+	expect(scopeOf(li('\t\targs='), 'args'), 'wrapped args=').toContain('attribute-name.sdoc');
+	// The standalone ] that closes the wrapped [preview opener is the tag end —
+	// the regression turned this into text.svelte and desynced the body below.
+	expect(scopeOf(li('\t]'), ']'), 'standalone ] of wrapped preview').toContain('tag.end.sdoc');
+	// Body after the wrapped opener still highlights as Svelte, and the closers survive.
+	expect(scopeOf(li('<Root {...args}'), 'Root'), 'body component after wrapped opener').toContain('svelte');
+	expect(scopeOf(li('[/preview]'), 'preview'), '[/preview] after wrapped opener').toContain('.sdoc');
 }
 
 describe('sdoc grammar (Oniguruma engine, as in VS Code)', () => {
@@ -119,6 +165,19 @@ describe('sdoc grammar (Oniguruma engine, as in VS Code)', () => {
 		}
 		hl.dispose();
 	});
+
+	it('colors wrapped multi-line openers without desyncing the body', async () => {
+		const hl = await createHighlighter({
+			themes: ['github-dark'],
+			langs: [
+				'javascript', 'typescript', 'css', 'svelte', 'markdown', 'html',
+				{ ...grammar, name: 'sdoc', embeddedLangs: ['svelte', 'typescript', 'javascript', 'css', 'markdown'] },
+			],
+		});
+		const { tokens } = hl.codeToTokens(WRAPPED, { lang: 'sdoc', theme: 'github-dark', includeExplanation: true });
+		assertWrappedOpener(tokens as Tokens, WRAPPED);
+		hl.dispose();
+	});
 });
 
 describe('sdoc grammar (JavaScript engine, as in the Explorer client)', () => {
@@ -130,6 +189,17 @@ describe('sdoc grammar (JavaScript engine, as in the Explorer client)', () => {
 		});
 		const { tokens } = hl.codeToTokens(MULTI_BLOCK, { lang: 'sdoc', theme: 'github-dark' });
 		assertSdocScopes(tokens as Tokens, MULTI_BLOCK);
+		hl.dispose();
+	});
+
+	it('colors wrapped multi-line openers without desyncing the body', async () => {
+		const hl = await createHighlighterCore({
+			themes: [githubDark],
+			langs: [js, ts, css, svelte, markdown, html, { ...grammar, name: 'sdoc' }],
+			engine: createJavaScriptRegexEngine({ forgiving: true }),
+		});
+		const { tokens } = hl.codeToTokens(WRAPPED, { lang: 'sdoc', theme: 'github-dark', includeExplanation: true });
+		assertWrappedOpener(tokens as Tokens, WRAPPED);
 		hl.dispose();
 	});
 });

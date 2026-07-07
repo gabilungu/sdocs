@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.79] - 2026-07-07
+
+### Fixed
+
+- **Multi-line block openers highlight correctly.** In the syntax highlighter
+  used by the component browser, an opener split across several lines — one
+  attribute per line with the closing `]` on its own line — now colors its
+  attribute lines and standalone `]`. An expression value on its own line
+  (such as `args={{ … }}`) no longer leaks into the block body below it.
+
 ## [0.0.78] - 2026-07-07
 
 ### Changed

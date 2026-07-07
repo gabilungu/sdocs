@@ -411,6 +411,9 @@
 					"while": "(^|\\G)(?!\\s*\\[/LAYOUT\\]\\s*$)",
 					"patterns": [
 						{
+							"include": "#opener-continuation"
+						},
+						{
 							"include": "source.svelte"
 						}
 					]
@@ -452,6 +455,9 @@
 					"begin": "(^|\\G)",
 					"while": "(^|\\G)(?!\\s*\\[/preview\\]\\s*$)",
 					"patterns": [
+						{
+							"include": "#opener-continuation"
+						},
 						{
 							"include": "source.svelte"
 						}
@@ -495,6 +501,9 @@
 					"while": "(^|\\G)(?!\\s*\\[/example\\]\\s*$)",
 					"patterns": [
 						{
+							"include": "#opener-continuation"
+						},
+						{
 							"include": "source.svelte"
 						}
 					]
@@ -502,20 +511,71 @@
 			]
 		},
 		"opener-continuation": {
-			"comment": "Attribute lines of a multi-line opener: lines before the block body that end the opener or continue it.",
-			"match": "^\\s*((?:[A-Za-z_][\\w-]*\\s*=.*)?)(\\])\\s*$",
-			"captures": {
-				"1": {
-					"patterns": [
-						{
-							"include": "#attributes"
+			"comment": "Attribute lines and the closing ] of a multi-line (wrapped) opener. Every rule is a single whole-line (^…$) match — no begin/end region — so nothing can span into the next line and desync a Svelte block body. The anchored shape also means Svelte text/script never matches.",
+			"patterns": [
+				{
+					"comment": "Standalone closing ] of a multi-line opener.",
+					"match": "^\\s*(\\])\\s*$",
+					"captures": {
+						"1": {
+							"name": "punctuation.definition.tag.end.sdoc"
 						}
-					]
+					}
 				},
-				"2": {
-					"name": "punctuation.definition.tag.end.sdoc"
+				{
+					"comment": "NAME=\"string\" | NAME={expression}, optionally followed by the closing ].",
+					"match": "^\\s*([A-Za-z_][\\w-]*)\\s*(=)\\s*(\"(?:[^\"\\\\]|\\\\.)*\"|\\{(?:[^{}]|\\{[^{}]*\\})*\\})\\s*(\\])?\\s*$",
+					"captures": {
+						"1": {
+							"name": "entity.other.attribute-name.sdoc"
+						},
+						"2": {
+							"name": "punctuation.separator.key-value.sdoc"
+						},
+						"3": {
+							"patterns": [
+								{
+									"match": "\"(?:[^\"\\\\]|\\\\.)*\"",
+									"name": "string.quoted.double.sdoc"
+								},
+								{
+									"match": "(\\{)((?:[^{}]|\\{[^{}]*\\})*)(\\})",
+									"captures": {
+										"1": {
+											"name": "punctuation.section.embedded.begin.sdoc"
+										},
+										"2": {
+											"patterns": [
+												{
+													"include": "source.ts"
+												}
+											]
+										},
+										"3": {
+											"name": "punctuation.section.embedded.end.sdoc"
+										}
+									}
+								}
+							]
+						},
+						"4": {
+							"name": "punctuation.definition.tag.end.sdoc"
+						}
+					}
+				},
+				{
+					"comment": "A bare flag attribute alone on its line, optionally followed by the closing ].",
+					"match": "^\\s*([A-Za-z_][\\w-]*)\\s*(\\])?\\s*$",
+					"captures": {
+						"1": {
+							"name": "entity.other.attribute-name.sdoc"
+						},
+						"2": {
+							"name": "punctuation.definition.tag.end.sdoc"
+						}
+					}
 				}
-			}
+			]
 		},
 		"tag-attributes": {
 			"patterns": [

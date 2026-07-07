@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.51] - 2026-07-07
+
+### Fixed
+
+- **Wrapped block openers keep their syntax highlighting.** When an entity or
+  sub-block opener wraps onto several lines — one attribute per line with the
+  closing `]` on its own line — the attribute lines and the standalone `]` are
+  now highlighted, matching the inline form. An expression value on its own
+  line (such as `args={{ … }}`) no longer bleeds into the block body below it,
+  so a formatted `[preview]`/`[example]`/`[SHOWCASE]` opener stays fully
+  colored.
+
 ## [0.0.50] - 2026-07-07
 
 ### Changed

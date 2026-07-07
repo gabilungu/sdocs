@@ -142,6 +142,8 @@ describe('methods, state, and CSS custom properties', () => {
 		background: var(--bg, #333);
 		border-radius: var(--radius, 4px);
 		padding: var(--pad, 8px);
+		box-shadow: 0 0 0 var(--ring, rgba(0, 0, 0, 0.5));
+		color: var(--fg, var(--bg));
 	}
 </style>`;
 
@@ -166,5 +168,10 @@ describe('methods, state, and CSS custom properties', () => {
 		const pad = byName(data.cssProps, '--pad');
 		expect(pad.type).toBe(null);
 		expect(pad.default).toBe('8px');
+	});
+
+	it('captures defaults containing one level of nested parens', () => {
+		expect(byName(data.cssProps, '--ring').default).toBe('rgba(0, 0, 0, 0.5)');
+		expect(byName(data.cssProps, '--fg').default).toBe('var(--bg)');
 	});
 });

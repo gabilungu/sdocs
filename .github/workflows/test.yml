@@ -9,6 +9,10 @@ on:
     branches: main
   workflow_dispatch:
 
+# Least privilege: the suites only read the checkout.
+permissions:
+  contents: read
+
 jobs:
   sdocs:
     runs-on: ubuntu-latest

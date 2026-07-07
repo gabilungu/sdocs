@@ -15,6 +15,11 @@ on:
       - packages/vscode/package.json
   workflow_dispatch:
 
+# Least privilege: publishing to the Marketplace uses the VSCE_PAT secret,
+# not the workflow token — which only needs to read the checkout.
+permissions:
+  contents: read
+
 jobs:
   publish:
     runs-on: ubuntu-latest

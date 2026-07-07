@@ -16,6 +16,10 @@ concurrency:
   group: pages
   cancel-in-progress: false
 
+# Least-privilege default; the deploy job elevates to what Pages needs.
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest

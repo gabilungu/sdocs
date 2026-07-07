@@ -394,7 +394,9 @@ function parseCssProps(
 
 	// Extract var(--name) and var(--name, default) from <style>
 	// Supports one level of nested parens: var(--x, var(--y)), var(--x, rgba(0,0,0,0.5))
-	const varRegex = /var\(\s*(--[\w-]+)(?:\s*,\s*((?:[^()]+|\([^)]*\))+))?\s*\)/g;
+	// The default alternation uses a single-char branch (not [^()]+) so the two
+	// branches can't overlap under the outer + — no catastrophic backtracking.
+	const varRegex = /var\(\s*(--[\w-]+)(?:\s*,\s*((?:[^()]|\([^()]*\))+))?\s*\)/g;
 	let match;
 	while ((match = varRegex.exec(styleContent)) !== null) {
 		const name = match[1];

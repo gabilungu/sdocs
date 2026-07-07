@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.75] - 2026-07-07
+
+### Fixed
+
+- **No light→dark flash on `CodeBlock`.** The pre-highlight fallback (also
+  what the prerendered HTML shows until hydration) now matches shiki's dark
+  stage instead of a light gray box, so when the highlighter finishes the
+  swap only adds syntax colors — the background no longer flips.
+
 ## [0.0.74] - 2026-07-07
 
 ### Added

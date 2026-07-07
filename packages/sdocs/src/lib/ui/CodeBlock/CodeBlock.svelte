@@ -49,9 +49,11 @@
 	.sdocs-codeblock pre {
 		font-family: var(--mono, ui-monospace, monospace);
 	}
-	/* Plain fallback while the highlighter loads: same metrics, muted colors */
+	/* Fallback before shiki loads (also what the prerendered HTML shows until
+	 * hydration): match the final dark shiki stage — see the pre.shiki rule in
+	 * sdocs.css — so the swap only adds syntax colors, never a light→dark flip. */
 	.sdocs-codeblock > pre {
-		background: var(--color-base-100, #f4f4f5);
-		color: var(--color-base-800, #27272a);
+		background: #24292e; /* shiki github-dark bg */
+		color: #e1e4e8; /* github-dark default foreground */
 	}
 </style>

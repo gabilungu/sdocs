@@ -47,7 +47,7 @@
 						<div class="sdocs-api-meta">
 							{#each typeParts(row.type) as part, i (i)}
 								{#if i > 0}<span class="sdocs-typesep">|</span>{/if}
-								<code class="sdocs-type-{typeClass(row.type)}">{part}</code>
+								<code class="sdocs-type-{typeClass(part)}">{part}</code>
 							{/each}
 						</div>
 					{/if}

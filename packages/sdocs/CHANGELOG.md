@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.78] - 2026-07-07
+
+### Changed
+
+- **Union type badges split per member.** A prop typed `number | string` now
+  renders as separate, individually-colored chips (an orange `number` and a
+  green `string`) instead of one gray badge — matching how literal unions
+  (`'sm' | 'md'`) already split. The splitter is nesting-aware, so a `|`
+  inside `Array<A | B>`, an object type, or an arrow's `=>` is left intact.
+- **CSS Props lists only `@cssvar`-annotated custom properties.** The table
+  is now the component's declared CSS API, not every `var(--…)` the styles
+  happen to reference — internal wiring vars (e.g. a mask URL held in a
+  `--icon` var) no longer leak into the docs. Documented props still take
+  their default from the style's `var(--x, default)` fallback.
+
 ## [0.0.77] - 2026-07-07
 
 ### Added

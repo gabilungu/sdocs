@@ -390,42 +390,39 @@ function parseCssProps(
 	fullSource: string,
 	styleContent: string,
 ): ParsedCssProp[] {
-	const propMap = new Map<string, ParsedCssProp>();
-
-	// Extract var(--name) and var(--name, default) from <style>
+	// Collect var(--name, default) fallbacks from <style> — used to fill in a
+	// documented prop's default, NOT to decide which props are public.
 	// Supports one level of nested parens: var(--x, var(--y)), var(--x, rgba(0,0,0,0.5))
 	// The default alternation uses a single-char branch (not [^()]+) so the two
 	// branches can't overlap under the outer + — no catastrophic backtracking.
+	const cssDefaults = new Map<string, string | null>();
 	const varRegex = /var\(\s*(--[\w-]+)(?:\s*,\s*((?:[^()]|\([^()]*\))+))?\s*\)/g;
 	let match;
 	while ((match = varRegex.exec(styleContent)) !== null) {
 		const name = match[1];
-		const defaultVal = match[2]?.trim() ?? null;
-		propMap.set(name, {
-			name,
-			type: null,
-			default: defaultVal,
-			description: null,
-		});
+		if (!cssDefaults.has(name)) cssDefaults.set(name, match[2]?.trim() ?? null);
 	}
 
-	// Extract @cssvar JSDoc annotations from <script>
+	// Only @cssvar-annotated custom properties form the documented CSS API.
+	// Vars used purely for internal wiring (never annotated) are intentionally
+	// left out — the table shows what a consumer is meant to override, not
+	// every var the component happens to reference.
+	const propMap = new Map<string, ParsedCssProp>();
 	const cssvarRegex =
 		/@cssvar\s+\{(\w+)\}\s+(--[\w-]+)\s*-?\s*(.*?)(?:\(default:\s*([^)]+)\))?$/gm;
 	while ((match = cssvarRegex.exec(fullSource)) !== null) {
 		const type = match[1];
 		const name = match[2];
 		const description = match[3]?.trim() || null;
-		const defaultVal = match[4]?.trim() ?? null;
-
-		const existing = propMap.get(name);
-		if (existing) {
-			existing.type = type;
-			if (description) existing.description = description;
-			if (defaultVal && !existing.default) existing.default = defaultVal;
-		} else {
-			propMap.set(name, { name, type, default: defaultVal, description });
-		}
+		const annotatedDefault = match[4]?.trim() ?? null;
+		// The CSS var() fallback is the real runtime default; the annotation's
+		// (default: …) is the fallback when the style doesn't declare one.
+		propMap.set(name, {
+			name,
+			type,
+			default: cssDefaults.get(name) ?? annotatedDefault,
+			description,
+		});
 	}
 
 	return Array.from(propMap.values()).sort((a, b) => a.name.localeCompare(b.name));

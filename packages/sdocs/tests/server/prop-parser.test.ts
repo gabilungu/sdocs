@@ -134,6 +134,7 @@ describe('methods, state, and CSS custom properties', () => {
 	/**
 	 * @cssvar {color} --bg - Background color
 	 * @cssvar {dimension} --radius - Corner radius
+	 * @cssvar {shadow} --ring - Focus ring
 	 */
 </script>
 
@@ -159,19 +160,23 @@ describe('methods, state, and CSS custom properties', () => {
 		expect(byName(data.state, 'count').description).toBe('Current count');
 	});
 
-	it('extracts CSS vars, merging @cssvar type/description with var() defaults', () => {
+	it('documents only @cssvar-annotated vars, taking defaults from the style', () => {
+		const names = data.cssProps.map((p) => p.name);
+		// Annotated → part of the public CSS API.
+		expect(names).toContain('--bg');
+		expect(names).toContain('--radius');
+		// Used in the style but never annotated → internal, excluded.
+		expect(names).not.toContain('--pad');
+		expect(names).not.toContain('--fg');
+
 		const bg = byName(data.cssProps, '--bg');
 		expect(bg.type).toBe('color');
-		expect(bg.default).toBe('#333');
+		expect(bg.default).toBe('#333'); // from var(--bg, #333)
 		expect(bg.description).toBe('Background color');
-
-		const pad = byName(data.cssProps, '--pad');
-		expect(pad.type).toBe(null);
-		expect(pad.default).toBe('8px');
 	});
 
-	it('captures defaults containing one level of nested parens', () => {
+	it('captures a documented default with one level of nested parens', () => {
+		// --ring is annotated, so its var(--ring, rgba(…)) default is kept.
 		expect(byName(data.cssProps, '--ring').default).toBe('rgba(0, 0, 0, 0.5)');
-		expect(byName(data.cssProps, '--fg').default).toBe('var(--bg)');
 	});
 });

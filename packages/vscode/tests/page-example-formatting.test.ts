@@ -93,6 +93,70 @@ describe('tag indentation normalization', () => {
 	});
 });
 
+describe('opener wrapping at printWidth (default 80)', () => {
+	const desc = 'x'.repeat(120);
+
+	it('wraps a too-wide entity opener to one attribute per line, verbatim', async () => {
+		const source = [
+			`[SHOWCASE title="@demo/Widget" description="${desc}"]`,
+			'',
+			'\t[preview component={Widget}]',
+			'\t\t<Widget />',
+			'\t[/preview]',
+			'',
+			'[/SHOWCASE]',
+			'',
+		].join('\n');
+		const out = await formatSdoc(source, OPTIONS);
+		expect(out).not.toBeNull();
+		// tag alone, each attribute on its own indented line, ] back at column 0
+		expect(out).toContain(
+			['[SHOWCASE', '\ttitle="@demo/Widget"', `\tdescription="${desc}"`, ']'].join('\n'),
+		);
+		// the short sub-block opener stays on one line
+		expect(out).toContain('\t[preview component={Widget}]');
+	});
+
+	it('wraps a wide sub-block opener at its own indent', async () => {
+		const args = `args={{ label: "a", value: "${'b'.repeat(60)}" }}`;
+		const source = [
+			'[SHOWCASE title="D"]',
+			'',
+			`\t[preview component={Widget} ${args}]`,
+			'\t\t<Widget />',
+			'\t[/preview]',
+			'',
+			'[/SHOWCASE]',
+			'',
+		].join('\n');
+		const out = await formatSdoc(source, OPTIONS);
+		expect(out).not.toBeNull();
+		expect(out).toContain(['\t[preview', '\t\tcomponent={Widget}', `\t\t${args}`, '\t]'].join('\n'));
+		// the short entity opener above it is untouched
+		expect(out).toContain('[SHOWCASE title="D"]');
+	});
+
+	it('is idempotent — an already-wrapped opener re-formats to itself', async () => {
+		const wrapped = [
+			'[SHOWCASE',
+			'\ttitle="@demo/Widget"',
+			`\tdescription="${desc}"`,
+			']',
+			'',
+			'\t[preview component={Widget}]',
+			'\t\t<Widget />',
+			'\t[/preview]',
+			'',
+			'[/SHOWCASE]',
+			'',
+		].join('\n');
+		const out = (await formatSdoc(wrapped, OPTIONS)) ?? wrapped;
+		expect(out).toContain(
+			['[SHOWCASE', '\ttitle="@demo/Widget"', `\tdescription="${desc}"`, ']'].join('\n'),
+		);
+	});
+});
+
 describe('fences survive formatting (mangling regression)', () => {
 	it('never splits fences or joins tags on a rich page', async () => {
 		const { readFileSync } = await import('node:fs');

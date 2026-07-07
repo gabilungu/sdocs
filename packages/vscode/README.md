@@ -23,7 +23,9 @@ false errors on the block syntax:
   and entity blocks fold.
 - **Formatting** — Format Document formats the `<script>`, `<style>`, and
   every Svelte block body through prettier independently, reassembled at the
-  block's indentation. Block tags and `[DOC]` prose are never touched.
+  block's indentation, honoring the project's `.prettierrc` (width, tabs). A
+  block opener wider than `printWidth` wraps to one attribute per line;
+  shorter ones stay inline. Attributes and `[DOC]` prose are never rewritten.
 - **Block completions** — each block's attributes with documentation, and
   imported-component suggestions inside `component={…}`.
 - **Block lint** — the same parser the sdocs build runs: unclosed blocks,

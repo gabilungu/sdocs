@@ -4,8 +4,13 @@
  * prettier-plugin-svelte, [DOC] bodies through prettier's markdown parser
  * (prose lines are preserved, never re-wrapped), then reassemble at the
  * structural indentation: entity tags at column 0, sub-block tags one level
- * in, bodies one level deeper. Tag lines re-indent to that structure; their
- * attributes are never reformatted.
+ * in, bodies one level deeper.
+ *
+ * Width and indentation come from the project's Prettier config (.prettierrc)
+ * when present, so a .sdoc island wraps like a sibling .svelte file. The same
+ * printWidth decides opener layout: an entity/block opener that would exceed
+ * it breaks onto one attribute per line (attributes copied verbatim); shorter
+ * openers stay on one line.
  */
 
 import * as prettier from 'prettier';
@@ -32,25 +37,26 @@ function lineIndex(source: string, offset: number): number {
 	return line;
 }
 
-function prettierOptions(options: FormattingOptions): prettier.Options {
-	return {
-		parser: 'svelte',
-		plugins: [sveltePlugin],
-		useTabs: !options.insertSpaces,
-		tabWidth: options.tabSize,
-		svelteSortOrder: 'options-scripts-markup-styles',
-	} as prettier.Options;
-}
-
-/** [DOC] bodies are markdown; normalize markup, never re-wrap prose. */
-function markdownOptions(options: FormattingOptions): prettier.Options {
-	return {
-		parser: 'markdown',
-		plugins: [markdownPlugin],
-		useTabs: !options.insertSpaces,
-		tabWidth: options.tabSize,
-		proseWrap: 'preserve',
-	};
+/**
+ * Lay out an entity/block opener. One line when it fits printWidth; otherwise
+ * the tag alone, each attribute on its own line indented one level, and the
+ * closing `]` back at the tag indent. Attributes are copied verbatim from the
+ * source (never reformatted) — the scanner parses the multi-line form back
+ * identically, so it round-trips.
+ */
+function formatOpener(
+	source: string,
+	kind: string,
+	attrs: Record<string, { span: Span }>,
+	tagIndent: string,
+	oneLevel: string,
+	printWidth: number,
+): string[] {
+	const parts = Object.values(attrs).map((a) => source.slice(a.span.start, a.span.end));
+	const single = `${tagIndent}[${kind}${parts.length ? ' ' + parts.join(' ') : ''}]`;
+	if (parts.length === 0 || single.length <= printWidth) return [single];
+	const inner = tagIndent + oneLevel;
+	return [`${tagIndent}[${kind}`, ...parts.map((p) => inner + p), `${tagIndent}]`];
 }
 
 /** Strip the common leading indentation; returns the dedented text. */
@@ -79,10 +85,34 @@ export async function formatSdoc(
 	source: string,
 	options: FormattingOptions,
 	file: SdocFile = scanSdoc(source),
+	filePath?: string,
 ): Promise<string | null> {
 	const sourceLines = source.split('\n');
-	const opts = prettierOptions(options);
-	const oneLevel = options.insertSpaces ? ' '.repeat(options.tabSize) : '\t';
+	// The project's Prettier config (.prettierrc) is the source of truth for
+	// width and indentation when present; the editor's options are the
+	// fallback, printWidth 80 the last resort.
+	const cfg = filePath ? await prettier.resolveConfig(filePath).catch(() => null) : null;
+	const useTabs = cfg?.useTabs ?? !options.insertSpaces;
+	const tabWidth = cfg?.tabWidth ?? options.tabSize;
+	const printWidth = cfg?.printWidth ?? 80;
+	const oneLevel = useTabs ? '\t' : ' '.repeat(tabWidth);
+	const opts: prettier.Options = {
+		parser: 'svelte',
+		plugins: [sveltePlugin],
+		useTabs,
+		tabWidth,
+		printWidth,
+		svelteSortOrder: 'options-scripts-markup-styles',
+	};
+	// [DOC] bodies are markdown; normalize markup, never re-wrap prose.
+	const mdOpts: prettier.Options = {
+		parser: 'markdown',
+		plugins: [markdownPlugin],
+		useTabs,
+		tabWidth,
+		printWidth,
+		proseWrap: 'preserve',
+	};
 	const regions: Region[] = [];
 
 	const spanLines = (span: Span) => ({
@@ -179,7 +209,7 @@ export async function formatSdoc(
 				// different depths, the whole-body common indent is empty, and a
 				// still-indented prose line would read as a markdown code block.
 				const prose = dedent(segment.lines).lines;
-				const formatted = await formatFragment(prose.join('\n'), markdownOptions(options));
+				const formatted = await formatFragment(prose.join('\n'), mdOpts);
 				const lines = formatted ?? prose;
 				// prettier trims a blank-only segment to a single empty line
 				if (lines.some((l) => l.trim() !== '')) chunks.push(lines);
@@ -209,24 +239,38 @@ export async function formatSdoc(
 		});
 	}
 
-	// Tag lines re-indent to the structure: entity tags at column 0,
-	// sub-block tags one level in. A closer moves only when the scanner
-	// actually found it (unclosed blocks stay verbatim), and only whole-line
-	// indentation changes — attributes are never reformatted.
-	const retag = (offset: number, indent: string, closer?: string) => {
+	// Closer tag lines re-indent to the structure. A closer moves only when the
+	// scanner actually found it (unclosed blocks stay verbatim), and only
+	// whole-line indentation changes.
+	const retag = (offset: number, indent: string, closer: string) => {
 		const lineIdx = lineIndex(source, offset);
 		const text = sourceLines[lineIdx];
-		if (closer !== undefined && text.trim() !== closer) return;
+		if (text.trim() !== closer) return;
 		const normalized = indent + text.trim();
 		if (normalized !== text) {
 			regions.push({ firstLine: lineIdx, lastLine: lineIdx, lines: [normalized] });
 		}
 	};
+	// Opener lines re-indent and wrap: a too-wide opener breaks to one
+	// attribute per line, a short one stays (or collapses back to) one line.
+	const reopen = (
+		openerSpan: Span,
+		attrs: Record<string, { span: Span }>,
+		kind: string,
+		tagIndent: string,
+	) => {
+		const first = lineIndex(source, openerSpan.start);
+		const last = lineIndex(source, Math.max(openerSpan.start, openerSpan.end - 1));
+		const lines = formatOpener(source, kind, attrs, tagIndent, oneLevel, printWidth);
+		if (lines.join('\n') !== sourceLines.slice(first, last + 1).join('\n')) {
+			regions.push({ firstLine: first, lastLine: last, lines });
+		}
+	};
 	for (const entity of file.entities) {
-		retag(entity.openerSpan.start, '');
+		reopen(entity.openerSpan, entity.attrs, entity.kind, '');
 		retag(Math.max(entity.openerSpan.end, entity.span.end - 1), '', `[/${entity.kind}]`);
 		for (const block of entity.blocks) {
-			retag(block.openerSpan.start, oneLevel);
+			reopen(block.openerSpan, block.attrs, block.kind, oneLevel);
 			retag(Math.max(block.openerSpan.end, block.span.end - 1), oneLevel, `[/${block.kind}]`);
 		}
 	}

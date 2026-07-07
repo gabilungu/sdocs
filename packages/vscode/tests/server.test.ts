@@ -105,8 +105,14 @@ describe('sdoc language server over LSP', () => {
 		})) as { newText: string }[] | null;
 		expect(edits?.[0]).toBeTruthy();
 		const formatted = edits![0].newText;
+		// The body island reflows...
 		expect(formatted).not.toContain('<Notice     {...args}');
-		expect(formatted).toContain('[preview component={Notice}');
+		// ...but the opener's attributes are copied verbatim (this opener is
+		// long enough to wrap to one attribute per line — never rewritten).
+		expect(formatted).toContain('component={Notice}');
+		expect(formatted).toContain(
+			"args={{ title: 'Build finished', tone: 'success', dismissible: true, count: 1 }}",
+		);
 		expect(formatted).toContain('[/preview]');
 		expect(formatted).toContain('[/SHOWCASE]');
 		await client.changeDoc(uri, 5, source);

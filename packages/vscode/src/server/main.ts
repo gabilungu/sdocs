@@ -7,7 +7,8 @@
  * with identity position mapping, and republishes the embedded server's
  * diagnostics filtered down to authored, verbatim lines. Formatting is
  * fragment-wise prettier (Svelte bodies via prettier-plugin-svelte, DOC
- * bodies via the markdown parser) — block tags are never touched.
+ * bodies via the markdown parser); block openers re-indent and wrap at the
+ * project's printWidth but their attributes are never rewritten.
  */
 
 import {
@@ -18,6 +19,7 @@ import {
 	type Connection,
 } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import { fileURLToPath } from 'node:url';
 import {
 	DidOpenTextDocumentNotification,
 	DidChangeTextDocumentNotification,
@@ -207,7 +209,11 @@ connection.onDocumentFormatting(async (params) => {
 	const doc = documents.get(params.textDocument.uri);
 	if (!doc) return null;
 	const source = doc.getText();
-	const formatted = await formatSdoc(source, params.options);
+	// Pass the fs path so the formatter can resolve the project's .prettierrc.
+	const filePath = params.textDocument.uri.startsWith('file:')
+		? fileURLToPath(params.textDocument.uri)
+		: undefined;
+	const formatted = await formatSdoc(source, params.options, undefined, filePath);
 	if (formatted === null) return null;
 	return [
 		{

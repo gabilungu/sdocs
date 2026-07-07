@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.50] - 2026-07-07
+
+### Changed
+
+- **Formatting honors the project's Prettier config.** Width and indentation
+  now come from the project's `.prettierrc` (`printWidth`, `tabWidth`,
+  `useTabs`) when present, so a `.sdoc` island wraps like a sibling `.svelte`
+  file; the editor's options are the fallback, `printWidth` 80 the last resort.
+- **Block openers wrap when too wide.** An entity or sub-block opener whose
+  single-line form exceeds `printWidth` now breaks onto one attribute per line
+  (with the closing `]` back at the tag indent); shorter openers stay on one
+  line. Attribute values are copied verbatim — never reformatted — and the
+  scanner parses the multi-line form back identically.
+
 ## [0.0.49] - 2026-07-06
 
 ### Changed

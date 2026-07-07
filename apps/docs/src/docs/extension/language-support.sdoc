@@ -30,7 +30,10 @@
 	Everything reassembles at the structural indentation: entity tags sit at
 	column 0, `[preview]`/`[example]` tags one level in, bodies one level
 	deeper — a misplaced `[/example]` or `[/DOC]` snaps back into place.
-	Tag attributes are never reformatted.
+	Width and indentation come from the project's `.prettierrc` when present
+	(so a `.sdoc` island wraps like a sibling `.svelte` file); a block opener
+	wider than `printWidth` wraps to one attribute per line, shorter ones stay
+	inline. Attribute values themselves are copied verbatim, never reformatted.
 
 	## sdoc syntax highlighting
 

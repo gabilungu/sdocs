@@ -150,7 +150,16 @@ export function projectSdoc(file: SdocFile): SdocProjection {
 			}
 		};
 
+		// Entity-level <script>/<style> lines stay blank here: the per-entity
+		// virtual doc (projectSdocBlocks) owns and checks them.
 		let proseFrom = openLast + 1;
+		if (entity.script) {
+			const scriptClose = lineOfOffset(
+				starts,
+				Math.max(entity.script.span.start, entity.script.span.end - 1),
+			);
+			proseFrom = Math.max(proseFrom, scriptClose + 1);
+		}
 		entity.blocks.forEach((block: SubBlock, b: number) => {
 			const bOpenFirst = lineOfOffset(starts, block.openerSpan.start);
 			const bOpenLast = lineOfOffset(starts, Math.max(block.openerSpan.start, block.openerSpan.end - 1));
@@ -171,7 +180,11 @@ export function projectSdoc(file: SdocFile): SdocProjection {
 		});
 
 		const closeLine = lineOfOffset(starts, Math.max(entity.span.start, entity.span.end - 1));
-		maskLines(proseFrom, closeLine - 1);
+		let proseTo = closeLine - 1;
+		if (entity.style) {
+			proseTo = Math.min(proseTo, lineOfOffset(starts, entity.style.span.start) - 1);
+		}
+		maskLines(proseFrom, proseTo);
 		out[closeLine] = '{/snippet}';
 		kinds[closeLine] = 'wrapper';
 	};
@@ -218,53 +231,384 @@ export function projectSdoc(file: SdocFile): SdocProjection {
 	};
 }
 
-/** A per-block projection for a block that declares its own <script> or
- * <style>. Line-preserving like the base projection. */
+/** A per-block (or per-entity) projection for content that declares its own
+ * <script> or <style>. Line-preserving like the base projection. */
 export interface SdocBlockProjection extends SdocProjection {
-	/** Stable id: entity index + block index (for virtual URIs) */
+	/** Stable id for virtual URIs: entity index, or entity_block */
 	key: string;
-	/** Authored line range this projection owns (block opener → closer,
-	 * inclusive): the base projection's diagnostics are suppressed here and
-	 * this projection's shown, so each line has exactly one owner. */
+	/** Authored line range this projection owns (opener → closer, inclusive) */
 	firstLine: number;
 	lastLine: number;
+	/** Extra owned lines outside the range — e.g. the entity script an inner
+	 * block's markup depends on. Each line has exactly one owner overall. */
+	extraOwnedLines?: number[];
+}
+
+interface ChainScript {
+	tag: TagBlockLike;
+}
+interface TagBlockLike {
+	attrsText: string;
+	content: string;
+	contentSpan: Span;
+	span: Span;
 }
 
 /**
- * Project each script/style-bearing [preview]/[example] block into its own
- * line-preserving virtual Svelte document, where the block's script is a real
- * component script and its style a real component style:
- *
- * - The file <script> opens at its authored line and DOES NOT CLOSE — its
- *   closer line, everything between it and the block's script, and the block
- *   script's opener line go blank (blank lines are valid inside a script) —
- *   until the block script's closer line, which becomes
- *   `</script>{#snippet …(args)}`. File declarations and block declarations
- *   share one scope: lexical nesting by concatenation, byte-compatible with
- *   what the build pipeline generates.
- * - The block markup stays verbatim inside the snippet.
- * - A block <style> becomes the component's own style: its opener line is
- *   rewritten to `{/snippet}<style>`, its content stays verbatim (real CSS
- *   intelligence), and the block closer goes blank.
- * - Everything else in the file goes blank; a trailer renders the snippet.
+ * Project each script/style-bearing block — and each PAGE/LAYOUT entity with
+ * its own script/style — into a line-preserving virtual Svelte document.
+ * Scripts CHAIN lexically: file → entity → block concatenate into one
+ * component script, byte-compatible with the runtime build. Single-line tags
+ * and content sharing a closer line are recomposed, never dropped.
  */
 export function projectSdocBlocks(file: SdocFile): SdocBlockProjection[] {
 	const source = file.source;
 	const starts = lineStartsOf(source);
 	const total = starts.length;
 	const TS_RE = /lang\s*=\s*["']ts["']/;
-	const fileIsTs = TS_RE.test(file.script?.attrsText ?? '');
 	const projections: SdocBlockProjection[] = [];
 
-	file.entities.forEach((entity, e) => {
-		entity.blocks.forEach((block, b) => {
-			if (!block.script && !block.style) return;
+	const lineTextOf = (l: number) => {
+		const end = l + 1 < total ? starts[l + 1] - 1 : source.length;
+		return source.slice(starts[l], end).replace(/\r$/, '');
+	};
 
-			// The merged script is TypeScript when either part is — a TS block
-			// script inside a plain-JS file must not lose its lang.
-			const blockIsTs = TS_RE.test(block.script?.attrsText ?? '');
-			const isTs = fileIsTs || blockIsTs;
-			const argsParam = isTs ? '(args: any)' : '(args)';
+	file.entities.forEach((entity, e) => {
+		const entityScript = entity.script;
+
+		/** Copy the chained scripts into out[], returning the line that must
+		 * carry the `</script>` (the last script's closer) and the lines the
+		 * entity script occupies (for ownership). */
+		const buildChain = (
+			out: string[],
+			kinds: ProjectedLineKind[],
+			scripts: TagBlockLike[],
+		): { closeLine: number; opensHere: string } => {
+			const copyVerbatim = (span: Span) => {
+				const first = lineOfOffset(starts, span.start);
+				const last = lineOfOffset(starts, Math.max(span.start, span.end - 1));
+				for (let l = first; l <= last; l++) {
+					out[l] = lineTextOf(l);
+					kinds[l] = 'verbatim';
+				}
+			};
+			const isTs = scripts.some((sc) => TS_RE.test(sc.attrsText));
+			let closeLine = -1;
+			let opensHere = '';
+			scripts.forEach((sc, i) => {
+				const openLine = lineOfOffset(starts, sc.span.start);
+				const closerLine = lineOfOffset(starts, Math.max(sc.span.start, sc.span.end - 1));
+				if (sc.contentSpan.end > sc.contentSpan.start) copyVerbatim(sc.contentSpan);
+				// Content sharing the closer line survives the rewrite.
+				const tail = source.slice(
+					Math.max(starts[closerLine], sc.contentSpan.start),
+					sc.contentSpan.end,
+				);
+				if (i === 0) {
+					// The outermost script provides the real opener.
+					const langFix = isTs && !TS_RE.test(sc.attrsText) ? ' lang="ts"' : '';
+					if (openLine === closerLine) {
+						// Single-line: recompose opener + content, drop the closer.
+						out[closerLine] = `<script${sc.attrsText}${langFix}>${tail}`;
+						kinds[closerLine] = 'wrapper';
+						opensHere = '';
+					} else {
+						if (langFix) {
+							const lineEnd = openLine + 1 < total ? starts[openLine + 1] - 1 : source.length;
+							const openTail = source.slice(
+								Math.min(sc.contentSpan.start, lineEnd),
+								Math.min(sc.contentSpan.end, lineEnd),
+							);
+							out[openLine] = `<script${sc.attrsText}${langFix}>${openTail}`;
+							kinds[openLine] = 'wrapper';
+						} else {
+							out[openLine] = lineTextOf(openLine);
+							kinds[openLine] = 'verbatim';
+						}
+						out[closerLine] = tail;
+						kinds[closerLine] = 'wrapper';
+					}
+				} else {
+					// Inner scripts: the opener tag goes blank (we are inside the
+					// merged region), but content sharing the opener or closer line
+					// is recomposed at its authored column, never dropped.
+					const columnOf = (line: number) => sc.contentSpan.start - starts[line];
+					if (openLine !== closerLine) {
+						const lineEnd = openLine + 1 < total ? starts[openLine + 1] - 1 : source.length;
+						const head = source.slice(
+							Math.min(sc.contentSpan.start, lineEnd),
+							Math.min(sc.contentSpan.end, lineEnd),
+						);
+						out[openLine] = head ? ' '.repeat(columnOf(openLine)) + head : '';
+						kinds[openLine] = 'wrapper';
+						out[closerLine] = tail;
+					} else {
+						out[closerLine] = tail ? ' '.repeat(columnOf(closerLine)) + tail : '';
+					}
+					kinds[closerLine] = 'wrapper';
+				}
+				closeLine = closerLine;
+			});
+			if (scripts.length === 0) opensHere = '<script>';
+			return { closeLine, opensHere };
+		};
+
+		const argsParamOf = (blockScript: TagBlockLike | null) => {
+			const isTs =
+				TS_RE.test(file.script?.attrsText ?? '') ||
+				TS_RE.test(entityScript?.attrsText ?? '') ||
+				TS_RE.test(blockScript?.attrsText ?? '');
+			return isTs ? '(args: any)' : '(args)';
+		};
+
+		const entityScriptLines = (): number[] => {
+			if (!entityScript) return [];
+			const first = lineOfOffset(starts, entityScript.span.start);
+			const last = lineOfOffset(starts, Math.max(entityScript.span.start, entityScript.span.end - 1));
+			const lines: number[] = [];
+			for (let l = first; l <= last; l++) lines.push(l);
+			return lines;
+		};
+		let entityLinesAssigned = false;
+
+		// PAGE/LAYOUT with an entity script/style: the body IS the content.
+		if ((entity.kind === 'PAGE' || entity.kind === 'LAYOUT') && (entity.script || entity.style)) {
+			const out: string[] = new Array(total).fill('');
+			const kinds: ProjectedLineKind[] = new Array(total).fill('blank');
+			const copyVerbatim = (span: Span) => {
+				const first = lineOfOffset(starts, span.start);
+				const last = lineOfOffset(starts, Math.max(span.start, span.end - 1));
+				for (let l = first; l <= last; l++) {
+					out[l] = lineTextOf(l);
+					kinds[l] = 'verbatim';
+				}
+			};
+			const scripts = [file.script, entity.script].filter((x): x is TagBlockLike => !!x);
+			if (scripts.length > 0) {
+				const { closeLine } = buildChain(out, kinds, scripts);
+				out[closeLine] = `${out[closeLine]}</script>`;
+			}
+			if (entity.bodySpan.end > entity.bodySpan.start) copyVerbatim(entity.bodySpan);
+			if (entity.style) {
+				const styleOpen = lineOfOffset(starts, entity.style.span.start);
+				const styleClose = lineOfOffset(starts, Math.max(entity.style.span.start, entity.style.span.end - 1));
+				if (entity.style.contentSpan.end > entity.style.contentSpan.start) {
+					copyVerbatim(entity.style.contentSpan);
+				}
+				const tail = source.slice(
+					Math.max(starts[styleClose], entity.style.contentSpan.start),
+					entity.style.contentSpan.end,
+				);
+				if (styleOpen !== styleClose) {
+					out[styleOpen] = '<style>';
+					kinds[styleOpen] = 'wrapper';
+					out[styleClose] = `${tail}</style>`;
+				} else {
+					out[styleClose] = `<style>${tail}</style>`;
+				}
+				kinds[styleClose] = 'wrapper';
+			}
+			const firstLine = lineOfOffset(starts, entity.openerSpan.start);
+			const lastLine = lineOfOffset(starts, Math.max(entity.span.start, entity.span.end - 1));
+			projections.push({
+				key: `${e}`,
+				firstLine,
+				lastLine,
+				text: out.join('\n') + '\n',
+				sourceLineCount: total,
+				lineKinds: kinds,
+			});
+			return;
+		}
+
+		// DOC with an entity script/style: a per-entity doc carries the chained
+		// file→entity script, the masked prose (islands and {expressions} live),
+		// and the entity style — so prose diagnostics see the entity scope, and
+		// script/style errors surface even with zero [example] blocks. Example
+		// lines stay blank here; each example has its own per-block doc.
+		if (entity.kind === 'DOC' && (entityScript || entity.style)) {
+			const out: string[] = new Array(total).fill('');
+			const kinds: ProjectedLineKind[] = new Array(total).fill('blank');
+			const copyVerbatim = (span: Span) => {
+				const first = lineOfOffset(starts, span.start);
+				const last = lineOfOffset(starts, Math.max(span.start, span.end - 1));
+				for (let l = first; l <= last; l++) {
+					out[l] = lineTextOf(l);
+					kinds[l] = 'verbatim';
+				}
+			};
+			const maskLines = (fromLine: number, toLine: number) => {
+				const state = { inFence: false };
+				for (let l = fromLine; l <= toLine; l++) {
+					const masked = maskMarkdownLine(lineTextOf(l), state);
+					out[l] = masked.text;
+					kinds[l] = masked.masked ? 'masked' : 'verbatim';
+				}
+			};
+
+			const name = `__sdocs$${e}`;
+			const openFirst = lineOfOffset(starts, entity.openerSpan.start);
+			const openLast = lineOfOffset(starts, Math.max(entity.openerSpan.start, entity.openerSpan.end - 1));
+			const closerLine = lineOfOffset(starts, Math.max(entity.span.start, entity.span.end - 1));
+
+			const scripts = [file.script, entityScript].filter((x): x is TagBlockLike => !!x);
+			let proseFrom = openLast + 1;
+			if (scripts.length > 0) {
+				const { closeLine } = buildChain(out, kinds, scripts);
+				if (entityScript) {
+					// The entity script's closer opens the prose snippet.
+					out[closeLine] = `${out[closeLine]}</script>{#snippet ${name}()}`;
+					proseFrom = Math.max(proseFrom, closeLine + 1);
+				} else {
+					out[closeLine] = `${out[closeLine]}</script>`;
+					out[openFirst] = `{#snippet ${name}()}`;
+					kinds[openFirst] = 'wrapper';
+				}
+			} else {
+				out[openFirst] = `{#snippet ${name}()}`;
+				kinds[openFirst] = 'wrapper';
+			}
+
+			for (const block of entity.blocks) {
+				const bOpen = lineOfOffset(starts, block.openerSpan.start);
+				const bClose = lineOfOffset(starts, Math.max(block.span.start, block.span.end - 1));
+				maskLines(proseFrom, bOpen - 1);
+				proseFrom = bClose + 1;
+			}
+
+			if (entity.style) {
+				const styleOpen = lineOfOffset(starts, entity.style.span.start);
+				const styleClose = lineOfOffset(starts, Math.max(entity.style.span.start, entity.style.span.end - 1));
+				maskLines(proseFrom, styleOpen - 1);
+				if (entity.style.contentSpan.end > entity.style.contentSpan.start) {
+					copyVerbatim(entity.style.contentSpan);
+				}
+				const tail = source.slice(
+					Math.max(starts[styleClose], entity.style.contentSpan.start),
+					entity.style.contentSpan.end,
+				);
+				if (styleOpen !== styleClose) {
+					out[styleOpen] = '{/snippet}<style>';
+					kinds[styleOpen] = 'wrapper';
+					out[styleClose] = `${tail}</style>`;
+				} else {
+					out[styleClose] = `{/snippet}<style>${tail}</style>`;
+				}
+				kinds[styleClose] = 'wrapper';
+			} else {
+				maskLines(proseFrom, closerLine - 1);
+				out[closerLine] = '{/snippet}';
+				kinds[closerLine] = 'wrapper';
+			}
+
+			const trailer = ['{#if false}', `{@render ${name}()}`, '{/if}'];
+			projections.push({
+				key: `${e}`,
+				firstLine: openFirst,
+				lastLine: closerLine,
+				text: out.join('\n') + '\n' + trailer.join('\n') + '\n',
+				sourceLineCount: total,
+				lineKinds: kinds,
+			});
+			// The entity doc owns the entity script lines (its range covers
+			// them); per-block docs must not claim them via extraOwnedLines.
+			entityLinesAssigned = true;
+		}
+
+		// SHOWCASE: the entity <style> needs a doc to live in — checked against
+		// every block's markup, matching the runtime merge of entity style into
+		// each preview/example component. An entity script with no blocks would
+		// otherwise never be checked anywhere, so it gets the doc too.
+		if (
+			entity.kind === 'SHOWCASE' &&
+			(entity.style || (entityScript && entity.blocks.length === 0))
+		) {
+			const out: string[] = new Array(total).fill('');
+			const kinds: ProjectedLineKind[] = new Array(total).fill('blank');
+			const copyVerbatim = (span: Span) => {
+				const first = lineOfOffset(starts, span.start);
+				const last = lineOfOffset(starts, Math.max(span.start, span.end - 1));
+				for (let l = first; l <= last; l++) {
+					out[l] = lineTextOf(l);
+					kinds[l] = 'verbatim';
+				}
+			};
+
+			const scripts = [file.script, entityScript].filter((x): x is TagBlockLike => !!x);
+			if (scripts.length > 0) {
+				const { closeLine } = buildChain(out, kinds, scripts);
+				out[closeLine] = `${out[closeLine]}</script>`;
+			}
+
+			const argsParam = argsParamOf(null);
+			const names: string[] = [];
+			entity.blocks.forEach((block, b) => {
+				const bOpen = lineOfOffset(starts, block.openerSpan.start);
+				const bClose = lineOfOffset(starts, Math.max(block.span.start, block.span.end - 1));
+				const snippetName = `__sdocs$${e}_${b}`;
+				out[bOpen] = `{#snippet ${snippetName}${argsParam}}`;
+				kinds[bOpen] = 'wrapper';
+				if (block.markupSpan.end > block.markupSpan.start) copyVerbatim(block.markupSpan);
+				out[bClose] = '{/snippet}';
+				kinds[bClose] = 'wrapper';
+				names.push(snippetName);
+			});
+
+			let firstLine: number;
+			let lastLine: number;
+			if (entity.style) {
+				const styleOpen = lineOfOffset(starts, entity.style.span.start);
+				const styleClose = lineOfOffset(starts, Math.max(entity.style.span.start, entity.style.span.end - 1));
+				if (entity.style.contentSpan.end > entity.style.contentSpan.start) {
+					copyVerbatim(entity.style.contentSpan);
+				}
+				const tail = source.slice(
+					Math.max(starts[styleClose], entity.style.contentSpan.start),
+					entity.style.contentSpan.end,
+				);
+				if (styleOpen !== styleClose) {
+					out[styleOpen] = '<style>';
+					kinds[styleOpen] = 'wrapper';
+					out[styleClose] = `${tail}</style>`;
+				} else {
+					out[styleClose] = `<style>${tail}</style>`;
+				}
+				kinds[styleClose] = 'wrapper';
+				firstLine = styleOpen;
+				lastLine = styleClose;
+			} else {
+				// Script-only, zero blocks: this doc owns the script's lines.
+				firstLine = lineOfOffset(starts, entityScript!.span.start);
+				lastLine = lineOfOffset(starts, Math.max(entityScript!.span.start, entityScript!.span.end - 1));
+			}
+			if (entity.blocks.length === 0 && entityScript) {
+				// No block doc exists to claim the entity script lines — widen
+				// the owned range to include them.
+				firstLine = Math.min(firstLine, lineOfOffset(starts, entityScript.span.start));
+				entityLinesAssigned = true;
+			}
+
+			const trailer = [
+				'{#if false}',
+				...names.map((n) => `{@render ${n}({})}`),
+				'{/if}',
+			];
+			projections.push({
+				key: `${e}`,
+				firstLine,
+				lastLine,
+				text: out.join('\n') + '\n' + trailer.join('\n') + '\n',
+				sourceLineCount: total,
+				lineKinds: kinds,
+			});
+		}
+
+		// A DOC per-entity doc blanks its example lines, so every example needs
+		// its own doc — even script-less ones — whenever the entity doc exists.
+		const entityDocOwnsBody = entity.kind === 'DOC' && !!entity.style;
+
+		entity.blocks.forEach((block, b) => {
+			if (!block.script && !block.style && !entityScript && !entityDocOwnsBody) return;
 
 			const out: string[] = new Array(total).fill('');
 			const kinds: ProjectedLineKind[] = new Array(total).fill('blank');
@@ -272,83 +616,32 @@ export function projectSdocBlocks(file: SdocFile): SdocBlockProjection[] {
 				const first = lineOfOffset(starts, span.start);
 				const last = lineOfOffset(starts, Math.max(span.start, span.end - 1));
 				for (let l = first; l <= last; l++) {
-					const end = l + 1 < total ? starts[l + 1] - 1 : source.length;
-					out[l] = source.slice(starts[l], end).replace(/\r$/, '');
+					out[l] = lineTextOf(l);
 					kinds[l] = 'verbatim';
 				}
 			};
 
 			const name = `__sdocs$${e}_${b}`;
+			const argsParam = argsParamOf(block.script);
 			const openerLine = lineOfOffset(starts, block.openerSpan.start);
 			const closerLine = lineOfOffset(starts, Math.max(block.span.start, block.span.end - 1));
 
-			if (block.script) {
-				const scriptOpenLine = lineOfOffset(starts, block.script.span.start);
-				const scriptCloseLine = lineOfOffset(starts, Math.max(block.script.span.start, block.script.span.end - 1));
-				// Copy the script content first: its span starts just after the
-				// opener's '>' (same line), so whole-line copying resurrects the
-				// opener — the boundary lines are overwritten after.
-				if (block.script.contentSpan.end > block.script.contentSpan.start) {
-					copyVerbatim(block.script.contentSpan);
+			const scripts = [file.script, entityScript, block.script].filter(
+				(x): x is TagBlockLike => !!x,
+			);
+			if (scripts.length > 0) {
+				const { closeLine } = buildChain(out, kinds, scripts);
+				if (block.script) {
+					// The block script's closer opens the snippet.
+					out[closeLine] = `${out[closeLine]}</script>{#snippet ${name}${argsParam}}`;
+				} else {
+					// No block script: close the chain at the last outer script and
+					// open the snippet on the block opener line, as the base does.
+					out[closeLine] = `${out[closeLine]}</script>`;
+					out[openerLine] = `{#snippet ${name}${argsParam}}`;
+					kinds[openerLine] = 'wrapper';
 				}
-				if (file.script) {
-					// Extend the file script through the block script. If the file
-					// script sits on ONE line, blanking its closer line would erase
-					// the opener and imports — recompose the line without its
-					// `</script>` instead.
-					copyVerbatim(file.script.span);
-					const fileOpenLine = lineOfOffset(starts, file.script.span.start);
-					const fileCloseLine = lineOfOffset(
-						starts,
-						Math.max(file.script.span.start, file.script.span.end - 1),
-					);
-					// A TS block script inside a plain-JS file script: the merged
-					// script tag must carry lang="ts" or the TS content mis-parses.
-					const langFix = blockIsTs && !fileIsTs ? ' lang="ts"' : '';
-					if (langFix && fileOpenLine !== fileCloseLine) {
-						const lineEnd = fileOpenLine + 1 < total ? starts[fileOpenLine + 1] - 1 : source.length;
-						const openTail = source.slice(
-							Math.min(file.script.contentSpan.start, lineEnd),
-							Math.min(file.script.contentSpan.end, lineEnd),
-						);
-						out[fileOpenLine] = `<script${file.script.attrsText}${langFix}>${openTail}`;
-						kinds[fileOpenLine] = 'wrapper';
-					}
-					const fileTail = source.slice(
-						Math.max(starts[fileCloseLine], file.script.contentSpan.start),
-						file.script.contentSpan.end,
-					);
-					out[fileCloseLine] =
-						(fileOpenLine === fileCloseLine
-							? `<script${file.script.attrsText}${langFix}>`
-							: '') + fileTail;
-					kinds[fileCloseLine] = 'wrapper';
-					if (scriptOpenLine !== scriptCloseLine) {
-						out[scriptOpenLine] = '';
-						kinds[scriptOpenLine] = 'wrapper';
-					}
-				} else if (scriptOpenLine !== scriptCloseLine) {
-					// The block script opens the (only) script itself.
-					const end = scriptOpenLine + 1 < total ? starts[scriptOpenLine + 1] - 1 : source.length;
-					out[scriptOpenLine] = source.slice(starts[scriptOpenLine], end).replace(/\r$/, '');
-					kinds[scriptOpenLine] = 'verbatim';
-				}
-				// Content sharing the closer line — a one-liner script or a trailing
-				// `let b = 2;</script>` — must survive the wrapper rewrite.
-				const scriptTail = source.slice(
-					Math.max(starts[scriptCloseLine], block.script.contentSpan.start),
-					block.script.contentSpan.end,
-				);
-				const opensHere =
-					!file.script && scriptOpenLine === scriptCloseLine
-						? `<script${block.script.attrsText}>`
-						: '';
-				out[scriptCloseLine] = `${opensHere}${scriptTail}</script>{#snippet ${name}${argsParam}}`;
-				kinds[scriptCloseLine] = 'wrapper';
 			} else {
-				// Style-only block: the file script stays as authored; the block
-				// opener opens the snippet, exactly like the base projection.
-				if (file.script) copyVerbatim(file.script.span);
 				out[openerLine] = `{#snippet ${name}${argsParam}}`;
 				kinds[openerLine] = 'wrapper';
 			}
@@ -358,11 +651,9 @@ export function projectSdocBlocks(file: SdocFile): SdocBlockProjection[] {
 			if (block.style) {
 				const styleOpenLine = lineOfOffset(starts, block.style.span.start);
 				const styleCloseLine = lineOfOffset(starts, Math.max(block.style.span.start, block.style.span.end - 1));
-				// Content first, boundary lines after (same reason as the script).
 				if (block.style.contentSpan.end > block.style.contentSpan.start) {
 					copyVerbatim(block.style.contentSpan);
 				}
-				// Content sharing the closer line (a one-liner style) must survive.
 				const styleTail = source.slice(
 					Math.max(starts[styleCloseLine], block.style.contentSpan.start),
 					block.style.contentSpan.end,
@@ -375,17 +666,21 @@ export function projectSdocBlocks(file: SdocFile): SdocBlockProjection[] {
 					out[styleCloseLine] = `{/snippet}<style>${styleTail}</style>`;
 				}
 				kinds[styleCloseLine] = 'wrapper';
-				// The block closer line stays blank.
 			} else {
 				out[closerLine] = '{/snippet}';
 				kinds[closerLine] = 'wrapper';
 			}
 
 			const trailer = ['{#if false}', `{@render ${name}({})}`, '{/if}'];
+			// The first doc of an entity also owns the entity script's lines, so
+			// exactly one virtual doc speaks for them.
+			const extraOwnedLines = !entityLinesAssigned ? entityScriptLines() : [];
+			if (extraOwnedLines.length > 0) entityLinesAssigned = true;
 			projections.push({
 				key: `${e}_${b}`,
 				firstLine: openerLine,
 				lastLine: closerLine,
+				extraOwnedLines,
 				text: out.join('\n') + '\n' + trailer.join('\n') + '\n',
 				sourceLineCount: total,
 				lineKinds: kinds,

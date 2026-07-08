@@ -118,14 +118,16 @@
 	inside a [`[DOC]`](/language/doc-pages) — there it renders in place,
 	mid-prose.
 
-	## Block-level `<script>` and `<style>`
+	## Scoped `<script>` and `<style>` — the full ladder
 
-	Both `[preview]` and `[example]` bodies can open with their own `<script>`
-	and close with their own `<style>` — a full mini component. The scoping is
-	lexical, like nested functions: everything in the file's `<script>` (and
-	`<style>`) is visible to every block, while a block's own script and style
-	are visible only inside that block. Two examples can each declare their own
-	`let active = $state(…)` without colliding.
+	One rule, every level: **any container can open with a `<script>` and
+	close with a `<style>`, and scopes nest lexically** — file → entity →
+	block. The file script is visible everywhere; an entity's script (placed
+	right after the `[SHOWCASE]`/`[DOC]`/`[PAGE]`/`[LAYOUT]` opener) is
+	visible to that entity's blocks and body; a block's script only inside that
+	block. Styles cascade the same way into the stages. Two examples can each
+	declare their own `let active = $state(…)` without colliding, and shared
+	demo data can live once at the entity level.
 
 	```sdoc
 	[example title="Driven by data"]

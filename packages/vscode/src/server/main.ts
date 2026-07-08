@@ -127,6 +127,7 @@ async function syncDocument(doc: TextDocument): Promise<Tracked> {
 	const owner: number[] = new Array(projection.sourceLineCount).fill(-1);
 	blocks.forEach((b, i) => {
 		for (let l = b.firstLine; l <= b.lastLine; l++) owner[l] = i;
+		for (const l of b.extraOwnedLines ?? []) owner[l] = i;
 	});
 	const existing = tracked.get(doc.uri);
 	const entry: Tracked = {

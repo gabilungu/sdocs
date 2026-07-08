@@ -89,6 +89,10 @@ export interface ShowcaseEntity {
 	hide: boolean;
 	description: string | null;
 	sizing: Sizing;
+	/** Entity-level <script> — shared by every block of this entity */
+	script: TagBlock | null;
+	/** Entity-level <style> — joins the stage css of this entity's blocks */
+	style: TagBlock | null;
 	previews: PreviewBlock[];
 	examples: ExampleBlock[];
 	openerSpan: Span;
@@ -104,6 +108,10 @@ export interface DocEntity {
 	/** `hide` flag: routable but never listed in a sidebar */
 	hide: boolean;
 	sizing: Sizing;
+	/** Entity-level <script> — shared by every block of this entity */
+	script: TagBlock | null;
+	/** Entity-level <style> — joins the stage css of this entity's blocks */
+	style: TagBlock | null;
 	/** Prose body with each [example] block replaced by a
 	 * `{@render __sdocsExample?.(i)}` marker the doc renderer resolves. */
 	body: string;
@@ -125,6 +133,10 @@ export interface PageEntity {
 	/** `hide` flag: routable but never listed in a sidebar */
 	hide: boolean;
 	sizing: Sizing;
+	/** Entity-level <script> — shared by every block of this entity */
+	script: TagBlock | null;
+	/** Entity-level <style> — joins the stage css of this entity's blocks */
+	style: TagBlock | null;
 	body: string;
 	bodySpan: Span;
 	openerSpan: Span;
@@ -140,6 +152,10 @@ export interface LayoutEntity {
 	/** `hide` flag: routable but never listed in a sidebar */
 	hide: boolean;
 	sizing: Sizing;
+	/** Entity-level <script> — shared by every block of this entity */
+	script: TagBlock | null;
+	/** Entity-level <style> — joins the stage css of this entity's blocks */
+	style: TagBlock | null;
 	body: string;
 	bodySpan: Span;
 	openerSpan: Span;
@@ -226,41 +242,55 @@ export function importedNames(script: string): Map<string, Span> {
 	return names;
 }
 
-/** A block script may not re-import an identifier the file script already
- * binds — the generated module concatenates both, so the duplicate would be
- * a confusing compile error. Reported here as a clear diagnostic instead. */
-function checkBlockScript(
-	block: SubBlock,
-	fileImports: Map<string, Span>,
+/** A nested script may not re-import an identifier an outer scope already
+ * binds — the generated module concatenates the scripts, so the duplicate
+ * would be a confusing compile error. Reported here as a clear diagnostic
+ * instead. Also flags redefinitions of stage-provided names. */
+/** Outer imports plus the entity script's — the scope a block script sees. */
+function mergeImports(outer: Map<string, Span>, script: TagBlock | null): Map<string, Span> {
+	if (!script) return outer;
+	const merged = new Map(outer);
+	for (const [name, span] of importedNames(script.content)) merged.set(name, span);
+	return merged;
+}
+
+function checkNestedScript(
+	script: TagBlock | null,
+	outerImports: Map<string, Span>,
 	diagnostics: ScanError[],
+	stageWrapped = true,
 ): void {
-	if (!block.script) return;
+	if (!script) return;
 	// The generated stage wrapper declares these; a block script redefining
-	// them would collide with the plumbing at compile time.
-	for (const reserved of ['args', '__sdocsRef']) {
-		const m = block.script.content.match(
-			new RegExp(`\\b(?:const|let|var|function|class)\\s+(${reserved})\\b`),
-		);
-		if (m && m.index !== undefined) {
-			diagnostics.push({
-				code: 'reserved-name',
-				message: `"${reserved}" is provided by the preview stage — pick another name.`,
-				span: {
-					start: block.script.contentSpan.start + m.index,
-					end: block.script.contentSpan.start + m.index + m[0].length,
-				},
-			});
+	// them would collide with the plumbing at compile time. PAGE bodies render
+	// through the plain page component, which declares neither name — pass
+	// stageWrapped: false there so the reservation doesn't fire.
+	if (stageWrapped) {
+		for (const reserved of ['args', '__sdocsRef']) {
+			const m = script.content.match(
+				new RegExp(`\\b(?:const|let|var|function|class)\\s+(${reserved})\\b`),
+			);
+			if (m && m.index !== undefined) {
+				diagnostics.push({
+					code: 'reserved-name',
+					message: `"${reserved}" is provided by the preview stage — pick another name.`,
+					span: {
+						start: script.contentSpan.start + m.index,
+						end: script.contentSpan.start + m.index + m[0].length,
+					},
+				});
+			}
 		}
 	}
-	if (fileImports.size === 0) return;
-	for (const [name, span] of importedNames(block.script.content)) {
-		if (fileImports.has(name)) {
+	if (outerImports.size === 0) return;
+	for (const [name, span] of importedNames(script.content)) {
+		if (outerImports.has(name)) {
 			diagnostics.push({
 				code: 'duplicate-import',
-				message: `"${name}" is already imported by the file's <script> — it is in scope here; remove this import.`,
+				message: `"${name}" is already imported by an outer <script> — it is in scope here; remove this import.`,
 				span: {
-					start: block.script.contentSpan.start + span.start,
-					end: block.script.contentSpan.start + span.end,
+					start: script.contentSpan.start + span.start,
+					end: script.contentSpan.start + span.end,
 				},
 			});
 		}
@@ -487,11 +517,11 @@ export function parseArgsLiteral(
 
 function parsePreview(
 	block: SubBlock,
-	fileImports: Map<string, Span>,
+	outerImports: Map<string, Span>,
 	diagnostics: ScanError[],
 ): PreviewBlock {
 	checkAttrs('[preview]', block.attrs, SUB_BLOCK_ATTR_RULES.preview, block.openerSpan, diagnostics);
-	checkBlockScript(block, fileImports, diagnostics);
+	checkNestedScript(block.script, outerImports, diagnostics);
 
 	let componentName: string | null = null;
 	const component = block.attrs.component;
@@ -539,11 +569,11 @@ function parseExample(
 	block: SubBlock,
 	seenTitles: Set<string>,
 	owner: 'SHOWCASE' | 'DOC',
-	fileImports: Map<string, Span>,
+	outerImports: Map<string, Span>,
 	diagnostics: ScanError[],
 ): ExampleBlock {
 	checkAttrs('[example]', block.attrs, SUB_BLOCK_ATTR_RULES.example, block.openerSpan, diagnostics);
-	checkBlockScript(block, fileImports, diagnostics);
+	checkNestedScript(block.script, outerImports, diagnostics);
 	const title = stringAttr(block.attrs, 'title') ?? '';
 	if (title && seenTitles.has(title)) {
 		diagnostics.push({
@@ -572,6 +602,8 @@ function parseShowcase(
 	diagnostics: ScanError[],
 ): ShowcaseEntity {
 	checkAttrs('[SHOWCASE]', entity.attrs, ENTITY_ATTR_RULES.SHOWCASE, entity.openerSpan, diagnostics);
+	checkNestedScript(entity.script, fileImports, diagnostics);
+	const outerImports = mergeImports(fileImports, entity.script);
 	const previews: PreviewBlock[] = [];
 	const examples: ExampleBlock[] = [];
 	const exampleTitles = new Set<string>();
@@ -579,7 +611,7 @@ function parseShowcase(
 
 	for (const block of entity.blocks) {
 		if (block.kind === 'preview') {
-			const preview = parsePreview(block, fileImports, diagnostics);
+			const preview = parsePreview(block, outerImports, diagnostics);
 			if (previewLabels.has(preview.label)) {
 				diagnostics.push({
 					code: 'duplicate-preview-label',
@@ -590,7 +622,7 @@ function parseShowcase(
 			previewLabels.add(preview.label);
 			previews.push(preview);
 		} else {
-			examples.push(parseExample(block, exampleTitles, 'SHOWCASE', fileImports, diagnostics));
+			examples.push(parseExample(block, exampleTitles, 'SHOWCASE', outerImports, diagnostics));
 		}
 	}
 
@@ -603,6 +635,8 @@ function parseShowcase(
 		hide: bareAttr(entity.attrs, 'hide'),
 		description: stringAttr(entity.attrs, 'description'),
 		sizing: sizingOf(entity.attrs),
+		script: entity.script,
+		style: entity.style,
 		previews,
 		examples,
 		openerSpan: entity.openerSpan,
@@ -637,10 +671,12 @@ function parseDoc(
 	diagnostics: ScanError[],
 ): DocEntity {
 	checkAttrs('[DOC]', entity.attrs, ENTITY_ATTR_RULES.DOC, entity.openerSpan, diagnostics);
+	checkNestedScript(entity.script, fileImports, diagnostics);
+	const outerImports = mergeImports(fileImports, entity.script);
 	const examples: ExampleBlock[] = [];
 	const exampleTitles = new Set<string>();
 	for (const block of entity.blocks) {
-		examples.push(parseExample(block, exampleTitles, 'DOC', fileImports, diagnostics));
+		examples.push(parseExample(block, exampleTitles, 'DOC', outerImports, diagnostics));
 	}
 	const title = stringAttr(entity.attrs, 'title') ?? '';
 	return {
@@ -650,6 +686,8 @@ function parseDoc(
 		routeSlug: routeSlugAttr(entity.attrs, diagnostics),
 		hide: bareAttr(entity.attrs, 'hide'),
 		sizing: sizingOf(entity.attrs),
+		script: entity.script,
+		style: entity.style,
 		body: normalizeBody(spliceExampleMarkers(entity)),
 		examples,
 		bodySpan: entity.bodySpan,
@@ -676,6 +714,11 @@ export function parseSdoc(source: string): SdocDocument {
 			const kind = entity.kind;
 			checkAttrs(`[${kind}]`, entity.attrs, ENTITY_ATTR_RULES[kind], entity.openerSpan, diagnostics);
 			const title = stringAttr(entity.attrs, 'title') ?? '';
+			// LAYOUT content renders inside the iframe stage wrapper (which
+			// declares `args`/`__sdocsRef`), so its script keeps the reserved-name
+			// check; a PAGE body renders through the plain page component, which
+			// declares neither — only the duplicate-import check applies there.
+			checkNestedScript(entity.script, fileImports, diagnostics, kind !== 'PAGE');
 			typed = {
 				kind,
 				title,
@@ -683,6 +726,8 @@ export function parseSdoc(source: string): SdocDocument {
 				routeSlug: routeSlugAttr(entity.attrs, diagnostics),
 				hide: bareAttr(entity.attrs, 'hide'),
 				sizing: sizingOf(entity.attrs),
+				script: entity.script,
+				style: entity.style,
 				body: normalizeBody(entity.body),
 				bodySpan: entity.bodySpan,
 				openerSpan: entity.openerSpan,

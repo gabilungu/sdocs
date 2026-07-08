@@ -289,3 +289,48 @@ describe('css-custom-property prop parity', () => {
 		hl.dispose();
 	});
 });
+
+describe('entity-level script/style coloring', () => {
+	it('colors entity scripts and styles in SHOWCASE and PAGE bodies', async () => {
+		const hl = await createHighlighter({
+			themes: ['github-dark'],
+			langs: [
+				'javascript', 'typescript', 'css', 'svelte', 'markdown', 'html',
+				{ ...grammar, name: 'sdoc', embeddedLangs: ['svelte', 'typescript', 'javascript', 'css', 'markdown'] },
+			],
+		});
+		const src = '[SHOWCASE title="X"]\n\t<script lang="ts">\n\t\tconst shared = [1];\n\t</script>\n\t[example title="A"]\n\t\t<b>{shared}</b>\n\t[/example]\n\t<style>\n\t\t.n { color: gray; }\n\t</style>\n[/SHOWCASE]\n';
+		const { tokens } = hl.codeToTokens(src, { lang: 'sdoc', theme: 'github-dark', includeExplanation: true });
+		const scopeAt = (li: number, word: string) => {
+			const t = tokens[li].find((t) => t.content.trim() === word);
+			const s = t?.explanation?.flatMap((e) => e.scopes.map((x) => x.scopeName)) ?? [];
+			return s[s.length - 1] ?? 'MISSING';
+		};
+		expect(scopeAt(2, 'const')).toContain('.ts');
+		expect(scopeAt(8, 'color')).toContain('.css');
+		expect(scopeAt(10, 'SHOWCASE')).toContain('.sdoc');
+		hl.dispose();
+	});
+});
+
+describe('DOC entity script/style coloring (review regression)', () => {
+	it('colors entity scripts and styles inside DOC bodies', async () => {
+		const hl = await createHighlighter({
+			themes: ['github-dark'],
+			langs: [
+				'javascript', 'typescript', 'css', 'svelte', 'markdown', 'html',
+				{ ...grammar, name: 'sdoc', embeddedLangs: ['svelte', 'typescript', 'javascript', 'css', 'markdown'] },
+			],
+		});
+		const src = '[DOC title="G"]\n\t<script lang="ts">\n\t\tconst n = 1;\n\t</script>\n\n\tprose\n\n\t<style>\n\t\t.x { color: gray; }\n\t</style>\n[/DOC]\n';
+		const { tokens } = hl.codeToTokens(src, { lang: 'sdoc', theme: 'github-dark', includeExplanation: true });
+		const scopeAt = (li: number, word: string) => {
+			const t = tokens[li].find((t) => t.content.trim() === word);
+			const sc = t?.explanation?.flatMap((e) => e.scopes.map((x) => x.scopeName)) ?? [];
+			return sc[sc.length - 1] ?? 'MISSING';
+		};
+		expect(scopeAt(2, 'const')).toContain('.ts');
+		expect(scopeAt(8, 'color')).toContain('.css');
+		hl.dispose();
+	});
+});

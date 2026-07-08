@@ -277,3 +277,41 @@ describe('block-level <script>/<style> (per-block virtual docs)', () => {
 		await client.changeDoc(blockUri, 3, blockSource);
 	});
 });
+
+describe('entity-level <script> in a [DOC] (per-entity virtual doc)', () => {
+	const docPath = resolve(DOCS, 'src/ui/__EntityScriptDoc.sdoc');
+	const docUri = 'file://' + docPath;
+	const docSource = `[DOC title="Entity scope"]
+	<script lang="ts">
+		const answer = 42;
+	</script>
+
+	The answer is {answer}.
+
+[/DOC]
+`;
+
+	afterAll(() => rmSync(docPath, { force: true }));
+
+	it('prose referencing the entity script draws no false diagnostics', async () => {
+		writeFileSync(docPath, docSource);
+		await client.openDoc(docUri, docSource);
+		const publish = await client.waitForDiagnostics(docUri, () => true);
+		const messages = publish.diagnostics.map((d) => String(d.message));
+		expect(messages.filter((m) => m.includes('answer'))).toEqual([]);
+	});
+
+	it('type errors inside the entity script surface even with zero examples', async () => {
+		const broken = docSource.replace(
+			'const answer = 42;',
+			'const answer = 42;\n\t\tconst oops: number = "not a number";',
+		);
+		await client.changeDoc(docUri, 2, broken);
+		const publish = await client.waitForDiagnostics(docUri, (p) =>
+			p.diagnostics.some((d) => String(d.message).includes('not assignable')),
+		);
+		const hit = publish.diagnostics.find((d) => String(d.message).includes('not assignable'))!;
+		const brokenLine = broken.split('\n').findIndex((l) => l.includes('const oops'));
+		expect(hit.range.start.line).toBe(brokenLine);
+	});
+});

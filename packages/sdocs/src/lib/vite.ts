@@ -299,7 +299,13 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				const snippet = allSnippets(entry).find((s) => s.slug === parsed.snippetSlug);
 				if (!snippet) return null;
 
-				const scriptPrelude = docScriptCache.get(parsed.docFilePath) ?? '';
+				// The scope chain: file script, then the entity's own, both with
+				// their relative imports resolved against the doc file.
+				const filePrelude = docScriptCache.get(parsed.docFilePath) ?? '';
+				const entityPrelude = entry.entityScript
+					? resolveScriptImports(entry.entityScript, parsed.docFilePath)
+					: '';
+				const scriptPrelude = [filePrelude, entityPrelude].filter((s) => s.trim()).join('\n');
 				// Method calls and live state bind to the snippet's own preview;
 				// example iframes fall back to the first preview's component.
 				const preview =
@@ -310,7 +316,7 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				const blockScript = snippet.script
 					? resolveScriptImports(snippet.script, parsed.docFilePath)
 					: undefined;
-				const styles = [docStyleCache.get(parsed.docFilePath), snippet.style]
+				const styles = [docStyleCache.get(parsed.docFilePath), entry.entityStyle, snippet.style]
 					.filter((s): s is string => !!s?.trim())
 					.join('\n\n');
 				return generateIframeComponent(
@@ -329,11 +335,17 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				if (!parsed) return null;
 				const entry = docEntries.get(entityKey(parsed.docFilePath, parsed.entitySlug));
 				if (!entry?.content) return null;
-				const scriptPrelude = docScriptCache.get(parsed.docFilePath) ?? '';
+				const filePrelude = docScriptCache.get(parsed.docFilePath) ?? '';
+				const entityPrelude = entry.entityScript
+					? resolveScriptImports(entry.entityScript, parsed.docFilePath)
+					: '';
+				const styles = [docStyleCache.get(parsed.docFilePath), entry.entityStyle]
+					.filter((s): s is string => !!s?.trim())
+					.join('\n\n');
 				return generatePageComponent(
-					scriptPrelude,
+					[filePrelude, entityPrelude].filter((s) => s.trim()).join('\n'),
 					entry.content.body,
-					docStyleCache.get(parsed.docFilePath),
+					styles,
 				);
 			}
 
@@ -432,6 +444,8 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				filePath,
 				entitySlug: entity.slug,
 				meta: { title: entity.title },
+				entityScript: entity.script?.content ?? null,
+				entityStyle: entity.style?.content ?? null,
 				previews: [],
 				examples: [],
 				content: null,
@@ -493,9 +507,10 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 						// The block's own imports take precedence over the file's —
 						// the more local binding wins, matching lexical scoping.
 						const blockImports = preview.script ? extractImports(preview.script.content) : [];
+						const entityImports = entity.script ? extractImports(entity.script.content) : [];
 						componentPath = resolveComponentImport(
 							preview.componentName,
-							[...blockImports, ...imports],
+							[...blockImports, ...entityImports, ...imports],
 							filePath,
 						);
 						if (componentPath) {

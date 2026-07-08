@@ -249,3 +249,30 @@ describe('whitespace sensitivity default', () => {
 		}
 	});
 });
+
+describe('entity-level script/style formatting', () => {
+	it('a format round-trip preserves entity scripts and styles intact', async () => {
+		// The example closer is misindented so the formatter produces an edit.
+		const source = `[SHOWCASE title="X"]
+
+	<script lang="ts">
+		const shared = [1, 2];
+	</script>
+
+	[example title="A"]
+		<b>{shared}</b>
+			[/example]
+
+	<style>
+		.n { color: gray; }
+	</style>
+
+[/SHOWCASE]
+`;
+		const formatted = await formatSdoc(source, OPTIONS);
+		expect(formatted).not.toBeNull();
+		expect(formatted!).toContain('const shared = [1, 2];');
+		expect(formatted!).toContain('.n { color: gray; }');
+		expect(formatted!).toContain('\n\t[/example]');
+	});
+});

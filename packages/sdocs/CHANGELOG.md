@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.86] - 2026-07-08
+
+### Added
+
+- **Entity-level `<script>` and `<style>` — the scope ladder completes.**
+  One rule at every level: any container can open with a script and close
+  with a style, and scopes nest lexically (file → entity → block). An entity
+  script placed after the `[SHOWCASE]`/`[DOC]`/`[PAGE]`/`[LAYOUT]`
+  opener is shared by that entity's blocks and body; its style joins the
+  entity's stages (and the page component for PAGE/DOC/LAYOUT). Re-importing
+  an identifier an outer scope already binds is an error; `component={X}`
+  resolves through entity imports too. A `[PAGE]` with its own script and
+  style is now a fully self-contained page component.
+
 ## [0.0.85] - 2026-07-08
 
 ### Added

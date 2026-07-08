@@ -65,6 +65,10 @@ export interface Entity {
 	/** SHOWCASE: preview/example sub-blocks. DOC: example sub-blocks.
 	 * PAGE/LAYOUT: always empty. */
 	blocks: SubBlock[];
+	/** Entity-level <script> — the first content of the entity body */
+	script: TagBlock | null;
+	/** Entity-level <style> — the last content of the entity body */
+	style: TagBlock | null;
 	/** DOC/PAGE/LAYOUT: the raw body (for DOC it includes any [example] blocks,
 	 * addressable via their spans). SHOWCASE: '' (body text between blocks is an error). */
 	body: string;
@@ -441,6 +445,31 @@ export function scanSdoc(source: string): SdocFile {
 		};
 	}
 
+	/** Find the line index of the entity's own closer (a line whose trim equals
+	 * `closer`) at or after `fromLi`, so an entity-level tag capture never
+	 * crosses it into a later entity. `fenced` skips closer-looking lines
+	 * inside markdown code fences (DOC prose shows tag syntax in fences).
+	 * Returns lines.length when the entity is unclosed. */
+	function findCloserLine(fromLi: number, closer: string, fenced = false): number {
+		let inFence = false;
+		for (let i = fromLi; i < lines.length; i++) {
+			const trimmed = lines[i].text.trim();
+			if (fenced && /^(`{3,}|~{3,})/.test(trimmed)) {
+				inFence = !inFence;
+				continue;
+			}
+			if (!inFence && trimmed === closer) return i;
+		}
+		return lines.length;
+	}
+
+	/** The capture bound for an entity-level tag: the end of the last line
+	 * before the entity's closer (mirroring scanSubBlockBody's bodyEnd), or
+	 * the end of the source when the entity is unclosed. */
+	function closerBound(closerLi: number): number {
+		return closerLi < lines.length ? lines[closerLi - 1].end : source.length;
+	}
+
 	/** Sub-scan a captured [preview]/[example] body for an optional leading
 	 * <script> and trailing <style>. Body lines run from `fromLi` up to (not
 	 * including) `closerLi`. Only the first/last positions are special — a
@@ -449,7 +478,8 @@ export function scanSdoc(source: string): SdocFile {
 	function scanSubBlockBody(
 		fromLi: number,
 		closerLi: number,
-		kind: SubBlockKind,
+		kind: string,
+		level: 'block' | 'entity' = 'block',
 	): { script: TagBlock | null; style: TagBlock | null; markupSpan: Span } {
 		const closer = `[/${kind}]`;
 		const bodyEnd = closerLi > fromLi ? lines[closerLi - 1].end : lines[fromLi]?.start ?? source.length;
@@ -484,8 +514,8 @@ export function scanSdoc(source: string): SdocFile {
 				for (let k = captured.nextLi; k < closerLi; k++) {
 					if (lines[k].text.trim() !== '') {
 						errors.push({
-							code: 'block-style-position',
-							message: `A block <style> must be the last content of its [${kind}] block.`,
+							code: `${level}-style-position`,
+							message: `A ${level} <style> must be the last content of its [${kind}] ${level === 'block' ? 'block' : 'body'}.`,
 							span: captured.block.span,
 						});
 						break;
@@ -495,8 +525,8 @@ export function scanSdoc(source: string): SdocFile {
 			}
 			if (trimmed.startsWith('<script')) {
 				errors.push({
-					code: 'block-script-position',
-					message: `A block <script> must be the first content of its [${kind}] block.`,
+					code: `${level}-script-position`,
+					message: `A ${level} <script> must be the first content of its [${kind}] ${level === 'block' ? 'block' : 'body'}.`,
 					span: { start: lines[j].start + lines[j].text.indexOf('<script'), end: lines[j].end },
 				});
 			}
@@ -514,6 +544,8 @@ export function scanSdoc(source: string): SdocFile {
 	/** Scan the inside of a [SHOWCASE] entity until its closer. */
 	function scanShowcaseBody(startLi: number, entity: Entity): number {
 		let i = startLi;
+		let sawContent = false;
+		let styleMisplacedReported = false;
 		while (i < lines.length) {
 			const line = lines[i];
 			const trimmed = line.text.trim();
@@ -525,6 +557,57 @@ export function scanSdoc(source: string): SdocFile {
 				i = skipComment(i);
 				continue;
 			}
+			if (trimmed.startsWith('<script')) {
+				if (sawContent || entity.script) {
+					errors.push({
+						code: 'entity-script-position',
+						message: `An entity <script> must be the first content of its [${entity.kind}] body.`,
+						span: { start: line.start + line.text.indexOf('<script'), end: line.end },
+					});
+					i++;
+					continue;
+				}
+				const closerLi = findCloserLine(i, `[/${entity.kind}]`);
+				const captured = captureBoundedTag('script', i, closerBound(closerLi), `[/${entity.kind}]`);
+				if (!captured) {
+					// The targeted missing-closer error is already reported; resume
+					// at the entity's own closer so later entities keep parsing.
+					i = closerLi;
+					continue;
+				}
+				entity.script = captured.block;
+				i = captured.nextLi;
+				continue;
+			}
+			if (trimmed.startsWith('<style')) {
+				const closerLi = findCloserLine(i, `[/${entity.kind}]`);
+				const captured = captureBoundedTag('style', i, closerBound(closerLi), `[/${entity.kind}]`);
+				if (!captured) {
+					i = closerLi;
+					continue;
+				}
+				if (entity.style) {
+					errors.push({
+						code: 'entity-style-position',
+						message: `Only one entity <style> is allowed in a [${entity.kind}] body.`,
+						span: captured.block.span,
+					});
+				} else {
+					entity.style = captured.block;
+				}
+				i = captured.nextLi;
+				continue;
+			}
+			// Anything after a captured <style> means it wasn't last.
+			if (entity.style && trimmed !== '[/SHOWCASE]' && !styleMisplacedReported) {
+				styleMisplacedReported = true;
+				errors.push({
+					code: 'entity-style-position',
+					message: `An entity <style> must be the last content of its [${entity.kind}] body.`,
+					span: entity.style.span,
+				});
+			}
+			sawContent = true;
 			const token = tagToken(trimmed);
 			if (token && token.closer && token.name === 'SHOWCASE' && trimmed === '[/SHOWCASE]') {
 				const tagStart = line.start + line.text.indexOf('[/SHOWCASE]');
@@ -611,10 +694,25 @@ export function scanSdoc(source: string): SdocFile {
 	 * escaping. The body keeps the raw text of the whole range — example
 	 * blocks included — so consumers can splice by span. */
 	function scanDocBody(startLi: number, entity: Entity): number {
-		const bodyStart = startLi < lines.length ? lines[startLi].start : source.length;
+		// Entity-level <script>: the first content of the body, before prose.
+		let i = startLi;
+		while (i < lines.length && lines[i].text.trim() === '') i++;
+		if (i < lines.length && lines[i].text.trim().startsWith('<script')) {
+			const closerLi = findCloserLine(i, '[/DOC]', true);
+			const captured = captureBoundedTag('script', i, closerBound(closerLi), '[/DOC]');
+			if (captured) {
+				entity.script = captured.block;
+				i = captured.nextLi;
+			} else {
+				// The targeted missing-closer error is already reported; resume at
+				// the entity's own closer so later entities keep parsing.
+				i = closerLi;
+			}
+		}
+		const bodyStart = i < lines.length ? lines[i].start : source.length;
 		let bodyEnd = bodyStart;
 		let inFence = false;
-		let i = startLi;
+		let styleMisplacedReported = false;
 		while (i < lines.length) {
 			const line = lines[i];
 			const trimmed = line.text.trim();
@@ -628,6 +726,34 @@ export function scanSdoc(source: string): SdocFile {
 				if (trimmed !== '') bodyEnd = line.end;
 				i++;
 				continue;
+			}
+			if (trimmed.startsWith('<style')) {
+				const closerLi = findCloserLine(i, '[/DOC]', true);
+				const captured = captureBoundedTag('style', i, closerBound(closerLi), '[/DOC]');
+				if (!captured) {
+					i = closerLi;
+					continue;
+				}
+				if (entity.style) {
+					errors.push({
+						code: 'entity-style-position',
+						message: 'Only one entity <style> is allowed in a [DOC] body.',
+						span: captured.block.span,
+					});
+				} else {
+					entity.style = captured.block;
+				}
+				// Not prose: the style is excluded from the body span.
+				i = captured.nextLi;
+				continue;
+			}
+			if (entity.style && trimmed !== '' && trimmed !== '[/DOC]' && !styleMisplacedReported) {
+				styleMisplacedReported = true;
+				errors.push({
+					code: 'entity-style-position',
+					message: 'An entity <style> must be the last content of its [DOC] body.',
+					span: entity.style.span,
+				});
 			}
 			if (trimmed === '[/DOC]') {
 				const tagStart = line.start + line.text.indexOf('[/DOC]');
@@ -753,6 +879,8 @@ export function scanSdoc(source: string): SdocFile {
 				kind: token.name,
 				attrs: opener.attrs,
 				blocks: [],
+				script: null,
+				style: null,
 				body: '',
 				bodySpan: { start: opener.openerSpan.end, end: opener.openerSpan.end },
 				openerSpan: opener.openerSpan,
@@ -777,8 +905,13 @@ export function scanSdoc(source: string): SdocFile {
 					entity.span.end = source.length;
 					return { script, style, entities, errors, source };
 				}
-				entity.body = captured.body;
-				entity.bodySpan = captured.bodySpan;
+				const sub = scanSubBlockBody(opener.nextLi, captured.nextLi - 1, token.name, 'entity');
+				entity.script = sub.script;
+				entity.style = sub.style;
+				// The body is the markup between the entity script and style — the
+				// Svelte fragment the page renders.
+				entity.body = source.slice(sub.markupSpan.start, sub.markupSpan.end);
+				entity.bodySpan = sub.markupSpan;
 				entity.span.end = captured.closerSpan.end;
 				li = captured.nextLi;
 			}

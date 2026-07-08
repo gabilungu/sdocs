@@ -248,6 +248,10 @@ export interface DocEntry {
 	entitySlug: string;
 	/** Entity metadata (title drives the sidebar) */
 	meta: SdocMeta;
+	/** Entity-level <script> content — shared by every block of this entity */
+	entityScript?: string | null;
+	/** Entity-level <style> content — joins the entity's stage css */
+	entityStyle?: string | null;
 	/** Live previews (component kind; empty otherwise) */
 	previews: PreviewEntry[];
 	/** Frozen examples (component and doc kinds; empty otherwise) */

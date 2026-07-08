@@ -253,6 +253,15 @@
 					"include": "#opener-continuation"
 				},
 				{
+					"include": "#block-script-ts"
+				},
+				{
+					"include": "#block-script-js"
+				},
+				{
+					"include": "#block-style"
+				},
+				{
 					"include": "#preview"
 				},
 				{
@@ -296,6 +305,15 @@
 					"while": "(^|\\G)(?!\\s*\\[/DOC\\]\\s*$)(?:\\t|[ ]{1,4})?",
 					"contentName": "meta.embedded.block.markdown",
 					"patterns": [
+						{
+							"include": "#block-script-ts"
+						},
+						{
+							"include": "#block-script-js"
+						},
+						{
+							"include": "#block-style"
+						},
 						{
 							"include": "#page-example"
 						},
@@ -344,6 +362,15 @@
 					"begin": "(^|\\G)",
 					"while": "(^|\\G)(?!\\s*\\[/PAGE\\]\\s*$)",
 					"patterns": [
+						{
+							"include": "#block-script-ts"
+						},
+						{
+							"include": "#block-script-js"
+						},
+						{
+							"include": "#block-style"
+						},
 						{
 							"include": "source.svelte"
 						}
@@ -459,6 +486,15 @@
 					"begin": "(^|\\G)",
 					"while": "(^|\\G)(?!\\s*\\[/LAYOUT\\]\\s*$)",
 					"patterns": [
+						{
+							"include": "#block-script-ts"
+						},
+						{
+							"include": "#block-script-js"
+						},
+						{
+							"include": "#block-style"
+						},
 						{
 							"include": "#opener-continuation"
 						},

@@ -370,3 +370,97 @@ describe('description attribute + example-title enforcement', () => {
 		expect(codes).toContain('example-title-required');
 	});
 });
+
+describe('reserved names by entity kind (review regression)', () => {
+	it('a PAGE entity script may declare args — no stage wrapper there', () => {
+		const codes = diagnosticCodes(
+			`[PAGE title="P"]\n\t<script>\n\t\tconst args = { a: 1 };\n\t</script>\n\t<b>{args.a}</b>\n[/PAGE]\n`,
+		);
+		expect(codes).not.toContain('reserved-name');
+	});
+
+	it('a SHOWCASE entity script declaring args still errors', () => {
+		const codes = diagnosticCodes(
+			`[SHOWCASE title="X"]\n\t<script>\n\t\tconst args = {};\n\t</script>\n\t[example title="A"]\n\t\t<b>x</b>\n\t[/example]\n[/SHOWCASE]\n`,
+		);
+		expect(codes).toContain('reserved-name');
+	});
+
+	it('a LAYOUT entity script declaring args still errors — layouts render in the stage iframe', () => {
+		const codes = diagnosticCodes(
+			`[LAYOUT title="L"]\n\t<script>\n\t\tlet args = {};\n\t</script>\n\t<b>x</b>\n[/LAYOUT]\n`,
+		);
+		expect(codes).toContain('reserved-name');
+	});
+
+	it('a PAGE entity script re-importing a file identifier still errors', () => {
+		const codes = diagnosticCodes(
+			`<script>\n\timport Nav from './Nav.svelte';\n</script>\n\n[PAGE title="P"]\n\t<script>\n\t\timport Nav from './Nav.svelte';\n\t</script>\n\t<Nav />\n[/PAGE]\n`,
+		);
+		expect(codes).toContain('duplicate-import');
+	});
+});
+
+describe('entity-level scripts: fields and scope chain', () => {
+	it('exposes entity script/style on all entity kinds', () => {
+		const doc = parseSdoc(`[SHOWCASE title="X"]
+	<script>
+		const shared = 1;
+	</script>
+	[example title="A"]
+		<b>{shared}</b>
+	[/example]
+	<style>
+		.s { color: red; }
+	</style>
+[/SHOWCASE]
+
+[PAGE title="P"]
+	<script>
+		let open = $state(false);
+	</script>
+	<b>{open}</b>
+[/PAGE]
+`);
+		expect(doc.diagnostics).toEqual([]);
+		const sc = doc.entities[0] as ShowcaseEntity;
+		expect(sc.script?.content).toContain('const shared');
+		expect(sc.style?.content).toContain('.s {');
+		const pg = doc.entities[1] as PageEntity;
+		expect(pg.script?.content).toContain('$state(false)');
+		expect(pg.body).toBe('<b>{open}</b>');
+	});
+
+	it('an entity script re-importing a file identifier errors', () => {
+		const codes = diagnosticCodes(`<script>
+	import Nav from './Nav.svelte';
+</script>
+
+[SHOWCASE title="X"]
+	<script>
+		import Nav from './Nav.svelte';
+	</script>
+	[example title="A"]
+		<Nav />
+	[/example]
+[/SHOWCASE]
+`);
+		expect(codes).toContain('duplicate-import');
+	});
+
+	it('a block script re-importing an ENTITY-script identifier errors', () => {
+		const codes = diagnosticCodes(`[SHOWCASE title="X"]
+	<script>
+		import Badge from './Badge.svelte';
+	</script>
+	[example title="A"]
+		<script>
+			import Badge from './Badge.svelte';
+		</script>
+		<Badge />
+	[/example]
+[/SHOWCASE]
+`);
+		expect(codes).toContain('duplicate-import');
+	});
+});

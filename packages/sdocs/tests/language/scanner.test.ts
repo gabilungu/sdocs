@@ -313,3 +313,202 @@ describe('unclosed block script (review regression)', () => {
 		expect(codes).not.toContain('block-script-position');
 	});
 });
+
+describe('entity-level <script> and <style>', () => {
+	it('SHOWCASE: leading script and trailing style are captured', () => {
+		const file = scanSdoc(`<script lang="ts">
+	import Nav from './Nav.svelte';
+</script>
+
+[SHOWCASE title="Nav"]
+	<script lang="ts">
+		const shared = [1, 2];
+	</script>
+
+	[example title="A"]
+		<Nav {shared} />
+	[/example]
+
+	<style>
+		.stagewide { color: gray; }
+	</style>
+[/SHOWCASE]
+`);
+		expect(file.errors).toEqual([]);
+		const e = file.entities[0];
+		expect(e.script?.content).toContain('const shared');
+		expect(e.style?.content).toContain('.stagewide');
+		expect(e.blocks).toHaveLength(1);
+	});
+
+	it('SHOWCASE: a script after content is a position error', () => {
+		const file = scanSdoc(`[SHOWCASE title="X"]
+	[example title="A"]
+		<b>x</b>
+	[/example]
+	<script>
+		const late = 1;
+	</script>
+[/SHOWCASE]
+`);
+		expect(file.errors.map((e) => e.code)).toContain('entity-script-position');
+	});
+
+	it('SHOWCASE: a style before a block is a position error', () => {
+		const file = scanSdoc(`[SHOWCASE title="X"]
+	<style>
+		.x { color: red; }
+	</style>
+	[example title="A"]
+		<b>x</b>
+	[/example]
+[/SHOWCASE]
+`);
+		expect(file.errors.map((e) => e.code)).toContain('entity-style-position');
+	});
+
+	it('DOC: leading script and trailing style, prose excludes both', () => {
+		const file = scanSdoc(`[DOC title="Guide"]
+	<script>
+		const n = 1;
+	</script>
+
+	Some prose.
+
+	[example title="A"]
+		<b>{n}</b>
+	[/example]
+
+	<style>
+		.doc-note { color: gray; }
+	</style>
+[/DOC]
+`);
+		expect(file.errors).toEqual([]);
+		const e = file.entities[0];
+		expect(e.script?.content).toContain('const n = 1');
+		expect(e.style?.content).toContain('.doc-note');
+		expect(e.body).toContain('Some prose.');
+		expect(e.body).not.toContain('const n = 1');
+		expect(e.body).not.toContain('.doc-note');
+	});
+
+	it('PAGE: entity script/style captured, body is the markup', () => {
+		const file = scanSdoc(`[PAGE title="Landing"]
+	<script>
+		let open = $state(false);
+	</script>
+	<button onclick={() => (open = !open)}>toggle</button>
+	<style>
+		button { color: red; }
+	</style>
+[/PAGE]
+`);
+		expect(file.errors).toEqual([]);
+		const e = file.entities[0];
+		expect(e.script?.content).toContain('$state(false)');
+		expect(e.style?.content).toContain('button { color: red; }');
+		expect(e.body.trim()).toBe('<button onclick={() => (open = !open)}>toggle</button>');
+	});
+
+	it('a style inside a DOC fence stays prose', () => {
+		const file = scanSdoc(`[DOC title="G"]
+	Some prose.
+
+	\`\`\`html
+	<style>
+		.x { }
+	</style>
+	\`\`\`
+[/DOC]
+`);
+		expect(file.errors).toEqual([]);
+		expect(file.entities[0].style).toBeNull();
+		expect(file.entities[0].body).toContain('<style>');
+	});
+});
+
+describe('entity-level tags bounded to their own entity (review regression)', () => {
+	it('an unclosed entity <style> in SHOWCASE does not swallow a later entity', () => {
+		const file = scanSdoc(`[SHOWCASE title="A"]
+	[example title="E"]
+		<b>x</b>
+	[/example]
+	<style>
+		.open { color: red;
+[/SHOWCASE]
+
+[PAGE title="B"]
+	<script>
+		let n = $state(1);
+	</script>
+	<b>{n}</b>
+[/PAGE]
+
+<style>
+	.file { color: blue; }
+</style>
+`);
+		const codes = file.errors.map((e) => e.code);
+		expect(codes).toContain('unclosed-tag');
+		expect(codes).not.toContain('unclosed-block');
+		const unclosed = file.errors.find((e) => e.code === 'unclosed-tag')!;
+		expect(unclosed.message).toBe('Missing </style> before [/SHOWCASE].');
+		// The later entity and the file style survive intact.
+		expect(file.entities.map((e) => e.kind)).toEqual(['SHOWCASE', 'PAGE']);
+		expect(file.entities[1].script?.content).toContain('$state(1)');
+		expect(file.entities[1].body.trim()).toBe('<b>{n}</b>');
+		expect(file.style?.content).toContain('.file { color: blue; }');
+	});
+
+	it('an unclosed entity <script> in DOC does not swallow a later entity', () => {
+		const file = scanSdoc(`[DOC title="G"]
+	<script>
+		const n = 1;
+
+	Some prose.
+[/DOC]
+
+[PAGE title="B"]
+	<script>
+		let x = $state(2);
+	</script>
+	<b>{x}</b>
+[/PAGE]
+`);
+		const codes = file.errors.map((e) => e.code);
+		expect(codes).toContain('unclosed-tag');
+		expect(codes).not.toContain('unclosed-block');
+		const unclosed = file.errors.find((e) => e.code === 'unclosed-tag')!;
+		expect(unclosed.message).toBe('Missing </script> before [/DOC].');
+		expect(file.entities.map((e) => e.kind)).toEqual(['DOC', 'PAGE']);
+		expect(file.entities[1].script?.content).toContain('$state(2)');
+		expect(file.entities[1].body.trim()).toBe('<b>{x}</b>');
+	});
+
+	it('the DOC bound skips closer-looking lines inside markdown fences', () => {
+		const file = scanSdoc(`[DOC title="G"]
+	<script>
+		const n = 1;
+
+	\`\`\`
+	[/DOC]
+	\`\`\`
+[/DOC]
+`);
+		const codes = file.errors.map((e) => e.code);
+		expect(codes).toContain('unclosed-tag');
+		// Recovery lands on the real closer, not the fenced one — no cascade.
+		expect(codes).not.toContain('stray-closer');
+		expect(codes).not.toContain('text-outside-blocks');
+		expect(file.entities.map((e) => e.kind)).toEqual(['DOC']);
+	});
+});
+
+describe('DOC entity style: blank-line layout (review regression)', () => {
+	it('a trailing style followed by a blank line is NOT a position error', () => {
+		const file = scanSdoc('[DOC title="G"]\n\tprose\n\n\t<style>\n\t\t.x { color: red; }\n\t</style>\n\n[/DOC]\n');
+		expect(file.errors).toEqual([]);
+		expect(file.entities[0].style).not.toBeNull();
+	});
+});

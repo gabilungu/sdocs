@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.56] - 2026-07-08
+
+### Added
+
+- **Language intelligence for entity-level `<script>`/`<style>`** (sdocs
+  0.0.86): the merged scope chain (file → entity → block) is type-checked as
+  one script, block markup sees entity declarations, misplaced entity tags
+  are flagged, and entity scripts and styles highlight at every position.
+  A block without its own script still gets full intelligence when its
+  entity declares one.
+
 ## [0.0.55] - 2026-07-08
 
 ### Fixed

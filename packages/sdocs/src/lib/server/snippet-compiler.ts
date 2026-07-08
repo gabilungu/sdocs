@@ -113,6 +113,15 @@ export function generateIframeComponent(
 		contentX?: string;
 		contentY?: string;
 	},
+	extras?: {
+		/** Block-level <script> content (imports already resolved), appended
+		 * after the wrapper plumbing so it can reference `args`. */
+		blockScript?: string;
+		/** CSS injected into the stage: the file-level <style> plus the block's
+		 * own <style>. Emitted as a real style element — the iframe already
+		 * isolates it to this one block. */
+		styles?: string;
+	},
 ): string {
 	// The stage layout (config -> entity -> block cascade) applies here, inside
 	// the iframe, so every consumer of the preview page gets it. Preview and
@@ -163,6 +172,17 @@ export function generateIframeComponent(
 	// The file <script> (imports + shared values), lifted verbatim so previews
 	// and examples see everything the entity's siblings do.
 	const importBlock = scriptPrelude.trim() ? scriptPrelude.trim() + '\n' : '';
+	// The block's own <script>, appended after the plumbing so `args` is in
+	// scope. Concatenation is the scoping model: file names are visible here,
+	// re-declaring one is a compile error (re-imports get a parser diagnostic).
+	const blockScriptSection = extras?.blockScript?.trim()
+		? `\n	// [${'block'} script]\n	${extras.blockScript.trim()}\n`
+		: '';
+	// Stage CSS as a real <style> element via {@html} — global within this
+	// block's iframe (which is the isolation boundary), never Svelte-pruned.
+	const stylesTag = extras?.styles?.trim()
+		? `{@html ${JSON.stringify(`<style>\n${extras.styles.trim()}\n</style>`)}}\n`
+		: '';
 	const stateBroadcast = stateNames.length > 0
 		? `
 	$effect(() => {
@@ -181,12 +201,12 @@ export function generateIframeComponent(
 		: '';
 	// lang="ts" so lifted imports may carry type-only syntax (Svelte 5 erases it natively)
 	return `<script lang="ts">
-	${importBlock}import { onMount } from 'svelte';
+	${importBlock}import { onMount as __sdocsOnMount } from 'svelte';
 
 	let args = $state({});
 	let __sdocsRef = $state();
-${stateBroadcast}
-	onMount(() => {
+${blockScriptSection}${stateBroadcast}
+	__sdocsOnMount(() => {
 		window.addEventListener('message', (e) => {
 			if (e.data?.type === 'sdocs:update-props') {
 				args = { ...e.data.props };
@@ -229,7 +249,7 @@ ${stateBroadcast}
 	});
 </script>
 
-<div id="sdocs-preview" style="${stageStyle}">
+${stylesTag}<div id="sdocs-preview" style="${stageStyle}">
 	{#snippet SdocsPreview(args)}
 		${injectRootRef(snippetBody, componentName)}
 	{/snippet}
@@ -244,8 +264,15 @@ ${stateBroadcast}
  * `{@render __sdocsExample?.(i)}` markers render the example stages the
  * Explorer passes in as a snippet prop; a PAGE body is plain Svelte.
  */
-export function generatePageComponent(scriptPrelude: string, renderedBody: string): string {
+export function generatePageComponent(
+	scriptPrelude: string,
+	renderedBody: string,
+	fileStyle?: string,
+): string {
 	const importBlock = scriptPrelude.trim() ? scriptPrelude.trim() + '\n' : '';
+	// The file <style> becomes this component's own style — Svelte-scoped, so
+	// it can't leak into the Explorer chrome the page renders inside.
+	const styleBlock = fileStyle?.trim() ? `\n<style>\n${fileStyle.trim()}\n</style>\n` : '';
 	// lang="ts" so lifted imports may carry type-only syntax
 	return `<script lang="ts">
 	${importBlock}
@@ -255,7 +282,7 @@ export function generatePageComponent(scriptPrelude: string, renderedBody: strin
 <div class="sdocs-page-body">
 ${renderedBody}
 </div>
-`;
+${styleBlock}`;
 }
 
 /** Convert a CSS path to a Vite-servable URL */

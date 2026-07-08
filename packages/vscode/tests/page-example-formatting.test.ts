@@ -184,3 +184,33 @@ describe('fences survive formatting (mangling regression)', () => {
 		expect(lines).toContain('## Separators');
 	});
 });
+
+describe('block-level <script>/<style> formatting', () => {
+	it('formats a body containing its own script and style as a mini component', async () => {
+		const source = `[SHOWCASE title="Nav"]
+
+	[example title="Data"]
+		<script lang="ts">
+			const   items=[{label:"Home"}]
+			let active   =  $state("Home")
+		</script>
+		<p   class="hint"  >{active}</p>
+		<style>
+			.hint{color:gray}
+		</style>
+	[/example]
+
+[/SHOWCASE]
+`;
+		const formatted = await formatSdoc(source, { tabSize: 2, insertSpaces: false });
+		expect(formatted).not.toBeNull();
+		// script formatted, first in the body
+		expect(formatted!).toContain('const items = [{ label: "Home" }];');
+		// markup formatted
+		expect(formatted!).toContain('<p class="hint">{active}</p>');
+		// style formatted, last in the body
+		expect(formatted!).toMatch(/\.hint\s*{\s*\n\s*color:\s*gray;/);
+		// structure intact
+		expect(formatted!).toContain('[/example]');
+	});
+});

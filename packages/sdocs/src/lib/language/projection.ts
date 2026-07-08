@@ -217,3 +217,161 @@ export function projectSdoc(file: SdocFile): SdocProjection {
 		lineKinds: kinds,
 	};
 }
+
+/** A per-block projection for a block that declares its own <script> or
+ * <style>. Line-preserving like the base projection. */
+export interface SdocBlockProjection extends SdocProjection {
+	/** Stable id: entity index + block index (for virtual URIs) */
+	key: string;
+	/** Authored line range this projection owns (block opener → closer,
+	 * inclusive): the base projection's diagnostics are suppressed here and
+	 * this projection's shown, so each line has exactly one owner. */
+	firstLine: number;
+	lastLine: number;
+}
+
+/**
+ * Project each script/style-bearing [preview]/[example] block into its own
+ * line-preserving virtual Svelte document, where the block's script is a real
+ * component script and its style a real component style:
+ *
+ * - The file <script> opens at its authored line and DOES NOT CLOSE — its
+ *   closer line, everything between it and the block's script, and the block
+ *   script's opener line go blank (blank lines are valid inside a script) —
+ *   until the block script's closer line, which becomes
+ *   `</script>{#snippet …(args)}`. File declarations and block declarations
+ *   share one scope: lexical nesting by concatenation, byte-compatible with
+ *   what the build pipeline generates.
+ * - The block markup stays verbatim inside the snippet.
+ * - A block <style> becomes the component's own style: its opener line is
+ *   rewritten to `{/snippet}<style>`, its content stays verbatim (real CSS
+ *   intelligence), and the block closer goes blank.
+ * - Everything else in the file goes blank; a trailer renders the snippet.
+ */
+export function projectSdocBlocks(file: SdocFile): SdocBlockProjection[] {
+	const source = file.source;
+	const starts = lineStartsOf(source);
+	const total = starts.length;
+	const isTs = /lang\s*=\s*["']ts["']/.test(file.script?.attrsText ?? '');
+	const argsParam = isTs ? '(args: any)' : '(args)';
+	const projections: SdocBlockProjection[] = [];
+
+	file.entities.forEach((entity, e) => {
+		entity.blocks.forEach((block, b) => {
+			if (!block.script && !block.style) return;
+
+			const out: string[] = new Array(total).fill('');
+			const kinds: ProjectedLineKind[] = new Array(total).fill('blank');
+			const copyVerbatim = (span: Span) => {
+				const first = lineOfOffset(starts, span.start);
+				const last = lineOfOffset(starts, Math.max(span.start, span.end - 1));
+				for (let l = first; l <= last; l++) {
+					const end = l + 1 < total ? starts[l + 1] - 1 : source.length;
+					out[l] = source.slice(starts[l], end).replace(/\r$/, '');
+					kinds[l] = 'verbatim';
+				}
+			};
+
+			const name = `__sdocs$${e}_${b}`;
+			const openerLine = lineOfOffset(starts, block.openerSpan.start);
+			const closerLine = lineOfOffset(starts, Math.max(block.span.start, block.span.end - 1));
+
+			if (block.script) {
+				const scriptOpenLine = lineOfOffset(starts, block.script.span.start);
+				const scriptCloseLine = lineOfOffset(starts, Math.max(block.script.span.start, block.script.span.end - 1));
+				// Copy the script content first: its span starts just after the
+				// opener's '>' (same line), so whole-line copying resurrects the
+				// opener — the boundary lines are overwritten after.
+				if (block.script.contentSpan.end > block.script.contentSpan.start) {
+					copyVerbatim(block.script.contentSpan);
+				}
+				if (file.script) {
+					// Extend the file script through the block script. If the file
+					// script sits on ONE line, blanking its closer line would erase
+					// the opener and imports — recompose the line without its
+					// `</script>` instead.
+					copyVerbatim(file.script.span);
+					const fileOpenLine = lineOfOffset(starts, file.script.span.start);
+					const fileCloseLine = lineOfOffset(
+						starts,
+						Math.max(file.script.span.start, file.script.span.end - 1),
+					);
+					const fileTail = source.slice(
+						Math.max(starts[fileCloseLine], file.script.contentSpan.start),
+						file.script.contentSpan.end,
+					);
+					out[fileCloseLine] =
+						(fileOpenLine === fileCloseLine ? `<script${file.script.attrsText}>` : '') + fileTail;
+					kinds[fileCloseLine] = 'wrapper';
+					if (scriptOpenLine !== scriptCloseLine) {
+						out[scriptOpenLine] = '';
+						kinds[scriptOpenLine] = 'wrapper';
+					}
+				} else if (scriptOpenLine !== scriptCloseLine) {
+					// The block script opens the (only) script itself.
+					const end = scriptOpenLine + 1 < total ? starts[scriptOpenLine + 1] - 1 : source.length;
+					out[scriptOpenLine] = source.slice(starts[scriptOpenLine], end).replace(/\r$/, '');
+					kinds[scriptOpenLine] = 'verbatim';
+				}
+				// Content sharing the closer line — a one-liner script or a trailing
+				// `let b = 2;</script>` — must survive the wrapper rewrite.
+				const scriptTail = source.slice(
+					Math.max(starts[scriptCloseLine], block.script.contentSpan.start),
+					block.script.contentSpan.end,
+				);
+				const opensHere =
+					!file.script && scriptOpenLine === scriptCloseLine
+						? `<script${block.script.attrsText}>`
+						: '';
+				out[scriptCloseLine] = `${opensHere}${scriptTail}</script>{#snippet ${name}${argsParam}}`;
+				kinds[scriptCloseLine] = 'wrapper';
+			} else {
+				// Style-only block: the file script stays as authored; the block
+				// opener opens the snippet, exactly like the base projection.
+				if (file.script) copyVerbatim(file.script.span);
+				out[openerLine] = `{#snippet ${name}${argsParam}}`;
+				kinds[openerLine] = 'wrapper';
+			}
+
+			if (block.markupSpan.end > block.markupSpan.start) copyVerbatim(block.markupSpan);
+
+			if (block.style) {
+				const styleOpenLine = lineOfOffset(starts, block.style.span.start);
+				const styleCloseLine = lineOfOffset(starts, Math.max(block.style.span.start, block.style.span.end - 1));
+				// Content first, boundary lines after (same reason as the script).
+				if (block.style.contentSpan.end > block.style.contentSpan.start) {
+					copyVerbatim(block.style.contentSpan);
+				}
+				// Content sharing the closer line (a one-liner style) must survive.
+				const styleTail = source.slice(
+					Math.max(starts[styleCloseLine], block.style.contentSpan.start),
+					block.style.contentSpan.end,
+				);
+				if (styleOpenLine !== styleCloseLine) {
+					out[styleOpenLine] = `{/snippet}<style>`;
+					kinds[styleOpenLine] = 'wrapper';
+					out[styleCloseLine] = `${styleTail}</style>`;
+				} else {
+					out[styleCloseLine] = `{/snippet}<style>${styleTail}</style>`;
+				}
+				kinds[styleCloseLine] = 'wrapper';
+				// The block closer line stays blank.
+			} else {
+				out[closerLine] = '{/snippet}';
+				kinds[closerLine] = 'wrapper';
+			}
+
+			const trailer = ['{#if false}', `{@render ${name}({})}`, '{/if}'];
+			projections.push({
+				key: `${e}_${b}`,
+				firstLine: openerLine,
+				lastLine: closerLine,
+				text: out.join('\n') + '\n' + trailer.join('\n') + '\n',
+				sourceLineCount: total,
+				lineKinds: kinds,
+			});
+		});
+	});
+
+	return projections;
+}

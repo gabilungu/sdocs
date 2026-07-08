@@ -13,7 +13,14 @@ export interface PlannedSnippet {
 	name: string;
 	slug: string;
 	role: SnippetRole;
+	/** Full body — block script/style included (display/formatting form) */
 	body: string;
+	/** Markup between the block script and style (the runtime fragment) */
+	markup: string;
+	/** Block-level <script> content, when the block declares one */
+	script: string | null;
+	/** Block-level <style> content, when the block declares one */
+	style: string | null;
 }
 
 /** URL-safe slug for an example snippet. The 'x-' prefix keeps example
@@ -32,11 +39,22 @@ export function previewSlug(label: string): string {
  * body for PAGE and LAYOUT. DOC and PAGE content renders natively in the
  * Explorer — never served as an iframe page (see planIframeSnippets). */
 export function planEntitySnippets(entity: SdocEntity): PlannedSnippet[] {
-	const example = (e: { title: string; body: string }) => ({
+	const blockParts = (b: {
+		body: string;
+		markup: string;
+		script: { content: string } | null;
+		style: { content: string } | null;
+	}) => ({
+		body: b.body,
+		markup: b.markup,
+		script: b.script?.content ?? null,
+		style: b.style?.content ?? null,
+	});
+	const example = (e: ExampleLike) => ({
 		name: e.title,
 		slug: exampleSlug(e.title),
 		role: 'example' as const,
-		body: e.body,
+		...blockParts(e),
 	});
 	if (entity.kind === 'SHOWCASE') {
 		return [
@@ -44,16 +62,32 @@ export function planEntitySnippets(entity: SdocEntity): PlannedSnippet[] {
 				name: p.label,
 				slug: previewSlug(p.label),
 				role: 'preview' as const,
-				body: p.body,
+				...blockParts(p),
 			})),
 			...entity.examples.map(example),
 		];
 	}
-	const content = { name: 'Content', slug: 'content', role: 'content' as const, body: entity.body };
+	const content = {
+		name: 'Content',
+		slug: 'content',
+		role: 'content' as const,
+		body: entity.body,
+		markup: entity.body,
+		script: null,
+		style: null,
+	};
 	if (entity.kind === 'DOC') {
 		return [content, ...entity.examples.map(example)];
 	}
 	return [content];
+}
+
+interface ExampleLike {
+	title: string;
+	body: string;
+	markup: string;
+	script: { content: string } | null;
+	style: { content: string } | null;
 }
 
 /** The snippets of an entity that are served as iframe preview pages:

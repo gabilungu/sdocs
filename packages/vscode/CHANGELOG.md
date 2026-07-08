@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.52] - 2026-07-08
+
+### Added
+
+- **Language intelligence for block-level `<script>`/`<style>`.** A
+  `[preview]`/`[example]` that declares its own script or style is checked
+  as its own mini component — the file script and block script share one
+  scope, so completion, hover, and type-checking work inside block scripts,
+  markup referencing block-script variables checks cleanly, and a block
+  `<style>` gets CSS intelligence. Misplaced block tags are flagged (script
+  must open the body, style must close it), re-importing a file-script
+  identifier is an error, and `component={X}` resolves through the block's
+  own imports too. Format Document formats the body as a mini Svelte file —
+  script first, style last. The grammar colors block scripts and styles.
+
 ## [0.0.51] - 2026-07-07
 
 ### Fixed

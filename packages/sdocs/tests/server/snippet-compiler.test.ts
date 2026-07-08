@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	generateIframeComponent,
+	generatePageComponent,
 	resolveScriptImports,
 } from '../../src/lib/server/snippet-compiler.js';
 
@@ -126,5 +127,45 @@ describe('stage sizing', () => {
 	it('stays bare flow-root without a stage', () => {
 		const out = generateIframeComponent('', '<b>x</b>');
 		expect(out).toContain('style="display: flow-root"');
+	});
+});
+
+describe('block-level script and style (extras)', () => {
+	it('appends the block script after the wrapper plumbing, so args is in scope', () => {
+		const out = generateIframeComponent('', '<Nav {active} />', [], 'Nav', undefined, {
+			blockScript: "let active = $state('Home');\nconst derived = $derived(args);",
+		});
+		const plumbingAt = out.indexOf('let args = $state({})');
+		const blockAt = out.indexOf("let active = $state('Home')");
+		expect(plumbingAt).toBeGreaterThan(-1);
+		expect(blockAt).toBeGreaterThan(plumbingAt);
+		// Still inside the single component <script>
+		expect(blockAt).toBeLessThan(out.indexOf('</script>'));
+	});
+
+	it('emits stage styles as a real style element via {@html}', () => {
+		const out = generateIframeComponent('', '<b class="dot">x</b>', [], undefined, undefined, {
+			styles: '.dot { width: 8px; height: 8px; }',
+		});
+		expect(out).toContain('{@html');
+		expect(out).toContain('.dot { width: 8px; height: 8px; }');
+		// Never a component-level <style> (it would be Svelte-pruned per module)
+		expect(out).not.toMatch(/\n<style>/);
+	});
+
+	it('omits both sections when extras are absent', () => {
+		const out = generateIframeComponent('', '<b>x</b>', []);
+		expect(out).not.toContain('{@html');
+		expect(out).not.toContain('[block script]');
+	});
+
+	it('file style reaches the page component as a scoped style block', () => {
+		const out = generatePageComponent('', '<p>hello</p>', '.big { font-size: 2em; }');
+		expect(out).toContain('<style>\n.big { font-size: 2em; }\n</style>');
+	});
+
+	it('page component omits the style block when the file has none', () => {
+		const out = generatePageComponent('', '<p>hello</p>');
+		expect(out).not.toContain('<style>');
 	});
 });

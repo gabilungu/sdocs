@@ -46,16 +46,30 @@ export interface PreviewBlock {
 	/** Tab label: the title override or the component name */
 	label: string;
 	sizing: Sizing;
+	/** Normalized full body — block script/style included (display/formatting form) */
 	body: string;
 	bodySpan: Span;
+	/** Block-level <script>, when the body opens with one */
+	script: TagBlock | null;
+	/** Block-level <style>, when the body ends with one */
+	style: TagBlock | null;
+	/** Normalized markup between the block script and style */
+	markup: string;
 	span: Span;
 }
 
 export interface ExampleBlock {
 	title: string;
 	sizing: Sizing;
+	/** Normalized full body — block script/style included (display/formatting form) */
 	body: string;
 	bodySpan: Span;
+	/** Block-level <script>, when the body opens with one */
+	script: TagBlock | null;
+	/** Block-level <style>, when the body ends with one */
+	style: TagBlock | null;
+	/** Normalized markup between the block script and style */
+	markup: string;
 	span: Span;
 }
 
@@ -176,6 +190,76 @@ export function slugifyTitle(title: string): string {
 }
 
 const IDENTIFIER_RE = /^[A-Z][A-Za-z0-9_]*$/;
+
+const IMPORT_RE = /import\s+(?:type\s+)?([^'"]+?)\s+from\s*['"][^'"]+['"]/g;
+
+/** The local identifiers an import statement list binds — default, namespace,
+ * and named (respecting `as` aliases). Offsets are relative to `script`. */
+export function importedNames(script: string): Map<string, Span> {
+	const names = new Map<string, Span>();
+	// Blank out comments (offset-preserving) so commented-out imports never match.
+	const scrubbed = script.replace(/\/\/[^\n]*|\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '));
+	for (const match of scrubbed.matchAll(IMPORT_RE)) {
+		const clause = match[1];
+		const span: Span = { start: match.index!, end: match.index! + match[0].length };
+		const braces = clause.match(/\{([^}]*)\}/);
+		if (braces) {
+			for (const entry of braces[1].split(',')) {
+				const name = entry.replace(/^\s*type\s+/, '').trim();
+				if (!name) continue;
+				const local = name.includes(' as ') ? name.split(' as ').pop()!.trim() : name;
+				if (local) names.set(local, span);
+			}
+		}
+		const rest = clause.replace(/\{[^}]*\}/, '');
+		const ns = rest.match(/\*\s+as\s+([A-Za-z_$][\w$]*)/);
+		if (ns) names.set(ns[1], span);
+		const def = rest.replace(/\*\s+as\s+[A-Za-z_$][\w$]*/, '').match(/[A-Za-z_$][\w$]*/);
+		if (def) names.set(def[0], span);
+	}
+	return names;
+}
+
+/** A block script may not re-import an identifier the file script already
+ * binds — the generated module concatenates both, so the duplicate would be
+ * a confusing compile error. Reported here as a clear diagnostic instead. */
+function checkBlockScript(
+	block: SubBlock,
+	fileImports: Map<string, Span>,
+	diagnostics: ScanError[],
+): void {
+	if (!block.script) return;
+	// The generated stage wrapper declares these; a block script redefining
+	// them would collide with the plumbing at compile time.
+	for (const reserved of ['args', '__sdocsRef']) {
+		const m = block.script.content.match(
+			new RegExp(`\\b(?:const|let|var|function|class)\\s+(${reserved})\\b`),
+		);
+		if (m && m.index !== undefined) {
+			diagnostics.push({
+				code: 'reserved-name',
+				message: `"${reserved}" is provided by the preview stage — pick another name.`,
+				span: {
+					start: block.script.contentSpan.start + m.index,
+					end: block.script.contentSpan.start + m.index + m[0].length,
+				},
+			});
+		}
+	}
+	if (fileImports.size === 0) return;
+	for (const [name, span] of importedNames(block.script.content)) {
+		if (fileImports.has(name)) {
+			diagnostics.push({
+				code: 'duplicate-import',
+				message: `"${name}" is already imported by the file's <script> — it is in scope here; remove this import.`,
+				span: {
+					start: block.script.contentSpan.start + span.start,
+					end: block.script.contentSpan.start + span.end,
+				},
+			});
+		}
+	}
+}
 
 export interface AttrRule {
 	/** required | optional */
@@ -388,8 +472,13 @@ export function parseArgsLiteral(
 	return values;
 }
 
-function parsePreview(block: SubBlock, diagnostics: ScanError[]): PreviewBlock {
+function parsePreview(
+	block: SubBlock,
+	fileImports: Map<string, Span>,
+	diagnostics: ScanError[],
+): PreviewBlock {
 	checkAttrs('[preview]', block.attrs, SUB_BLOCK_ATTR_RULES.preview, block.openerSpan, diagnostics);
+	checkBlockScript(block, fileImports, diagnostics);
 
 	let componentName: string | null = null;
 	const component = block.attrs.component;
@@ -425,6 +514,9 @@ function parsePreview(block: SubBlock, diagnostics: ScanError[]): PreviewBlock {
 		sizing: sizingOf(block.attrs),
 		body: normalizeBody(block.body),
 		bodySpan: block.bodySpan,
+		script: block.script,
+		style: block.style,
+		markup: normalizeBody(block.markup),
 		span: block.span,
 	};
 }
@@ -433,9 +525,11 @@ function parseExample(
 	block: SubBlock,
 	seenTitles: Set<string>,
 	owner: 'SHOWCASE' | 'DOC',
+	fileImports: Map<string, Span>,
 	diagnostics: ScanError[],
 ): ExampleBlock {
 	checkAttrs('[example]', block.attrs, SUB_BLOCK_ATTR_RULES.example, block.openerSpan, diagnostics);
+	checkBlockScript(block, fileImports, diagnostics);
 	const title = stringAttr(block.attrs, 'title') ?? '';
 	if (title && seenTitles.has(title)) {
 		diagnostics.push({
@@ -450,11 +544,18 @@ function parseExample(
 		sizing: sizingOf(block.attrs),
 		body: normalizeBody(block.body),
 		bodySpan: block.bodySpan,
+		script: block.script,
+		style: block.style,
+		markup: normalizeBody(block.markup),
 		span: block.span,
 	};
 }
 
-function parseShowcase(entity: Entity, diagnostics: ScanError[]): ShowcaseEntity {
+function parseShowcase(
+	entity: Entity,
+	fileImports: Map<string, Span>,
+	diagnostics: ScanError[],
+): ShowcaseEntity {
 	checkAttrs('[SHOWCASE]', entity.attrs, ENTITY_ATTR_RULES.SHOWCASE, entity.openerSpan, diagnostics);
 	const previews: PreviewBlock[] = [];
 	const examples: ExampleBlock[] = [];
@@ -463,7 +564,7 @@ function parseShowcase(entity: Entity, diagnostics: ScanError[]): ShowcaseEntity
 
 	for (const block of entity.blocks) {
 		if (block.kind === 'preview') {
-			const preview = parsePreview(block, diagnostics);
+			const preview = parsePreview(block, fileImports, diagnostics);
 			if (previewLabels.has(preview.label)) {
 				diagnostics.push({
 					code: 'duplicate-preview-label',
@@ -474,7 +575,7 @@ function parseShowcase(entity: Entity, diagnostics: ScanError[]): ShowcaseEntity
 			previewLabels.add(preview.label);
 			previews.push(preview);
 		} else {
-			examples.push(parseExample(block, exampleTitles, 'SHOWCASE', diagnostics));
+			examples.push(parseExample(block, exampleTitles, 'SHOWCASE', fileImports, diagnostics));
 		}
 	}
 
@@ -515,12 +616,16 @@ function spliceExampleMarkers(entity: Entity): string {
 	return out;
 }
 
-function parseDoc(entity: Entity, diagnostics: ScanError[]): DocEntity {
+function parseDoc(
+	entity: Entity,
+	fileImports: Map<string, Span>,
+	diagnostics: ScanError[],
+): DocEntity {
 	checkAttrs('[DOC]', entity.attrs, ENTITY_ATTR_RULES.DOC, entity.openerSpan, diagnostics);
 	const examples: ExampleBlock[] = [];
 	const exampleTitles = new Set<string>();
 	for (const block of entity.blocks) {
-		examples.push(parseExample(block, exampleTitles, 'DOC', diagnostics));
+		examples.push(parseExample(block, exampleTitles, 'DOC', fileImports, diagnostics));
 	}
 	const title = stringAttr(entity.attrs, 'title') ?? '';
 	return {
@@ -543,13 +648,14 @@ export function parseSdoc(source: string): SdocDocument {
 	const diagnostics: ScanError[] = [...scanned.errors];
 	const entities: SdocEntity[] = [];
 	const slugs = new Set<string>();
+	const fileImports = scanned.script ? importedNames(scanned.script.content) : new Map<string, Span>();
 
 	for (const entity of scanned.entities) {
 		let typed: SdocEntity;
 		if (entity.kind === 'SHOWCASE') {
-			typed = parseShowcase(entity, diagnostics);
+			typed = parseShowcase(entity, fileImports, diagnostics);
 		} else if (entity.kind === 'DOC') {
-			typed = parseDoc(entity, diagnostics);
+			typed = parseDoc(entity, fileImports, diagnostics);
 		} else {
 			// PAGE and LAYOUT share the shape: a plain Svelte body.
 			const kind = entity.kind;

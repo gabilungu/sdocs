@@ -191,7 +191,14 @@ export interface ExtractedSnippet {
 	/** URL-safe id, unique within the entity */
 	slug: string;
 	role: 'preview' | 'example' | 'content';
+	/** Full body — block script/style included (what the code panel shows) */
 	body: string;
+	/** Markup between the block script and style (what the stage renders) */
+	markup?: string;
+	/** Block-level <script> content, when the block declares one */
+	script?: string | null;
+	/** Block-level <style> content, when the block declares one */
+	style?: string | null;
 	highlightedHtml?: string;
 	/** Preview URL for iframe (added by virtual module) */
 	previewUrl?: string;

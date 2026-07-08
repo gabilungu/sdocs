@@ -69,6 +69,9 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 	let server: ViteDevServer;
 	let docEntries: Map<string, DocEntry> = new Map();
 	let docScriptCache: Map<string, string> = new Map();
+	/** The file-level <style> content per doc file — injected into every one
+	 * of the file's preview/example stages (and its PAGE/DOC content). */
+	let docStyleCache: Map<string, string> = new Map();
 	const buildMode = (userConfig as any)?._buildMode ?? false;
 	let isBuild = false;
 	let isSsrBuild = false;
@@ -145,6 +148,7 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 					console.log(`[sdocs] Removed doc file: ${filePath}`);
 					deleteEntriesOf(filePath);
 					docScriptCache.delete(filePath);
+					docStyleCache.delete(filePath);
 					invalidateVirtualModule();
 				}
 			});
@@ -292,12 +296,21 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				const preview =
 					entry.previews.find((p) => p.snippet.slug === snippet.slug) ?? entry.previews[0];
 				const stateNames = (preview?.componentData?.state ?? []).map((s) => s.name);
+				// The block's own script (imports resolved like the file's) and the
+				// stage CSS: the file <style> shared by every block, plus this block's.
+				const blockScript = snippet.script
+					? resolveScriptImports(snippet.script, parsed.docFilePath)
+					: undefined;
+				const styles = [docStyleCache.get(parsed.docFilePath), snippet.style]
+					.filter((s): s is string => !!s?.trim())
+					.join('\n\n');
 				return generateIframeComponent(
 					scriptPrelude,
-					snippet.body,
+					snippet.markup ?? snippet.body,
 					stateNames,
 					preview?.componentName ?? undefined,
 					snippet.stage,
+					{ blockScript, styles: styles || undefined },
 				);
 			}
 
@@ -308,7 +321,11 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				const entry = docEntries.get(entityKey(parsed.docFilePath, parsed.entitySlug));
 				if (!entry?.content) return null;
 				const scriptPrelude = docScriptCache.get(parsed.docFilePath) ?? '';
-				return generatePageComponent(scriptPrelude, entry.content.body);
+				return generatePageComponent(
+					scriptPrelude,
+					entry.content.body,
+					docStyleCache.get(parsed.docFilePath),
+				);
 			}
 
 			// Virtual mount script for an emitted preview page
@@ -351,6 +368,7 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 		const scriptContent = doc.script?.content ?? '';
 		const imports = extractImports(scriptContent);
 		docScriptCache.set(filePath, resolveScriptImports(scriptContent, filePath));
+		docStyleCache.set(filePath, doc.style?.content ?? '');
 
 		// One component parse per component file per rebuild, however many
 		// previews reference it.
@@ -381,6 +399,9 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				slug: p.slug,
 				role: p.role,
 				body: p.body,
+				markup: p.markup,
+				script: p.script,
+				style: p.style,
 			}));
 
 			const entry: DocEntry = {
@@ -450,14 +471,21 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 					let componentData: ComponentData | null = null;
 					let highlightedSource: string | null = null;
 					if (preview.componentName) {
-						componentPath = resolveComponentImport(preview.componentName, imports, filePath);
+						// The block's own imports take precedence over the file's —
+						// the more local binding wins, matching lexical scoping.
+						const blockImports = preview.script ? extractImports(preview.script.content) : [];
+						componentPath = resolveComponentImport(
+							preview.componentName,
+							[...blockImports, ...imports],
+							filePath,
+						);
 						if (componentPath) {
 							const loaded = await loadComponent(componentPath);
 							componentData = loaded.data;
 							highlightedSource = loaded.highlighted;
 						} else {
 							console.warn(
-								`[sdocs] ${filePath}: component {${preview.componentName}} is not imported in the file's <script>`,
+								`[sdocs] ${filePath}: component {${preview.componentName}} is not imported in the file's <script> or the block's`,
 							);
 						}
 					}

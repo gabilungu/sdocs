@@ -178,6 +178,19 @@ describe('sdoc grammar (Oniguruma engine, as in VS Code)', () => {
 		assertWrappedOpener(tokens as Tokens, WRAPPED);
 		hl.dispose();
 	});
+
+	it('colors block-level script/style inside example bodies', async () => {
+		const hl = await createHighlighter({
+			themes: ['github-dark'],
+			langs: [
+				'javascript', 'typescript', 'css', 'svelte', 'markdown', 'html',
+				{ ...grammar, name: 'sdoc', embeddedLangs: ['svelte', 'typescript', 'javascript', 'css', 'markdown'] },
+			],
+		});
+		const { tokens } = hl.codeToTokens(BLOCK_TAGS, { lang: 'sdoc', theme: 'github-dark', includeExplanation: true });
+		assertBlockTags(tokens as Tokens, BLOCK_TAGS);
+		hl.dispose();
+	});
 });
 
 describe('sdoc grammar (JavaScript engine, as in the Explorer client)', () => {
@@ -202,4 +215,51 @@ describe('sdoc grammar (JavaScript engine, as in the Explorer client)', () => {
 		assertWrappedOpener(tokens as Tokens, WRAPPED);
 		hl.dispose();
 	});
+
+	it('colors block-level script/style inside example bodies', async () => {
+		const hl = await createHighlighterCore({
+			themes: [githubDark],
+			langs: [js, ts, css, svelte, markdown, html, { ...grammar, name: 'sdoc' }],
+			engine: createJavaScriptRegexEngine({ forgiving: true }),
+		});
+		const { tokens } = hl.codeToTokens(BLOCK_TAGS, { lang: 'sdoc', theme: 'github-dark', includeExplanation: true });
+		assertBlockTags(tokens as Tokens, BLOCK_TAGS);
+		hl.dispose();
+	});
 });
+
+// A block-level <script>/<style> inside an [example] — the wrapped-opener of
+// the feature: sdoc tag scopes on the tags, embedded TS/CSS in the bodies,
+// and no desync into the markup between or the sibling example after.
+const BLOCK_TAGS = `[SHOWCASE title="Nav"]
+	[example title="Data"]
+		<script lang="ts">
+			const items = [{ label: "Home" }];
+		</script>
+		<Nav {items} />
+		<span class="hint">pick</span>
+		<style>
+			.hint { color: gray; }
+		</style>
+	[/example]
+	[example title="After"]
+		<Nav plain />
+	[/example]
+[/SHOWCASE]
+`;
+
+function assertBlockTags(tokens: Tokens, source: string) {
+	const lines = source.split('\n');
+	const li = (needle: string, from = 0) => lines.findIndex((l, i) => i >= from && l.includes(needle));
+	const scopeOf = (lineIdx: number, word: string) => {
+		const tok = (tokens[lineIdx] ?? []).find((t) => t.content.trim() === word || t.content.includes(word));
+		const sc = tok?.explanation?.flatMap((e) => e.scopes.map((s) => s.scopeName)) ?? [];
+		return sc[sc.length - 1] ?? 'MISSING';
+	};
+	expect(scopeOf(li('<script lang="ts">'), 'script'), 'block script tag').toContain('.sdoc');
+	expect(scopeOf(li('const items'), 'const'), 'TS inside block script').toContain('.ts');
+	expect(scopeOf(li('<Nav {items}'), 'Nav'), 'markup after block script').toContain('svelte');
+	expect(scopeOf(li('.hint { color'), 'color'), 'CSS inside block style').toContain('.css');
+	expect(scopeOf(li('[/example]'), 'example'), 'closer after block style').toContain('.sdoc');
+	expect(scopeOf(li('<Nav plain'), 'Nav'), 'sibling example unaffected').toContain('svelte');
+}

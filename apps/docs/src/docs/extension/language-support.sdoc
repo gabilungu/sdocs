@@ -19,6 +19,13 @@
 	in every preview and example, components resolved through the file's
 	imports — a clean editor means a clean build.
 
+	Block-level `<script>`/`<style>` get the same treatment: a block that
+	declares its own script or style is projected as its own mini component
+	(file script plus block script sharing one scope), so completion,
+	type-checking, and hover work inside block scripts, markup referencing
+	block-script variables checks cleanly, and a block `<style>` gets real
+	CSS intelligence.
+
 	## Formatting
 
 	**Format Document** formats fragment-wise: the file `<script>` and

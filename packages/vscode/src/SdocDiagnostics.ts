@@ -61,10 +61,13 @@ export class SdocDiagnostics implements vscode.Disposable {
 			);
 		}
 
-		// component={X} must reference an identifier that exists in the file.
-		const declared = importedIdentifiers(text);
+		// component={X} must reference an identifier in scope for that block:
+		// the file's <script>, or the block's own — never a sibling block's.
 		const scanned = scanSdoc(text);
 		const script = scanned.script?.content ?? '';
+		const fileDeclared = importedIdentifiers(script);
+		const declaresName = (source: string, name: string) =>
+			new RegExp(`\\b(?:const|let|var|function|class)\\s+${name}\\b`).test(source);
 		for (const entity of scanned.entities) {
 			for (const block of entity.blocks) {
 				if (block.kind !== 'preview') continue;
@@ -72,15 +75,18 @@ export class SdocDiagnostics implements vscode.Disposable {
 				if (!attr || attr.kind !== 'expression') continue;
 				const name = attr.raw.trim();
 				if (!/^[A-Z][A-Za-z0-9_]*$/.test(name)) continue; // parser already flags these
+				const blockScript = block.script?.content ?? '';
 				const exists =
-					declared.has(name) ||
-					new RegExp(`\\b(?:const|let|var|function|class)\\s+${name}\\b`).test(script);
+					fileDeclared.has(name) ||
+					declaresName(script, name) ||
+					(blockScript !== '' &&
+						(importedIdentifiers(blockScript).has(name) || declaresName(blockScript, name)));
 				if (!exists) {
 					const lead = attr.raw.length - attr.raw.trimStart().length;
 					diagnostics.push(
 						new vscode.Diagnostic(
 							rangeAt(doc, attr.valueSpan.start + lead, name.length),
-							`sdocs: \`${name}\` is not imported or declared in this file's <script>.`,
+							`sdocs: \`${name}\` is not imported or declared in this file's <script> or this block's.`,
 							vscode.DiagnosticSeverity.Warning,
 						),
 					);

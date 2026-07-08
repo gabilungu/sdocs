@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.81] - 2026-07-08
+
+### Added
+
+- **Block-level `<script>` and `<style>` in previews and examples.** A
+  `[preview]`/`[example]` body can open with its own `<script>` and close
+  with its own `<style>` — a full mini component. Scoping is lexical: the
+  file script/style are visible to every block; a block's script and style are
+  visible only in that block, so sibling examples can each declare their own
+  state. Block scripts are real scripts (imports, `$state`, functions;
+  `args` in scope); re-importing an identifier the file script already
+  imports is reported as an error, and a block's `component={X}` can resolve
+  through the block's own imports. Styles are injected into the block's stage.
+  The grammar highlights block scripts/styles (embedded TS/JS/CSS), and code
+  panels show the complete script + markup + style.
+
+### Fixed
+
+- **File-level `<style>` now actually reaches the stages.** It was parsed
+  and documented as applying to the file's previews and examples but never
+  wired into the generated stage modules — selectors silently did nothing.
+
 ## [0.0.80] - 2026-07-08
 
 ### Fixed

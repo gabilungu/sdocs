@@ -114,18 +114,52 @@
 	inside a [`[DOC]`](/language/doc-pages) — there it renders in place,
 	mid-prose.
 
-	An example may carry its own `<script>` for local state, layered on top of
-	the file's script — that's how you demo interactive behavior:
+	## Block-level `<script>` and `<style>`
+
+	Both `[preview]` and `[example]` bodies can open with their own `<script>`
+	and close with their own `<style>` — a full mini component. The scoping is
+	lexical, like nested functions: everything in the file's `<script>` (and
+	`<style>`) is visible to every block, while a block's own script and style
+	are visible only inside that block. Two examples can each declare their own
+	`let active = $state(…)` without colliding.
 
 	```sdoc
-	[example title="Controlled from outside"]
-		<script>
-			let open = $state(false);
+	[example title="Driven by data"]
+		<script lang="ts">
+			const items = [
+				{ label: "Introduction", href: "#intro" },
+				{ label: "Components", href: "#components" },
+			];
+			let active = $state("Introduction");
 		</script>
-		<button onclick={() => open = !open}>toggle</button>
-		<Disclosure bind:open summary="Details">…</Disclosure>
+		<NavTree>
+			{#each items as item (item.label)}
+				<NavTree.Item
+					label={item.label}
+					active={active === item.label}
+					onclick={() => (active = item.label)}
+				/>
+			{/each}
+		</NavTree>
+		<p class="current">Active: {active}</p>
+		<style>
+			.current { font-size: 12px; }
+		</style>
 	[/example]
 	```
+
+	The rules:
+
+	- The block `<script>` must be the **first** content of the body, the
+	  `<style>` the **last** (Format Document keeps them there).
+	- Block scripts are real scripts — imports, `$state`, functions, anything.
+	  `args` is in scope in preview scripts.
+	- Re-importing something the file's `<script>` already imports is an error:
+	  it's already in scope.
+	- Declaring a name the file script also declares is a compile error — the
+	  scopes nest, they don't shadow.
+	- Styles apply within the block's own stage. In a `[preview]`, a block
+	  script's `component={X}` import may also live in the block's script.
 
 	## What sdocs extracts
 

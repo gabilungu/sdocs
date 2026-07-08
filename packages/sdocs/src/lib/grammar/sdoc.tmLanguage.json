@@ -459,6 +459,15 @@
 							"include": "#opener-continuation"
 						},
 						{
+							"include": "#block-script-ts"
+						},
+						{
+							"include": "#block-script-js"
+						},
+						{
+							"include": "#block-style"
+						},
+						{
 							"include": "source.svelte"
 						}
 					]
@@ -502,6 +511,15 @@
 					"patterns": [
 						{
 							"include": "#opener-continuation"
+						},
+						{
+							"include": "#block-script-ts"
+						},
+						{
+							"include": "#block-script-js"
+						},
+						{
+							"include": "#block-style"
 						},
 						{
 							"include": "source.svelte"
@@ -715,9 +733,135 @@
 					"while": "(^|\\G)(?!\\s*\\[/example\\]\\s*$)",
 					"patterns": [
 						{
+							"include": "#block-script-ts"
+						},
+						{
+							"include": "#block-script-js"
+						},
+						{
+							"include": "#block-style"
+						},
+						{
 							"include": "source.svelte"
 						}
 					]
+				}
+			]
+		},
+		"block-script-ts": {
+			"begin": "(<)(script)((?=[^>]*lang=([\"'])ts\\4)[^>]*)(>)",
+			"beginCaptures": {
+				"1": {
+					"name": "punctuation.definition.tag.begin.sdoc"
+				},
+				"2": {
+					"name": "entity.name.tag.script.sdoc"
+				},
+				"3": {
+					"patterns": [
+						{
+							"include": "#tag-attributes"
+						}
+					]
+				},
+				"5": {
+					"name": "punctuation.definition.tag.end.sdoc"
+				}
+			},
+			"end": "(</)(script)\\s*(>)",
+			"endCaptures": {
+				"1": {
+					"name": "punctuation.definition.tag.begin.sdoc"
+				},
+				"2": {
+					"name": "entity.name.tag.script.sdoc"
+				},
+				"3": {
+					"name": "punctuation.definition.tag.end.sdoc"
+				}
+			},
+			"contentName": "source.ts",
+			"patterns": [
+				{
+					"include": "source.ts"
+				}
+			]
+		},
+		"block-script-js": {
+			"begin": "(<)(script)((?![^>]*lang=([\"'])ts\\4)[^>]*)(>)",
+			"beginCaptures": {
+				"1": {
+					"name": "punctuation.definition.tag.begin.sdoc"
+				},
+				"2": {
+					"name": "entity.name.tag.script.sdoc"
+				},
+				"3": {
+					"patterns": [
+						{
+							"include": "#tag-attributes"
+						}
+					]
+				},
+				"5": {
+					"name": "punctuation.definition.tag.end.sdoc"
+				}
+			},
+			"end": "(</)(script)\\s*(>)",
+			"endCaptures": {
+				"1": {
+					"name": "punctuation.definition.tag.begin.sdoc"
+				},
+				"2": {
+					"name": "entity.name.tag.script.sdoc"
+				},
+				"3": {
+					"name": "punctuation.definition.tag.end.sdoc"
+				}
+			},
+			"contentName": "source.js",
+			"patterns": [
+				{
+					"include": "source.js"
+				}
+			]
+		},
+		"block-style": {
+			"begin": "(<)(style)([^>]*)(>)",
+			"beginCaptures": {
+				"1": {
+					"name": "punctuation.definition.tag.begin.sdoc"
+				},
+				"2": {
+					"name": "entity.name.tag.style.sdoc"
+				},
+				"3": {
+					"patterns": [
+						{
+							"include": "#tag-attributes"
+						}
+					]
+				},
+				"4": {
+					"name": "punctuation.definition.tag.end.sdoc"
+				}
+			},
+			"end": "(</)(style)\\s*(>)",
+			"endCaptures": {
+				"1": {
+					"name": "punctuation.definition.tag.begin.sdoc"
+				},
+				"2": {
+					"name": "entity.name.tag.style.sdoc"
+				},
+				"3": {
+					"name": "punctuation.definition.tag.end.sdoc"
+				}
+			},
+			"contentName": "source.css",
+			"patterns": [
+				{
+					"include": "source.css"
 				}
 			]
 		}

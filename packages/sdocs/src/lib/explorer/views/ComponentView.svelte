@@ -132,12 +132,19 @@
 
 		if (changes.length === 0) return snippetBody;
 
+		// A block-level <script> can mention the component name (in a string,
+		// a comment, an import) — only search the markup after it. (The tag is
+		// split so this file's own script doesn't end here.)
+		const scriptCloseTag = '</scr' + 'ipt>';
+		const scriptClose = snippetBody.indexOf(scriptCloseTag);
+		const searchFrom = scriptClose === -1 ? 0 : scriptClose + scriptCloseTag.length;
+
 		// Find the opening tag: <ComponentName ...> or <ComponentName ... />
 		// (whole-name match, so <Tab doesn't hit <Tabs)
 		const escapedName = name.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
-		const tagMatch = snippetBody.match(new RegExp(`<${escapedName}(?=[\\s/>])`));
+		const tagMatch = snippetBody.slice(searchFrom).match(new RegExp(`<${escapedName}(?=[\\s/>])`));
 		if (!tagMatch || tagMatch.index === undefined) return snippetBody;
-		const tagStart = tagMatch.index;
+		const tagStart = searchFrom + tagMatch.index;
 
 		// Find the end of the opening tag, respecting {} expressions
 		let braceDepth = 0;

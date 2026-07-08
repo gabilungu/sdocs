@@ -107,7 +107,12 @@ export async function startClient(
 					timeoutMs,
 				);
 				if (check()) return;
-				waiters.push(() => void check());
+				// Re-register on a non-matching wake: publishes for OTHER docs
+				// drain the waiter list too, and must not drop this waiter.
+				const wake = () => {
+					if (!check()) waiters.push(wake);
+				};
+				waiters.push(wake);
 			});
 		},
 		dispose() {

@@ -233,3 +233,108 @@ describe('slugifyTitle', () => {
 		expect(slugifyTitle('')).toBe('untitled');
 	});
 });
+
+describe('block-level scripts: parsed fields and duplicate-import rule', () => {
+	it('exposes script/style/markup on preview and example blocks', () => {
+		const doc = parseSdoc(`<script lang="ts">
+	import Nav from './Nav.svelte';
+</script>
+
+[SHOWCASE title="Nav"]
+
+	[preview component={Nav}]
+		<script lang="ts">
+			let active = $state('Home');
+		</script>
+		<Nav {active} />
+	[/preview]
+
+	[example title="Styled"]
+		<span class="big">hi</span>
+		<style>
+			.big { font-size: 2em; }
+		</style>
+	[/example]
+
+[/SHOWCASE]
+`);
+		expect(doc.diagnostics).toEqual([]);
+		const showcase = doc.entities[0] as ShowcaseEntity;
+		expect(showcase.previews[0].script?.content).toContain('$state');
+		expect(showcase.previews[0].markup).toBe('<Nav {active} />');
+		expect(showcase.previews[0].body).toContain('<script lang="ts">');
+		expect(showcase.examples[0].style?.content).toContain('.big');
+		expect(showcase.examples[0].markup).toBe('<span class="big">hi</span>');
+	});
+
+	it('errors when a block script re-imports a file-script identifier', () => {
+		const codes = diagnosticCodes(`<script lang="ts">
+	import Nav from './Nav.svelte';
+	import { helper } from './utils.js';
+</script>
+
+[SHOWCASE title="Nav"]
+
+	[example title="Dup"]
+		<script lang="ts">
+			import Nav from './Nav.svelte';
+		</script>
+		<Nav />
+	[/example]
+
+[/SHOWCASE]
+`);
+		expect(codes).toContain('duplicate-import');
+	});
+
+	it('allows block imports of new identifiers, aliases, and other modules', () => {
+		const codes = diagnosticCodes(`<script lang="ts">
+	import Nav from './Nav.svelte';
+</script>
+
+[SHOWCASE title="Nav"]
+
+	[example title="Fresh"]
+		<script lang="ts">
+			import Badge from './Badge.svelte';
+			import { helper as navHelper } from './utils.js';
+		</script>
+		<Nav /><Badge />
+	[/example]
+
+[/SHOWCASE]
+`);
+		expect(codes).not.toContain('duplicate-import');
+	});
+
+	it('catches named-import and alias collisions', () => {
+		const codes = diagnosticCodes(`<script lang="ts">
+	import { helper } from './utils.js';
+</script>
+
+[SHOWCASE title="X"]
+
+	[example title="Alias"]
+		<script>
+			import { other as helper } from './elsewhere.js';
+		</script>
+		<b>{helper()}</b>
+	[/example]
+
+[/SHOWCASE]
+`);
+		expect(codes).toContain('duplicate-import');
+	});
+});
+
+describe('parser: reserved names and comment scrubbing (review regressions)', () => {
+	it('flags a block script declaring args or __sdocsRef', () => {
+		const codes = diagnosticCodes(`[SHOWCASE title="X"]\n\t[example title="A"]\n\t\t<script>\n\t\t\tlet args = {};\n\t\t</script>\n\t\t<b>x</b>\n\t[/example]\n[/SHOWCASE]\n`);
+		expect(codes).toContain('reserved-name');
+	});
+
+	it('a commented-out import never triggers duplicate-import', () => {
+		const codes = diagnosticCodes(`<script>\n\timport Nav from './Nav.svelte';\n</script>\n\n[SHOWCASE title="X"]\n\t[example title="A"]\n\t\t<script>\n\t\t\t// import Nav from './Nav.svelte';\n\t\t\tconst n = 1;\n\t\t</script>\n\t\t<Nav>{n}</Nav>\n\t[/example]\n[/SHOWCASE]\n`);
+		expect(codes).not.toContain('duplicate-import');
+	});
+});

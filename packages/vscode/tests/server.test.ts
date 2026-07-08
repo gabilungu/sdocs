@@ -6,7 +6,7 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { startClient, type LspClient, SERVER, DOCS } from './helpers/lsp';
 
@@ -223,5 +223,57 @@ describe('sdoc language server over LSP', () => {
 		// prose still formats around them
 		expect(formatted).toContain('\t## One');
 		expect(formatted).toContain('\t## Two');
+	});
+});
+
+describe('block-level <script>/<style> (per-block virtual docs)', () => {
+	const blockUri = 'file://' + resolve(DOCS, 'src/ui/__BlockScript.sdoc');
+	const blockSource = `<script lang="ts">
+	import Notice from './Notice.svelte';
+</script>
+
+[SHOWCASE title="Block"]
+
+	[example title="Scoped"]
+		<script lang="ts">
+			const localItems = ["a", "b"];
+			let localCount = $state(2);
+		</script>
+		<Notice title={localItems[0]}>x</Notice>
+		<p class="picked">{localCount}</p>
+		<style>
+			.picked { color: gray; }
+		</style>
+	[/example]
+
+[/SHOWCASE]
+`;
+
+	const blockPath = resolve(DOCS, 'src/ui/__BlockScript.sdoc');
+
+	afterAll(() => rmSync(blockPath, { force: true }));
+
+	it('markup referencing block-script variables draws no false diagnostics', async () => {
+		writeFileSync(blockPath, blockSource);
+		await client.openDoc(blockUri, blockSource);
+		const publish = await client.waitForDiagnostics(blockUri, () => true);
+		const messages = publish.diagnostics.map((d) => String(d.message));
+		expect(messages.filter((m) => m.includes('localCount') || m.includes('localItems'))).toEqual([]);
+	});
+
+	it('type errors inside a block script surface at the authored line', async () => {
+		const broken = blockSource.replace(
+			'let localCount = $state(2);',
+			'let localCount = $state(2);\n\t\t\tconst oops: number = "not a number";',
+		);
+		await client.changeDoc(blockUri, 2, broken);
+		const publish = await client.waitForDiagnostics(blockUri, (p) =>
+			p.diagnostics.some((d) => String(d.message).includes('not assignable')),
+		);
+		const hit = publish.diagnostics.find((d) => String(d.message).includes('not assignable'))!;
+		const brokenLine = broken.split('\n').findIndex((l) => l.includes('const oops'));
+		expect(hit.range.start.line).toBe(brokenLine);
+		// restore
+		await client.changeDoc(blockUri, 3, blockSource);
 	});
 });

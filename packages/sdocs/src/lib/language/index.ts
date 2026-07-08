@@ -17,7 +17,9 @@ export {
 
 export {
 	projectSdoc,
+	projectSdocBlocks,
 	type SdocProjection,
+	type SdocBlockProjection,
 	type ProjectedLineKind,
 } from './projection.js';
 

@@ -44,9 +44,17 @@ export type Attrs = Record<string, AttrValue>;
 export interface SubBlock {
 	kind: SubBlockKind;
 	attrs: Attrs;
-	/** Raw body between the opener line and the closer line */
+	/** Raw body between the opener line and the closer line (script/style included) */
 	body: string;
 	bodySpan: Span;
+	/** Optional block-level <script> — must be the first content of the body */
+	script: TagBlock | null;
+	/** Optional block-level <style> — must be the last content of the body */
+	style: TagBlock | null;
+	/** Raw markup between the block script and block style (the whole body
+	 * when the block declares neither) */
+	markup: string;
+	markupSpan: Span;
 	openerSpan: Span;
 	span: Span;
 }
@@ -383,6 +391,122 @@ export function scanSdoc(source: string): SdocFile {
 		return null;
 	}
 
+	/** Capture a <script>/<style> tag bounded to a block body: the closer must
+	 * appear before `boundEnd` (the body's end — the block closer line ends it). */
+	function captureBoundedTag(
+		tag: 'script' | 'style',
+		startLi: number,
+		boundEnd: number,
+		blockCloser: string,
+	): { block: TagBlock; nextLi: number } | null {
+		const openLine = lines[startLi];
+		const openStart = openLine.start + openLine.text.indexOf(`<${tag}`);
+		const openEnd = source.indexOf('>', openStart);
+		if (openEnd === -1 || openEnd > boundEnd) {
+			errors.push({
+				code: 'tag-syntax',
+				message: `Malformed <${tag}> tag.`,
+				span: { start: openStart, end: openLine.end },
+			});
+			return null;
+		}
+		const closeIdx = source.indexOf(`</${tag}>`, openEnd + 1);
+		if (closeIdx === -1 || closeIdx >= boundEnd) {
+			errors.push({
+				code: 'unclosed-tag',
+				message: `Missing </${tag}> before ${blockCloser}.`,
+				span: { start: openStart, end: boundEnd },
+			});
+			return null;
+		}
+		const closeEnd = closeIdx + `</${tag}>`.length;
+		let i = startLi;
+		while (i < lines.length && lines[i].end < closeEnd) i++;
+		const rest = source.slice(closeEnd, lines[i].end);
+		if (rest.trim() !== '') {
+			errors.push({
+				code: 'tag-not-alone',
+				message: `Unexpected text after </${tag}>.`,
+				span: { start: closeEnd, end: lines[i].end },
+			});
+		}
+		return {
+			block: {
+				attrsText: source.slice(openStart + tag.length + 1, openEnd),
+				content: source.slice(openEnd + 1, closeIdx),
+				contentSpan: { start: openEnd + 1, end: closeIdx },
+				span: { start: openStart, end: closeEnd },
+			},
+			nextLi: i + 1,
+		};
+	}
+
+	/** Sub-scan a captured [preview]/[example] body for an optional leading
+	 * <script> and trailing <style>. Body lines run from `fromLi` up to (not
+	 * including) `closerLi`. Only the first/last positions are special — a
+	 * `<script>`/`<style>` line elsewhere in the markup is flagged, since in a
+	 * block it is almost certainly a misplaced block tag, not a DOM element. */
+	function scanSubBlockBody(
+		fromLi: number,
+		closerLi: number,
+		kind: SubBlockKind,
+	): { script: TagBlock | null; style: TagBlock | null; markupSpan: Span } {
+		const closer = `[/${kind}]`;
+		const bodyEnd = closerLi > fromLi ? lines[closerLi - 1].end : lines[fromLi]?.start ?? source.length;
+		let script: TagBlock | null = null;
+		let style: TagBlock | null = null;
+
+		let j = fromLi;
+		while (j < closerLi && lines[j].text.trim() === '') j++;
+		if (j < closerLi && lines[j].text.trim().startsWith('<script')) {
+			const captured = captureBoundedTag('script', j, bodyEnd, closer);
+			if (captured) {
+				script = captured.block;
+				j = captured.nextLi;
+			}
+		}
+
+		const markupStart = j < closerLi ? lines[j].start : bodyEnd;
+		let markupEnd = markupStart;
+		while (j < closerLi) {
+			const trimmed = lines[j].text.trim();
+			if (trimmed.startsWith('<style')) {
+				const captured = captureBoundedTag('style', j, bodyEnd, closer);
+				if (!captured) {
+					j++;
+					continue;
+				}
+				style = captured.block;
+				for (let k = captured.nextLi; k < closerLi; k++) {
+					if (lines[k].text.trim() !== '') {
+						errors.push({
+							code: 'block-style-position',
+							message: `A block <style> must be the last content of its [${kind}] block.`,
+							span: captured.block.span,
+						});
+						break;
+					}
+				}
+				break;
+			}
+			if (trimmed.startsWith('<script')) {
+				errors.push({
+					code: 'block-script-position',
+					message: `A block <script> must be the first content of its [${kind}] block.`,
+					span: { start: lines[j].start + lines[j].text.indexOf('<script'), end: lines[j].end },
+				});
+			}
+			if (trimmed !== '') markupEnd = lines[j].end;
+			j++;
+		}
+
+		return {
+			script,
+			style,
+			markupSpan: { start: markupStart, end: Math.max(markupStart, markupEnd) },
+		};
+	}
+
 	/** Scan the inside of a [SHOWCASE] entity until its closer. */
 	function scanShowcaseBody(startLi: number, entity: Entity): number {
 		let i = startLi;
@@ -415,11 +539,16 @@ export function scanSdoc(source: string): SdocFile {
 					});
 					return lines.length;
 				}
+				const sub = scanSubBlockBody(opener.nextLi, captured.nextLi - 1, token.name);
 				entity.blocks.push({
 					kind: token.name,
 					attrs: opener.attrs,
 					body: captured.body,
 					bodySpan: captured.bodySpan,
+					script: sub.script,
+					style: sub.style,
+					markup: source.slice(sub.markupSpan.start, sub.markupSpan.end),
+					markupSpan: sub.markupSpan,
 					openerSpan: opener.openerSpan,
 					span: { start: opener.openerSpan.start, end: captured.closerSpan.end },
 				});
@@ -516,11 +645,16 @@ export function scanSdoc(source: string): SdocFile {
 					});
 					return lines.length;
 				}
+				const sub = scanSubBlockBody(opener.nextLi, captured.nextLi - 1, 'example');
 				entity.blocks.push({
 					kind: 'example',
 					attrs: opener.attrs,
 					body: captured.body,
 					bodySpan: captured.bodySpan,
+					script: sub.script,
+					style: sub.style,
+					markup: source.slice(sub.markupSpan.start, sub.markupSpan.end),
+					markupSpan: sub.markupSpan,
 					openerSpan: opener.openerSpan,
 					span: { start: opener.openerSpan.start, end: captured.closerSpan.end },
 				});

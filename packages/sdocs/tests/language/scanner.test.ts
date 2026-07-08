@@ -183,3 +183,118 @@ describe('scanSdoc errors', () => {
 		expect(file.entities[1].body.trim()).toBe('x');
 	});
 });
+
+describe('block-level <script> and <style> in sub-block bodies', () => {
+	const WITH_BOTH = `<script lang="ts">
+	import Nav from './Nav.svelte';
+</script>
+
+[SHOWCASE title="Nav"]
+
+	[example title="Sidebar"]
+		<script lang="ts">
+			const items = [{ label: 'Home' }, { label: 'Docs' }];
+			let active = $state('Home');
+		</script>
+		<Nav {items} {active} />
+		<span class="hint">pick one</span>
+		<style>
+			.hint { color: gray; }
+		</style>
+	[/example]
+
+[/SHOWCASE]
+`;
+
+	it('captures a leading <script> and trailing <style>, leaving the markup between', () => {
+		const file = scanSdoc(WITH_BOTH);
+		expect(file.errors).toEqual([]);
+		const block = file.entities[0].blocks[0];
+		expect(block.script).not.toBeNull();
+		expect(block.script!.attrsText).toContain('lang="ts"');
+		expect(block.script!.content).toContain("let active = $state('Home')");
+		expect(block.style).not.toBeNull();
+		expect(block.style!.content).toContain('.hint { color: gray; }');
+		const markup = WITH_BOTH.slice(block.markupSpan.start, block.markupSpan.end);
+		expect(markup).toContain('<Nav {items} {active} />');
+		expect(markup).not.toContain('<script');
+		expect(markup).not.toContain('<style');
+		// The full body still covers script + markup + style (formatter contract)
+		expect(block.body).toContain('<script lang="ts">');
+		expect(block.body).toContain('</style>');
+	});
+
+	it('a body without block tags keeps markup === body', () => {
+		const file = scanSdoc(`[SHOWCASE title="X"]
+	[example title="Plain"]
+		<b>hi</b>
+	[/example]
+[/SHOWCASE]
+`);
+		const block = file.entities[0].blocks[0];
+		expect(block.script).toBeNull();
+		expect(block.style).toBeNull();
+		expect(block.markup.trim()).toBe('<b>hi</b>');
+	});
+
+	it('flags a <script> that is not the first content of the block', () => {
+		const file = scanSdoc(`[SHOWCASE title="X"]
+	[example title="Late"]
+		<b>hi</b>
+		<script>
+			const a = 1;
+		</script>
+	[/example]
+[/SHOWCASE]
+`);
+		expect(file.errors.map((e) => e.code)).toContain('block-script-position');
+		expect(file.entities[0].blocks[0].script).toBeNull();
+	});
+
+	it('flags a <style> that is not the last content of the block', () => {
+		const file = scanSdoc(`[SHOWCASE title="X"]
+	[example title="Early"]
+		<style>
+			.x { color: red; }
+		</style>
+		<b>hi</b>
+	[/example]
+[/SHOWCASE]
+`);
+		expect(file.errors.map((e) => e.code)).toContain('block-style-position');
+		// Still captured, so downstream consumers behave predictably
+		expect(file.entities[0].blocks[0].style).not.toBeNull();
+	});
+
+	it('flags a block <script> left unclosed before the block closer', () => {
+		const file = scanSdoc(`[SHOWCASE title="X"]
+	[preview component={Nav}]
+		<script>
+			const a = 1;
+	[/preview]
+[/SHOWCASE]
+`);
+		expect(file.errors.map((e) => e.code)).toContain('unclosed-tag');
+		expect(file.entities[0].blocks[0].script).toBeNull();
+	});
+
+	it('works in DOC [example] blocks too', () => {
+		const file = scanSdoc(`[DOC title="Guide"]
+
+	Some prose.
+
+	[example title="Demo"]
+		<script>
+			const n = 1;
+		</script>
+		<b>{n}</b>
+	[/example]
+
+[/DOC]
+`);
+		expect(file.errors).toEqual([]);
+		const block = file.entities[0].blocks[0];
+		expect(block.script).not.toBeNull();
+		expect(block.script!.content).toContain('const n = 1;');
+	});
+});

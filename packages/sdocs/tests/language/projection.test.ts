@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { compile } from 'svelte/compiler';
 import { scanSdoc } from '../../src/lib/language/scanner.js';
-import { projectSdoc } from '../../src/lib/language/projection.js';
+import { projectSdoc, projectSdocBlocks } from '../../src/lib/language/projection.js';
 
 const SOURCE = `<script lang="ts">
 	import Tabs from './Tabs.svelte';
@@ -122,4 +122,144 @@ describe('projectSdoc over the real corpus', () => {
 			expect(() => compile(projection.text, { generate: false } as never)).not.toThrow();
 		});
 	}
+});
+
+describe('projectSdocBlocks (per-block virtual docs)', () => {
+	const BLOCK_SOURCE = `<script lang="ts">
+	import Nav from './Nav.svelte';
+	const shared = 1;
+</script>
+
+[SHOWCASE title="Nav"]
+
+	[example title="Data"]
+		<script lang="ts">
+			const items = [{ label: "Home" }];
+			let active = $state("Home");
+		</script>
+		<Nav {items} {active} extra={shared} />
+		<span class="hint">{args.x ?? ''}</span>
+		<style>
+			.hint { color: gray; }
+		</style>
+	[/example]
+
+	[example title="Plain"]
+		<Nav />
+	[/example]
+
+	[example title="StyleOnly"]
+		<span class="big">hi</span>
+		<style>
+			.big { font-size: 2em; }
+		</style>
+	[/example]
+
+[/SHOWCASE]
+`;
+
+	const file = scanSdoc(BLOCK_SOURCE);
+	const blocks = projectSdocBlocks(file);
+	const sourceLines = BLOCK_SOURCE.split('\n');
+
+	it('creates a projection only for script/style-bearing blocks', () => {
+		expect(blocks.map((b) => b.key)).toEqual(['0_0', '0_2']);
+	});
+
+	it('preserves every authored line position (identity mapping)', () => {
+		for (const bp of blocks) {
+			const lines = bp.text.split('\n');
+			expect(bp.sourceLineCount).toBe(sourceLines.length);
+			for (let i = 0; i < sourceLines.length; i++) {
+				if (bp.lineKinds[i] === 'verbatim') expect(lines[i]).toBe(sourceLines[i]);
+				if (bp.lineKinds[i] === 'blank') expect(lines[i]).toBe('');
+			}
+		}
+	});
+
+	it('merges file and block scripts into one component script', () => {
+		const bp = blocks[0];
+		const lines = bp.text.split('\n');
+		// file script content verbatim at its lines
+		expect(lines[1]).toBe("\timport Nav from './Nav.svelte';");
+		expect(lines[2]).toBe('\tconst shared = 1;');
+		// the file </script> and the block <script> opener are blanked
+		expect(lines[3]).toBe('');
+		// block script content verbatim
+		const itemsLine = sourceLines.findIndex((l) => l.includes('const items'));
+		expect(lines[itemsLine]).toBe(sourceLines[itemsLine]);
+		// the block script closer becomes the real closer + snippet opener
+		const closeLine = sourceLines.findIndex((l, i) => i > itemsLine && l.includes('</script>'));
+		expect(lines[closeLine]).toContain('</script>{#snippet');
+		expect(lines[closeLine]).toContain('(args: any)');
+	});
+
+	it('turns the block style into the component style', () => {
+		const bp = blocks[0];
+		const lines = bp.text.split('\n');
+		const styleOpen = sourceLines.findIndex((l) => l.trim() === '<style>');
+		expect(lines[styleOpen]).toBe('{/snippet}<style>');
+		const cssLine = sourceLines.findIndex((l) => l.includes('.hint {'));
+		expect(lines[cssLine]).toBe(sourceLines[cssLine]);
+	});
+
+	it('every block projection compiles as a Svelte component (runes included)', () => {
+		for (const bp of blocks) {
+			const compiled = compile(bp.text, { generate: 'client' });
+			expect(compiled.js.code).toBeTruthy();
+		}
+	});
+
+	it('a style-only block keeps the file script closed and unextended', () => {
+		const bp = blocks.find((b) => b.key === '0_2')!;
+		const lines = bp.text.split('\n');
+		expect(lines[3]).toBe('</script>'); // file closer intact
+		const openerLine = sourceLines.findIndex((l) => l.includes('title="StyleOnly"'));
+		expect(lines[openerLine]).toContain('{#snippet');
+	});
+
+	it('owned ranges cover opener through closer', () => {
+		const bp = blocks[0];
+		expect(sourceLines[bp.firstLine]).toContain('[example title="Data"]');
+		expect(sourceLines[bp.lastLine]).toContain('[/example]');
+	});
+});
+
+describe('projectSdocBlocks: single-line tags (review regressions)', () => {
+	const compileOk = (text: string) => expect(compile(text, { generate: 'client' }).js.code).toBeTruthy();
+
+	it('keeps a one-liner block script, with a file script', () => {
+		const src = `<script lang="ts">\n\tconst shared = 1;\n</script>\n\n[SHOWCASE title="X"]\n\t[example title="A"]\n\t\t<script>let count = $state(7);</script>\n\t\t<b>{count}</b>\n\t[/example]\n[/SHOWCASE]\n`;
+		const [bp] = projectSdocBlocks(scanSdoc(src));
+		expect(bp.text).toContain('let count = $state(7);</script>{#snippet');
+		compileOk(bp.text);
+	});
+
+	it('keeps a one-liner block script with NO file script', () => {
+		const src = `[SHOWCASE title="X"]\n\t[example title="A"]\n\t\t<script>let count = $state(7);</script>\n\t\t<b>{count}</b>\n\t[/example]\n[/SHOWCASE]\n`;
+		const [bp] = projectSdocBlocks(scanSdoc(src));
+		expect(bp.text).toContain('<script>let count = $state(7);</script>{#snippet');
+		compileOk(bp.text);
+	});
+
+	it('keeps a declaration sharing a multi-line script closer line', () => {
+		const src = `[SHOWCASE title="X"]\n\t[example title="A"]\n\t\t<script>\n\t\t\tlet a = 1;\n\t\t\tlet b = 2;</script>\n\t\t<b>{a}{b}</b>\n\t[/example]\n[/SHOWCASE]\n`;
+		const [bp] = projectSdocBlocks(scanSdoc(src));
+		expect(bp.text).toContain('let b = 2;</script>{#snippet');
+		compileOk(bp.text);
+	});
+
+	it('survives a ONE-LINE file script when a block declares its own', () => {
+		const src = `<script>import X from './X.svelte';</script>\n\n[SHOWCASE title="X"]\n\t[example title="A"]\n\t\t<script>\n\t\t\tlet n = 1;\n\t\t</script>\n\t\t<X {n} />\n\t[/example]\n[/SHOWCASE]\n`;
+		const [bp] = projectSdocBlocks(scanSdoc(src));
+		expect(bp.text).toContain("<script>import X from './X.svelte';");
+		compileOk(bp.text);
+	});
+
+	it('keeps a one-liner block style closed and content intact', () => {
+		const src = `[SHOWCASE title="X"]\n\t[example title="A"]\n\t\t<b class="x">hi</b>\n\t\t<style>.x { color: red; }</style>\n\t[/example]\n[/SHOWCASE]\n`;
+		const [bp] = projectSdocBlocks(scanSdoc(src));
+		expect(bp.text).toContain('{/snippet}<style>.x { color: red; }</style>');
+		compileOk(bp.text);
+	});
 });

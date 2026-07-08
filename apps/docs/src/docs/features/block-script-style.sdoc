@@ -1,0 +1,56 @@
+<script lang="ts">
+	import Notice from "../../ui/Notice.svelte";
+</script>
+
+[SHOWCASE
+	title="@features/Block Script & Style"
+	description="Each example below carries its own <script> and <style> — a full mini component. The file script is visible to every block; a block's script and style are visible only inside it."
+]
+
+	[example title="Interactive, with local state"]
+		<script lang="ts">
+			let count = $state(0);
+		</script>
+		<button class="bump" onclick={() => count++}>Clicked {count} times</button>
+		<style>
+			.bump {
+				padding: 8px 16px;
+				border: 1px solid #d1d5db;
+				border-radius: 8px;
+				background: #fff;
+				font: 14px system-ui, sans-serif;
+				cursor: pointer;
+			}
+			.bump:hover { background: #f3f4f6; }
+		</style>
+	[/example]
+
+	[example title="Sibling scopes don't collide"]
+		<script lang="ts">
+			let count = $state(100);
+		</script>
+		<p class="proof">
+			This example declares its own <code>let count = $state(100)</code> —
+			same name as its sibling above, zero conflict: {count}.
+		</p>
+		<style>
+			.proof { font: 14px system-ui, sans-serif; margin: 0; }
+		</style>
+	[/example]
+
+	[example title="Driven by data" direction="column"]
+		<script lang="ts">
+			const alerts = [
+				{ title: "Deploy finished", tone: "success" as const },
+				{ title: "Certificate expires soon", tone: "warning" as const },
+				{ title: "Disk almost full", tone: "danger" as const },
+			];
+		</script>
+		{#each alerts as alert (alert.title)}
+			<Notice title={alert.title} tone={alert.tone}>
+				Declared in this example's own script and rendered with an each block.
+			</Notice>
+		{/each}
+	[/example]
+
+[/SHOWCASE]

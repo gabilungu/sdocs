@@ -26,6 +26,11 @@ export default {
 		},
 		{ slug: 'cli', title: 'CLI', order: ['overview', 'commands'] },
 		{ slug: 'extension', title: 'Extension', order: ['overview', 'language-support', 'projects-view', 'docs-tabs'] },
+		{
+			slug: 'features',
+			title: 'Features',
+			order: ['whats-new', 'block-script-style', 'stage-backgrounds', 'api-extraction'],
+		},
 		{ slug: 'demo', title: 'Demo' },
 	],
 

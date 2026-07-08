@@ -1,0 +1,28 @@
+<script lang="ts">
+	import Notice from "../../ui/Notice.svelte";
+</script>
+
+[SHOWCASE
+	title="@features/Stage Backgrounds"
+	description="A background for the preview/example stage — set it in sdocs.config for every stage, on the entity, or per block. Any CSS background works, including a var() from your project's css."
+]
+
+	[example title="A tinted stage" background="#f0f9ff"]
+		<Notice title="On sky" tone="info">
+			This stage sets background="#f0f9ff" on the example block.
+		</Notice>
+	[/example]
+
+	[example title="Dark stage" background="#1f2937"]
+		<Notice title="On slate" tone="success">
+			Light components are easy to judge against a dark stage.
+		</Notice>
+	[/example]
+
+	[example title="Even a gradient" background="linear-gradient(135deg, #fdf4ff, #ecfeff)"]
+		<Notice title="On a gradient" tone="warning">
+			The value is any CSS background — colors, var() tokens, gradients.
+		</Notice>
+	[/example]
+
+[/SHOWCASE]

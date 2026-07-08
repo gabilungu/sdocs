@@ -1,0 +1,25 @@
+[DOC title="@features/What's New"]
+
+
+	The latest sdocs releases, shown off with live examples — every page in
+	this section is itself a `.sdoc` file exercising the feature it presents.
+
+	## 0.0.81 — block-level `<script>` and `<style>`
+
+	Previews and examples can carry their own script and style — a full mini
+	component with lexical scoping. [See it live](/features/block-script-style),
+	or read the [language reference](/language/component-docs).
+
+	## 0.0.82 — stage backgrounds
+
+	A `background` for preview/example stages, cascading from config through
+	entity to block. [See it live](/features/stage-backgrounds).
+
+	## 0.0.80–0.0.82 — honest API tables
+
+	`class`/`...rest` forwarding renders as chips instead of fake required
+	props; a CSS var used with divergent fallbacks reports **Mixed** with a
+	per-property breakdown; union types get per-member badges and a text
+	control. [All on one component](/features/api-extraction).
+
+[/DOC]

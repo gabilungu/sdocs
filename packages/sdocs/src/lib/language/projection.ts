@@ -252,13 +252,19 @@ export function projectSdocBlocks(file: SdocFile): SdocBlockProjection[] {
 	const source = file.source;
 	const starts = lineStartsOf(source);
 	const total = starts.length;
-	const isTs = /lang\s*=\s*["']ts["']/.test(file.script?.attrsText ?? '');
-	const argsParam = isTs ? '(args: any)' : '(args)';
+	const TS_RE = /lang\s*=\s*["']ts["']/;
+	const fileIsTs = TS_RE.test(file.script?.attrsText ?? '');
 	const projections: SdocBlockProjection[] = [];
 
 	file.entities.forEach((entity, e) => {
 		entity.blocks.forEach((block, b) => {
 			if (!block.script && !block.style) return;
+
+			// The merged script is TypeScript when either part is — a TS block
+			// script inside a plain-JS file must not lose its lang.
+			const blockIsTs = TS_RE.test(block.script?.attrsText ?? '');
+			const isTs = fileIsTs || blockIsTs;
+			const argsParam = isTs ? '(args: any)' : '(args)';
 
 			const out: string[] = new Array(total).fill('');
 			const kinds: ProjectedLineKind[] = new Array(total).fill('blank');
@@ -296,12 +302,26 @@ export function projectSdocBlocks(file: SdocFile): SdocBlockProjection[] {
 						starts,
 						Math.max(file.script.span.start, file.script.span.end - 1),
 					);
+					// A TS block script inside a plain-JS file script: the merged
+					// script tag must carry lang="ts" or the TS content mis-parses.
+					const langFix = blockIsTs && !fileIsTs ? ' lang="ts"' : '';
+					if (langFix && fileOpenLine !== fileCloseLine) {
+						const lineEnd = fileOpenLine + 1 < total ? starts[fileOpenLine + 1] - 1 : source.length;
+						const openTail = source.slice(
+							Math.min(file.script.contentSpan.start, lineEnd),
+							Math.min(file.script.contentSpan.end, lineEnd),
+						);
+						out[fileOpenLine] = `<script${file.script.attrsText}${langFix}>${openTail}`;
+						kinds[fileOpenLine] = 'wrapper';
+					}
 					const fileTail = source.slice(
 						Math.max(starts[fileCloseLine], file.script.contentSpan.start),
 						file.script.contentSpan.end,
 					);
 					out[fileCloseLine] =
-						(fileOpenLine === fileCloseLine ? `<script${file.script.attrsText}>` : '') + fileTail;
+						(fileOpenLine === fileCloseLine
+							? `<script${file.script.attrsText}${langFix}>`
+							: '') + fileTail;
 					kinds[fileCloseLine] = 'wrapper';
 					if (scriptOpenLine !== scriptCloseLine) {
 						out[scriptOpenLine] = '';

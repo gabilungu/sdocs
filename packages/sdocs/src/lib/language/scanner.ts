@@ -463,6 +463,10 @@ export function scanSdoc(source: string): SdocFile {
 			if (captured) {
 				script = captured.block;
 				j = captured.nextLi;
+			} else {
+				// The unclosed-tag error is already reported; skip the opener line
+				// so the markup pass doesn't add a contradictory position error.
+				j++;
 			}
 		}
 

@@ -278,7 +278,7 @@
 
 	Entities and blocks override these in place with the same attributes:
 	`[DOC title="…" maxWidth="800px" toc="false"]`,
-	`[preview component={X} direction="column" gap="8px"]` — block beats
+	`[preview component={X} direction="column" gap="8px" background="var(--bg)"]` — block beats
 	entity beats config.
 
 	## Full example

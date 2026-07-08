@@ -440,6 +440,7 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				gap: string | null;
 				contentX: string | null;
 				contentY: string | null;
+				background: string | null;
 			}) => ({
 				// Entity-level maxWidth on SHOWCASE/PAGE is the content column, not the
 				// stage; stages inside them span their panel unless the block says so.
@@ -455,6 +456,8 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 							gap: block.gap ?? entity.sizing.gap ?? config.content.showcase.gap,
 							contentX: block.contentX ?? entity.sizing.contentX ?? config.content.showcase.contentX,
 							contentY: block.contentY ?? entity.sizing.contentY ?? config.content.showcase.contentY,
+							background:
+								block.background ?? entity.sizing.background ?? config.content.showcase.background ?? undefined,
 						}
 					: {}),
 			});
@@ -534,6 +537,7 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 							gap: example.sizing.gap ?? config.content.showcase.gap,
 							contentX: example.sizing.contentX ?? config.content.showcase.contentX,
 							contentY: example.sizing.contentY ?? config.content.showcase.contentY,
+							background: example.sizing.background ?? config.content.showcase.background ?? undefined,
 						};
 					}
 				});

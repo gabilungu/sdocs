@@ -36,6 +36,7 @@
 	| `gap` | no | Default stage `gap` (default `16px`) |
 	| `contentX` | no | Default horizontal alignment: `left`/`center`/`right`/`justify` (default `left`) |
 	| `contentY` | no | Default vertical alignment: `top`/`middle`/`bottom`/`justify` (default `top`) |
+	| `background` | no | Default stage background — a CSS color or a `var()` from the project's css |
 
 	## `[preview]`
 
@@ -54,6 +55,7 @@
 	| `gap` | no | Stage `gap` — overrides the entity and config defaults |
 	| `contentX` | no | Horizontal alignment: `left`/`center`/`right`/`justify` |
 	| `contentY` | no | Vertical alignment: `top`/`middle`/`bottom`/`justify` |
+	| `background` | no | Stage background — a CSS color or a `var()` from the project's css |
 
 	`args` values are **plain literals** — strings, numbers, booleans. They stay
 	simple because the controls send them into the isolated preview at runtime.
@@ -106,8 +108,8 @@
 	Examples are frozen showcases: each renders **exactly what you wrote**,
 	always — the controls never touch them. Every example requires a `title`
 	(any text — spaces and punctuation welcome), unique within its `[SHOWCASE]`
-	block. `maxWidth`, `padding`, `direction`, `gap`, `contentX`, and `contentY` tune
-	its stage, like on `[preview]`.
+	block. `maxWidth`, `padding`, `direction`, `gap`, `contentX`, `contentY`, and
+	`background` tune its stage, like on `[preview]`.
 
 	Examples belong to the page, not to a tab: they render below the preview
 	area and stay visible whichever tab is active. The same block also works

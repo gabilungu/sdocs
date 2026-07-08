@@ -56,6 +56,12 @@ const contentX: ConfigFieldSchema = {
 	values: ['left', 'center', 'right', 'justify'],
 	quoted: true,
 };
+const background: ConfigFieldSchema = {
+	detail: 'string',
+	doc: "Preview/example stage background — a CSS color or a var() from the project's css (e.g. \`var(--bg)\`). Default: none.",
+	insert: ": '\${0}'",
+};
+
 const contentY: ConfigFieldSchema = {
 	detail: "'top' | 'middle' | 'bottom' | 'justify'",
 	doc: 'Vertical alignment of stage contents. Default: `top`.',
@@ -179,7 +185,7 @@ export const configSchema: ConfigSchema = {
 				detail: 'object',
 				doc: '`[SHOWCASE]` pages. `maxWidth` is the content column; `padding`/`direction`/`gap`/`contentX`/`contentY` are the default preview & example stage layout.',
 				insert: ': {\n\t$0\n}',
-				object: { maxWidth, padding, direction, gap, contentX, contentY },
+				object: { maxWidth, padding, direction, gap, contentX, contentY, background },
 			},
 			layout: {
 				detail: 'object',

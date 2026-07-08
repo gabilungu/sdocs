@@ -263,3 +263,25 @@ describe('projectSdocBlocks: single-line tags (review regressions)', () => {
 		compileOk(bp.text);
 	});
 });
+
+describe('projectSdocBlocks: lang preservation', () => {
+	it('a TS block script inside a plain-JS file script carries lang="ts"', () => {
+		const src = `<script>
+	const shared = 1;
+</script>
+
+[SHOWCASE title="X"]
+	[example title="A"]
+		<script lang="ts">
+			const n: number = shared;
+		</script>
+		<b>{n}</b>
+	[/example]
+[/SHOWCASE]
+`;
+		const [bp] = projectSdocBlocks(scanSdoc(src));
+		expect(bp.text).toContain('<script lang="ts">');
+		expect(bp.text).toContain('(args: any)');
+		expect(compile(bp.text, { generate: 'client' }).js.code).toBeTruthy();
+	});
+});

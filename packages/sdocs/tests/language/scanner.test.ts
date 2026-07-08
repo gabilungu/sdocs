@@ -298,3 +298,18 @@ describe('block-level <script> and <style> in sub-block bodies', () => {
 		expect(block.script!.content).toContain('const n = 1;');
 	});
 });
+
+describe('unclosed block script (review regression)', () => {
+	it('reports only unclosed-tag, not a contradictory position error', () => {
+		const file = scanSdoc(`[SHOWCASE title="X"]
+	[preview component={Nav}]
+		<script>
+			const a = 1;
+	[/preview]
+[/SHOWCASE]
+`);
+		const codes = file.errors.map((e) => e.code);
+		expect(codes).toContain('unclosed-tag');
+		expect(codes).not.toContain('block-script-position');
+	});
+});

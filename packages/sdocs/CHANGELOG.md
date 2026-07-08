@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.82] - 2026-07-08
+
+### Added
+
+- **Stage `background`.** Preview/example stages accept a background —
+  declared in `sdocs.config` (`content.showcase.background`), on the
+  entity, or per block (`background="var(--bg)"`), cascading like the other
+  stage attributes. The value is a CSS color or a `var()` resolved against
+  the project's own css inside the stage iframe.
+- **"Mixed" CSS-prop defaults.** When a documented CSS var is used with
+  different `var()` fallbacks across properties, the Default column shows
+  Mixed with a per-property breakdown on hover, instead of silently picking
+  the first fallback. A `--x: value` declaration on the component's root now
+  wins as the default, and commented-out CSS no longer counts.
+
+### Changed
+
+- **Grouped titles drop the group from the page title.** A showcase titled
+  `:Group / Name` shows just "Name" as its heading and browser-tab title —
+  the sidebar already carries the grouping.
+
 ## [0.0.81] - 2026-07-08
 
 ### Added

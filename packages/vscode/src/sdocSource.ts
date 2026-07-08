@@ -3,7 +3,9 @@
 /** Runtime-value identifiers imported in the file (type-only imports excluded). */
 export function importedIdentifiers(text: string): Set<string> {
 	const names = new Set<string>();
-	for (const match of text.matchAll(/^\s*import\s+([^'"]+?)\s+from\s+['"]/gm)) {
+	// Blank out comments (offset-preserving) so commented-out imports never match.
+	const scrubbed = text.replace(/\/\/[^\n]*|\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '));
+	for (const match of scrubbed.matchAll(/^\s*import\s+([^'"]+?)\s+from\s+['"]/gm)) {
 		let clause = match[1].trim();
 		if (/^type\b/.test(clause)) continue; // import type ... — no runtime value
 		const named = /\{([^}]*)\}/.exec(clause);

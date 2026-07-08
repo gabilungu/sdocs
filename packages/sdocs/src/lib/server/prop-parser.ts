@@ -441,17 +441,36 @@ function parseCssProps(
 	fullSource: string,
 	styleContent: string,
 ): ParsedCssProp[] {
-	// Collect var(--name, default) fallbacks from <style> — used to fill in a
-	// documented prop's default, NOT to decide which props are public.
+	// Scrub comments so commented-out declarations/usages never count.
+	const style = styleContent.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '));
+
+	// A `--x: value` declaration IS the default, stated once — the strongest
+	// signal, taken over any var() fallback.
+	const declared = new Map<string, string>();
+	const declRegex = /(^|[{;])\s*(--[\w-]+)\s*:\s*([^;}]+)/g;
+	let match;
+	while ((match = declRegex.exec(style)) !== null) {
+		if (!declared.has(match[2])) declared.set(match[2], match[3].trim());
+	}
+
+	// Collect EVERY var(--name, fallback) use with the property it feeds —
+	// used to fill in a documented prop's default, NOT to decide which props
+	// are public. Divergent fallbacks across properties surface as "Mixed"
+	// with the per-property breakdown, instead of silently picking the first.
 	// Supports one level of nested parens: var(--x, var(--y)), var(--x, rgba(0,0,0,0.5))
 	// The default alternation uses a single-char branch (not [^()]+) so the two
 	// branches can't overlap under the outer + — no catastrophic backtracking.
-	const cssDefaults = new Map<string, string | null>();
+	const uses = new Map<string, { property: string; value: string }[]>();
 	const varRegex = /var\(\s*(--[\w-]+)(?:\s*,\s*((?:[^()]|\([^()]*\))+))?\s*\)/g;
-	let match;
-	while ((match = varRegex.exec(styleContent)) !== null) {
+	while ((match = varRegex.exec(style)) !== null) {
 		const name = match[1];
-		if (!cssDefaults.has(name)) cssDefaults.set(name, match[2]?.trim() ?? null);
+		const value = match[2]?.trim();
+		if (!value) continue;
+		const before = style.slice(0, match.index);
+		const property = before.match(/([-\w]+)\s*:[^;{}]*$/)?.[1] ?? '?';
+		const list = uses.get(name) ?? [];
+		list.push({ property, value });
+		uses.set(name, list);
 	}
 
 	// Only @cssvar-annotated custom properties form the documented CSS API.
@@ -466,12 +485,18 @@ function parseCssProps(
 		const name = match[2];
 		const description = match[3]?.trim() || null;
 		const annotatedDefault = match[4]?.trim() ?? null;
-		// The CSS var() fallback is the real runtime default; the annotation's
-		// (default: …) is the fallback when the style doesn't declare one.
+		// Default resolution: a `--x: value` declaration wins; else the var()
+		// fallback when all uses agree; else "Mixed" (default null + the
+		// per-property breakdown); the annotation's (default: …) is the
+		// backstop when the style declares nothing.
+		const varUses = uses.get(name) ?? [];
+		const distinct = [...new Set(varUses.map((u) => u.value))];
+		const decl = declared.get(name);
 		propMap.set(name, {
 			name,
 			type,
-			default: cssDefaults.get(name) ?? annotatedDefault,
+			default: decl ?? (distinct.length === 1 ? distinct[0] : distinct.length === 0 ? annotatedDefault : null),
+			defaultUses: !decl && distinct.length > 1 ? varUses : undefined,
 			description,
 		});
 	}

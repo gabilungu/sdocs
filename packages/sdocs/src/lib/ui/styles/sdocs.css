@@ -68,6 +68,7 @@
 .sdocs-app .sdocs-value-number { color: var(--color-amber-700); }
 .sdocs-app .sdocs-value-boolean { color: var(--color-purple-700); }
 .sdocs-app .sdocs-value-dimension { color: var(--color-amber-700); }
+.sdocs-app .sdocs-value-mixed { color: var(--color-base-500); font-style: italic; cursor: help; }
 .sdocs-app .sdocs-value-color { color: var(--color-cyan-700); }
 .sdocs-app .sdocs-value-other { color: var(--color-base-600); }
 

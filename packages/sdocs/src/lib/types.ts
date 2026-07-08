@@ -60,6 +60,8 @@ export interface SdocsConfig {
 			direction?: string;
 			/** Stage gap. Default: '16px' */
 			gap?: string;
+			/** Stage background — a CSS color or a var() from the project's css. Default: none */
+			background?: string;
 			/** Horizontal alignment of stage contents: 'left'|'center'|'right'|'justify'. Default: 'left' */
 			contentX?: string;
 			/** Vertical alignment of stage contents: 'top'|'middle'|'bottom'. Default: 'top' */
@@ -98,6 +100,7 @@ export interface StageLayout {
 	contentX?: string;
 	/** vertical ('top'|'middle'|'bottom') — mapped by direction */
 	contentY?: string;
+	background?: string;
 }
 
 /** Resolved config with all defaults applied */
@@ -122,7 +125,7 @@ export interface ResolvedSdocsConfig {
 	content: {
 		doc: Required<ContentSizing> & { toc: boolean; contentX: string };
 		page: Required<ContentSizing> & { contentX: string };
-		showcase: Required<ContentSizing> & { direction: string; gap: string; contentX: string; contentY: string };
+		showcase: Required<ContentSizing> & { direction: string; gap: string; contentX: string; contentY: string; background: string | null };
 		layout: Required<ContentSizing>;
 	};
 }
@@ -165,6 +168,9 @@ export interface ParsedCssProp {
 	name: string;
 	type: string | null;
 	default: string | null;
+	/** Set when var() fallbacks diverge across properties ("Mixed"): the
+	 * per-property breakdown, in source order. */
+	defaultUses?: { property: string; value: string }[];
 	description: string | null;
 }
 

@@ -262,6 +262,7 @@
 			name: p.name,
 			type: p.type,
 			default: p.default,
+			defaultUses: p.defaultUses,
 			description: p.description,
 		})),
 	);

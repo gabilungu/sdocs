@@ -167,7 +167,8 @@ describe('sdocs build in the standalone test app', () => {
 		// Route pages are prerendered: real content in the app target and a
 		// per-route <title>, ready for hydration — not a bare SPA shell.
 		const aboutPage = readFileSync(join(dir, 'dist/pages/about/index.html'), 'utf8');
-		expect(aboutPage).toContain('<title>Pages / About – ');
+		// Grouped titles drop the group in the page/tab title — the sidebar carries it.
+		expect(aboutPage).toContain('<title>About – ');
 		expect(aboutPage).toContain('<div id="app"><!--');
 		expect(aboutPage, 'DOC prose is prerendered').toContain('without installing it');
 		const chipPage = readFileSync(join(dir, 'dist/chip/index.html'), 'utf8');

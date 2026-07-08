@@ -198,25 +198,39 @@ connection.onInitialize(async (params) => {
 	};
 });
 
-documents.onDidChangeContent((change) => {
-	void syncDocument(change.document).catch((err) =>
-		connection.console.error(`sdocs: sync failed for ${change.document.uri}: ${err}`),
+/** Syncs and closes are serialized per document URI: interleaved runs share
+ * openBlockUris, so a stale sync resuming mid-flight could close or reopen a
+ * block virtual doc against a newer tracked state. */
+const syncQueues = new Map<string, Promise<void>>();
+
+function enqueue(uri: string, task: () => Promise<unknown>): void {
+	const prev = syncQueues.get(uri) ?? Promise.resolve();
+	const next = prev.then(task).then(
+		() => undefined,
+		(err) => connection.console.error(`sdocs: sync failed for ${uri}: ${err}`),
 	);
+	syncQueues.set(uri, next);
+}
+
+documents.onDidChangeContent((change) => {
+	enqueue(change.document.uri, () => syncDocument(change.document));
 });
 
-documents.onDidClose(async (event) => {
-	const entry = tracked.get(event.document.uri);
-	tracked.delete(event.document.uri);
-	void connection.sendDiagnostics({ uri: event.document.uri, diagnostics: [] });
-	const server = await getSvelte();
-	await server.sendNotification(DidCloseTextDocumentNotification.type, {
-		textDocument: { uri: virtualUri(event.document.uri) },
-	});
-	for (const uri of entry?.openBlockUris ?? []) {
+documents.onDidClose((event) => {
+	enqueue(event.document.uri, async () => {
+		const entry = tracked.get(event.document.uri);
+		tracked.delete(event.document.uri);
+		void connection.sendDiagnostics({ uri: event.document.uri, diagnostics: [] });
+		const server = await getSvelte();
 		await server.sendNotification(DidCloseTextDocumentNotification.type, {
-			textDocument: { uri },
+			textDocument: { uri: virtualUri(event.document.uri) },
 		});
-	}
+		for (const uri of entry?.openBlockUris ?? []) {
+			await server.sendNotification(DidCloseTextDocumentNotification.type, {
+				textDocument: { uri },
+			});
+		}
+	});
 });
 
 /** The virtual doc that owns a given authored line: a block's own projection

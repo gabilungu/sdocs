@@ -169,3 +169,24 @@ describe('block-level script and style (extras)', () => {
 		expect(out).not.toContain('<style>');
 	});
 });
+
+describe('stage background', () => {
+	it('applies the resolved background to the stage element', () => {
+		const out = generateIframeComponent('', '<b>x</b>', [], undefined, {
+			maxWidth: '100%',
+			padding: '16px',
+			direction: 'row',
+			gap: '16px',
+			background: 'var(--bg)',
+		});
+		expect(out).toContain('background: var(--bg)');
+	});
+
+	it('omits background when unset', () => {
+		const out = generateIframeComponent('', '<b>x</b>', [], undefined, {
+			maxWidth: '100%',
+			padding: '16px',
+		});
+		expect(out).not.toContain('background:');
+	});
+});

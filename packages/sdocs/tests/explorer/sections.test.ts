@@ -53,8 +53,11 @@ describe('splitSection', () => {
 });
 
 describe('displayTitle', () => {
-	it('strips the section prefix and the group sigil', () => {
-		expect(displayTitle('@components/:Form / Button')).toBe('Form / Button');
+	it('strips the section prefix and the whole group segment', () => {
+		// The sidebar already shows the group — the page title is just the name.
+		expect(displayTitle('@components/:Form / Button')).toBe('Button');
+		expect(displayTitle('@components/Icon')).toBe('Icon');
+		expect(displayTitle(':Utils / Placeholder')).toBe('Placeholder');
 		expect(displayTitle('Markdown')).toBe('Markdown');
 	});
 });

@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.53] - 2026-07-08
+
+### Fixed
+
+- **Block-script edge cases from the 0.0.52 feature.** A TS block script
+  inside a plain-JS file script keeps its `lang` in the editor projection
+  (no more false parse errors); an unclosed block `<script>` reports only
+  the unclosed-tag error, without a contradictory position error; the
+  component-existence check ignores commented-out imports; and document syncs
+  are serialized per file, hardening the block virtual-doc lifecycle.
+
+### Added
+
+- **`background` stage attribute** completes and lints on `[SHOWCASE]`,
+  `[preview]`, and `[example]`, and `content.showcase.background`
+  completes in `sdocs.config` (matching sdocs 0.0.82).
+
 ## [0.0.52] - 2026-07-08
 
 ### Added

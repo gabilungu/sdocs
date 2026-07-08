@@ -15,7 +15,7 @@ describe('configSchema (drives config completion without an install)', () => {
 		expect(Object.keys(content.doc.object!)).toEqual(['maxWidth', 'padding', 'toc', 'contentX']);
 		expect(Object.keys(content.page.object!)).toEqual(['maxWidth', 'padding', 'contentX']);
 		expect(Object.keys(content.showcase.object!)).toEqual([
-			'maxWidth', 'padding', 'direction', 'gap', 'contentX', 'contentY',
+			'maxWidth', 'padding', 'direction', 'gap', 'contentX', 'contentY', 'background',
 		]);
 		expect(Object.keys(content.layout.object!)).toEqual(['maxWidth', 'padding']);
 	});

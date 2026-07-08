@@ -30,6 +30,8 @@ export interface Sizing {
 	contentX: string | null;
 	/** vertical alignment of preview/example stage contents */
 	contentY: string | null;
+	/** background of preview/example stages — a CSS color or var() */
+	background: string | null;
 	/** table-of-contents visibility (DOC) */
 	toc: boolean | null;
 }
@@ -279,6 +281,7 @@ const STAGE_LAYOUT_ATTR_RULES: Record<string, AttrRule> = {
 	gap: { required: false, kind: 'string', hint: 'gap="16px"' },
 	contentX: { required: false, kind: 'string', hint: 'contentX="center"' },
 	contentY: { required: false, kind: 'string', hint: 'contentY="middle"' },
+	background: { required: false, kind: 'string', hint: 'background="var(--bg)"' },
 };
 
 function sizingOf(attrs: Attrs): Sizing {
@@ -290,6 +293,7 @@ function sizingOf(attrs: Attrs): Sizing {
 		gap: stringAttr(attrs, 'gap'),
 		contentX: stringAttr(attrs, 'contentX'),
 		contentY: stringAttr(attrs, 'contentY'),
+		background: stringAttr(attrs, 'background'),
 		toc: toc === null ? null : toc === 'true',
 	};
 }

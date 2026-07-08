@@ -472,5 +472,10 @@ function reorderComponentChildren(nodes: TreeNode[]): void {
  * directive (see buildTree) — neither is part of the displayed title.
  */
 export function displayTitle(title: string | null | undefined): string {
-	return splitSection(title).rest.replace(/^:\s*/, '');
+	const rest = splitSection(title).rest;
+	if (!rest.startsWith(':')) return rest;
+	// ':Group / Name' — the sidebar already shows the group; the page (and
+	// tab) title is just the name.
+	const slash = rest.indexOf('/');
+	return slash === -1 ? rest.slice(1).trim() : rest.slice(slash + 1).trim();
 }

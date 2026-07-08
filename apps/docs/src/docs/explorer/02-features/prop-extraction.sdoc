@@ -178,6 +178,12 @@
 
 	### `@cssvar` annotations
 
+	The default comes from the style itself: a `--x: value` declaration on the
+	component's root wins; otherwise the `var(--x, fallback)` fallback, when
+	every use agrees. When different properties use *different* fallbacks for
+	the same var, the Default column shows **Mixed** — hover it for the
+	per-property breakdown.
+
 	To give a CSS var a type and description — and upgrade its control in the panel — add `@cssvar` annotations in a JSDoc block inside the `<script>`, one per line:
 
 	```svelte

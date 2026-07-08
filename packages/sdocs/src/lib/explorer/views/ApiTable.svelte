@@ -6,6 +6,8 @@
 		name: string;
 		type?: string | null;
 		default?: string | null;
+		/** Divergent var() fallbacks — rendered as "Mixed" with a breakdown */
+		defaultUses?: { property: string; value: string }[];
 		description?: string | null;
 		required?: boolean;
 	}
@@ -57,7 +59,12 @@
 				</div>
 				{#if showDefault}
 					<div class="sdocs-api-default">
-						{#if row.default != null}
+						{#if row.defaultUses?.length}
+							<span
+								class="sdocs-value sdocs-value-mixed"
+								title={row.defaultUses.map((u) => `${u.property} → ${u.value}`).join('\n')}
+							>Mixed</span>
+						{:else if row.default != null}
 							<span class="sdocs-value sdocs-value-{valueClass(row.default)}">{row.default}</span>
 						{:else}
 							<span class="sdocs-api-empty">—</span>

@@ -29,6 +29,7 @@ const DEFAULTS: ResolvedSdocsConfig = {
 			gap: '16px',
 			contentX: 'left',
 			contentY: 'top',
+			background: null,
 		},
 		layout: { maxWidth: '100%', padding: '0px' },
 	},

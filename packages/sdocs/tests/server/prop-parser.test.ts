@@ -256,3 +256,51 @@ describe('methods, state, and CSS custom properties', () => {
 		expect(byName(data.cssProps, '--ring').default).toBe('rgba(0, 0, 0, 0.5)');
 	});
 });
+
+describe('CSS prop defaults: declarations, Mixed, comments', () => {
+	it('a --x: value declaration on the root wins as the default', () => {
+		const data = parseComponentSource(`<script lang="ts">
+	/** @cssvar {length} --pad - Padding. */
+	interface Props { a?: string }
+	let { a }: Props = $props();
+</script>
+<div class="X">x</div>
+<style>
+	.X { --pad: 8px; padding: var(--pad); margin: var(--pad, 12px); }
+</style>`);
+		expect(data.cssProps[0].default).toBe('8px');
+		expect(data.cssProps[0].defaultUses).toBeUndefined();
+	});
+
+	it('divergent var() fallbacks become Mixed with a per-property breakdown', () => {
+		const data = parseComponentSource(`<script lang="ts">
+	/** @cssvar {color} --c - Color. */
+	interface Props { a?: string }
+	let { a }: Props = $props();
+</script>
+<div>x</div>
+<style>
+	.X { background: var(--c, red); color: var(--c, blue); }
+</style>`);
+		expect(data.cssProps[0].default).toBe(null);
+		expect(data.cssProps[0].defaultUses).toEqual([
+			{ property: 'background', value: 'red' },
+			{ property: 'color', value: 'blue' },
+		]);
+	});
+
+	it('agreeing fallbacks resolve normally; commented-out CSS is ignored', () => {
+		const data = parseComponentSource(`<script lang="ts">
+	/** @cssvar {color} --c - Color. */
+	interface Props { a?: string }
+	let { a }: Props = $props();
+</script>
+<div>x</div>
+<style>
+	/* background: var(--c, green); */
+	.X { background: var(--c, red); color: var(--c, red); }
+</style>`);
+		expect(data.cssProps[0].default).toBe('red');
+		expect(data.cssProps[0].defaultUses).toBeUndefined();
+	});
+});

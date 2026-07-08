@@ -123,7 +123,11 @@
 	prop. The stage page carries a `<base href>` set to the build's base, so
 	those resolve correctly in dev and in a build deployed under a sub-path
 	(`--base "/repo/"`) alike; a root-absolute `/hero.png` means the domain
-	root and breaks under a sub-path. The option powers the standalone CLI
+	root and breaks under a sub-path. One exception: a relative url() inside a
+	**CSS custom property** resolves against the stylesheet that uses the var —
+	in a build, the emitted css asset — so pass asset backgrounds via an inline
+	`style` attribute (or resolve to an absolute URL in script with
+	`new URL(path, document.baseURI)`). The option powers the standalone CLI
 	flows (`sdocs dev`/`run`/`build`); when embedding the Vite plugin in
 	an app, use the host's own public directory instead.
 

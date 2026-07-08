@@ -103,6 +103,12 @@ export async function formatSdoc(
 		tabWidth,
 		printWidth,
 		svelteSortOrder: 'options-scripts-markup-styles',
+		// Demo bodies read better without whitespace-hugging (`…}}\n>text` /
+		// `</Tag\n>`): block content is normal-flow text whose whitespace
+		// collapses, so 'ignore' is the shipped default. An explicit
+		// .prettierrc setting still wins.
+		htmlWhitespaceSensitivity:
+			(cfg?.htmlWhitespaceSensitivity as prettier.Options['htmlWhitespaceSensitivity']) ?? 'ignore',
 	};
 	// [DOC] bodies are markdown; normalize markup, never re-wrap prose.
 	const mdOpts: prettier.Options = {

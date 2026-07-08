@@ -3,13 +3,19 @@
 	import Notice from "./Notice.svelte";
 </script>
 
-[SHOWCASE title="@demo/NoticeJs"  description="The plain-JavaScript twin of Notice: the same full feature surface documented through JSDoc (@typedef + @property) instead of TypeScript — compare the two pages."]
+[SHOWCASE
+	title="@demo/NoticeJs"
+	description="The plain-JavaScript twin of Notice: the same full feature surface documented through JSDoc (@typedef + @property) instead of TypeScript — compare the two pages."
+]
 
-	[preview component={NoticeJs} args={{ title: 'Build finished', tone: 'success', dismissible: true, count: 1 }}]
-		<NoticeJs {...args}
-			>Documented entirely with JSDoc — types, descriptions, events, and snippets
-			all come from the annotations.</NoticeJs
-		>
+	[preview
+		component={NoticeJs}
+		args={{ title: 'Build finished', tone: 'success', dismissible: true, count: 1 }}
+	]
+		<NoticeJs {...args}>
+			Documented entirely with JSDoc — types, descriptions, events, and snippets
+			all come from the annotations.
+		</NoticeJs>
 	[/preview]
 
 	[preview component={Notice}]
@@ -18,7 +24,7 @@
 
 
 	[example title="WithIconSnippet"]
-		<NoticeJs {...args} title="Deploy warning" tone="warning">
+		<NoticeJs title="Deploy warning" tone="warning">
 			{#snippet icon(tone)}
 				<span>{tone === "warning" ? "⚠️" : "ℹ️"}</span>
 			{/snippet}
@@ -29,10 +35,10 @@
 	
 
 	[example title="WithAction"]
-		<NoticeJs {...args} title="Update available" action={{ label: "Restart now" }}
-			>The action prop is a custom JSDoc typedef — it appears by name in the Props
-			table.</NoticeJs
-		>
+		<NoticeJs {...args} title="Update available" action={{ label: "Restart now" }}>
+			The action prop is a custom JSDoc typedef — it appears by name in the Props
+			table.
+		</NoticeJs>
 	[/example]
 	[example title=""]
 		<div></div>

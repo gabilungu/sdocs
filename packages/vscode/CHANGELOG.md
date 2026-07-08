@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.54] - 2026-07-08
+
+### Changed
+
+- **Formatting defaults to `htmlWhitespaceSensitivity: "ignore"`.** Long
+  openers with text content no longer wrap into the whitespace-hugging form
+  (`…}}\n>text` / `</Tag\n>`) — block bodies are demo code in normal
+  flow, where that strictness costs readability and buys nothing. An explicit
+  `htmlWhitespaceSensitivity` in the project's `.prettierrc` still wins,
+  same as `printWidth`/`tabWidth`/`useTabs`.
+
 ## [0.0.53] - 2026-07-08
 
 ### Fixed

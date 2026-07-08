@@ -214,3 +214,38 @@ describe('block-level <script>/<style> formatting', () => {
 		expect(formatted!).toContain('[/example]');
 	});
 });
+
+describe('whitespace sensitivity default', () => {
+	const HUGGY = `[SHOWCASE title="X"]
+
+	[example title="Long opener with text"]
+		<NoticeJs {...args} title="Update available" action={{ label: "Restart now" }}>The action prop is a custom JSDoc typedef — it appears by name in the Props table.</NoticeJs>
+	[/example]
+
+[/SHOWCASE]
+`;
+
+	it('ships htmlWhitespaceSensitivity: ignore — no bracket hugging by default', async () => {
+		const formatted = await formatSdoc(HUGGY, OPTIONS);
+		expect(formatted).not.toBeNull();
+		// the hugged forms: a line starting with ">" or a split "</Tag\n>"
+		expect(formatted!).not.toMatch(/\n\s*>/);
+		expect(formatted!).not.toMatch(/<\/NoticeJs\n/);
+	});
+
+	it('an explicit .prettierrc htmlWhitespaceSensitivity still wins', async () => {
+		const { mkdtempSync, writeFileSync, rmSync } = await import('node:fs');
+		const { tmpdir } = await import('node:os');
+		const { join } = await import('node:path');
+		const dir = mkdtempSync(join(tmpdir(), 'sdocs-fmt-'));
+		try {
+			writeFileSync(join(dir, '.prettierrc'), '{ "htmlWhitespaceSensitivity": "css" }');
+			const formatted = await formatSdoc(HUGGY, OPTIONS, undefined, join(dir, 'X.sdoc'));
+			expect(formatted).not.toBeNull();
+			// strict mode: prettier hugs the bracket to protect whitespace
+			expect(formatted!).toMatch(/\n\s*>/);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+});

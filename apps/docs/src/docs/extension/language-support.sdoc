@@ -41,6 +41,9 @@
 	(so a `.sdoc` island wraps like a sibling `.svelte` file); a block opener
 	wider than `printWidth` wraps to one attribute per line, shorter ones stay
 	inline. Attribute values themselves are copied verbatim, never reformatted.
+	Whitespace sensitivity defaults to `ignore` — demo bodies wrap readably
+	instead of hugging brackets to text — and an explicit
+	`htmlWhitespaceSensitivity` in `.prettierrc` overrides it.
 
 	## sdoc syntax highlighting
 

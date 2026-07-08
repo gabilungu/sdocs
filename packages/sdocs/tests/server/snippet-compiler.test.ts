@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
+import { compile } from 'svelte/compiler';
 import {
 	generateIframeComponent,
 	generatePageComponent,
 	generatePreviewHtml,
 	resolveScriptImports,
 } from '../../src/lib/server/snippet-compiler.js';
+import { parseSdoc } from '../../src/lib/language/parser.js';
 
 describe('root ref injection', () => {
 	it('binds the documented component, not the wrapper', () => {
@@ -28,6 +30,27 @@ describe('root ref injection', () => {
 		const out = generateIframeComponent('', body, [], 'Tab');
 		expect(out).toContain(body);
 		expect(out).not.toContain('bind:this={__sdocsRef}');
+	});
+
+	it('ignores tag-shaped text inside attribute strings (review regression F6)', () => {
+		const out = generateIframeComponent('', '<div data-code="<Button/>"><Card /></div>', []);
+		expect(out).toContain('<Card bind:this={__sdocsRef} />');
+		expect(out).toContain('data-code="<Button/>"');
+	});
+
+	it('ignores tag-shaped text inside expression strings', () => {
+		const out = generateIframeComponent('', "<div title={'<Fake/>'}><Card /></div>", []);
+		expect(out).toContain('<Card bind:this={__sdocsRef} />');
+	});
+
+	it('a bind:this on another element does not suppress binding the target', () => {
+		const out = generateIframeComponent('', '<Card><div bind:this={el}></div></Card>', []);
+		expect(out).toContain('<Card bind:this={__sdocsRef}>');
+	});
+
+	it('a bind:this substring inside an attribute string does not suppress injection', () => {
+		const out = generateIframeComponent('', '<Card note="use bind:this here" />', []);
+		expect(out).toContain('<Card bind:this={__sdocsRef} note="use bind:this here" />');
 	});
 });
 
@@ -63,6 +86,57 @@ describe('script prelude (shared values)', () => {
 		const resolved = resolveScriptImports(script, '/proj/src/Widget.sdoc');
 		expect(resolved).toContain("import Real from '/proj/src/Real.svelte'");
 		expect(resolved).toContain("import Button from './Button.svelte'");
+	});
+
+	it('never rewrites import-shaped lines inside template literals (review regression F4)', () => {
+		const script = [
+			"import Real from './Real.svelte';",
+			'const sample = `',
+			"import Button from './Button.svelte';",
+			'`;',
+		].join('\n');
+		const resolved = resolveScriptImports(script, '/proj/src/Widget.sdoc');
+		expect(resolved).toContain("import Real from '/proj/src/Real.svelte'");
+		expect(resolved).toContain("import Button from './Button.svelte'");
+	});
+
+	it('never rewrites commented-out imports', () => {
+		const script = "// import Old from './Old.svelte';\nimport New from './New.svelte';";
+		const resolved = resolveScriptImports(script, '/proj/src/Widget.sdoc');
+		expect(resolved).toContain("// import Old from './Old.svelte';");
+		expect(resolved).toContain("import New from '/proj/src/New.svelte'");
+	});
+});
+
+describe('reserved names surface as parse diagnostics, not compile failures (F1/F2)', () => {
+	it('a file script declaring args breaks the iframe wrapper — and the parser flags it', () => {
+		const fileScript = 'const args = { shared: true };';
+		const generated = generateIframeComponent(fileScript, '<b>x</b>', []);
+		expect(() => compile(generated, { generate: 'client' })).toThrow(/already been declared/);
+		const doc = parseSdoc(
+			`<script>\n\t${fileScript}\n</script>\n\n[SHOWCASE title="X"]\n\t[example title="A"]\n\t\t<b>x</b>\n\t[/example]\n[/SHOWCASE]\n`,
+		);
+		expect(doc.diagnostics.map((d) => d.code)).toContain('reserved-name');
+	});
+
+	it('a PAGE script using $props() breaks the page component — and the parser flags it', () => {
+		const script = 'let { data } = $props();';
+		const generated = generatePageComponent(script, '<p>x</p>');
+		expect(() => compile(generated, { generate: 'client' })).toThrow(/more than once/);
+		const doc = parseSdoc(
+			`[PAGE title="P"]\n\t<script>\n\t\t${script}\n\t</script>\n\t<b>{data}</b>\n[/PAGE]\n`,
+		);
+		expect(doc.diagnostics.map((d) => d.code)).toContain('reserved-name');
+	});
+
+	it('a DOC script declaring __sdocsExample breaks the page component — and the parser flags it', () => {
+		const script = 'const __sdocsExample = 1;';
+		const generated = generatePageComponent(script, '<p>x</p>');
+		expect(() => compile(generated, { generate: 'client' })).toThrow(/already been declared/);
+		const doc = parseSdoc(
+			`[DOC title="D"]\n\t<script>\n\t\t${script}\n\t</script>\n\tbody\n[/DOC]\n`,
+		);
+		expect(doc.diagnostics.map((d) => d.code)).toContain('reserved-name');
 	});
 });
 

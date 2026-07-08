@@ -512,3 +512,254 @@ describe('DOC entity style: blank-line layout (review regression)', () => {
 		expect(file.entities[0].style).not.toBeNull();
 	});
 });
+
+describe('misplaced entity <style> is not captured (double-apply regression)', () => {
+	it('DOC: a style followed by more prose stays in the body as prose, once', () => {
+		const src =
+			'[DOC title="G"]\n\tbefore\n\n\t<style>\n\t\t.x { color: red; }\n\t</style>\n\n\tafter\n[/DOC]\n';
+		const file = scanSdoc(src);
+		expect(file.errors.map((e) => e.code)).toEqual(['entity-style-position']);
+		const e = file.entities[0];
+		expect(e.style).toBeNull();
+		expect(e.body).toContain('before');
+		expect(e.body).toContain('after');
+		// The style renders exactly once, as authored prose.
+		expect(e.body.split('<style>')).toHaveLength(2);
+		expect(e.body).toContain('.x { color: red; }');
+		expect(src.slice(e.bodySpan.start, e.bodySpan.end)).toBe(e.body);
+	});
+
+	it('DOC: a correctly trailing style is still captured and excluded from the body', () => {
+		for (const gap of ['', '\n']) {
+			const file = scanSdoc(
+				`[DOC title="G"]\n\tprose\n\n\t<style>\n\t\t.x { color: red; }\n\t</style>\n${gap}[/DOC]\n`,
+			);
+			expect(file.errors).toEqual([]);
+			const e = file.entities[0];
+			expect(e.style?.content).toContain('.x { color: red; }');
+			expect(e.body).toContain('prose');
+			expect(e.body).not.toContain('<style>');
+		}
+	});
+
+	it('SHOWCASE: a misplaced style is reported but stays captured, with no cascade', () => {
+		const file = scanSdoc(`[SHOWCASE title="X"]
+	<style>
+		.x { color: red; }
+	</style>
+	[example title="A"]
+		<b>x</b>
+	[/example]
+[/SHOWCASE]
+`);
+		// No prose pass-through in SHOWCASE, so capture is kept: the CSS applies
+		// once and the position error is the only diagnostic.
+		expect(file.errors.map((e) => e.code)).toEqual(['entity-style-position']);
+		expect(file.entities[0].style?.content).toContain('.x { color: red; }');
+	});
+
+	it('DOC: a fence after a captured style demotes it too (no double-apply)', () => {
+		const src =
+			'[DOC title="G"]\n\tbefore\n\n\t<style>\n\t\t.x { color: red; }\n\t</style>\n\n\t```js\n\tconst a = 1;\n\t```\n[/DOC]\n';
+		const file = scanSdoc(src);
+		expect(file.errors.map((e) => e.code)).toEqual(['entity-style-position']);
+		const e = file.entities[0];
+		expect(e.style).toBeNull();
+		expect(e.body).toContain('before');
+		expect(e.body).toContain('const a = 1;');
+		// The style renders exactly once, as authored prose.
+		expect(e.body.split('<style>')).toHaveLength(2);
+		expect(e.body).toContain('.x { color: red; }');
+		expect(src.slice(e.bodySpan.start, e.bodySpan.end)).toBe(e.body);
+	});
+});
+
+describe('custom elements named like <style>/<script> (review regression)', () => {
+	it('DOC prose: <styled-note> flows through, full body preserved', () => {
+		const file = scanSdoc(`[DOC title="G"]
+	Some prose.
+
+	<styled-note>
+		This is a note.
+	</styled-note>
+
+	More prose after.
+[/DOC]
+`);
+		expect(file.errors).toEqual([]);
+		const e = file.entities[0];
+		expect(e.style).toBeNull();
+		expect(e.body).toContain('<styled-note>');
+		expect(e.body).toContain('</styled-note>');
+		expect(e.body).toContain('More prose after.');
+	});
+
+	it('DOC prose: a leading <scripted-demo> is not an entity script', () => {
+		const file = scanSdoc(`[DOC title="G"]
+	<scripted-demo>x</scripted-demo>
+
+	Prose.
+[/DOC]
+`);
+		expect(file.errors).toEqual([]);
+		expect(file.entities[0].script).toBeNull();
+		expect(file.entities[0].body).toContain('<scripted-demo>x</scripted-demo>');
+		expect(file.entities[0].body).toContain('Prose.');
+	});
+
+	it('example markup: <styled-box> and <scripted-demo> stay markup', () => {
+		const file = scanSdoc(`[SHOWCASE title="X"]
+	[example title="A"]
+		<scripted-demo>go</scripted-demo>
+		<styled-box>hi</styled-box>
+	[/example]
+[/SHOWCASE]
+`);
+		expect(file.errors).toEqual([]);
+		const block = file.entities[0].blocks[0];
+		expect(block.script).toBeNull();
+		expect(block.style).toBeNull();
+		expect(block.markup).toContain('<scripted-demo>go</scripted-demo>');
+		expect(block.markup).toContain('<styled-box>hi</styled-box>');
+	});
+
+	it('SHOWCASE body: <style-guide> is loose text, not a broken entity style', () => {
+		const file = scanSdoc(`[SHOWCASE title="X"]
+	<style-guide>x</style-guide>
+	[example title="A"]
+		<b>x</b>
+	[/example]
+[/SHOWCASE]
+`);
+		const codes = file.errors.map((e) => e.code);
+		expect(codes).not.toContain('unclosed-tag');
+		expect(codes).not.toContain('entity-style-position');
+		expect(file.entities[0].style).toBeNull();
+		// The example after the custom element is not swallowed.
+		expect(file.entities[0].blocks).toHaveLength(1);
+	});
+
+	it('PAGE body: custom elements are ordinary markup', () => {
+		const file = scanSdoc(`[PAGE title="P"]
+	<styled-note>hello</styled-note>
+	<scripted-demo>run</scripted-demo>
+[/PAGE]
+`);
+		expect(file.errors).toEqual([]);
+		const e = file.entities[0];
+		expect(e.script).toBeNull();
+		expect(e.style).toBeNull();
+		expect(e.body).toContain('<styled-note>hello</styled-note>');
+		expect(e.body).toContain('<scripted-demo>run</scripted-demo>');
+	});
+
+	it('real tags with attrs and the self-closing edge are still recognized', () => {
+		const withAttrs = scanSdoc(`[DOC title="G"]
+	prose
+
+	<style lang="scss">
+		.x { color: red; }
+	</style>
+[/DOC]
+`);
+		expect(withAttrs.errors).toEqual([]);
+		expect(withAttrs.entities[0].style?.content).toContain('.x { color: red; }');
+		// `<style/>` hits the tag-name boundary too: still treated as a style
+		// tag (and diagnosed), not passed through as a custom element.
+		const selfClosing = scanSdoc('[DOC title="G"]\n\tprose\n\n\t<style/>\n[/DOC]\n');
+		expect(selfClosing.errors.map((e) => e.code)).toContain('unclosed-tag');
+	});
+});
+
+describe('quoted ">" inside tag attributes (review regression)', () => {
+	it('file script: a generics attr with ">" keeps the content clean', () => {
+		const src = `<script lang="ts" generics="T extends Record<string, number>">
+	const first = 1;
+</script>
+
+[DOC title="G"]
+	x
+[/DOC]
+`;
+		const file = scanSdoc(src);
+		expect(file.errors).toEqual([]);
+		expect(file.script!.attrsText).toBe(' lang="ts" generics="T extends Record<string, number>"');
+		expect(file.script!.content.split('\n')[1]).toBe('\tconst first = 1;');
+		expect(file.script!.content).not.toContain('">');
+	});
+
+	it('single-quoted and unquoted attr values work too', () => {
+		const single = scanSdoc(
+			`<script lang='ts' generics='T extends Record<string, number>'>\n\tconst n = 1;\n</script>\n\n[DOC title="G"]\n\tx\n[/DOC]\n`,
+		);
+		expect(single.errors).toEqual([]);
+		expect(single.script!.content.split('\n')[1]).toBe('\tconst n = 1;');
+		expect(single.script!.content).not.toContain("'>");
+		const unquoted = scanSdoc(
+			`<script lang=ts>\n\tconst n = 1;\n</script>\n\n[DOC title="G"]\n\tx\n[/DOC]\n`,
+		);
+		expect(unquoted.errors).toEqual([]);
+		expect(unquoted.script!.attrsText).toBe(' lang=ts');
+		expect(unquoted.script!.content.split('\n')[1]).toBe('\tconst n = 1;');
+	});
+
+	it('block script: a quoted ">" attr captures cleanly (bounded tag path)', () => {
+		const file = scanSdoc(`[SHOWCASE title="X"]
+	[example title="A"]
+		<script lang="ts" generics="T extends Record<string, number>">
+			const n = 1;
+		</script>
+		<b>{n}</b>
+	[/example]
+[/SHOWCASE]
+`);
+		expect(file.errors).toEqual([]);
+		const block = file.entities[0].blocks[0];
+		expect(block.script!.attrsText).toContain('generics="T extends Record<string, number>"');
+		expect(block.script!.content.split('\n')[1]).toBe('\t\t\tconst n = 1;');
+		expect(block.script!.content).not.toContain('">');
+		expect(block.markup).toContain('<b>{n}</b>');
+	});
+});
+
+describe('fence markers are not interchangeable (review regression)', () => {
+	it('a ~~~ fence containing ``` lines keeps a fenced [/DOC] as prose', () => {
+		const file = scanSdoc(
+			'[DOC title="G"]\n~~~\n```\n[/DOC]\n```\n~~~\ntail prose\n[/DOC]\n',
+		);
+		expect(file.errors).toEqual([]);
+		expect(file.entities).toHaveLength(1);
+		const e = file.entities[0];
+		expect(e.body).toContain('tail prose');
+		// Only the fenced closer sits in the body; the real one closed the entity.
+		expect(e.body.split('[/DOC]')).toHaveLength(2);
+	});
+
+	it('a ~~~ fence containing an [example] block keeps it as prose', () => {
+		const file = scanSdoc(
+			'[DOC title="G"]\n~~~\n```\n[example title="fake"]\nx\n[/example]\n```\n~~~\n[/DOC]\n',
+		);
+		expect(file.errors).toEqual([]);
+		expect(file.entities[0].blocks).toHaveLength(0);
+		expect(file.entities[0].body).toContain('[example title="fake"]');
+	});
+
+	it('a longer backtick fence is not closed by a shorter one', () => {
+		const file = scanSdoc('[DOC title="G"]\n````\n```\n[/DOC]\n```\n````\n[/DOC]\n');
+		expect(file.errors).toEqual([]);
+		expect(file.entities).toHaveLength(1);
+		expect(file.entities[0].body.split('[/DOC]')).toHaveLength(2);
+	});
+
+	it('the DOC bound tracks fence markers separately (~~~ containing ```)', () => {
+		const file = scanSdoc(
+			'[DOC title="G"]\n<script>\nconst n = 1;\n\n~~~\n```\n[/DOC]\n```\n~~~\n[/DOC]\n',
+		);
+		const codes = file.errors.map((e) => e.code);
+		expect(codes).toContain('unclosed-tag');
+		// Recovery lands on the real closer, not the fenced one — no cascade.
+		expect(codes).not.toContain('stray-closer');
+		expect(codes).not.toContain('text-outside-blocks');
+		expect(file.entities.map((e) => e.kind)).toEqual(['DOC']);
+	});
+});

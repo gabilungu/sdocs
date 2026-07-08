@@ -84,6 +84,48 @@ describe('sdoc language server over LSP', () => {
 		expect(hover).toBeTruthy();
 	});
 
+	it('offers no completions on a block-opener line', async () => {
+		// Opener lines project to generated {#snippet} wrappers; a forwarded
+		// completion there offers e.g. `{/snippet}` whose textEdit REPLACES
+		// authored opener text — same gate as hover/definition/signature.
+		const line = lines.findIndex((l) => l.includes('[preview'));
+		const res = (await client.connection.sendRequest('textDocument/completion', {
+			textDocument: { uri },
+			position: { line, character: lines[line].indexOf('component=') },
+			context: { triggerKind: 1 },
+		})) as { items?: unknown[] } | unknown[] | null;
+		const items = Array.isArray(res) ? res : (res?.items ?? []);
+		expect(items).toEqual([]);
+	});
+
+	it('definition of a snippet arg never targets a generated wrapper line', async () => {
+		// `args` is declared by the generated {#snippet} wrapper on the
+		// [preview] opener line — a target with virtual coordinates that used
+		// to come back as a garbage span inside the authored opener. Dropped
+		// entirely: fewer results beat wrong ones.
+		const line = lines.findIndex((l) => l.includes('{...args}'));
+		const character = lines[line].indexOf('args') + 1;
+		const res = (await client.connection.sendRequest('textDocument/definition', {
+			textDocument: { uri },
+			position: { line, character },
+		})) as { uri: string; range: { start: { line: number } } }[] | { uri: string } | null;
+		const locs = res == null ? [] : Array.isArray(res) ? res : [res];
+		expect(locs).toEqual([]);
+	});
+
+	it('still maps real definitions (component tag resolves to its .svelte file)', async () => {
+		const line = lines.findIndex((l) => l.includes('<Notice'));
+		const character = lines[line].indexOf('Notice') + 2;
+		const res = (await client.connection.sendRequest('textDocument/definition', {
+			textDocument: { uri },
+			position: { line, character },
+		})) as { uri: string }[] | { uri: string } | null;
+		const locs = res == null ? [] : Array.isArray(res) ? res : [res];
+		expect(locs.length).toBeGreaterThan(0);
+		expect(locs.every((l) => l.uri.endsWith('.svelte') || l.uri.endsWith('.sdoc'))).toBe(true);
+		expect(locs.some((l) => l.uri.endsWith('Notice.svelte'))).toBe(true);
+	});
+
 	it('answers completion inside markup', async () => {
 		const line = lines.findIndex((l) => l.includes('<Notice'));
 		const completions = (await client.connection.sendRequest('textDocument/completion', {
@@ -275,6 +317,266 @@ describe('block-level <script>/<style> (per-block virtual docs)', () => {
 		expect(hit.range.start.line).toBe(brokenLine);
 		// restore
 		await client.changeDoc(blockUri, 3, blockSource);
+	});
+});
+
+describe('entity-script import used only by a later block', () => {
+	const entityPath = resolve(DOCS, 'src/ui/__EntityImport.sdoc');
+	const entityUri = 'file://' + entityPath;
+	const entitySource = `[SHOWCASE title="Entity import"]
+	<script lang="ts">
+		import Notice from './Notice.svelte';
+		const probe: number = 1;
+	</script>
+
+	[example title="Plain"]
+		<b>no component here, just {probe}</b>
+	[/example]
+
+	[example title="Uses it"]
+		<Notice title="hi">x</Notice>
+	[/example]
+
+	[example title="Scripted"]
+		<script lang="ts">
+			const localThing = 3;
+		</script>
+		<i>{localThing}</i>
+	[/example]
+
+[/SHOWCASE]
+`;
+
+	afterAll(() => rmSync(entityPath, { force: true }));
+
+	it('draws no unused-import hint when only a LATER block uses the import', async () => {
+		writeFileSync(entityPath, entitySource);
+		await client.openDoc(entityUri, entitySource);
+		// Deterministic wait: break the probe const — its error comes from the
+		// same virtual doc that owns the import line, so the publish carrying
+		// it would carry an unused-import hint too, if one existed. The same
+		// publish would also carry any leaked entity-doc error on the third
+		// block's markup ({localThing} has no declaration in the entity doc —
+		// the block doc owns those lines).
+		const broken = entitySource.replace('const probe: number = 1;', 'const probe: number = "s";');
+		await client.changeDoc(entityUri, 2, broken);
+		const publish = await client.waitForDiagnostics(entityUri, (p) =>
+			p.diagnostics.some((d) => String(d.message).includes('not assignable')),
+		);
+		const messages = publish.diagnostics.map((d) => String(d.message));
+		expect(
+			messages.filter(
+				(m) => m.includes('never read') || m.includes("'Notice'") || m.includes('localThing'),
+			),
+		).toEqual([]);
+	});
+
+	it('an import used by NO block still flags as unused, at the authored line', async () => {
+		const unused = entitySource.replace(
+			"import Notice from './Notice.svelte';",
+			"import Notice from './Notice.svelte';\n\t\timport Unused from './Notice.svelte';",
+		);
+		await client.changeDoc(entityUri, 3, unused);
+		const publish = await client.waitForDiagnostics(entityUri, (p) =>
+			p.diagnostics.some((d) => String(d.message).includes("'Unused'")),
+		);
+		const hit = publish.diagnostics.find((d) => String(d.message).includes("'Unused'"))!;
+		const importLine = unused.split('\n').findIndex((l) => l.includes('import Unused'));
+		expect(hit.range.start.line).toBe(importLine);
+		expect(String(hit.message)).toContain('never read');
+		// The genuinely-used import stays clean in the same publish.
+		const messages = publish.diagnostics.map((d) => String(d.message));
+		expect(messages.filter((m) => m.includes("'Notice'"))).toEqual([]);
+	});
+});
+
+describe('diagnostic publishes are version-stamped, stale coordinates withheld', () => {
+	const vPath = resolve(DOCS, 'src/ui/__VersionStamp.sdoc');
+	const vUri = 'file://' + vPath;
+	// The file <script lang="ts"> puts the projection in TS mode, where the
+	// unknown name is a real error.
+	const v1 = [
+		'<script lang="ts">',
+		'\tconst probe = 1;',
+		'</script>',
+		'',
+		'[SHOWCASE title="V"]',
+		'',
+		'\t[example title="A"]',
+		'\t\t<b>{probe + notAThing}</b>',
+		'\t[/example]',
+		'',
+		'[/SHOWCASE]',
+		'',
+	].join('\n');
+	// two pad lines shift the error two lines down
+	const v2 = v1.replace('\t\t<b>', '\t\t<i>pad</i>\n\t\t<i>pad</i>\n\t\t<b>');
+	const oldLine = v1.split('\n').findIndex((l) => l.includes('notAThing'));
+	const newLine = v2.split('\n').findIndex((l) => l.includes('notAThing'));
+
+	afterAll(() => rmSync(vPath, { force: true }));
+
+	it('after an edit, no publish for the new version carries old coordinates', async () => {
+		writeFileSync(vPath, v1);
+		await client.openDoc(vUri, v1);
+		await client.waitForDiagnostics(vUri, (p) =>
+			p.diagnostics.some(
+				(d) => String(d.message).includes('notAThing') && d.range.start.line === oldLine,
+			),
+		);
+		await client.changeDoc(vUri, 42, v2);
+		const fresh = await client.waitForDiagnostics(vUri, (p) =>
+			p.diagnostics.some(
+				(d) => String(d.message).includes('notAThing') && d.range.start.line === newLine,
+			),
+		);
+		// publishes carry the authored document version they derive from...
+		expect(fresh.version).toBe(42);
+		// ...and every post-edit publish places the diagnostic at the new
+		// line — the superseded pre-edit coordinates are never re-published
+		// against the new version.
+		const stale = (client.diagnostics.get(vUri) ?? []).filter(
+			(p) =>
+				p.version === 42 &&
+				p.diagnostics.some(
+					(d) => String(d.message).includes('notAThing') && d.range.start.line !== newLine,
+				),
+		);
+		expect(stale).toEqual([]);
+	});
+});
+
+describe('single-line <script> tags are live (recomposed content spans)', () => {
+	const slPath = resolve(DOCS, 'src/ui/__SingleLineScript.sdoc');
+	const slUri = 'file://' + slPath;
+	// The review repro: a block script written on ONE line, plus a sentinel
+	// markup error ({alsoNope}) owned by the same virtual doc.
+	const slSource = [
+		'[SHOWCASE title="One line"]',
+		'',
+		'\t[example title="A"]',
+		'\t\t<script lang="ts">const bad: string = 1;</script>',
+		'\t\t<i>{bad}</i>',
+		'\t\t<b>{alsoNope}</b>',
+		'\t[/example]',
+		'',
+		'[/SHOWCASE]',
+		'',
+	].join('\n');
+	const slLines = slSource.split('\n');
+	const scriptLine = slLines.findIndex((l) => l.includes('const bad'));
+	const badCol = slLines[scriptLine].indexOf('bad');
+
+	afterAll(() => rmSync(slPath, { force: true }));
+
+	it('surfaces the type error at the authored line AND columns, sentinel included', async () => {
+		writeFileSync(slPath, slSource);
+		await client.openDoc(slUri, slSource);
+		// One publish must carry BOTH: the script's type error (previously
+		// dropped by the wrapper-line gate) and the markup sentinel.
+		const publish = await client.waitForDiagnostics(
+			slUri,
+			(p) =>
+				p.diagnostics.some((d) => String(d.message).includes('not assignable')) &&
+				p.diagnostics.some((d) => String(d.message).includes('alsoNope')),
+		);
+		const hit = publish.diagnostics.find((d) => String(d.message).includes('not assignable'))!;
+		expect(hit.range.start.line).toBe(scriptLine);
+		expect(hit.range.start.character).toBe(badCol);
+		expect(hit.range.end.line).toBe(scriptLine);
+		expect(hit.range.end.character).toBe(badCol + 'bad'.length);
+	});
+
+	it('answers hover over a symbol inside the single-line script', async () => {
+		const hover = (await client.connection.sendRequest('textDocument/hover', {
+			textDocument: { uri: slUri },
+			position: { line: scriptLine, character: badCol + 1 },
+		})) as { contents?: unknown } | null;
+		expect(hover).toBeTruthy();
+		expect(hover?.contents).toBeTruthy();
+	});
+
+	it('maps a definition target INTO the single-line script span', async () => {
+		const markupLine = slLines.findIndex((l) => l.includes('<i>{bad}</i>'));
+		const res = (await client.connection.sendRequest('textDocument/definition', {
+			textDocument: { uri: slUri },
+			position: { line: markupLine, character: slLines[markupLine].indexOf('bad') + 1 },
+		})) as
+			| { uri: string; range: { start: { line: number; character: number } } }[]
+			| {
+					targetUri: string;
+					targetSelectionRange: { start: { line: number; character: number } };
+			  }[]
+			| null;
+		const locs = res == null ? [] : Array.isArray(res) ? res : [res];
+		expect(locs.length).toBeGreaterThan(0);
+		const target = locs[0] as Record<string, unknown>;
+		const uri = (target.uri ?? target.targetUri) as string;
+		const start = ((target.range ?? target.targetSelectionRange) as {
+			start: { line: number; character: number };
+		}).start;
+		expect(uri).toBe(slUri);
+		expect(start.line).toBe(scriptLine);
+		expect(start.character).toBe(badCol);
+	});
+
+	it('completes inside the span; the tag text outside it stays empty', async () => {
+		// Inside: value position after `= ` — scope completions flow.
+		const inside = slLines[scriptLine].indexOf('= 1;') + 2;
+		const res = (await client.connection.sendRequest('textDocument/completion', {
+			textDocument: { uri: slUri },
+			position: { line: scriptLine, character: inside },
+			context: { triggerKind: 1 },
+		})) as { items?: unknown[] } | unknown[] | null;
+		const items = Array.isArray(res) ? res : (res?.items ?? []);
+		expect(items.length).toBeGreaterThan(0);
+		// Outside: on the generated `<script lang="ts">` tag text.
+		const onTag = (await client.connection.sendRequest('textDocument/completion', {
+			textDocument: { uri: slUri },
+			position: { line: scriptLine, character: slLines[scriptLine].indexOf('script') },
+			context: { triggerKind: 1 },
+		})) as { items?: unknown[] } | unknown[] | null;
+		const tagItems = Array.isArray(onTag) ? onTag : (onTag?.items ?? []);
+		expect(tagItems).toEqual([]);
+	});
+});
+
+describe('single-line ENTITY <script> is live too', () => {
+	const ePath = resolve(DOCS, 'src/ui/__SingleLineEntity.sdoc');
+	const eUri = 'file://' + ePath;
+	const eSource = [
+		'[SHOWCASE title="Entity one line"]',
+		'\t<script lang="ts">const worse: string = 2;</script>',
+		'',
+		'\t[example title="A"]',
+		'\t\t<b>{worse}</b>',
+		'\t[/example]',
+		'',
+		'[/SHOWCASE]',
+		'',
+	].join('\n');
+	const eLines = eSource.split('\n');
+	const scriptLine = eLines.findIndex((l) => l.includes('const worse'));
+
+	afterAll(() => rmSync(ePath, { force: true }));
+
+	it('surfaces the type error at the authored line and columns', async () => {
+		writeFileSync(ePath, eSource);
+		await client.openDoc(eUri, eSource);
+		const publish = await client.waitForDiagnostics(eUri, (p) =>
+			p.diagnostics.some((d) => String(d.message).includes('not assignable')),
+		);
+		const hit = publish.diagnostics.find((d) => String(d.message).includes('not assignable'))!;
+		expect(hit.range.start.line).toBe(scriptLine);
+		expect(hit.range.start.character).toBe(eLines[scriptLine].indexOf('worse'));
+	});
+
+	it('answers hover inside the entity one-liner', async () => {
+		const hover = await client.connection.sendRequest('textDocument/hover', {
+			textDocument: { uri: eUri },
+			position: { line: scriptLine, character: eLines[scriptLine].indexOf('worse') + 1 },
+		});
+		expect(hover).toBeTruthy();
 	});
 });
 

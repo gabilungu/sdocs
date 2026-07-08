@@ -191,3 +191,15 @@ describe('projection: sibling snippets for prose and examples', () => {
 		expect(() => compile(projection.text, { generate: false } as never)).not.toThrow();
 	});
 });
+
+describe('segmentPageBody fence tracking (review regression)', () => {
+	it('a ``` line inside a ~~~ fence is literal content, not a closer', async () => {
+		const { segmentPageBody } = await import('../../src/lib/language/page-islands.js');
+		const body = ['intro', '', '~~~', '```', '<Widget />', '```', '~~~', '', '<Widget />'].join('\n');
+		const segments = segmentPageBody(body);
+		// The <Widget /> inside the ~~~ fence stays prose; only the trailing one is an island.
+		const islands = segments.filter((s) => s.kind === 'island');
+		expect(islands).toHaveLength(1);
+		expect(islands[0].lines).toEqual(['<Widget />']);
+	});
+});

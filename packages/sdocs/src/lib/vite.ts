@@ -383,8 +383,9 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 			const pos = offsetToPosition(source, d.span.start);
 			const where = `${filePath}:${pos.line + 1}:${pos.column + 1}`;
 			console.warn(`[sdocs] ${where} — ${d.message}`);
-			// A missing example title is an error in builds: untitled stages
-			// would ship with empty headings and colliding slugs.
+			// A missing example title — or one that isn't a usable string, like
+			// title={expr} — is an error in builds: untitled stages would ship
+			// with empty headings and colliding slugs.
 			if (isBuild && d.code === 'example-title-required') {
 				buildErrors.push(`${where} — ${d.message}`);
 			}

@@ -5,6 +5,18 @@ import { compile } from 'svelte/compiler';
 import { scanSdoc } from '../../src/lib/language/scanner.js';
 import { projectSdoc, projectSdocBlocks } from '../../src/lib/language/projection.js';
 
+/** Mirror the language server's owner[] fill (push order: ranges, then
+ * extraOwnedLines): per authored line, the index of the block projection
+ * that speaks for it, or -1 for the base projection. */
+const ownersOf = (blocks: ReturnType<typeof projectSdocBlocks>, lineCount: number): number[] => {
+	const owner: number[] = new Array(lineCount).fill(-1);
+	blocks.forEach((b, i) => {
+		for (let l = b.firstLine; l <= b.lastLine; l++) owner[l] = i;
+		for (const l of b.extraOwnedLines ?? []) owner[l] = i;
+	});
+	return owner;
+};
+
 const SOURCE = `<script lang="ts">
 	import Tabs from './Tabs.svelte';
 	import Tab from './Tab.svelte';
@@ -238,7 +250,9 @@ describe('projectSdocBlocks: single-line tags (review regressions)', () => {
 	it('keeps a one-liner block script with NO file script', () => {
 		const src = `[SHOWCASE title="X"]\n\t[example title="A"]\n\t\t<script>let count = $state(7);</script>\n\t\t<b>{count}</b>\n\t[/example]\n[/SHOWCASE]\n`;
 		const [bp] = projectSdocBlocks(scanSdoc(src));
-		expect(bp.text).toContain('<script>let count = $state(7);</script>{#snippet');
+		// The emitted opener pads over the authored `\t\t` indent so the content
+		// keeps its exact authored columns.
+		expect(bp.text).toContain('<script>  let count = $state(7);</script>{#snippet');
 		compileOk(bp.text);
 	});
 
@@ -322,21 +336,27 @@ describe('projectSdocBlocks: entity-level script chain', () => {
 	const compileOk = (text: string) => expect(compile(text, { generate: 'client' }).js.code).toBeTruthy();
 
 	it('a block WITHOUT its own script still gets a doc when the entity has one', () => {
-		expect(blocks.map((b) => b.key)).toEqual(['0_0', '0_1', '1']);
+		expect(blocks.map((b) => b.key)).toEqual(['0', '0_0', '0_1', '1']);
 	});
 
 	it('the chain file→entity→block merges into one compiling script', () => {
 		for (const bp of blocks) compileOk(bp.text);
-		const own = blocks[1].text;
+		const own = blocks.find((b) => b.key === '0_1')!.text;
 		expect(own).toContain('const shared = [1, 2];');
 		expect(own).toContain('let n = $state(shared.length);');
 		expect(own).toContain('</script>{#snippet __sdocs$0_1(args: any)}');
 	});
 
-	it('entity script lines are owned by exactly one doc', () => {
-		const withExtra = blocks.filter((b) => (b.extraOwnedLines?.length ?? 0) > 0);
-		expect(withExtra).toHaveLength(1);
-		expect(withExtra[0].key).toBe('0_0');
+	it('entity script lines are owned by the per-entity doc, exactly once', () => {
+		const sourceLines = SRC.split('\n');
+		const owner = ownersOf(blocks, sourceLines.length);
+		const entityIdx = blocks.findIndex((b) => b.key === '0');
+		const sharedLine = sourceLines.findIndex((l) => l.includes('const shared = [1, 2];'));
+		expect(owner[sharedLine]).toBe(entityIdx);
+		// Block docs own only their own ranges — no extraOwnedLines claims.
+		for (const b of blocks) {
+			if (b.key.includes('_')) expect(b.extraOwnedLines ?? []).toEqual([]);
+		}
 	});
 
 	it('a PAGE with entity script/style projects as a full component', () => {
@@ -379,7 +399,7 @@ describe('projectSdocBlocks: DOC per-entity doc', () => {
 		compileOk(doc.text);
 	});
 
-	it('a DOC with examples blanks them in the entity doc; blocks keep their own docs', () => {
+	it('a DOC with examples includes their markup as snippets; blocks keep their own docs', () => {
 		const src = `<script lang="ts">
 	import Nav from './Nav.svelte';
 </script>
@@ -412,10 +432,17 @@ describe('projectSdocBlocks: DOC per-entity doc', () => {
 		const tail = sourceLines.findIndex((l) => l.includes('Tail prose'));
 		expect(lines[prose]).toBe(sourceLines[prose]);
 		expect(lines[tail]).toBe(sourceLines[tail]);
-		// Example lines are blank here — the block's own doc owns them.
+		// Example markup is present (snippet-wrapped and rendered by the
+		// trailer, so the entity import reads as used) — but the block's own
+		// doc still OWNS those lines, so its diagnostics win there.
 		const nav = sourceLines.findIndex((l) => l.includes('<Nav />'));
-		expect(lines[nav]).toBe('');
+		expect(lines[nav]).toBe(sourceLines[nav]);
+		const opener = sourceLines.findIndex((l) => l.includes('[example'));
+		expect(lines[opener]).toBe('{/snippet}{#snippet __sdocs$0_0(args: any)}');
+		expect(doc.text).toContain('{@render __sdocs$0_0({})}');
 		expect(blocks[1].text.split('\n')[nav]).toBe(sourceLines[nav]);
+		const owner = ownersOf(blocks, sourceLines.length);
+		expect(owner[nav]).toBe(1);
 		// The entity style is this component's real style.
 		expect(doc.text).toContain('{/snippet}<style>');
 		const css = sourceLines.findIndex((l) => l.includes('.doc-note'));
@@ -472,17 +499,22 @@ describe('projectSdocBlocks: SHOWCASE entity style/script docs', () => {
 		const doc = blocks[0];
 		const sourceLines = src.split('\n');
 		const lines = doc.text.split('\n');
-		expect(lines[sourceLines.findIndex((l) => l.trim() === '<style>')]).toBe('<style>');
+		const styleOpen = sourceLines.findIndex((l) => l.trim() === '<style>');
+		expect(lines[styleOpen]).toBe(sourceLines[styleOpen]);
 		const css = sourceLines.findIndex((l) => l.includes('.big {'));
 		expect(lines[css]).toBe(sourceLines[css]);
 		// The block markup is present so the selector reads as used.
 		const markup = sourceLines.findIndex((l) => l.includes('class="big"'));
 		expect(lines[markup]).toBe(sourceLines[markup]);
-		// This doc owns exactly the style lines; the entity script stays with
-		// the first block doc.
+		// This doc owns the style lines PLUS the entity script lines (via
+		// extraOwnedLines); the block doc owns only its own range.
 		expect(sourceLines[doc.firstLine].trim()).toBe('<style>');
 		expect(sourceLines[doc.lastLine].trim()).toBe('</style>');
-		expect(blocks[1].extraOwnedLines?.length).toBeGreaterThan(0);
+		const owner = ownersOf(blocks, sourceLines.length);
+		const scriptLine = sourceLines.findIndex((l) => l.includes('const shared'));
+		expect(owner[scriptLine]).toBe(0);
+		expect(blocks[1].extraOwnedLines ?? []).toEqual([]);
+		expect(owner[markup]).toBe(1);
 		compileOk(doc.text);
 	});
 
@@ -555,6 +587,343 @@ describe('projectSdocBlocks: inner chained script sharing its opener line', () =
 		expect(lines[line]).toContain('const shift = shared + 1;');
 		expect(lines[line].indexOf('const shift')).toBe(sourceLines[line].indexOf('const shift'));
 		compileOk(bp.text);
+	});
+});
+
+describe('projectSdocBlocks: entity imports used only by later blocks', () => {
+	const compileOk = (text: string) => expect(compile(text, { generate: 'client' }).js.code).toBeTruthy();
+
+	it('a SHOWCASE entity doc sees every block markup, so a later-block import reads as used', () => {
+		const src = `[SHOWCASE title="X"]
+	<script lang="ts">
+		import Notice from './Notice.svelte';
+	</script>
+
+	[example title="Plain"]
+		<b>plain</b>
+	[/example]
+
+	[example title="Uses it"]
+		<Notice />
+	[/example]
+[/SHOWCASE]
+`;
+		const blocks = projectSdocBlocks(scanSdoc(src));
+		expect(blocks.map((b) => b.key)).toEqual(['0', '0_0', '0_1']);
+		const doc = blocks[0];
+		const sourceLines = src.split('\n');
+		// The doc owning the import line carries BOTH blocks' markup, wrapped
+		// in snippets the trailer renders — the import reads as used.
+		expect(doc.text).toContain("import Notice from './Notice.svelte';");
+		expect(doc.text).toContain('<b>plain</b>');
+		expect(doc.text).toContain('<Notice />');
+		expect(doc.text).toContain('{@render __sdocs$0_0({})}');
+		expect(doc.text).toContain('{@render __sdocs$0_1({})}');
+		// Ownership: the entity doc speaks for the script lines, the block
+		// docs for their own ranges.
+		const owner = ownersOf(blocks, sourceLines.length);
+		const importLine = sourceLines.findIndex((l) => l.includes('import Notice'));
+		expect(owner[importLine]).toBe(0);
+		const noticeLine = sourceLines.findIndex((l) => l.includes('<Notice />'));
+		expect(owner[noticeLine]).toBe(2);
+		for (const bp of blocks) compileOk(bp.text);
+	});
+
+	it('a DOC entity doc includes example markup, so an example-only import reads as used', () => {
+		const src = `[DOC title="G"]
+	<script lang="ts">
+		import Notice from './Notice.svelte';
+	</script>
+
+	Prose before.
+
+	[example title="A"]
+		<Notice />
+	[/example]
+
+	Prose after.
+[/DOC]
+`;
+		const blocks = projectSdocBlocks(scanSdoc(src));
+		expect(blocks.map((b) => b.key)).toEqual(['0', '0_0']);
+		const doc = blocks[0];
+		const sourceLines = src.split('\n');
+		const lines = doc.text.split('\n');
+		const noticeLine = sourceLines.findIndex((l) => l.includes('<Notice />'));
+		expect(lines[noticeLine]).toBe(sourceLines[noticeLine]);
+		expect(doc.text).toContain('{@render __sdocs$0_0({})}');
+		// Prose around the example still lives in its snippets.
+		expect(doc.text).toContain('Prose before.');
+		expect(doc.text).toContain('Prose after.');
+		// The block doc still owns the example lines.
+		const owner = ownersOf(blocks, sourceLines.length);
+		expect(owner[noticeLine]).toBe(1);
+		const importLine = sourceLines.findIndex((l) => l.includes('import Notice'));
+		expect(owner[importLine]).toBe(0);
+		compileOk(doc.text);
+		compileOk(blocks[1].text);
+	});
+
+	it('block markup referencing block-script vars stays owned by the block doc', () => {
+		// The entity doc copies block markup WITHOUT the block script, so a
+		// reference like {local} is undeclared there — but those lines belong
+		// to the block doc (which has the script), so the entity doc's
+		// diagnostics on them never surface.
+		const src = `[SHOWCASE title="X"]
+	<script lang="ts">
+		import Notice from './Notice.svelte';
+	</script>
+
+	[example title="Scripted"]
+		<script lang="ts">
+			const local = 3;
+		</script>
+		<b>{local}</b>
+		<Notice />
+	[/example]
+[/SHOWCASE]
+`;
+		const blocks = projectSdocBlocks(scanSdoc(src));
+		expect(blocks.map((b) => b.key)).toEqual(['0', '0_0']);
+		const doc = blocks[0];
+		const sourceLines = src.split('\n');
+		expect(doc.text).toContain('<b>{local}</b>');
+		expect(doc.text).not.toContain('const local');
+		const owner = ownersOf(blocks, sourceLines.length);
+		const localLine = sourceLines.findIndex((l) => l.includes('<b>{local}</b>'));
+		expect(owner[localLine]).toBe(1);
+		const importLine = sourceLines.findIndex((l) => l.includes('import Notice'));
+		expect(owner[importLine]).toBe(0);
+		// Both docs still compile in isolation.
+		compileOk(doc.text);
+		compileOk(blocks[1].text);
+	});
+});
+
+describe('projectSdocBlocks: style openers carrying content', () => {
+	const compileOk = (text: string) => expect(compile(text, { generate: 'client' }).js.code).toBeTruthy();
+
+	it('keeps head content of a multi-line block style', () => {
+		const src = `[SHOWCASE title="X"]
+	[example title="A"]
+		<b class="x">hi</b>
+		<style>.x {
+			color: red;
+		}
+		</style>
+	[/example]
+[/SHOWCASE]
+`;
+		const [bp] = projectSdocBlocks(scanSdoc(src));
+		const sourceLines = src.split('\n');
+		const lines = bp.text.split('\n');
+		const open = sourceLines.findIndex((l) => l.includes('<style>.x {'));
+		expect(lines[open]).toBe('{/snippet}<style>.x {');
+		expect(lines[open + 1]).toBe(sourceLines[open + 1]);
+		expect(bp.text).toContain('color: red;');
+		compileOk(bp.text);
+	});
+
+	it('keeps head content of a PAGE entity style at authored columns', () => {
+		const src = `[PAGE title="P"]
+	<button class="x">hi</button>
+	<style>.x {
+		color: red;
+	}
+	</style>
+[/PAGE]
+`;
+		const blocks = projectSdocBlocks(scanSdoc(src));
+		expect(blocks.map((b) => b.key)).toEqual(['0']);
+		const sourceLines = src.split('\n');
+		const lines = blocks[0].text.split('\n');
+		const open = sourceLines.findIndex((l) => l.includes('<style>.x {'));
+		// No prefix on a PAGE style: the recomposed opener IS the authored line.
+		expect(lines[open]).toBe(sourceLines[open]);
+		compileOk(blocks[0].text);
+	});
+
+	it('keeps head content of SHOWCASE and DOC entity styles', () => {
+		const showcase = `[SHOWCASE title="X"]
+	[example title="A"]
+		<b class="big">hi</b>
+	[/example]
+
+	<style>.big {
+		font-size: 2em;
+	}
+	</style>
+[/SHOWCASE]
+`;
+		const sBlocks = projectSdocBlocks(scanSdoc(showcase));
+		const sDoc = sBlocks.find((b) => b.key === '0')!;
+		const sLines = sDoc.text.split('\n');
+		const sOpen = showcase.split('\n').findIndex((l) => l.includes('<style>.big {'));
+		expect(sLines[sOpen]).toBe(showcase.split('\n')[sOpen]);
+		compileOk(sDoc.text);
+
+		const docSrc = `[DOC title="G"]
+	Prose <span class="doc-note">x</span>.
+
+	<style>.doc-note {
+		color: gray;
+	}
+	</style>
+[/DOC]
+`;
+		const dBlocks = projectSdocBlocks(scanSdoc(docSrc));
+		const dDoc = dBlocks.find((b) => b.key === '0')!;
+		const dLines = dDoc.text.split('\n');
+		const dOpen = docSrc.split('\n').findIndex((l) => l.includes('<style>.doc-note {'));
+		expect(dLines[dOpen]).toBe('{/snippet}<style>.doc-note {');
+		compileOk(dDoc.text);
+	});
+
+	it('single-line styles still recompose everywhere', () => {
+		const page = `[PAGE title="P"]
+	<b class="x">hi</b>
+	<style>.x { color: red; }</style>
+[/PAGE]
+`;
+		const [pg] = projectSdocBlocks(scanSdoc(page));
+		expect(pg.text).toContain('<style>.x { color: red; }</style>');
+		compileOk(pg.text);
+	});
+});
+
+describe('projectSdocBlocks: recomposed content spans (column-preserving)', () => {
+	const compileOk = (text: string) => expect(compile(text, { generate: 'client' }).js.code).toBeTruthy();
+
+	it('a single-line BLOCK script keeps its content at authored columns, span recorded', () => {
+		const src = `[SHOWCASE title="X"]\n\t[example title="A"]\n\t\t<script lang="ts">const bad: string = 1;</script>\n\t\t<b>{bad}</b>\n\t[/example]\n[/SHOWCASE]\n`;
+		const [bp] = projectSdocBlocks(scanSdoc(src));
+		const sourceLines = src.split('\n');
+		const lines = bp.text.split('\n');
+		const line = sourceLines.findIndex((l) => l.includes('const bad'));
+		const col = sourceLines[line].indexOf('const bad');
+		expect(lines[line].indexOf('const bad')).toBe(col);
+		expect(bp.lineKinds[line]).toBe('recomposed');
+		expect(bp.contentSpans?.[line]).toEqual({
+			start: col,
+			end: col + 'const bad: string = 1;'.length,
+		});
+		compileOk(bp.text);
+	});
+
+	it('a single-line ENTITY script keeps its content at authored columns in its entity doc', () => {
+		const src = `[SHOWCASE title="X"]\n\t<script lang="ts">const n: number = 1;</script>\n\n\t[example title="A"]\n\t\t<b>{n}</b>\n\t[/example]\n[/SHOWCASE]\n`;
+		const blocks = projectSdocBlocks(scanSdoc(src));
+		const doc = blocks.find((b) => b.key === '0')!;
+		const sourceLines = src.split('\n');
+		const lines = doc.text.split('\n');
+		const line = sourceLines.findIndex((l) => l.includes('const n'));
+		const col = sourceLines[line].indexOf('const n');
+		expect(lines[line].indexOf('const n')).toBe(col);
+		expect(doc.lineKinds[line]).toBe('recomposed');
+		expect(doc.contentSpans?.[line]).toEqual({
+			start: col,
+			end: col + 'const n: number = 1;'.length,
+		});
+		// The entity doc owns the script line, so its span is the live one.
+		expect(doc.firstLine).toBe(line);
+		compileOk(doc.text);
+	});
+
+	it('an inner script opener sharing content records the span at authored columns', () => {
+		const src = `<script>\n\tconst shared = 1;\n</script>\n\n[SHOWCASE title="X"]\n\t[example title="A"]\n\t\t<script>let b = 2;\n\t\t\tlet c = 3;</script>\n\t\t<b>{b}{c}</b>\n\t[/example]\n[/SHOWCASE]\n`;
+		const [bp] = projectSdocBlocks(scanSdoc(src));
+		const sourceLines = src.split('\n');
+		const lines = bp.text.split('\n');
+		// Opener line: the tag blanks, `let b = 2;` stays at its column.
+		const openLine = sourceLines.findIndex((l) => l.includes('let b = 2;'));
+		const openCol = sourceLines[openLine].indexOf('let b = 2;');
+		expect(lines[openLine].indexOf('let b = 2;')).toBe(openCol);
+		expect(bp.lineKinds[openLine]).toBe('recomposed');
+		expect(bp.contentSpans?.[openLine]).toEqual({ start: openCol, end: openCol + 'let b = 2;'.length });
+		// Closer line: `\t\t\tlet c = 3;` before the dropped </script>, from col 0.
+		const closeLine = sourceLines.findIndex((l) => l.includes('let c = 3;'));
+		expect(lines[closeLine].startsWith('\t\t\tlet c = 3;')).toBe(true);
+		expect(bp.lineKinds[closeLine]).toBe('recomposed');
+		expect(bp.contentSpans?.[closeLine]).toEqual({ start: 0, end: '\t\t\tlet c = 3;'.length });
+		compileOk(bp.text);
+	});
+
+	it('a first-script closer sharing content records the span from column 0', () => {
+		const src = `[SHOWCASE title="X"]\n\t[example title="A"]\n\t\t<script>\n\t\t\tlet a = 1;</script>\n\t\t<b>{a}</b>\n\t[/example]\n[/SHOWCASE]\n`;
+		const [bp] = projectSdocBlocks(scanSdoc(src));
+		const sourceLines = src.split('\n');
+		const lines = bp.text.split('\n');
+		const line = sourceLines.findIndex((l) => l.includes('let a = 1;'));
+		expect(lines[line].startsWith('\t\t\tlet a = 1;')).toBe(true);
+		expect(bp.lineKinds[line]).toBe('recomposed');
+		expect(bp.contentSpans?.[line]).toEqual({ start: 0, end: '\t\t\tlet a = 1;'.length });
+		compileOk(bp.text);
+	});
+
+	it('pure wrapper lines carry no span; overflowing grafts stay gated wrappers', () => {
+		// Multi-line script: plain opener/closer lines keep their old kinds.
+		const src = `[SHOWCASE title="X"]\n\t[example title="A"]\n\t\t<script>\n\t\t\tlet a = 1;\n\t\t</script>\n\t\t<b>{a}</b>\n\t\t<style>.x { color: red; }</style>\n\t[/example]\n[/SHOWCASE]\n`;
+		const [bp] = projectSdocBlocks(scanSdoc(src));
+		const sourceLines = src.split('\n');
+		const closer = sourceLines.findIndex((l) => l.trim() === '</script>');
+		expect(bp.lineKinds[closer]).toBe('wrapper');
+		expect(bp.contentSpans?.[closer]).toBeUndefined();
+		// The single-line style needs a '{/snippet}' graft that outgrows the
+		// authored prefix: content survives adjacent, but stays a gated wrapper
+		// (no span — identity mapping is impossible there).
+		const styleLine = sourceLines.findIndex((l) => l.includes('<style>'));
+		expect(bp.text).toContain('{/snippet}<style>.x { color: red; }</style>');
+		expect(bp.lineKinds[styleLine]).toBe('wrapper');
+		expect(bp.contentSpans?.[styleLine]).toBeUndefined();
+		compileOk(bp.text);
+	});
+
+	it('a single-line PAGE entity style records its span (no graft, indent preserved)', () => {
+		const src = `[PAGE title="P"]\n\t<b class="x">hi</b>\n\t<style>.x { color: red; }</style>\n[/PAGE]\n`;
+		const [pg] = projectSdocBlocks(scanSdoc(src));
+		const sourceLines = src.split('\n');
+		const lines = pg.text.split('\n');
+		const line = sourceLines.findIndex((l) => l.includes('<style>'));
+		const col = sourceLines[line].indexOf('.x {');
+		expect(lines[line].indexOf('.x {')).toBe(col);
+		expect(pg.lineKinds[line]).toBe('recomposed');
+		expect(pg.contentSpans?.[line]).toEqual({ start: col, end: col + '.x { color: red; }'.length });
+		compileOk(pg.text);
+	});
+});
+
+describe('projectSdoc: fence markers are not interchangeable (review regression)', () => {
+	it('a ~~~ fence containing ``` and block-looking lines stays masked until ~~~', () => {
+		const src =
+			'[DOC title="G"]\nprose\n~~~\n```\n[example title="fake"]\n<NotReal {broken} />\n[/example]\n```\n~~~\ntail\n[/DOC]\n';
+		const projection = projectSdoc(scanSdoc(src));
+		const lines = projection.text.split('\n');
+		const sourceLines = src.split('\n');
+		// Prose outside the fence is live.
+		expect(lines[1]).toBe('prose');
+		expect(projection.lineKinds[1]).toBe('verbatim');
+		// Everything from the ~~~ opener through the ~~~ closer is masked —
+		// the inner ``` lines are fenced CONTENT, not a close/reopen.
+		for (let l = 2; l <= 8; l++) {
+			expect(lines[l]).toBe('');
+			expect(projection.lineKinds[l]).toBe('masked');
+		}
+		// The fenced [example]/[/example] never became a snippet wrapper.
+		expect(projection.text).not.toContain('__sdocs$0_0');
+		// Prose after the real close is live again.
+		const tail = sourceLines.findIndex((l) => l === 'tail');
+		expect(lines[tail]).toBe('tail');
+		expect(projection.lineKinds[tail]).toBe('verbatim');
+		expect(() => compile(projection.text, { generate: false } as never)).not.toThrow();
+	});
+
+	it('a longer backtick fence is not closed by a shorter one', () => {
+		const src = '[DOC title="G"]\n````\n```\n<NotReal {broken} />\n```\n````\ntail\n[/DOC]\n';
+		const projection = projectSdoc(scanSdoc(src));
+		const lines = projection.text.split('\n');
+		for (let l = 1; l <= 5; l++) expect(lines[l]).toBe('');
+		expect(lines[6]).toBe('tail');
+		expect(projection.lineKinds[6]).toBe('verbatim');
 	});
 });
 

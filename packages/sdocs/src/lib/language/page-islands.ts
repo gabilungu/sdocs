@@ -95,16 +95,27 @@ export function segmentPageBody(body: string): PageSegment[] {
 		current.lines.push(line);
 	};
 
-	let inFence = false;
+	// A fence closes only on the same marker char with at least as many
+	// chars as the opener (CommonMark) — a ``` line inside a ~~~ fence is
+	// literal content, not a closer.
+	let fence: { marker: string; len: number } | null = null;
 	let i = 0;
 	while (i < lines.length) {
 		const line = lines[i];
-		if (/^\s*(`{3,}|~{3,})/.test(line)) {
-			inFence = !inFence;
+		const fenceMatch = /^\s*(`{3,}|~{3,})/.exec(line);
+		if (fenceMatch) {
+			const marker = fenceMatch[1][0];
+			const len = fenceMatch[1].length;
+			if (!fence) {
+				fence = { marker, len };
+			} else if (marker === fence.marker && len >= fence.len) {
+				fence = null;
+			}
 			push('prose', line);
 			i++;
 			continue;
 		}
+		const inFence = fence !== null;
 		if (inFence) {
 			push('prose', line);
 			i++;

@@ -37,7 +37,8 @@ export interface LspClient {
 export async function startClient(
 	serverPath: string,
 	transport: 'stdio' | 'ipc',
-	rootDir: string,
+	/** null reproduces a single-file window: rootUri null, no folders */
+	rootDir: string | null,
 ): Promise<LspClient> {
 	let child: ChildProcess;
 	let connection: ProtocolConnection;
@@ -68,8 +69,8 @@ export async function startClient(
 
 	const initializeResult = (await connection.sendRequest('initialize', {
 		processId: process.pid,
-		rootUri: 'file://' + rootDir,
-		workspaceFolders: [{ uri: 'file://' + rootDir, name: 'test' }],
+		rootUri: rootDir ? 'file://' + rootDir : null,
+		workspaceFolders: rootDir ? [{ uri: 'file://' + rootDir, name: 'test' }] : null,
 		capabilities: {},
 	})) as { capabilities: Record<string, unknown> };
 	await connection.sendNotification('initialized', {});

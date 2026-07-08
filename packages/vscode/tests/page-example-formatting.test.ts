@@ -93,6 +93,77 @@ describe('tag indentation normalization', () => {
 	});
 });
 
+describe('scan-error lines stay byte-identical (no authored text deleted)', () => {
+	it('keeps a duplicate attribute instead of dropping it', async () => {
+		// The scanner keeps only the first duplicate; rebuilding the opener
+		// from parsed attrs used to format away title="b" entirely.
+		const source = [
+			'[SHOWCASE title="X"]',
+			'',
+			'\t[example title="a" title="b"]',
+			'\t\t<b   >x</b>',
+			'\t[/example]',
+			'',
+			'[/SHOWCASE]',
+			'',
+		].join('\n');
+		const result = await formatSdoc(source, OPTIONS);
+		expect(result).not.toBeNull();
+		// the erroneous opener line is untouched, duplicate and all
+		expect(result!.split('\n')[2]).toBe('\t[example title="a" title="b"]');
+		// the rest of the file still formats
+		expect(result).toContain('\t\t<b>x</b>');
+	});
+
+	it('keeps stray text after the opener bracket', async () => {
+		const source = [
+			'[SHOWCASE title="X"]',
+			'',
+			'\t[example title="a"] stray text',
+			'\t\t<b   >x</b>',
+			'\t[/example]',
+			'',
+			'[/SHOWCASE]',
+			'',
+		].join('\n');
+		const result = await formatSdoc(source, OPTIONS);
+		expect(result).not.toBeNull();
+		expect(result!.split('\n')[2]).toBe('\t[example title="a"] stray text');
+		expect(result).toContain('\t\t<b>x</b>');
+	});
+});
+
+describe('line endings', () => {
+	const lfSource = [
+		'[SHOWCASE title="X"]',
+		'',
+		'\t[example title="A"]',
+		'\t\t<b   >x</b>',
+		'\t[/example]',
+		'',
+		'[/SHOWCASE]',
+		'',
+	].join('\n');
+
+	it('formats a CRLF document to 100% CRLF', async () => {
+		const crlfSource = lfSource.replace(/\n/g, '\r\n');
+		const result = await formatSdoc(crlfSource, OPTIONS);
+		expect(result).not.toBeNull();
+		// every newline is CRLF — no LF-only lines, no stray CR elsewhere
+		expect(result!.replace(/\r\n/g, '')).not.toContain('\r');
+		expect(result!.replace(/\r\n/g, '')).not.toContain('\n');
+		// same content as the LF-space formatting
+		const lfResult = await formatSdoc(lfSource, OPTIONS);
+		expect(result!.replace(/\r\n/g, '\n')).toBe(lfResult);
+	});
+
+	it('keeps an LF document 100% LF', async () => {
+		const result = await formatSdoc(lfSource, OPTIONS);
+		expect(result).not.toBeNull();
+		expect(result).not.toContain('\r');
+	});
+});
+
 describe('opener wrapping at printWidth (default 80)', () => {
 	const desc = 'x'.repeat(120);
 

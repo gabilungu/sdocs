@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.57] - 2026-07-08
+
+### Fixed
+
+- The language server no longer crashes when a `.sdoc` file is opened without
+  a workspace folder: the embedded Svelte server now roots itself at the first
+  opened document's directory instead of the filesystem root, and background
+  file-watcher errors can no longer kill the server process.
+- Diagnostics are now pulled per edit and stamped with the document version,
+  so an edit no longer briefly republishes stale errors at shifted positions
+  (or leaks hints about generated code) before correcting itself.
+- Format Document no longer deletes authored text on lines with scan errors —
+  a duplicate attribute or trailing text after an opener survives formatting
+  byte-identical while the rest of the file still formats.
+- Formatting a CRLF file keeps CRLF endings throughout instead of emitting a
+  mix; formatting is now idempotent (format-on-save no longer produces a
+  second diff on the next save).
+- Completion no longer offers destructive snippet-wrapper edits on block
+  opener lines, and go-to-definition no longer returns garbage ranges for
+  generated wrapper code.
+- `[DOC]` and `[SHOWCASE]` fold by their markers (the folding rules still
+  referenced the old `DOCS` kind).
+
 ## [0.0.56] - 2026-07-08
 
 ### Added

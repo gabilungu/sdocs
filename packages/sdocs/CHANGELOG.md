@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.87] - 2026-07-08
+
+### Fixed
+
+- Custom elements whose name merely starts with `style` or `script`
+  (`<styled-note>`, `<script-demo>`) are no longer captured as style/script
+  tags — previously they triggered a bogus "missing closer" error and silently
+  dropped the rest of the body, at file, entity, and block level alike. The
+  grammar got the same tag-boundary rule, so they highlight as ordinary markup.
+- Reserved-name checking now covers the whole scope ladder: a file
+  `<script>` declaring `args`, `__sdocsRef`, or `__sdocsExample` (or calling
+  `$props()`), and destructured bindings like `const { args } = …`, are
+  diagnosed at parse time instead of breaking every stage at runtime. PAGE
+  entity scripts keep their `args` exemption.
+- Import scanning is now string-aware everywhere: import-shaped lines inside
+  template literals no longer produce false duplicate-import errors, leak
+  absolute file paths into runtime strings, or feed the wrong file to props
+  extraction.
+- `[example title={expression}]` now fails the build like a missing title —
+  the mandatory-title rule can no longer be bypassed with a non-string value.
+- Preview and example slugs can no longer collide (`x-ray` vs `Ray`):
+  colliding example slugs de-collide deterministically with a warning naming
+  both titles, so builds stop emitting duplicate chunks.
+- A quoted `>` inside a script tag's attributes (e.g. TypeScript
+  `generics="Record<string, number>"`) no longer corrupts the captured
+  content.
+- Markdown fences now follow CommonMark closing rules end to end (scanner,
+  projection, page islands, grammar): a ``` line inside a `~~~` fence is
+  literal content, a fenced `[/DOC]` no longer ends the entity region in the
+  editor's coloring, and fenced component tags stay displayed code.
+- A code fence directly after a misplaced DOC `<style>` no longer lets the
+  style apply twice; the misplaced style demotes to prose with a diagnostic,
+  same as when prose follows it.
+- `bind:this` injection for previews no longer fires inside attribute-value
+  strings and is only suppressed by a bind on the targeted element itself.
+- Escaped `\[` lines unescape at any indentation, not just at the common
+  indent.
+- Entity styles and DOC prose get full editor intelligence: per-entity virtual
+  docs now cover SHOWCASE/DOC entity scripts and styles, an entity import used
+  only by a later block no longer grays out as unused, and style tags with
+  code on the opening line keep that code in the virtual documents.
+
 ## [0.0.86] - 2026-07-08
 
 ### Added

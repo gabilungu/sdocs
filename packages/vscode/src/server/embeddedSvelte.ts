@@ -16,6 +16,7 @@ import {
 	RegistrationRequest,
 	WorkspaceFoldersRequest,
 	PublishDiagnosticsNotification,
+	DiagnosticRefreshRequest,
 	type ProtocolConnection,
 	type PublishDiagnosticsParams,
 	type ServerCapabilities,
@@ -29,6 +30,7 @@ export type EmbeddedSvelte = ProtocolConnection & { capabilities: ServerCapabili
 export async function startEmbeddedSvelte(
 	workspaceUri: string | null,
 	onDiagnostics: (params: PublishDiagnosticsParams) => void,
+	onRefreshDiagnostics: () => void,
 ): Promise<EmbeddedSvelte> {
 	const toServer = new PassThrough();
 	const toClient = new PassThrough();
@@ -57,6 +59,11 @@ export async function startEmbeddedSvelte(
 	client.onRequest(WorkspaceFoldersRequest.type, () =>
 		workspaceUri ? [{ uri: workspaceUri, name: 'workspace' }] : null,
 	);
+	// Pull-mode diagnostics: on project reload (tsconfig change etc.) the
+	// server asks the client to re-pull everything.
+	client.onRequest(DiagnosticRefreshRequest.type, () => {
+		onRefreshDiagnostics();
+	});
 	client.onUnhandledNotification(() => undefined);
 	client.listen();
 
@@ -69,6 +76,7 @@ export async function startEmbeddedSvelte(
 				configuration: true,
 				workspaceFolders: true,
 				didChangeConfiguration: { dynamicRegistration: false },
+				diagnostics: { refreshSupport: true },
 			},
 			textDocument: {
 				synchronization: { dynamicRegistration: false },
@@ -86,6 +94,11 @@ export async function startEmbeddedSvelte(
 				hover: { contentFormat: ['markdown', 'plaintext'] },
 				definition: { linkSupport: false },
 				publishDiagnostics: { relatedInformation: true },
+				// Diagnostics are PULLED per virtual doc (textDocument/diagnostic):
+				// each response correlates to the exact authored-document version
+				// that produced it, so stale results are identifiable and dropped —
+				// push publishes computed against superseded content are not.
+				diagnostic: { dynamicRegistration: false },
 				signatureHelp: {
 					signatureInformation: { documentationFormat: ['markdown', 'plaintext'] },
 				},

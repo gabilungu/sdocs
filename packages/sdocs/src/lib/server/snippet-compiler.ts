@@ -1,4 +1,5 @@
 import { dirname, relative, resolve, sep } from 'node:path';
+import { scrubScriptText } from '../language/script-scan.js';
 
 /** Base64url encode a string (URL-safe, no padding) */
 export function base64urlEncode(str: string): string {
@@ -68,33 +69,138 @@ export function resolveImportsToAbsolute(
  * else in the script is preserved, which is what makes shared values
  * available to previews and examples.
  */
+// Import statements on scrubbed text: line-anchored, spanning multi-line
+// named imports up to the first `;`, in both `import … from '…'` and
+// side-effect `import '…'` forms. The specifier is the trailing quoted group.
+const IMPORT_STMT_RE =
+	/^(?:[ \t]*import\b(?:[^;'"`]|(['"`])[^'"`\n]*\1)*?\bfrom\s*|[ \t]*import\s+)(['"])([^'"\n]*)\2/gm;
+
 export function resolveScriptImports(script: string, docFilePath: string): string {
 	const docDir = dirname(docFilePath);
-	// Anchored to line-starting import statements (spanning multi-line named
-	// imports up to the first `;`), so an import-shaped substring inside a
-	// string literal — a code sample, say — is never rewritten.
-	return script.replace(
-		/^([ \t]*import\b(?:[^;'"]|(['"])(?:(?!\2)[^\\]|\\.)*\2)*?\bfrom\s+|[ \t]*import\s+)(['"])(\.\.?\/[^'"]*)\3/gm,
-		(_m, keyword, _q, quote, spec) => `${keyword}${quote}${resolve(docDir, spec)}${quote}`,
-	);
+	// Match against the scrubbed text (comments and string/template contents
+	// blanked, offsets preserved) so an import-shaped substring inside a
+	// string literal — a code sample, say — is never rewritten; then read the
+	// real specifier back from the original at the same offsets.
+	const scrubbed = scrubScriptText(script);
+	let out = '';
+	let last = 0;
+	for (const match of scrubbed.matchAll(IMPORT_STMT_RE)) {
+		// The match ends with `<quote><specifier><quote>`.
+		const specEnd = match.index! + match[0].length - 1;
+		const specStart = specEnd - match[3].length;
+		const spec = script.slice(specStart, specEnd);
+		if (!/^\.\.?\//.test(spec)) continue;
+		out += script.slice(last, specStart) + resolve(docDir, spec);
+		last = specEnd;
+	}
+	return out + script.slice(last);
+}
+
+interface ScannedTag {
+	name: string;
+	/** Offset just past the tag name — the bind:this insertion point */
+	nameEnd: number;
+	/** Whether the tag's own attribute region already has a bind:this */
+	hasBindThis: boolean;
+}
+
+/** Scan the markup for real opening tags (a pragmatic walk: HTML comments,
+ * `{…}` expressions, and quoted attribute values are skipped, so tag-shaped
+ * text inside an attribute string never counts as a tag). */
+function scanMarkupTags(body: string): ScannedTag[] {
+	const tags: ScannedTag[] = [];
+	const n = body.length;
+	// Skip a string/template inside an expression or attr region; returns the
+	// index past the closing delimiter.
+	const skipString = (i: number): number => {
+		const q = body[i];
+		i++;
+		while (i < n) {
+			if (body[i] === '\\') i += 2;
+			else if (body[i] === q) return i + 1;
+			else i++;
+		}
+		return i;
+	};
+	// Skip a `{…}` expression (balanced braces, string-aware).
+	const skipExpression = (i: number): number => {
+		let depth = 0;
+		while (i < n) {
+			const c = body[i];
+			if (c === '{') depth++;
+			else if (c === '}') {
+				depth--;
+				if (depth === 0) return i + 1;
+			} else if (c === '"' || c === "'" || c === '`') {
+				i = skipString(i);
+				continue;
+			}
+			i++;
+		}
+		return i;
+	};
+	let i = 0;
+	while (i < n) {
+		const c = body[i];
+		if (body.startsWith('<!--', i)) {
+			const close = body.indexOf('-->', i + 4);
+			i = close === -1 ? n : close + 3;
+		} else if (c === '{') {
+			i = skipExpression(i);
+		} else if (c === '<' && body[i + 1] === '/') {
+			const close = body.indexOf('>', i + 2);
+			i = close === -1 ? n : close + 1;
+		} else if (c === '<' && /[A-Za-z]/.test(body[i + 1] ?? '')) {
+			const name = body.slice(i + 1).match(/^[A-Za-z][\w.:-]*/)![0];
+			const nameEnd = i + 1 + name.length;
+			// Walk the attribute region to the tag's own '>', skipping quoted
+			// values and expression values, noting a bind:this directive.
+			let hasBindThis = false;
+			let j = nameEnd;
+			while (j < n) {
+				const a = body[j];
+				if (a === '>') {
+					j++;
+					break;
+				}
+				if (a === '"' || a === "'") {
+					j = skipString(j);
+				} else if (a === '{') {
+					j = skipExpression(j);
+				} else if (body.startsWith('bind:this', j)) {
+					hasBindThis = true;
+					j += 'bind:this'.length;
+				} else {
+					j++;
+				}
+			}
+			tags.push({ name, nameEnd, hasBindThis });
+			i = j;
+		} else {
+			i++;
+		}
+	}
+	return tags;
 }
 
 /** Add bind:this to the documented component in the snippet so the wrapper
  * can reach its exported methods and state. Binds the first occurrence of
  * the doc's component when named (so wrapped children like
  * <Tabs><Tab/></Tabs> documenting Tab bind the right instance), otherwise
- * the first capitalized tag. Skipped when the author already binds. */
+ * the first capitalized tag. Only real tags count — tag-shaped text inside
+ * an attribute string never receives the binding. Skipped when the author
+ * already binds the targeted tag themselves. */
 function injectRootRef(snippetBody: string, componentName?: string): string {
-	if (snippetBody.includes('bind:this')) return snippetBody;
-	let match: RegExpMatchArray | null = null;
-	if (componentName) {
-		const escaped = componentName.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
-		match = snippetBody.match(new RegExp(`<${escaped}(?=[\\s/>])`));
-	}
-	if (!match) match = snippetBody.match(/<[A-Z][A-Za-z0-9_]*(?=[\s/>])/);
-	if (!match || match.index === undefined) return snippetBody;
-	const insertAt = match.index + match[0].length;
-	return snippetBody.slice(0, insertAt) + ' bind:this={__sdocsRef}' + snippetBody.slice(insertAt);
+	const tags = scanMarkupTags(snippetBody);
+	const target =
+		(componentName ? tags.find((t) => t.name === componentName) : undefined) ??
+		tags.find((t) => /^[A-Z]/.test(t.name));
+	if (!target || target.hasBindThis) return snippetBody;
+	return (
+		snippetBody.slice(0, target.nameEnd) +
+		' bind:this={__sdocsRef}' +
+		snippetBody.slice(target.nameEnd)
+	);
 }
 
 /** Generate a virtual Svelte iframe wrapper component for a snippet.

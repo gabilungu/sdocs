@@ -220,6 +220,16 @@ describe('normalizeBody', () => {
 		);
 	});
 
+	it('unescapes \\[ at any indentation depth, preserving the indent (review regression F7)', () => {
+		expect(normalizeBody('\t\\[outer]\n\t\t\\[deeper]\n\t\t\t\\[deepest]\n')).toBe(
+			'[outer]\n\t[deeper]\n\t\t[deepest]',
+		);
+	});
+
+	it('keeps mid-line backslash-bracket text untouched', () => {
+		expect(normalizeBody('\ta \\[not a tag]\n')).toBe('a \\[not a tag]');
+	});
+
 	it('dedents PAGE bodies so markdown does not become code blocks', () => {
 		const doc = parseSdoc('[DOC title="X"]\n\t## Heading\n\n\ttext\n[/DOC]\n');
 		expect((doc.entities[0] as PageEntity).body).toBe('## Heading\n\ntext');
@@ -398,6 +408,189 @@ describe('reserved names by entity kind (review regression)', () => {
 			`<script>\n\timport Nav from './Nav.svelte';\n</script>\n\n[PAGE title="P"]\n\t<script>\n\t\timport Nav from './Nav.svelte';\n\t</script>\n\t<Nav />\n[/PAGE]\n`,
 		);
 		expect(codes).toContain('duplicate-import');
+	});
+});
+
+describe('reserved names: file script (review regression F1)', () => {
+	it('flags a file script declaring args — it is lifted into every stage iframe', () => {
+		const codes = diagnosticCodes(
+			`<script>\n\tconst args = { shared: true };\n</script>\n\n[SHOWCASE title="X"]\n\t[example title="A"]\n\t\t<b>x</b>\n\t[/example]\n[/SHOWCASE]\n`,
+		);
+		expect(codes).toContain('reserved-name');
+	});
+
+	it('flags a file script declaring __sdocsRef or __sdocsExample', () => {
+		expect(
+			diagnosticCodes(`<script>\n\tlet __sdocsRef = null;\n</script>\n\n[PAGE title="P"]\n\tx\n[/PAGE]\n`),
+		).toContain('reserved-name');
+		expect(
+			diagnosticCodes(`<script>\n\tfunction __sdocsExample() {}\n</script>\n\n[PAGE title="P"]\n\tx\n[/PAGE]\n`),
+		).toContain('reserved-name');
+	});
+
+	it('flags $props() usage in a file script — the page wrapper already calls it', () => {
+		const doc = parseSdoc(
+			`<script>\n\tlet { data } = $props();\n</script>\n\n[PAGE title="P"]\n\tx\n[/PAGE]\n`,
+		);
+		const props = doc.diagnostics.find((d) => d.message.includes('$props'));
+		expect(props?.code).toBe('reserved-name');
+	});
+
+	it('a clean file script stays diagnostic-free', () => {
+		expect(
+			diagnosticCodes(
+				`<script>\n\timport Nav from './Nav.svelte';\n\tconst sizes = ['s', 'm'];\n</script>\n\n[SHOWCASE title="X"]\n\t[preview component={Nav}]\n\t\t<Nav />\n\t[/preview]\n[/SHOWCASE]\n`,
+			),
+		).toEqual([]);
+	});
+});
+
+describe('reserved names: destructured bindings (review regression F1b)', () => {
+	const script = (decl: string) =>
+		`[SHOWCASE title="X"]\n\t[example title="A"]\n\t\t<script>\n\t\t\t${decl}\n\t\t</script>\n\t\t<b>x</b>\n\t[/example]\n[/SHOWCASE]\n`;
+
+	it('flags object and array destructuring of reserved names', () => {
+		expect(diagnosticCodes(script('const { args } = opts;'))).toContain('reserved-name');
+		expect(diagnosticCodes(script('const [args] = lists;'))).toContain('reserved-name');
+	});
+
+	it('flags renames and rest bindings', () => {
+		expect(diagnosticCodes(script('const { x: args } = opts;'))).toContain('reserved-name');
+		expect(diagnosticCodes(script('let { ...args } = opts;'))).toContain('reserved-name');
+		expect(diagnosticCodes(script('const { a: { b: __sdocsRef } } = opts;'))).toContain(
+			'reserved-name',
+		);
+	});
+
+	it('a reserved name used in a destructuring default is a use, not a binding', () => {
+		expect(diagnosticCodes(script('const { extra = args } = opts;'))).not.toContain(
+			'reserved-name',
+		);
+	});
+
+	it('reserved-shaped text in comments or strings never fires', () => {
+		expect(diagnosticCodes(script('// let args = 1;\nconst ok = 2;'))).not.toContain(
+			'reserved-name',
+		);
+		expect(diagnosticCodes(script("const sample = 'let args = 1;';"))).not.toContain(
+			'reserved-name',
+		);
+	});
+
+	it('longer names sharing the prefix stay allowed', () => {
+		expect(diagnosticCodes(script('const argsList = [];'))).not.toContain('reserved-name');
+	});
+});
+
+describe('reserved names: page wrapper (review regression F2)', () => {
+	it('flags a PAGE entity script using $props()', () => {
+		expect(
+			diagnosticCodes(
+				`[PAGE title="P"]\n\t<script>\n\t\tlet { data } = $props();\n\t</script>\n\t<b>{data}</b>\n[/PAGE]\n`,
+			),
+		).toContain('reserved-name');
+	});
+
+	it('flags a DOC entity script declaring __sdocsExample or using $props()', () => {
+		expect(
+			diagnosticCodes(
+				`[DOC title="D"]\n\t<script>\n\t\tconst __sdocsExample = 1;\n\t</script>\n\tbody\n[/DOC]\n`,
+			),
+		).toContain('reserved-name');
+		expect(
+			diagnosticCodes(
+				`[DOC title="D"]\n\t<script>\n\t\tconst p = $props();\n\t</script>\n\tbody\n[/DOC]\n`,
+			),
+		).toContain('reserved-name');
+	});
+
+	it('a DOC entity script also keeps the stage reservations — its examples run in iframes', () => {
+		expect(
+			diagnosticCodes(
+				`[DOC title="D"]\n\t<script>\n\t\tlet args = {};\n\t</script>\n\tbody\n[/DOC]\n`,
+			),
+		).toContain('reserved-name');
+	});
+
+	it('SHOWCASE and LAYOUT scripts may declare __sdocsExample and use $props() — no page wrapper there', () => {
+		expect(
+			diagnosticCodes(
+				`[SHOWCASE title="X"]\n\t<script>\n\t\tconst __sdocsExample = 1;\n\t\tconst p = $props();\n\t</script>\n\t[example title="A"]\n\t\t<b>x</b>\n\t[/example]\n[/SHOWCASE]\n`,
+			),
+		).not.toContain('reserved-name');
+		expect(
+			diagnosticCodes(
+				`[LAYOUT title="L"]\n\t<script>\n\t\tconst __sdocsExample = 1;\n\t</script>\n\t<b>x</b>\n[/LAYOUT]\n`,
+			),
+		).not.toContain('reserved-name');
+	});
+});
+
+describe('example title enforcement covers unusable values (review regression F3)', () => {
+	it('a non-string example title carries the build-blocking code, once', () => {
+		const diagnostics = parseSdoc(
+			`[SHOWCASE title="X"]\n\t[example title={dynamic}]\n\t\t<b>x</b>\n\t[/example]\n[/SHOWCASE]\n`,
+		).diagnostics.filter(
+			(d) => d.code === 'example-title-required' || d.code === 'attr-value-kind',
+		);
+		expect(diagnostics.map((d) => d.code)).toEqual(['example-title-required']);
+	});
+
+	it('wrong-kind values on rules without a dedicated code keep attr-value-kind', () => {
+		expect(diagnosticCodes('[SHOWCASE title={x}]\n[/SHOWCASE]\n')).toContain('attr-value-kind');
+	});
+});
+
+describe('import-shaped text inside strings (review regression F4)', () => {
+	it('an import inside a template literal never triggers duplicate-import', () => {
+		const codes = diagnosticCodes(
+			'<script>\n\tconst sample = `\nimport Button from \'./Button.svelte\';\n`;\n</script>\n\n' +
+				`[SHOWCASE title="X"]\n\t[example title="A"]\n\t\t<script>\n\t\t\timport Button from './Button.svelte';\n\t\t</script>\n\t\t<Button />\n\t[/example]\n[/SHOWCASE]\n`,
+		);
+		expect(codes).not.toContain('duplicate-import');
+	});
+
+	it('a real duplicate next to a code sample still fires', () => {
+		const codes = diagnosticCodes(
+			'<script>\n\timport Button from \'./Button.svelte\';\n\tconst sample = `\nimport Other from \'./Other.svelte\';\n`;\n</script>\n\n' +
+				`[SHOWCASE title="X"]\n\t[example title="A"]\n\t\t<script>\n\t\t\timport Button from './Button.svelte';\n\t\t</script>\n\t\t<Button />\n\t[/example]\n[/SHOWCASE]\n`,
+		);
+		expect(codes).toContain('duplicate-import');
+	});
+});
+
+describe('example slug collisions (review regression F5)', () => {
+	it('warns when an example slug lands on a preview slug', () => {
+		const doc = parseSdoc(
+			`<script>\n\timport Button from './Button.svelte';\n</script>\n\n[SHOWCASE title="X"]\n\t[preview component={Button} title="X Ray"]\n\t\t<Button />\n\t[/preview]\n\t[example title="Ray"]\n\t\t<Button />\n\t[/example]\n[/SHOWCASE]\n`,
+		);
+		const collision = doc.diagnostics.find((d) => d.code === 'example-slug-collision');
+		expect(collision?.message).toContain('"Ray"');
+		expect(collision?.message).toContain('"X Ray"');
+		expect(collision?.message).toContain('"x-ray"');
+	});
+
+	it('warns when two distinct example titles slugify identically', () => {
+		const codes = diagnosticCodes(
+			`[DOC title="D"]\n\t[example title="A B"]\n\t\t<b>x</b>\n\t[/example]\n\t[example title="A-B"]\n\t\t<b>y</b>\n\t[/example]\n[/DOC]\n`,
+		);
+		expect(codes).toContain('example-slug-collision');
+	});
+
+	it('identical titles stay a duplicate-example-title, not a slug collision', () => {
+		const codes = diagnosticCodes(
+			`[SHOWCASE title="X"]\n\t[example title="A"]\n\t\t<b>x</b>\n\t[/example]\n\t[example title="A"]\n\t\t<b>y</b>\n\t[/example]\n[/SHOWCASE]\n`,
+		);
+		expect(codes).toContain('duplicate-example-title');
+		expect(codes).not.toContain('example-slug-collision');
+	});
+
+	it('disjoint slugs stay silent', () => {
+		expect(
+			diagnosticCodes(
+				`<script>\n\timport Button from './Button.svelte';\n</script>\n\n[SHOWCASE title="X"]\n\t[preview component={Button}]\n\t\t<Button />\n\t[/preview]\n\t[example title="Ray"]\n\t\t<Button />\n\t[/example]\n[/SHOWCASE]\n`,
+			),
+		).toEqual([]);
 	});
 });
 

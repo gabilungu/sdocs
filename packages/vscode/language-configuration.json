@@ -100,8 +100,8 @@
 	],
 	"folding": {
 		"markers": {
-			"start": "^\\s*\\[(DOCS|PAGE|LAYOUT|preview|example)\\b",
-			"end": "^\\s*\\[/(DOCS|PAGE|LAYOUT|preview|example)\\]"
+			"start": "^\\s*\\[(SHOWCASE|DOC|PAGE|LAYOUT|preview|example)\\b",
+			"end": "^\\s*\\[/(SHOWCASE|DOC|PAGE|LAYOUT|preview|example)\\]"
 		}
 	},
 	"colorizedBracketPairs": [

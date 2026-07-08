@@ -52,7 +52,11 @@ function formatOpener(
 	oneLevel: string,
 	printWidth: number,
 ): string[] {
-	const parts = Object.values(attrs).map((a) => source.slice(a.span.start, a.span.end));
+	// Attrs copy verbatim, minus any CR: assembly is LF-space and the final
+	// join re-applies the document's EOL uniformly.
+	const parts = Object.values(attrs).map((a) =>
+		source.slice(a.span.start, a.span.end).replace(/\r\n/g, '\n'),
+	);
 	const single = `${tagIndent}[${kind}${parts.length ? ' ' + parts.join(' ') : ''}]`;
 	if (parts.length === 0 || single.length <= printWidth) return [single];
 	const inner = tagIndent + oneLevel;
@@ -87,7 +91,13 @@ export async function formatSdoc(
 	file: SdocFile = scanSdoc(source),
 	filePath?: string,
 ): Promise<string | null> {
-	const sourceLines = source.split('\n');
+	// Formatting happens in LF space (prettier emits LF); the result re-joins
+	// uniformly in the document's dominant EOL, so a CRLF document never comes
+	// out with mixed line endings.
+	const crlfCount = source.match(/\r\n/g)?.length ?? 0;
+	const lfCount = (source.match(/\n/g)?.length ?? 0) - crlfCount;
+	const eol = crlfCount > lfCount ? '\r\n' : '\n';
+	const sourceLines = source.split('\n').map((l) => (l.endsWith('\r') ? l.slice(0, -1) : l));
 	// The project's Prettier config (.prettierrc) is the source of truth for
 	// width and indentation when present; the editor's options are the
 	// fallback, printWidth 80 the last resort.
@@ -126,10 +136,24 @@ export async function formatSdoc(
 		last: lineIndex(source, Math.max(span.start, span.end - 1)),
 	});
 
+	// prettier-plugin-svelte is not always idempotent (with whitespace
+	// sensitivity 'ignore' some fragments only settle on a second pass), and
+	// format-on-save must be stable — so every fragment formats to a fixpoint:
+	// re-run prettier while the output keeps changing, capped at 3 passes.
+	const fixpoint = async (text: string, fragmentOpts: prettier.Options): Promise<string> => {
+		let prev = text;
+		let out = await prettier.format(prev, fragmentOpts);
+		for (let pass = 1; pass < 3 && out !== prev; pass++) {
+			prev = out;
+			out = await prettier.format(prev, fragmentOpts);
+		}
+		return out;
+	};
+
 	const formatFragment = async (text: string, fragmentOpts = opts): Promise<string[] | null> => {
 		try {
-			const formatted = await prettier.format(text, fragmentOpts);
-			return formatted.replace(/\n+$/, '').split('\n');
+			const formatted = await fixpoint(text, fragmentOpts);
+			return formatted.replace(/\r\n/g, '\n').replace(/\n+$/, '').split('\n');
 		} catch {
 			return null; // fragment doesn't parse — leave it exactly as written
 		}
@@ -193,10 +217,10 @@ export async function formatSdoc(
 	// script tag and strip it back out. Unparseable islands stay verbatim.
 	const formatIsland = async (text: string): Promise<string[] | null> => {
 		try {
-			const formatted = await prettier.format('<script lang="ts"></script>\n' + text, opts);
+			const formatted = await fixpoint('<script lang="ts"></script>\n' + text, opts);
 			const stripped = formatted.replace(/^<script lang="ts"><\/script>\n+/, '');
 			if (stripped === formatted) return null;
-			return stripped.replace(/\n+$/, '').split('\n');
+			return stripped.replace(/\r\n/g, '\n').replace(/\n+$/, '').split('\n');
 		} catch {
 			return null;
 		}
@@ -281,14 +305,35 @@ export async function formatSdoc(
 		}
 	}
 
-	if (regions.length === 0) return null;
+	// Any line carrying a scanner error stays byte-identical: what the scan
+	// recovered there is lossy (a duplicate attribute keeps only the first;
+	// stray text after "]" is no attribute at all), so re-emitting from the
+	// parse would delete authored text. 'unclosed-block' is the exception:
+	// its span points at a perfectly well-formed opener — the problem (the
+	// missing closer) lies elsewhere, and the closer handling above is
+	// already safe for it.
+	const frozen = new Set<number>();
+	for (const err of file.errors) {
+		if (err.code === 'unclosed-block') continue;
+		const first = lineIndex(source, err.span.start);
+		const last = lineIndex(source, Math.max(err.span.start, err.span.end - 1));
+		for (let l = first; l <= last; l++) frozen.add(l);
+	}
+	const safe = regions.filter((region) => {
+		for (let l = region.firstLine; l <= region.lastLine; l++) {
+			if (frozen.has(l)) return false;
+		}
+		return true;
+	});
+	if (safe.length === 0) return null;
 
 	// Splice bottom-up so earlier line indexes stay valid.
-	regions.sort((a, b) => b.firstLine - a.firstLine);
+	safe.sort((a, b) => b.firstLine - a.firstLine);
 	const out = [...sourceLines];
-	for (const region of regions) {
+	for (const region of safe) {
 		out.splice(region.firstLine, region.lastLine - region.firstLine + 1, ...region.lines);
 	}
-	const result = out.join('\n');
+	let result = out.join('\n');
+	if (eol === '\r\n') result = result.replaceAll('\n', '\r\n');
 	return result === source ? null : result;
 }

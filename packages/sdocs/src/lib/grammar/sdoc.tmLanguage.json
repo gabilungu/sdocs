@@ -99,7 +99,7 @@
 			"end": "-->"
 		},
 		"script-ts": {
-			"begin": "^\\s*(<)(script)((?=[^>]*lang=([\"'])ts\\4)[^>]*)(>)",
+			"begin": "^\\s*(<)(script)(?=[\\s/>])((?=[^>]*lang=([\"'])ts\\4)[^>]*)(>)",
 			"beginCaptures": {
 				"1": {
 					"name": "punctuation.definition.tag.begin.sdoc"
@@ -138,7 +138,7 @@
 			]
 		},
 		"script-js": {
-			"begin": "^\\s*(<)(script)((?![^>]*lang=([\"'])ts\\4)[^>]*)(>)",
+			"begin": "^\\s*(<)(script)(?=[\\s/>])((?![^>]*lang=([\"'])ts\\4)[^>]*)(>)",
 			"beginCaptures": {
 				"1": {
 					"name": "punctuation.definition.tag.begin.sdoc"
@@ -177,7 +177,7 @@
 			]
 		},
 		"style": {
-			"begin": "^\\s*(<)(style)([^>]*)(>)",
+			"begin": "^\\s*(<)(style)(?=[\\s/>])([^>]*)(>)",
 			"beginCaptures": {
 				"1": {
 					"name": "punctuation.definition.tag.begin.sdoc"
@@ -301,8 +301,16 @@
 			},
 			"patterns": [
 				{
-					"begin": "(^|\\G)",
-					"while": "(^|\\G)(?!\\s*\\[/DOC\\]\\s*$)(?:\\t|[ ]{1,4})?",
+					"comment": "Fenced code and [example] regions are direct begin/end children of the DOC region, not children of the markdown while-loop below: a while condition is re-checked on every line no matter what is stacked above it, so a [/DOC] line inside a fence would pop the loop and let the DOC end match. The loop yields on fence-opener and [example] lines instead; begin/end children shield the DOC end until they close, so [/DOC] inside a fence stays fence content and [/example] still closes an example.",
+					"include": "text.html.markdown#fenced_code_block"
+				},
+				{
+					"include": "#page-example"
+				},
+				{
+					"comment": "The begin consumes the same optional indent as the while: after a fence or example closes, the loop re-begins on the next content line, and a begin line skips the while — without the indent here markdown would see the raw tab and open an indented code block.",
+					"begin": "(^|\\G)(?:\\t|[ ]{1,4})?",
+					"while": "(^|\\G)(?!\\s*\\[/DOC\\]\\s*$)(?!\\s*(?:\\[example\\b|`{3,}|~{3,}))(?:\\t|[ ]{1,4})?",
 					"contentName": "meta.embedded.block.markdown",
 					"patterns": [
 						{
@@ -313,9 +321,6 @@
 						},
 						{
 							"include": "#block-style"
-						},
-						{
-							"include": "#page-example"
 						},
 						{
 							"include": "#page-svelte-block"
@@ -834,7 +839,7 @@
 			]
 		},
 		"block-script-ts": {
-			"begin": "(<)(script)((?=[^>]*lang=([\"'])ts\\4)[^>]*)(>)",
+			"begin": "(<)(script)(?=[\\s/>])((?=[^>]*lang=([\"'])ts\\4)[^>]*)(>)",
 			"beginCaptures": {
 				"1": {
 					"name": "punctuation.definition.tag.begin.sdoc"
@@ -873,7 +878,7 @@
 			]
 		},
 		"block-script-js": {
-			"begin": "(<)(script)((?![^>]*lang=([\"'])ts\\4)[^>]*)(>)",
+			"begin": "(<)(script)(?=[\\s/>])((?![^>]*lang=([\"'])ts\\4)[^>]*)(>)",
 			"beginCaptures": {
 				"1": {
 					"name": "punctuation.definition.tag.begin.sdoc"
@@ -912,7 +917,7 @@
 			]
 		},
 		"block-style": {
-			"begin": "(<)(style)([^>]*)(>)",
+			"begin": "(<)(style)(?=[\\s/>])([^>]*)(>)",
 			"beginCaptures": {
 				"1": {
 					"name": "punctuation.definition.tag.begin.sdoc"

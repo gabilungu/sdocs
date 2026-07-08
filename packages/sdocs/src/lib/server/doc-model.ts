@@ -5,7 +5,9 @@
  */
 
 import { resolve, dirname } from 'node:path';
-import { slugifyTitle, type SdocEntity } from '../language/index.js';
+import type { SdocEntity } from '../language/index.js';
+import { exampleSlug, previewSlug } from '../language/parser.js';
+import { scrubScriptText } from '../language/script-scan.js';
 
 export type SnippetRole = 'preview' | 'example' | 'content';
 
@@ -25,16 +27,9 @@ export interface PlannedSnippet {
 	description: string | null;
 }
 
-/** URL-safe slug for an example snippet. The 'x-' prefix keeps example
- * slugs disjoint from preview slugs and 'content'. */
-export function exampleSlug(title: string): string {
-	return 'x-' + slugifyTitle(title);
-}
-
-/** URL-safe slug for a preview snippet (from its tab label). */
-export function previewSlug(label: string): string {
-	return slugifyTitle(label);
-}
+// Slug derivation lives with the parser (it diagnoses collisions at parse
+// time); re-exported here so snippet consumers keep one import site.
+export { exampleSlug, previewSlug };
 
 /** The snippets one entity produces, in order: previews then examples for
  * SHOWCASE, the 'content' body then examples for DOC, the single 'content'
@@ -54,22 +49,39 @@ export function planEntitySnippets(entity: SdocEntity): PlannedSnippet[] {
 		style: b.style?.content ?? null,
 		description: b.description ?? null,
 	});
-	const example = (e: ExampleLike) => ({
-		name: e.title,
-		slug: exampleSlug(e.title),
-		role: 'example' as const,
-		...blockParts(e),
-	});
+	// Slugs must be unique within the entity: they address iframe URLs and
+	// emitted chunk fileNames. Preview slugs stay untouched (URL stability);
+	// an example whose slug collides — with a preview ("X Ray" → x-ray vs
+	// example "Ray" → x-ray) or an earlier example — gets a deterministic
+	// numeric suffix. The parser warns about the collision separately.
+	const usedSlugs = new Set<string>();
+	const example = (e: ExampleLike) => {
+		let slug = exampleSlug(e.title);
+		if (usedSlugs.has(slug)) {
+			let n = 2;
+			while (usedSlugs.has(`${slug}-${n}`)) n++;
+			slug = `${slug}-${n}`;
+		}
+		usedSlugs.add(slug);
+		return {
+			name: e.title,
+			slug,
+			role: 'example' as const,
+			...blockParts(e),
+		};
+	};
 	if (entity.kind === 'SHOWCASE') {
-		return [
-			...entity.previews.map((p) => ({
+		const previews = entity.previews.map((p) => {
+			const slug = previewSlug(p.label);
+			usedSlugs.add(slug);
+			return {
 				name: p.label,
-				slug: previewSlug(p.label),
+				slug,
 				role: 'preview' as const,
 				...blockParts(p),
-			})),
-			...entity.examples.map(example),
-		];
+			};
+		});
+		return [...previews, ...entity.examples.map(example)];
 	}
 	const content = {
 		name: 'Content',
@@ -81,6 +93,7 @@ export function planEntitySnippets(entity: SdocEntity): PlannedSnippet[] {
 		style: null,
 		description: null,
 	};
+	usedSlugs.add(content.slug);
 	if (entity.kind === 'DOC') {
 		return [content, ...entity.examples.map(example)];
 	}
@@ -106,13 +119,17 @@ export function planIframeSnippets(entity: SdocEntity): PlannedSnippet[] {
 	);
 }
 
-/** Extract import statements from the file-level script content. */
+/** Extract import statements from the file-level script content. Matches on
+ * the scrubbed text (comments and string/template contents blanked) so an
+ * import-shaped line inside a code sample never counts, then reads the real
+ * statement back from the original at the same offsets. */
 export function extractImports(scriptContent: string): string[] {
+	const scrubbed = scrubScriptText(scriptContent);
 	const imports: string[] = [];
-	const regex = /^\s*import\s+.+$/gm;
+	const regex = /^[ \t]*import\s+.+$/gm;
 	let match;
-	while ((match = regex.exec(scriptContent)) !== null) {
-		imports.push(match[0].trim());
+	while ((match = regex.exec(scrubbed)) !== null) {
+		imports.push(scriptContent.slice(match.index, match.index + match[0].length).trim());
 	}
 	return imports;
 }

@@ -164,6 +164,11 @@
 	  it's already in scope.
 	- Declaring a name the file script also declares is a compile error — the
 	  scopes nest, they don't shadow.
+	- A few names belong to the machinery and are diagnosed wherever they'd
+	  collide: `args` and `__sdocsRef` in any script that feeds a preview
+	  stage (including the file script), `__sdocsExample` and a `$props()`
+	  call in scripts that feed a page body. `[PAGE]` scripts may use `args`
+	  freely — pages have no preview stage.
 	- Styles apply within the block's own stage. In a `[preview]`, a block
 	  script's `component={X}` import may also live in the block's script.
 

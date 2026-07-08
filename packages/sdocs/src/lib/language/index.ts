@@ -21,6 +21,7 @@ export {
 	type SdocProjection,
 	type SdocBlockProjection,
 	type ProjectedLineKind,
+	type RecomposedSpan,
 } from './projection.js';
 
 export {

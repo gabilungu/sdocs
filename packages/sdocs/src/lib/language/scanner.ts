@@ -257,6 +257,33 @@ function skipString(source: string, at: number): number {
 	return -1;
 }
 
+/** True when a trimmed line starts a real <script>/<style> opener: the tag
+ * name must end at a boundary (whitespace, '>', '/', or the line end for a
+ * multi-line opener), so custom elements like <styled-note> or
+ * <scripted-demo> flow through as ordinary content. */
+function startsTag(trimmed: string, tag: 'script' | 'style'): boolean {
+	if (!trimmed.startsWith(`<${tag}`)) return false;
+	const next = trimmed[tag.length + 1];
+	return next === undefined || next === '>' || next === '/' || /\s/.test(next);
+}
+
+/** Find the '>' that closes a tag opener starting at `from`, skipping '>'
+ * characters inside quoted attribute values (e.g. generics="Record<K, V>").
+ * -1 when no closing '>' exists. */
+function findTagEnd(source: string, from: number): number {
+	for (let i = from; i < source.length; i++) {
+		const ch = source[i];
+		if (ch === '"' || ch === "'") {
+			const close = source.indexOf(ch, i + 1);
+			if (close === -1) return -1;
+			i = close;
+			continue;
+		}
+		if (ch === '>') return i;
+	}
+	return -1;
+}
+
 /** Parse a `[name` / `[/name` token at the start of a trimmed line. */
 function tagToken(trimmed: string): { name: string; closer: boolean } | null {
 	const m = trimmed.match(/^\[(\/?)([A-Za-z][A-Za-z0-9_-]*)/);
@@ -310,7 +337,7 @@ export function scanSdoc(source: string): SdocFile {
 	function captureTag(tag: 'script' | 'style', startLi: number): { block: TagBlock; nextLi: number } | null {
 		const openLine = lines[startLi];
 		const openStart = openLine.start + openLine.text.indexOf(`<${tag}`);
-		const openEnd = source.indexOf('>', openStart);
+		const openEnd = findTagEnd(source, openStart);
 		if (openEnd === -1) {
 			errors.push({
 				code: 'tag-syntax',
@@ -405,7 +432,7 @@ export function scanSdoc(source: string): SdocFile {
 	): { block: TagBlock; nextLi: number } | null {
 		const openLine = lines[startLi];
 		const openStart = openLine.start + openLine.text.indexOf(`<${tag}`);
-		const openEnd = source.indexOf('>', openStart);
+		const openEnd = findTagEnd(source, openStart);
 		if (openEnd === -1 || openEnd > boundEnd) {
 			errors.push({
 				code: 'tag-syntax',
@@ -451,14 +478,20 @@ export function scanSdoc(source: string): SdocFile {
 	 * inside markdown code fences (DOC prose shows tag syntax in fences).
 	 * Returns lines.length when the entity is unclosed. */
 	function findCloserLine(fromLi: number, closer: string, fenced = false): number {
-		let inFence = false;
+		let fence: { marker: string; len: number } | null = null;
 		for (let i = fromLi; i < lines.length; i++) {
 			const trimmed = lines[i].text.trim();
-			if (fenced && /^(`{3,}|~{3,})/.test(trimmed)) {
-				inFence = !inFence;
-				continue;
+			if (fenced) {
+				const m = trimmed.match(/^(`{3,}|~{3,})/);
+				if (m) {
+					// CommonMark: a fence closes only on the SAME marker character
+					// with AT LEAST as many chars; anything else is fenced content.
+					if (!fence) fence = { marker: m[1][0], len: m[1].length };
+					else if (m[1][0] === fence.marker && m[1].length >= fence.len) fence = null;
+					continue;
+				}
 			}
-			if (!inFence && trimmed === closer) return i;
+			if (!fence && trimmed === closer) return i;
 		}
 		return lines.length;
 	}
@@ -488,7 +521,7 @@ export function scanSdoc(source: string): SdocFile {
 
 		let j = fromLi;
 		while (j < closerLi && lines[j].text.trim() === '') j++;
-		if (j < closerLi && lines[j].text.trim().startsWith('<script')) {
+		if (j < closerLi && startsTag(lines[j].text.trim(), 'script')) {
 			const captured = captureBoundedTag('script', j, bodyEnd, closer);
 			if (captured) {
 				script = captured.block;
@@ -504,7 +537,7 @@ export function scanSdoc(source: string): SdocFile {
 		let markupEnd = markupStart;
 		while (j < closerLi) {
 			const trimmed = lines[j].text.trim();
-			if (trimmed.startsWith('<style')) {
+			if (startsTag(trimmed, 'style')) {
 				const captured = captureBoundedTag('style', j, bodyEnd, closer);
 				if (!captured) {
 					j++;
@@ -523,7 +556,7 @@ export function scanSdoc(source: string): SdocFile {
 				}
 				break;
 			}
-			if (trimmed.startsWith('<script')) {
+			if (startsTag(trimmed, 'script')) {
 				errors.push({
 					code: `${level}-script-position`,
 					message: `A ${level} <script> must be the first content of its [${kind}] ${level === 'block' ? 'block' : 'body'}.`,
@@ -557,7 +590,7 @@ export function scanSdoc(source: string): SdocFile {
 				i = skipComment(i);
 				continue;
 			}
-			if (trimmed.startsWith('<script')) {
+			if (startsTag(trimmed, 'script')) {
 				if (sawContent || entity.script) {
 					errors.push({
 						code: 'entity-script-position',
@@ -579,7 +612,7 @@ export function scanSdoc(source: string): SdocFile {
 				i = captured.nextLi;
 				continue;
 			}
-			if (trimmed.startsWith('<style')) {
+			if (startsTag(trimmed, 'style')) {
 				const closerLi = findCloserLine(i, `[/${entity.kind}]`);
 				const captured = captureBoundedTag('style', i, closerBound(closerLi), `[/${entity.kind}]`);
 				if (!captured) {
@@ -598,7 +631,10 @@ export function scanSdoc(source: string): SdocFile {
 				i = captured.nextLi;
 				continue;
 			}
-			// Anything after a captured <style> means it wasn't last.
+			// Anything after a captured <style> means it wasn't last. Unlike DOC
+			// there is no prose to demote it into (loose text here is itself an
+			// error), so keep the capture: the CSS still applies exactly once and
+			// the position diagnostic stands alone, without a cascade.
 			if (entity.style && trimmed !== '[/SHOWCASE]' && !styleMisplacedReported) {
 				styleMisplacedReported = true;
 				errors.push({
@@ -697,7 +733,7 @@ export function scanSdoc(source: string): SdocFile {
 		// Entity-level <script>: the first content of the body, before prose.
 		let i = startLi;
 		while (i < lines.length && lines[i].text.trim() === '') i++;
-		if (i < lines.length && lines[i].text.trim().startsWith('<script')) {
+		if (i < lines.length && startsTag(lines[i].text.trim(), 'script')) {
 			const closerLi = findCloserLine(i, '[/DOC]', true);
 			const captured = captureBoundedTag('script', i, closerBound(closerLi), '[/DOC]');
 			if (captured) {
@@ -711,23 +747,55 @@ export function scanSdoc(source: string): SdocFile {
 		}
 		const bodyStart = i < lines.length ? lines[i].start : source.length;
 		let bodyEnd = bodyStart;
-		let inFence = false;
+		let fence: { marker: string; len: number } | null = null;
 		let styleMisplacedReported = false;
+		// Content after a captured <style> means it wasn't the trailing entity
+		// style after all: report it, then demote it to plain prose — folded
+		// back into the body span so the CSS renders exactly once, as authored,
+		// instead of applying both inline and via the entity-style injection.
+		const demoteMisplacedStyle = () => {
+			if (!entity.style) return;
+			if (!styleMisplacedReported) {
+				styleMisplacedReported = true;
+				errors.push({
+					code: 'entity-style-position',
+					message: 'An entity <style> must be the last content of its [DOC] body.',
+					span: entity.style.span,
+				});
+			}
+			bodyEnd = Math.max(bodyEnd, entity.style.span.end);
+			entity.style = null;
+		};
 		while (i < lines.length) {
 			const line = lines[i];
 			const trimmed = line.text.trim();
-			if (/^(`{3,}|~{3,})/.test(trimmed)) {
-				inFence = !inFence;
+			const fenceMatch = trimmed.match(/^(`{3,}|~{3,})/);
+			if (fenceMatch && !fence) {
+				demoteMisplacedStyle();
+				fence = { marker: fenceMatch[1][0], len: fenceMatch[1].length };
 				bodyEnd = line.end;
 				i++;
 				continue;
 			}
-			if (inFence) {
+			if (fence) {
+				// CommonMark: a fence closes only on the SAME marker character with
+				// AT LEAST as many chars; anything else — other markers included —
+				// is fenced content.
+				if (
+					fenceMatch &&
+					fenceMatch[1][0] === fence.marker &&
+					fenceMatch[1].length >= fence.len
+				) {
+					fence = null;
+					bodyEnd = line.end;
+					i++;
+					continue;
+				}
 				if (trimmed !== '') bodyEnd = line.end;
 				i++;
 				continue;
 			}
-			if (trimmed.startsWith('<style')) {
+			if (startsTag(trimmed, 'style')) {
 				const closerLi = findCloserLine(i, '[/DOC]', true);
 				const captured = captureBoundedTag('style', i, closerBound(closerLi), '[/DOC]');
 				if (!captured) {
@@ -747,14 +815,7 @@ export function scanSdoc(source: string): SdocFile {
 				i = captured.nextLi;
 				continue;
 			}
-			if (entity.style && trimmed !== '' && trimmed !== '[/DOC]' && !styleMisplacedReported) {
-				styleMisplacedReported = true;
-				errors.push({
-					code: 'entity-style-position',
-					message: 'An entity <style> must be the last content of its [DOC] body.',
-					span: entity.style.span,
-				});
-			}
+			if (trimmed !== '' && trimmed !== '[/DOC]') demoteMisplacedStyle();
 			if (trimmed === '[/DOC]') {
 				const tagStart = line.start + line.text.indexOf('[/DOC]');
 				entity.body = source.slice(bodyStart, Math.max(bodyStart, bodyEnd));
@@ -828,7 +889,7 @@ export function scanSdoc(source: string): SdocFile {
 			li = skipComment(li);
 			continue;
 		}
-		if (trimmed.startsWith('<script')) {
+		if (startsTag(trimmed, 'script')) {
 			const captured = captureTag('script', li);
 			if (!captured) return { script, style, entities, errors, source };
 			if (script) {
@@ -849,7 +910,7 @@ export function scanSdoc(source: string): SdocFile {
 			li = captured.nextLi;
 			continue;
 		}
-		if (trimmed.startsWith('<style')) {
+		if (startsTag(trimmed, 'style')) {
 			const captured = captureTag('style', li);
 			if (!captured) return { script, style, entities, errors, source };
 			if (style) {

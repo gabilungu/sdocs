@@ -334,3 +334,272 @@ describe('DOC entity script/style coloring (review regression)', () => {
 		hl.dispose();
 	});
 });
+
+// ---------------------------------------------------------------------------
+// Shared helpers for the boundary/fence regressions below: full scope chains
+// (joined) so tests can assert on any scope in the stack, not just the last.
+
+function lineIndex(lines: string[], needle: string, from = 0): number {
+	return lines.findIndex((l, i) => i >= from && l.includes(needle));
+}
+
+function chainAt(tokens: Tokens, lineIdx: number, word: string): string {
+	const row = tokens[lineIdx] ?? [];
+	const tok = row.find((t) => t.content.trim() === word) ?? row.find((t) => t.content.includes(word));
+	return (tok?.explanation?.flatMap((e) => e.scopes.map((s) => s.scopeName)) ?? []).join(' ');
+}
+
+function lineScopes(tokens: Tokens, lineIdx: number): string {
+	return (tokens[lineIdx] ?? [])
+		.flatMap((t) => t.explanation?.flatMap((e) => e.scopes.map((s) => s.scopeName)) ?? [])
+		.join(' ');
+}
+
+async function oniHighlighter() {
+	return createHighlighter({
+		themes: ['github-dark'],
+		langs: [
+			'javascript', 'typescript', 'css', 'svelte', 'markdown', 'html',
+			{ ...grammar, name: 'sdoc', embeddedLangs: ['svelte', 'typescript', 'javascript', 'css', 'markdown'] },
+		],
+	});
+}
+
+async function jsHighlighter() {
+	return createHighlighterCore({
+		themes: [githubDark],
+		langs: [js, ts, css, svelte, markdown, html, { ...grammar, name: 'sdoc' }],
+		engine: createJavaScriptRegexEngine({ forgiving: true }),
+	});
+}
+
+// <style/<script begins used to match any tag that merely starts with the
+// word: <styled-button> opened a CSS region that swallowed the rest of the
+// block. The begins now require a real tag-name boundary (whitespace, /, >).
+const CUSTOM_TAGS = `[SHOWCASE title="Widgets"]
+	[example title="A"]
+		<styled-button label="go">press</styled-button>
+		<script-demo speed={1} />
+		<span class="after">still svelte</span>
+		<style >
+			.a { color: red; }
+		</style>
+		<style>.b { color: blue; }</style>
+	[/example]
+[/SHOWCASE]
+`;
+
+const TOP_LEVEL_CUSTOM = `<script lang="ts">
+	const top: number = 1;
+</script>
+
+<styled-button>press</styled-button>
+
+[SHOWCASE title="Widgets"]
+	[example title="A"]
+		<b>hi</b>
+	[/example]
+[/SHOWCASE]
+
+<style>
+	.top { color: red; }
+</style>
+`;
+
+function assertCustomTagBoundaries(tokens: Tokens, source: string) {
+	const lines = source.split('\n');
+	const li = (n: string, from = 0) => lineIndex(lines, n, from);
+	// Custom elements whose names start with style/script are plain markup.
+	const styled = chainAt(tokens, li('<styled-button'), 'styled-button');
+	expect(styled, '<styled-button> tag name').toContain('svelte');
+	expect(styled, '<styled-button> tag name').not.toContain('entity.name.tag.style.sdoc');
+	expect(styled, '<styled-button> tag name').not.toContain('source.css');
+	const demo = chainAt(tokens, li('<script-demo'), 'script-demo');
+	expect(demo, '<script-demo> tag name').toContain('svelte');
+	expect(demo, '<script-demo> tag name').not.toContain('entity.name.tag.script.sdoc');
+	// Markup after them is untouched — nothing was swallowed as CSS/JS.
+	expect(chainAt(tokens, li('class="after"'), 'span'), 'markup after custom tags').toContain('svelte');
+	// Real style tags still open CSS: attribute-position whitespace and single-line.
+	expect(chainAt(tokens, li('.a { color: red'), 'color'), 'CSS inside <style >').toContain('css');
+	expect(chainAt(tokens, li('<style>.b'), 'blue'), 'CSS inside single-line <style>x</style>').toContain('css');
+	// Region bookkeeping survives to the closers.
+	expect(chainAt(tokens, li('[/example]'), 'example'), '[/example] closer').toContain('.sdoc');
+	expect(chainAt(tokens, li('[/SHOWCASE]'), 'SHOWCASE'), '[/SHOWCASE] closer').toContain('.sdoc');
+}
+
+function assertTopLevelCustomTag(tokens: Tokens, source: string) {
+	const lines = source.split('\n');
+	const li = (n: string, from = 0) => lineIndex(lines, n, from);
+	// Real file-level <script lang="ts"> still embeds TS.
+	expect(chainAt(tokens, li('const top'), 'const'), 'file-level script').toContain('.ts');
+	// The custom element does not open a file-level CSS region…
+	const styledLine = lineScopes(tokens, li('<styled-button'));
+	expect(styledLine, '<styled-button> at file level').not.toContain('entity.name.tag.style.sdoc');
+	expect(styledLine, '<styled-button> at file level').not.toContain('source.css');
+	// …so the entity after it still tokenizes as sdoc, and file-level <style> still works.
+	expect(chainAt(tokens, li('[SHOWCASE'), 'SHOWCASE'), '[SHOWCASE after custom tag').toContain('keyword.control.entity.sdoc');
+	expect(chainAt(tokens, li('.top { color'), 'color'), 'file-level style').toContain('css');
+}
+
+describe('script/style begins require a tag-name boundary (review regression)', () => {
+	it('Oniguruma: <styled-button>/<script-demo> stay plain markup, real tags still color', async () => {
+		const hl = await oniHighlighter();
+		const blocks = hl.codeToTokens(CUSTOM_TAGS, { lang: 'sdoc', theme: 'github-dark', includeExplanation: true });
+		assertCustomTagBoundaries(blocks.tokens as Tokens, CUSTOM_TAGS);
+		const top = hl.codeToTokens(TOP_LEVEL_CUSTOM, { lang: 'sdoc', theme: 'github-dark', includeExplanation: true });
+		assertTopLevelCustomTag(top.tokens as Tokens, TOP_LEVEL_CUSTOM);
+		hl.dispose();
+	});
+
+	it('JavaScript engine: <styled-button>/<script-demo> stay plain markup, real tags still color', async () => {
+		const hl = await jsHighlighter();
+		const blocks = hl.codeToTokens(CUSTOM_TAGS, { lang: 'sdoc', theme: 'github-dark', includeExplanation: true });
+		assertCustomTagBoundaries(blocks.tokens as Tokens, CUSTOM_TAGS);
+		const top = hl.codeToTokens(TOP_LEVEL_CUSTOM, { lang: 'sdoc', theme: 'github-dark', includeExplanation: true });
+		assertTopLevelCustomTag(top.tokens as Tokens, TOP_LEVEL_CUSTOM);
+		hl.dispose();
+	});
+});
+
+// A [/DOC] line inside a markdown fence used to pop the DOC region (the
+// markdown while-loop re-checks its condition on every line, so no child
+// region could shield it). Fences are now direct begin/end children of the
+// DOC region: the closer inside stays fence content, prose after the fence
+// keeps its markdown scopes, and the real closer still ends the region.
+const DOC_FENCE = `[DOC title="Guide"]
+
+	Intro prose.
+
+	\`\`\`
+	[/DOC]
+	still fenced
+	\`\`\`
+
+	## After the fence
+
+[/DOC]
+
+[SHOWCASE title="Later"]
+[/SHOWCASE]
+`;
+
+const DOC_TILDE = `[DOC title="Guide"]
+
+	~~~
+	\`\`\`
+	[/DOC]
+	\`\`\`
+	~~~
+
+	## Tail heading
+
+[/DOC]
+`;
+
+const DOC_JS_FENCE = `[DOC title="Guide"]
+
+	\`\`\`js
+	const fenced = 1;
+	[/DOC]
+	\`\`\`
+
+	tail prose
+
+[/DOC]
+`;
+
+const DOC_EXAMPLE_FENCE = `[DOC title="Guide"]
+
+	\`\`\`
+	[/example]
+	\`\`\`
+
+	[example title="Demo"]
+		<b>bold</b>
+		\`\`\`
+		[/example]
+
+	## After example
+
+[/DOC]
+`;
+
+function assertDocFence(tokens: Tokens, source: string) {
+	const lines = source.split('\n');
+	const li = (n: string, from = 0) => lineIndex(lines, n, from);
+	const fencedCloser = li('[/DOC]');
+	expect(lineScopes(tokens, fencedCloser), '[/DOC] inside fence').toContain('fenced_code');
+	expect(lineScopes(tokens, fencedCloser), '[/DOC] inside fence').not.toContain('keyword.control.entity');
+	expect(chainAt(tokens, li('## After the fence'), 'After'), 'prose after the fence').toContain('heading');
+	expect(chainAt(tokens, li('[/DOC]', fencedCloser + 1), 'DOC'), 'real [/DOC] closer').toContain('keyword.control.entity.sdoc');
+	expect(chainAt(tokens, li('[SHOWCASE'), 'SHOWCASE'), 'entity after the DOC').toContain('keyword.control.entity.sdoc');
+}
+
+function assertDocTildeFence(tokens: Tokens, source: string) {
+	const lines = source.split('\n');
+	const li = (n: string, from = 0) => lineIndex(lines, n, from);
+	const opener = li('~~~');
+	const firstTicks = li('```', opener);
+	const fencedCloser = li('[/DOC]');
+	// ``` lines inside a ~~~ fence are fence content, not nested fences.
+	expect(lineScopes(tokens, firstTicks), '``` inside ~~~ fence').toContain('fenced_code');
+	expect(lineScopes(tokens, li('```', firstTicks + 1)), 'second ``` inside ~~~ fence').toContain('fenced_code');
+	expect(lineScopes(tokens, fencedCloser), '[/DOC] inside ~~~ fence').not.toContain('keyword.control.entity');
+	expect(chainAt(tokens, li('## Tail heading'), 'Tail'), 'prose after ~~~ fence').toContain('heading');
+	expect(chainAt(tokens, li('[/DOC]', fencedCloser + 1), 'DOC'), 'real [/DOC] closer').toContain('keyword.control.entity.sdoc');
+}
+
+function assertDocJsFence(tokens: Tokens, source: string) {
+	const lines = source.split('\n');
+	const li = (n: string, from = 0) => lineIndex(lines, n, from);
+	const fencedCloser = li('[/DOC]');
+	// Language fences keep their embedded highlighting.
+	expect(lineScopes(tokens, li('const fenced')), 'js fence embeds javascript').toContain('meta.embedded.block.javascript');
+	expect(chainAt(tokens, li('const fenced'), 'const'), 'js inside ```js fence').toContain('.js');
+	expect(lineScopes(tokens, fencedCloser), '[/DOC] inside ```js fence').toContain('fenced_code');
+	expect(lineScopes(tokens, fencedCloser), '[/DOC] inside ```js fence').not.toContain('keyword.control.entity');
+	expect(lineScopes(tokens, li('tail prose')), 'prose after ```js fence').toContain('meta.embedded.block.markdown');
+	expect(chainAt(tokens, li('[/DOC]', fencedCloser + 1), 'DOC'), 'real [/DOC] closer').toContain('keyword.control.entity.sdoc');
+}
+
+function assertDocExampleFence(tokens: Tokens, source: string) {
+	const lines = source.split('\n');
+	const li = (n: string, from = 0) => lineIndex(lines, n, from);
+	// [/example] inside a DOC prose fence is fence content, not a closer.
+	const fencedCloser = li('[/example]');
+	expect(lineScopes(tokens, fencedCloser), '[/example] inside DOC fence').toContain('fenced_code');
+	expect(lineScopes(tokens, fencedCloser), '[/example] inside DOC fence').not.toContain('meta.block.example.sdoc');
+	// Inside [example] markup a ``` line is plain Svelte text — no fence grows…
+	const opener = li('[example title="Demo"');
+	expect(chainAt(tokens, opener, 'example'), '[example opener').toContain('entity.name.tag.sdoc');
+	expect(chainAt(tokens, li('<b>bold'), 'b'), 'example body').toContain('svelte');
+	const ticksInExample = li('```', opener);
+	expect(lineScopes(tokens, ticksInExample), '``` inside example markup').toContain('meta.block.example.sdoc');
+	expect(lineScopes(tokens, ticksInExample), '``` inside example markup').not.toContain('fenced_code');
+	// …so the [/example] after it still closes the example.
+	expect(chainAt(tokens, li('[/example]', opener), 'example'), '[/example] in example markup').toContain('entity.name.tag.sdoc');
+	expect(chainAt(tokens, li('## After example'), 'After'), 'prose after the example').toContain('heading');
+	expect(chainAt(tokens, li('[/DOC]', fencedCloser + 1), 'DOC'), 'real [/DOC] closer').toContain('keyword.control.entity.sdoc');
+}
+
+describe('markdown fences shield entity closers in DOC bodies (review regression)', () => {
+	it('Oniguruma: fenced [/DOC]/[/example] stay fenced, real closers still close', async () => {
+		const hl = await oniHighlighter();
+		const run = (src: string) => hl.codeToTokens(src, { lang: 'sdoc', theme: 'github-dark', includeExplanation: true }).tokens as Tokens;
+		assertDocFence(run(DOC_FENCE), DOC_FENCE);
+		assertDocTildeFence(run(DOC_TILDE), DOC_TILDE);
+		assertDocJsFence(run(DOC_JS_FENCE), DOC_JS_FENCE);
+		assertDocExampleFence(run(DOC_EXAMPLE_FENCE), DOC_EXAMPLE_FENCE);
+		hl.dispose();
+	});
+
+	it('JavaScript engine: fenced [/DOC]/[/example] stay fenced, real closers still close', async () => {
+		const hl = await jsHighlighter();
+		const run = (src: string) => hl.codeToTokens(src, { lang: 'sdoc', theme: 'github-dark', includeExplanation: true }).tokens as Tokens;
+		assertDocFence(run(DOC_FENCE), DOC_FENCE);
+		assertDocTildeFence(run(DOC_TILDE), DOC_TILDE);
+		assertDocJsFence(run(DOC_JS_FENCE), DOC_JS_FENCE);
+		assertDocExampleFence(run(DOC_EXAMPLE_FENCE), DOC_EXAMPLE_FENCE);
+		hl.dispose();
+	});
+});

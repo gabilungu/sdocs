@@ -15,6 +15,7 @@ import {
 	type SubBlock,
 	type TagBlock,
 } from './scanner.js';
+import { declaredBindings, scrubScriptText } from './script-scan.js';
 
 export type ArgValue = string | number | boolean;
 
@@ -196,7 +197,9 @@ export function normalizeBody(raw: string): string {
 	const cut = common?.length ?? 0;
 	return lines
 		.map((line) => (line.trim() === '' ? '' : line.slice(cut)))
-		.map((line) => (line.startsWith('\\[') ? line.slice(1) : line))
+		// Unescape `\[` after any leading whitespace (deeper-indented lines
+		// keep their relative indent after the common cut), preserving it.
+		.map((line) => line.replace(/^([ \t]*)\\(?=\[)/, '$1'))
 		.join('\n')
 		.replace(/^\n+|\n+$/g, '');
 }
@@ -211,6 +214,19 @@ export function slugifyTitle(title: string): string {
 	);
 }
 
+/** URL-safe slug for an example snippet. The 'x-' prefix keeps example slugs
+ * clear of 'content' and of most preview slugs — a preview label can still
+ * produce the same slug ("X Ray" → x-ray vs example "Ray" → x-ray), which
+ * gets a diagnostic here and a deterministic numeric suffix in the planner. */
+export function exampleSlug(title: string): string {
+	return 'x-' + slugifyTitle(title);
+}
+
+/** URL-safe slug for a preview snippet (from its tab label). */
+export function previewSlug(label: string): string {
+	return slugifyTitle(label);
+}
+
 const IDENTIFIER_RE = /^[A-Z][A-Za-z0-9_]*$/;
 
 const IMPORT_RE = /import\s+(?:type\s+)?([^'"]+?)\s+from\s*['"][^'"]+['"]/g;
@@ -219,8 +235,9 @@ const IMPORT_RE = /import\s+(?:type\s+)?([^'"]+?)\s+from\s*['"][^'"]+['"]/g;
  * and named (respecting `as` aliases). Offsets are relative to `script`. */
 export function importedNames(script: string): Map<string, Span> {
 	const names = new Map<string, Span>();
-	// Blank out comments (offset-preserving) so commented-out imports never match.
-	const scrubbed = script.replace(/\/\/[^\n]*|\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '));
+	// Blank out comments and string/template contents (offset-preserving) so
+	// commented-out imports and import-shaped code samples never match.
+	const scrubbed = scrubScriptText(script);
 	for (const match of scrubbed.matchAll(IMPORT_RE)) {
 		const clause = match[1];
 		const span: Span = { start: match.index!, end: match.index! + match[0].length };
@@ -254,34 +271,83 @@ function mergeImports(outer: Map<string, Span>, script: TagBlock | null): Map<st
 	return merged;
 }
 
+/** Which generated wrappers a script's content is lifted into, and therefore
+ * which plumbing names it must not redeclare:
+ * - stage: the iframe wrapper (declares `args` and `__sdocsRef`) — previews,
+ *   examples, SHOWCASE/LAYOUT entity scripts, DOC entity scripts (their
+ *   examples), and the file script.
+ * - page: the DOC/PAGE page component (declares `__sdocsExample` via
+ *   `$props()`) — DOC and PAGE entity scripts, and the file script. */
+interface ScriptTargets {
+	stage: boolean;
+	page: boolean;
+}
+
+const STAGE_ONLY: ScriptTargets = { stage: true, page: false };
+
+function checkReservedNames(
+	script: TagBlock,
+	targets: ScriptTargets,
+	diagnostics: ScanError[],
+): void {
+	const reserved = new Map<string, string>();
+	if (targets.stage) {
+		for (const name of ['args', '__sdocsRef']) {
+			reserved.set(name, `"${name}" is provided by the preview stage — pick another name.`);
+		}
+	}
+	if (targets.page) {
+		reserved.set(
+			'__sdocsExample',
+			'"__sdocsExample" is provided by the page wrapper — pick another name.',
+		);
+	}
+	const at = (start: number, end: number): Span => ({
+		start: script.contentSpan.start + start,
+		end: script.contentSpan.start + end,
+	});
+	const seen = new Set<string>();
+	// Declarations — const/let/var/function/class, including destructured
+	// bindings ({ args }, [args], { x: args }, { ...args }) — collide with the
+	// wrapper's own declarations at compile time.
+	for (const binding of declaredBindings(script.content)) {
+		const message = reserved.get(binding.name);
+		if (!message || seen.has(binding.name)) continue;
+		seen.add(binding.name);
+		diagnostics.push({ code: 'reserved-name', message, span: at(binding.start, binding.end) });
+	}
+	// An import binding a reserved name collides the same way.
+	for (const [name, span] of importedNames(script.content)) {
+		const message = reserved.get(name);
+		if (!message || seen.has(name)) continue;
+		seen.add(name);
+		diagnostics.push({ code: 'reserved-name', message, span: at(span.start, span.end) });
+	}
+	// The page wrapper's `let { __sdocsExample } = $props()` is the one
+	// allowed $props() call in the generated component.
+	if (targets.page) {
+		const m = scrubScriptText(script.content).match(/\$props\s*\(/);
+		if (m && m.index !== undefined) {
+			diagnostics.push({
+				code: 'reserved-name',
+				message: 'The page wrapper already uses $props() — this script cannot call it.',
+				span: at(m.index, m.index + '$props'.length),
+			});
+		}
+	}
+}
+
 function checkNestedScript(
 	script: TagBlock | null,
 	outerImports: Map<string, Span>,
 	diagnostics: ScanError[],
-	stageWrapped = true,
+	targets: ScriptTargets = STAGE_ONLY,
 ): void {
 	if (!script) return;
-	// The generated stage wrapper declares these; a block script redefining
-	// them would collide with the plumbing at compile time. PAGE bodies render
-	// through the plain page component, which declares neither name — pass
-	// stageWrapped: false there so the reservation doesn't fire.
-	if (stageWrapped) {
-		for (const reserved of ['args', '__sdocsRef']) {
-			const m = script.content.match(
-				new RegExp(`\\b(?:const|let|var|function|class)\\s+(${reserved})\\b`),
-			);
-			if (m && m.index !== undefined) {
-				diagnostics.push({
-					code: 'reserved-name',
-					message: `"${reserved}" is provided by the preview stage — pick another name.`,
-					span: {
-						start: script.contentSpan.start + m.index,
-						end: script.contentSpan.start + m.index + m[0].length,
-					},
-				});
-			}
-		}
-	}
+	// The generated wrappers declare plumbing names; a script redefining one
+	// would collide at compile time. PAGE bodies render through the plain page
+	// component only, so `args`/`__sdocsRef` stay free there (stage: false).
+	checkReservedNames(script, targets, diagnostics);
 	if (outerImports.size === 0) return;
 	for (const [name, span] of importedNames(script.content)) {
 		if (outerImports.has(name)) {
@@ -303,8 +369,9 @@ export interface AttrRule {
 	/** expected value kind ('bare' = a lone flag, no value) */
 	kind: 'string' | 'expression' | 'bare';
 	hint: string;
-	/** Diagnostic code when the attribute is missing (default 'missing-attr').
-	 * A dedicated code lets the build treat specific omissions as errors. */
+	/** Diagnostic code when the attribute is missing or its value has the
+	 * wrong kind (defaults: 'missing-attr' / 'attr-value-kind'). A dedicated
+	 * code lets the build treat an unusable attribute as an error. */
 	code?: string;
 }
 
@@ -413,7 +480,10 @@ function checkAttrs(
 		}
 		if (value.kind !== rule.kind) {
 			diagnostics.push({
-				code: 'attr-value-kind',
+				// A present-but-unusable value counts as missing for rules with a
+				// dedicated code (e.g. title={expr} on [example] must fail builds
+				// exactly like a missing title).
+				code: rule.code ?? 'attr-value-kind',
 				message: `Attribute "${name}" on ${owner} must be written ${rule.hint}.`,
 				span: value.span,
 			});
@@ -596,6 +666,43 @@ function parseExample(
 	};
 }
 
+/** The 'x-' prefix keeps example slugs clear of preview slugs, but a preview
+ * label can still produce the same slug ("X Ray" → x-ray, example "Ray" →
+ * x-ray), and two distinct example titles can slugify identically ("A B" /
+ * "A-B"). The planner de-collides deterministically with a numeric suffix;
+ * warn here so the author can pick titles with stable addresses. */
+function checkSnippetSlugCollisions(
+	previews: PreviewBlock[],
+	examples: ExampleBlock[],
+	exampleSpans: Span[],
+	diagnostics: ScanError[],
+): void {
+	const previewSlugs = new Map<string, string>();
+	for (const preview of previews) previewSlugs.set(previewSlug(preview.label), preview.label);
+	const exampleSlugs = new Map<string, string>();
+	examples.forEach((example, i) => {
+		if (!example.title) return; // already reported as example-title-required
+		const slug = exampleSlug(example.title);
+		const previewLabel = previewSlugs.get(slug);
+		const earlierTitle = exampleSlugs.get(slug);
+		if (previewLabel !== undefined) {
+			diagnostics.push({
+				code: 'example-slug-collision',
+				message: `Example "${example.title}" and preview "${previewLabel}" share the URL slug "${slug}" — the example gets a numbered suffix; retitle one to keep addresses stable.`,
+				span: exampleSpans[i],
+			});
+		} else if (earlierTitle !== undefined && earlierTitle !== example.title) {
+			// Identical titles are already reported as duplicate-example-title.
+			diagnostics.push({
+				code: 'example-slug-collision',
+				message: `Examples "${earlierTitle}" and "${example.title}" share the URL slug "${slug}" — the second gets a numbered suffix; retitle one to keep addresses stable.`,
+				span: exampleSpans[i],
+			});
+		}
+		exampleSlugs.set(slug, example.title);
+	});
+}
+
 function parseShowcase(
 	entity: Entity,
 	fileImports: Map<string, Span>,
@@ -606,6 +713,7 @@ function parseShowcase(
 	const outerImports = mergeImports(fileImports, entity.script);
 	const previews: PreviewBlock[] = [];
 	const examples: ExampleBlock[] = [];
+	const exampleSpans: Span[] = [];
 	const exampleTitles = new Set<string>();
 	const previewLabels = new Set<string>();
 
@@ -623,8 +731,10 @@ function parseShowcase(
 			previews.push(preview);
 		} else {
 			examples.push(parseExample(block, exampleTitles, 'SHOWCASE', outerImports, diagnostics));
+			exampleSpans.push(block.openerSpan);
 		}
 	}
+	checkSnippetSlugCollisions(previews, examples, exampleSpans, diagnostics);
 
 	const title = stringAttr(entity.attrs, 'title') ?? '';
 	return {
@@ -671,13 +781,18 @@ function parseDoc(
 	diagnostics: ScanError[],
 ): DocEntity {
 	checkAttrs('[DOC]', entity.attrs, ENTITY_ATTR_RULES.DOC, entity.openerSpan, diagnostics);
-	checkNestedScript(entity.script, fileImports, diagnostics);
+	// A DOC entity script is lifted into both wrappers: its examples' iframe
+	// stages AND the page component rendering the prose body.
+	checkNestedScript(entity.script, fileImports, diagnostics, { stage: true, page: true });
 	const outerImports = mergeImports(fileImports, entity.script);
 	const examples: ExampleBlock[] = [];
+	const exampleSpans: Span[] = [];
 	const exampleTitles = new Set<string>();
 	for (const block of entity.blocks) {
 		examples.push(parseExample(block, exampleTitles, 'DOC', outerImports, diagnostics));
+		exampleSpans.push(block.openerSpan);
 	}
+	checkSnippetSlugCollisions([], examples, exampleSpans, diagnostics);
 	const title = stringAttr(entity.attrs, 'title') ?? '';
 	return {
 		kind: 'DOC',
@@ -703,6 +818,13 @@ export function parseSdoc(source: string): SdocDocument {
 	const slugs = new Set<string>();
 	const fileImports = scanned.script ? importedNames(scanned.script.content) : new Map<string, Span>();
 
+	// The file <script> is lifted verbatim into every generated wrapper: the
+	// iframe stage (previews, examples, LAYOUT content) AND the DOC/PAGE page
+	// component — so every plumbing name is reserved here.
+	if (scanned.script) {
+		checkReservedNames(scanned.script, { stage: true, page: true }, diagnostics);
+	}
+
 	for (const entity of scanned.entities) {
 		let typed: SdocEntity;
 		if (entity.kind === 'SHOWCASE') {
@@ -715,10 +837,16 @@ export function parseSdoc(source: string): SdocDocument {
 			checkAttrs(`[${kind}]`, entity.attrs, ENTITY_ATTR_RULES[kind], entity.openerSpan, diagnostics);
 			const title = stringAttr(entity.attrs, 'title') ?? '';
 			// LAYOUT content renders inside the iframe stage wrapper (which
-			// declares `args`/`__sdocsRef`), so its script keeps the reserved-name
-			// check; a PAGE body renders through the plain page component, which
-			// declares neither — only the duplicate-import check applies there.
-			checkNestedScript(entity.script, fileImports, diagnostics, kind !== 'PAGE');
+			// declares `args`/`__sdocsRef`), so its script keeps the stage
+			// reservations; a PAGE body renders through the plain page component
+			// (which declares `__sdocsExample` via `$props()`), so those names
+			// are reserved there instead — `args` stays free on PAGE.
+			checkNestedScript(
+				entity.script,
+				fileImports,
+				diagnostics,
+				kind === 'PAGE' ? { stage: false, page: true } : STAGE_ONLY,
+			);
 			typed = {
 				kind,
 				title,

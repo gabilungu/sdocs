@@ -9,13 +9,34 @@
 		fullHeight?: boolean;
 		/** Called with the preview component's exported state values whenever they change */
 		onStateValues?: (values: Record<string, unknown>) => void;
+		/** Called once the iframe reports ready (theme css loaded) */
+		onready?: () => void;
 	}
 
-	let { src, props = {}, cssVars = {}, activeStylesheet, fullHeight = false, onStateValues }: Props = $props();
+	let { src, props = {}, cssVars = {}, activeStylesheet, fullHeight = false, onStateValues, onready }: Props = $props();
 
 	/** Invoke a zero-argument method on the preview's root component */
 	export function callMethod(name: string): void {
 		iframe?.contentWindow?.postMessage({ type: 'sdocs:call-method', name }, '*');
+	}
+
+	/** Resolve a CSS color value — including var() references — against the
+	 * preview document, where the project's theme css actually lives. Returns
+	 * a #rrggbb hex for the native color input, or null when unresolvable.
+	 * Same-origin holds for dev and built previews alike. */
+	export function resolveColor(value: string): string | null {
+		const doc = iframe?.contentDocument;
+		if (!doc?.body) return null;
+		const probe = doc.createElement('div');
+		probe.style.color = value;
+		doc.body.appendChild(probe);
+		const rgb = doc.defaultView?.getComputedStyle(probe).color ?? '';
+		probe.remove();
+		const m = rgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+		if (!m) return null;
+		return (
+			'#' + [m[1], m[2], m[3]].map((n) => (+n).toString(16).padStart(2, '0')).join('')
+		);
 	}
 
 	// Preview URLs are root-absolute; hosts serving under a sub-path pass the
@@ -33,6 +54,7 @@
 				sendProps();
 				sendCss();
 				sendStylesheet();
+				onready?.();
 			}
 			if (e.data?.type === 'sdocs:resize' && e.source === iframe?.contentWindow) {
 				contentHeight = e.data.height;

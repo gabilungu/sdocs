@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.84] - 2026-07-08
+
+### Fixed
+
+- **The color control resolves `var()` defaults.** A CSS prop whose default
+  is a token reference (`--background` defaulting to `var(--focus)`) used
+  to show a black swatch — a native color input can't parse a var(). The
+  value is now resolved to its computed color inside the preview iframe,
+  where the project's theme actually lives, so the swatch shows the real
+  token color.
+
+### Changed
+
+- **Component Source sits under Preview Code.** The component's source panel
+  moves from the bottom of the page (below Examples) to directly beneath the
+  Preview Code panel — usage first, implementation second, both collapsed
+  under the stage.
+
 ## [0.0.83] - 2026-07-08
 
 ### Fixed

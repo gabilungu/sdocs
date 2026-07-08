@@ -59,7 +59,25 @@
 	let cssValues = $state<Record<string, string>>({});
 
 	// Live wiring to the active preview: method invocation + exported state values
-	let defaultPreview = $state<{ callMethod: (name: string) => void }>();
+	let defaultPreview = $state<{
+		callMethod: (name: string) => void;
+		resolveColor: (value: string) => string | null;
+	}>();
+
+	// Computed colors for var() defaults, resolved in the preview iframe —
+	// the only document where the project's theme css is loaded.
+	let resolvedColors = $state<Record<string, string>>({});
+
+	function resolveVarColors() {
+		const out: Record<string, string> = {};
+		for (const cp of cd?.cssProps ?? []) {
+			if (cp.type?.toLowerCase() === 'color' && cp.default?.startsWith('var(')) {
+				const hex = defaultPreview?.resolveColor(cp.default);
+				if (hex) out[cp.name] = hex;
+			}
+		}
+		resolvedColors = out;
+	}
 	let liveStateValues = $state<Record<string, unknown>>({});
 
 	// Initialize from the active preview's args (build new objects to avoid
@@ -361,6 +379,7 @@
 							cssVars={cssValues}
 							{activeStylesheet}
 							onStateValues={(values) => (liveStateValues = values)}
+							onready={resolveVarColors}
 						/>
 					</div>
 				{/key}
@@ -374,6 +393,12 @@
 						{/if}
 					</div>
 				</CollapsiblePanel>
+
+				{#if activePreview.highlightedSource}
+					<CollapsiblePanel title="Component Source" defaultExpanded={false} flush>
+						<div class="sdocs-code-block">{@html activePreview.highlightedSource}</div>
+					</CollapsiblePanel>
+				{/if}
 			{/if}
 		</div>
 
@@ -399,7 +424,12 @@
 		{#snippet cssPropControl(row: Record<string, unknown>)}
 			{@const cssProp = cd?.cssProps.find((p) => p.name === row.name)}
 			{#if cssProp}
-				<CssPropControl {cssProp} value={cssValues[cssProp.name]} onchange={(v) => handleCssChange(cssProp.name, v)} />
+				<CssPropControl
+					{cssProp}
+					value={cssValues[cssProp.name]}
+					resolvedColor={resolvedColors[cssProp.name]}
+					onchange={(v) => handleCssChange(cssProp.name, v)}
+				/>
 			{/if}
 		{/snippet}
 
@@ -502,14 +532,6 @@
 			{/each}
 		{/if}
 
-		{#if activePreview?.highlightedSource}
-			<hr class="sdocs-divider" />
-			<div class="sdocs-panels">
-				<CollapsiblePanel title="Component Source" defaultExpanded={false} flush>
-					<div class="sdocs-code-block">{@html activePreview.highlightedSource}</div>
-				</CollapsiblePanel>
-			</div>
-		{/if}
 	{/if}
 </div>
 

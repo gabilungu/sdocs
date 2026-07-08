@@ -331,11 +331,17 @@ window.addEventListener('message', (e) => {
 });`;
 }
 
-function previewHtmlShell(cssLinks: string, script: string): string {
+function previewHtmlShell(cssLinks: string, script: string, base = '/'): string {
+	// The <base> makes base-RELATIVE asset URLs (src="hero.png",
+	// url('hero.png'), a path prop) resolve against the site base in dev and
+	// in builds deployed under a sub-path alike — the portable way to point a
+	// stage at the static folder. Root-absolute '/x' keeps meaning the domain
+	// root, as everywhere on the web.
 	return `<!DOCTYPE html>
 <html>
 <head>
 	<meta charset="utf-8">
+	<base href="${base}">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	${cssLinks}
 	<style>body { margin: 0; }</style>
@@ -351,12 +357,14 @@ function previewHtmlShell(cssLinks: string, script: string): string {
 export function generatePreviewHtml(
 	iframeComponentId: string,
 	css: string | Record<string, string> | null,
+	base = '/',
 ): string {
 	return previewHtmlShell(
 		generateCssLinks(css),
 		`<script type="module">
 ${generateMountScript(iframeComponentId)}
 	</script>`,
+		base,
 	);
 }
 
@@ -370,6 +378,7 @@ export interface StaticCssLink {
 export function generateStaticPreviewHtml(
 	scriptSrc: string,
 	cssLinks: StaticCssLink[],
+	base = '/',
 ): string {
 	const links = cssLinks
 		.map(({ href, name, disabled }) => {
@@ -377,7 +386,7 @@ export function generateStaticPreviewHtml(
 			return `<link rel="stylesheet" href="${href}"${named}${disabled ? ' disabled' : ''}>`;
 		})
 		.join('\n\t');
-	return previewHtmlShell(links, `<script type="module" src="${scriptSrc}"></script>`);
+	return previewHtmlShell(links, `<script type="module" src="${scriptSrc}"></script>`, base);
 }
 
 export interface ParsedSnippetId {

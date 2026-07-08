@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.83] - 2026-07-08
+
+### Fixed
+
+- **Stage assets survive sub-path deploys.** Preview/example pages now carry
+  a `<base href>` set to the build's base, so base-relative asset references
+  (`src="hero.png"`, `url('hero.png')`, a `path="icons/x.svg"` prop)
+  resolve against the static folder in dev and in a build deployed under a
+  sub-path (`--base "/repo/"`) alike. Root-absolute `/x` URLs keep their
+  usual meaning — the domain root — which is why they broke under GitHub
+  project Pages. Applies to dev previews, embedded builds, and CLI builds.
+
 ## [0.0.82] - 2026-07-08
 
 ### Added

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	generateIframeComponent,
 	generatePageComponent,
+	generatePreviewHtml,
 	resolveScriptImports,
 } from '../../src/lib/server/snippet-compiler.js';
 
@@ -188,5 +189,17 @@ describe('stage background', () => {
 			padding: '16px',
 		});
 		expect(out).not.toContain('background:');
+	});
+});
+
+describe('preview page base', () => {
+	it('emits a <base href> so base-relative assets resolve under any deploy path', () => {
+		const html = generatePreviewHtml('/@sdocs/iframe/x/y.svelte', null, '/gabi/');
+		expect(html).toContain('<base href="/gabi/">');
+	});
+
+	it('defaults to the root base in dev', () => {
+		const html = generatePreviewHtml('/@sdocs/iframe/x/y.svelte', null);
+		expect(html).toContain('<base href="/">');
 	});
 });

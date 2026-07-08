@@ -215,6 +215,7 @@ export function renderRoute(segments) {
 function generatePreviewHtml(
 	iframeVirtualId: string,
 	css: string | Record<string, string> | null,
+	base = '/',
 ): string {
 	const normHref = (href: string) =>
 		href.startsWith('http') ? href : href.startsWith('/') ? `/@fs${href}` : '/' + href;
@@ -238,6 +239,7 @@ function generatePreviewHtml(
 <html>
 <head>
 	<meta charset="utf-8">
+	<base href="${base}">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	${cssLinks}
 	<style>body { margin: 0; }</style>
@@ -342,7 +344,7 @@ export async function generateBuildFiles(
 			await mkdir(previewDir, { recursive: true });
 
 			const previewPath = resolve(previewDir, `${snippetSlug}.html`);
-			await writeFile(previewPath, generatePreviewHtml(iframeId, config.css));
+			await writeFile(previewPath, generatePreviewHtml(iframeId, config.css, config.base));
 
 			const inputKey = `preview-${encoded}-${snippetSlug}`;
 			inputs[inputKey] = previewPath;

@@ -116,10 +116,16 @@
 	static: './static'
 	```
 
-	With `static/hero.png` in the project, a page can write `![hero](/hero.png)`
-	and a preview can reference `/hero.png` too. The option powers the
-	standalone CLI flows (`sdocs dev`/`run`/`build`); when embedding the Vite
-	plugin in an app, use the host's own public directory instead.
+	With `static/hero.png` in the project, a page writes `![hero](/hero.png)`
+	(prose URLs get the build's base applied automatically). Inside
+	**preview/example stages**, reference assets *base-relative* — no leading
+	slash: `src="hero.png"`, `url('hero.png')`, a `path="icons/x.svg"`
+	prop. The stage page carries a `<base href>` set to the build's base, so
+	those resolve correctly in dev and in a build deployed under a sub-path
+	(`--base "/repo/"`) alike; a root-absolute `/hero.png` means the domain
+	root and breaks under a sub-path. The option powers the standalone CLI
+	flows (`sdocs dev`/`run`/`build`); when embedding the Vite plugin in
+	an app, use the host's own public directory instead.
 
 	### `title`
 

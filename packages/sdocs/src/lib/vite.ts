@@ -121,7 +121,7 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				}
 
 				const iframeId = iframeVirtualId(parsed.docFilePath, parsed.entitySlug, snippet.slug);
-				const html = generatePreviewHtml(iframeId, config.css);
+				const html = generatePreviewHtml(iframeId, config.css, base);
 
 				res.setHeader('Content-Type', 'text/html');
 				// Let Vite transform the HTML (resolves imports, injects HMR client)
@@ -254,8 +254,11 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 					type: 'asset',
 					fileName: preview.htmlFileName,
 					source: generateStaticPreviewHtml(
-						`./${preview.jsFileName.split('/').pop()}`,
+						// Full path, not './x.js': the shell's <base> would otherwise
+						// re-root a relative src away from the page's own directory.
+						`${base}${preview.jsFileName}`,
 						cssLinks,
+						base,
 					),
 				});
 			}

@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.55] - 2026-07-08
+
+### Fixed
+
+- **Bracket-pair colorization no longer marks CSS braces red.** The language
+  configuration colorized `<` `>` as a bracket pair — angle brackets are
+  not reliably pairable in markup (arrows, comparisons, text), which threw
+  the matcher off and painted rule braces in embedded CSS as unexpected.
+  Colorization now covers `{}`, `[]`, and `()` only, and `[]` joins
+  the bracket list proper (block tags match and jump).
+
+### Added
+
+- **`description` completes and lints** on `[preview]` and `[example]`
+  (matching sdocs 0.0.85), and `--foo=` component props highlight like
+  sibling attributes.
+
 ## [0.0.54] - 2026-07-08
 
 ### Changed

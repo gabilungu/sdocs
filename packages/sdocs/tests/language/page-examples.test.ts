@@ -114,7 +114,7 @@ describe('parser: markers and extracted examples', () => {
 
 	it('requires a title on page examples', () => {
 		const bare = parseSdoc('[DOC title="P"]\n\t[example]\n\t\t<b>x</b>\n\t[/example]\n[/DOC]\n');
-		expect(bare.diagnostics.map((d) => d.code)).toContain('missing-attr');
+		expect(bare.diagnostics.map((d) => d.code)).toContain('example-title-required');
 	});
 });
 

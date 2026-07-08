@@ -263,3 +263,29 @@ function assertBlockTags(tokens: Tokens, source: string) {
 	expect(scopeOf(li('[/example]'), 'example'), 'closer after block style').toContain('.sdoc');
 	expect(scopeOf(li('<Nav plain'), 'Nav'), 'sibling example unaffected').toContain('svelte');
 }
+
+// CSS-custom-property props (--x="…" / --x={…}) color like sibling attributes
+// via a root-grammar injection; values keep their own scopes.
+describe('css-custom-property prop parity', () => {
+	it('scopes --foo= as an attribute name with intact values (both value forms)', async () => {
+		const hl = await createHighlighter({
+			themes: ['github-dark'],
+			langs: [
+				'javascript', 'typescript', 'css', 'svelte', 'markdown', 'html',
+				{ ...grammar, name: 'sdoc', embeddedLangs: ['svelte', 'typescript', 'javascript', 'css', 'markdown'] },
+			],
+		});
+		const src = '[SHOWCASE title="X"]\n\t[example title="A"]\n\t\t<Box text="hi" --background="red" --size={16} />\n\t[/example]\n[/SHOWCASE]\n';
+		const { tokens } = hl.codeToTokens(src, { lang: 'sdoc', theme: 'github-dark', includeExplanation: true });
+		const scopeOf = (word: string) => {
+			const tok = tokens[2].find((t) => t.content.trim() === word);
+			const sc = tok?.explanation?.flatMap((e) => e.scopes.map((s) => s.scopeName)) ?? [];
+			return sc[sc.length - 1] ?? 'MISSING';
+		};
+		expect(scopeOf('--background')).toContain('attribute-name');
+		expect(scopeOf('--size')).toContain('attribute-name');
+		expect(scopeOf('"red"')).toContain('string');
+		expect(scopeOf('16')).toContain('.ts');
+		hl.dispose();
+	});
+});

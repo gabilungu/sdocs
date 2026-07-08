@@ -45,6 +45,8 @@ export interface PreviewBlock {
 	argsRaw: string | null;
 	/** Explicit title="…" override, when present */
 	title: string | null;
+	/** Short text rendered with the preview, when present */
+	description: string | null;
 	/** Tab label: the title override or the component name */
 	label: string;
 	sizing: Sizing;
@@ -62,6 +64,8 @@ export interface PreviewBlock {
 
 export interface ExampleBlock {
 	title: string;
+	/** Short text rendered under the example heading, when present */
+	description: string | null;
 	sizing: Sizing;
 	/** Normalized full body — block script/style included (display/formatting form) */
 	body: string;
@@ -269,6 +273,9 @@ export interface AttrRule {
 	/** expected value kind ('bare' = a lone flag, no value) */
 	kind: 'string' | 'expression' | 'bare';
 	hint: string;
+	/** Diagnostic code when the attribute is missing (default 'missing-attr').
+	 * A dedicated code lets the build treat specific omissions as errors. */
+	code?: string;
 }
 
 const SIZING_ATTR_RULES: Record<string, AttrRule> = {
@@ -338,11 +345,13 @@ const SUB_BLOCK_ATTR_RULES: Record<string, Record<string, AttrRule>> = {
 		component: { required: true, kind: 'expression', hint: 'component={Button}' },
 		args: { required: false, kind: 'expression', hint: 'args={{ label: "Hi" }}' },
 		title: { required: false, kind: 'string', hint: 'title="…"' },
+		description: { required: false, kind: 'string', hint: 'description="…"' },
 		...SIZING_ATTR_RULES,
 		...STAGE_LAYOUT_ATTR_RULES,
 	},
 	example: {
-		title: { required: true, kind: 'string', hint: 'title="…"' },
+		title: { required: true, kind: 'string', hint: 'title="…"', code: 'example-title-required' },
+		description: { required: false, kind: 'string', hint: 'description="…"' },
 		...SIZING_ATTR_RULES,
 		...STAGE_LAYOUT_ATTR_RULES,
 	},
@@ -383,7 +392,7 @@ function checkAttrs(
 	for (const [name, rule] of Object.entries(rules)) {
 		if (rule.required && !attrs[name]) {
 			diagnostics.push({
-				code: 'missing-attr',
+				code: rule.code ?? 'missing-attr',
 				message: `${owner} requires ${rule.hint}.`,
 				span: ownerSpan,
 			});
@@ -514,6 +523,7 @@ function parsePreview(
 		args,
 		argsRaw,
 		title,
+		description: stringAttr(block.attrs, 'description'),
 		label: title ?? componentName ?? 'Preview',
 		sizing: sizingOf(block.attrs),
 		body: normalizeBody(block.body),
@@ -545,6 +555,7 @@ function parseExample(
 	seenTitles.add(title);
 	return {
 		title,
+		description: stringAttr(block.attrs, 'description'),
 		sizing: sizingOf(block.attrs),
 		body: normalizeBody(block.body),
 		bodySpan: block.bodySpan,

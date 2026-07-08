@@ -80,6 +80,8 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 	let base = '/';
 	// Previews planned for emission into a host app's build (embedded mode)
 	let plannedPreviews: PlannedPreview[] = [];
+	// Hard diagnostics collected during build (dev only warns; builds fail)
+	let buildErrors: string[] = [];
 	let emittedCssLinks: StaticCssLink[] = [];
 
 	return {
@@ -167,11 +169,15 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 		},
 
 		async buildStart() {
+			buildErrors = [];
 			const files = await discoverDocFiles(config.include, root);
 			console.log(`[sdocs] Discovered ${files.length} doc file(s):`);
 			for (const file of files) {
 				console.log(`  - ${file}`);
 				await processDocFile(file);
+			}
+			if (buildErrors.length > 0) {
+				throw new Error(`[sdocs] Build failed:\n${buildErrors.join('\n')}`);
 			}
 
 			// Explicitly watch doc files and their directories (outside Vite root)
@@ -363,7 +369,13 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 
 		for (const d of doc.diagnostics) {
 			const pos = offsetToPosition(source, d.span.start);
-			console.warn(`[sdocs] ${filePath}:${pos.line + 1}:${pos.column + 1} — ${d.message}`);
+			const where = `${filePath}:${pos.line + 1}:${pos.column + 1}`;
+			console.warn(`[sdocs] ${where} — ${d.message}`);
+			// A missing example title is an error in builds: untitled stages
+			// would ship with empty headings and colliding slugs.
+			if (isBuild && d.code === 'example-title-required') {
+				buildErrors.push(`${where} — ${d.message}`);
+			}
 		}
 
 		deleteEntriesOf(filePath);
@@ -405,6 +417,7 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				markup: p.markup,
 				script: p.script,
 				style: p.style,
+				description: p.description,
 			}));
 
 			const entry: DocEntry = {

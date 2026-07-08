@@ -128,8 +128,11 @@
 			{#if example.name}
 				<h3 class="sdocs-example-title">
 					<Icon name="bookmark" --w="14px" --h="14px" --fill="var(--color-example-500)" />
-					{example.name}
+					{example.name || '⚠ title required'}
 				</h3>
+				{#if example.description}
+					<p class="sdocs-block-description">{example.description}</p>
+				{/if}
 			{/if}
 			<div class="sdocs-panels">
 				<div class="sdocs-preview-wrapper">
@@ -374,6 +377,11 @@
 		flex-direction: column;
 		gap: 8px;
 		margin: 16px 0;
+	}
+	.sdocs-block-description {
+		margin: -2px 0 10px;
+		font-size: 13px;
+		color: var(--color-base-500);
 	}
 	.sdocs-example-title {
 		display: flex;

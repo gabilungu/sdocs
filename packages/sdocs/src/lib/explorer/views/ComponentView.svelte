@@ -223,9 +223,50 @@
 		return css;
 	});
 
+	/** The current control values as an object literal for a const-args line. */
+	function argsObjectLiteral(props: Record<string, unknown>): string {
+		const entries = Object.entries(props)
+			.filter(([, v]) => v !== undefined && v !== null && v !== '')
+			.map(([k, v]) => `${k}: ${JSON.stringify(v)}`);
+		return `{ ${entries.join(', ')} }`;
+	}
+
+	/**
+	 * Make the shown code copy-pasteable: a plain {...args} spread resolves to
+	 * the current control values as concrete attributes; a body that uses
+	 * `args` in richer ways ({args.x}, foo={args}) instead gains a real
+	 * `const args = { … }` line, so the code always runs as written.
+	 */
+	function resolveArgsInCode(body: string): string {
+		const SPREAD = '{...args}';
+		const beyondSpread = /\bargs\b/.test(body.split(SPREAD).join(''));
+		if (beyondSpread) {
+			const constLine = `const args = ${argsObjectLiteral(propValues)};`;
+			if (/^\s*<script/.test(body)) {
+				// Body already opens with a block script — declare args first in it.
+				return body.replace(/(<script[^>]*>\n?)/, `$1\t${constLine}\n`);
+			}
+			return ['<script>', '\t' + constLine, '</scr' + 'ipt>', body].join('\n');
+		}
+		if (body.includes(SPREAD)) {
+			const attrs = Object.entries(propValues)
+				.filter(([k, v]) => v !== undefined && v !== null && v !== '')
+				.filter(([k]) => !new RegExp(`\\b${k}=`).test(body))
+				.map(([k, v]) => formatAttr(k, v));
+			const expanded = body
+				.replace(SPREAD, attrs.join(' '))
+				.replace(/ {2,}/g, ' ')
+				.replace(/<(\w[\w.]*) \/>/g, '<$1 />')
+				.replace(/ >/g, '>');
+			return expanded;
+		}
+		return body;
+	}
+
 	const usageCode = $derived.by(() => {
 		if (activePreview?.snippet.body) {
-			return patchSnippetCode(activePreview.snippet.body, componentName, propValues, cssValues, initialProps, initialCss);
+			const resolved = resolveArgsInCode(activePreview.snippet.body);
+			return patchSnippetCode(resolved, componentName, propValues, cssValues, initialProps, initialCss);
 		}
 		return generateFallbackCode(componentName, propValues, cssValues);
 	});
@@ -371,6 +412,9 @@
 			<!-- Showcase -->
 			{#if activePreview}
 				{#key activePreview.snippet.slug}
+					{#if activePreview.snippet.description}
+						<p class="sdocs-block-description">{activePreview.snippet.description}</p>
+					{/if}
 					<div class="sdocs-preview-wrapper">
 						<PreviewFrame
 							bind:this={defaultPreview}
@@ -518,8 +562,11 @@
 				<div class="sdocs-example">
 					<h3 class="sdocs-example-title">
 						<Icon name="bookmark" --w="14px" --h="14px" --fill="var(--color-example-500)" />
-						{example.name}
+						{example.name || '⚠ title required'}
 					</h3>
+					{#if example.description}
+						<p class="sdocs-block-description">{example.description}</p>
+					{/if}
 					<div class="sdocs-panels">
 						<div class="sdocs-preview-wrapper">
 							<PreviewFrame src={example.previewUrl ?? ''} {activeStylesheet} />
@@ -676,6 +723,11 @@
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
+	}
+	.sdocs-block-description {
+		margin: -2px 0 10px;
+		font-size: 13px;
+		color: var(--color-base-500);
 	}
 	.sdocs-example-title {
 		display: flex;

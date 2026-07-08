@@ -21,6 +21,8 @@ export interface PlannedSnippet {
 	script: string | null;
 	/** Block-level <style> content, when the block declares one */
 	style: string | null;
+	/** Short text rendered with the block, when present */
+	description: string | null;
 }
 
 /** URL-safe slug for an example snippet. The 'x-' prefix keeps example
@@ -44,11 +46,13 @@ export function planEntitySnippets(entity: SdocEntity): PlannedSnippet[] {
 		markup: string;
 		script: { content: string } | null;
 		style: { content: string } | null;
+		description?: string | null;
 	}) => ({
 		body: b.body,
 		markup: b.markup,
 		script: b.script?.content ?? null,
 		style: b.style?.content ?? null,
+		description: b.description ?? null,
 	});
 	const example = (e: ExampleLike) => ({
 		name: e.title,
@@ -75,6 +79,7 @@ export function planEntitySnippets(entity: SdocEntity): PlannedSnippet[] {
 		markup: entity.body,
 		script: null,
 		style: null,
+		description: null,
 	};
 	if (entity.kind === 'DOC') {
 		return [content, ...entity.examples.map(example)];
@@ -88,6 +93,7 @@ interface ExampleLike {
 	markup: string;
 	script: { content: string } | null;
 	style: { content: string } | null;
+	description?: string | null;
 }
 
 /** The snippets of an entity that are served as iframe preview pages:

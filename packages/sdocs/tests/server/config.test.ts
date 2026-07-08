@@ -121,10 +121,10 @@ describe('sizing attributes', () => {
 describe('attributeRules (shared by diagnostics and completions)', () => {
 	it('exposes the full attribute set per block kind', () => {
 		expect(Object.keys(attributeRules('preview'))).toEqual([
-			'component', 'args', 'title', 'maxWidth', 'padding', 'direction', 'gap', 'contentX', 'contentY', 'background',
+			'component', 'args', 'title', 'description', 'maxWidth', 'padding', 'direction', 'gap', 'contentX', 'contentY', 'background',
 		]);
 		expect(Object.keys(attributeRules('example'))).toEqual([
-			'title', 'maxWidth', 'padding', 'direction', 'gap', 'contentX', 'contentY', 'background',
+			'title', 'description', 'maxWidth', 'padding', 'direction', 'gap', 'contentX', 'contentY', 'background',
 		]);
 		expect(Object.keys(attributeRules('DOC'))).toEqual([
 			'title', 'slug', 'hide', 'maxWidth', 'padding', 'contentX', 'toc',

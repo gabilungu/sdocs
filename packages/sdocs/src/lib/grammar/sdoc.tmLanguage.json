@@ -15,6 +15,55 @@
 					"include": "#page-svelte-expression"
 				}
 			]
+		},
+		"L:meta.tag.start.svelte - (string, comment, meta.embedded)": {
+			"comment": "CSS-custom-property component props (--background=\"…\" / --x={…}) color like their sibling attributes instead of Svelte's property-name scope — visual parity inside .sdoc bodies. The whole attribute is consumed atomically so the value keeps its own scopes.",
+			"patterns": [
+				{
+					"match": "(--[\\w-]+)(=)(\")((?:[^\"\\\\]|\\\\.)*)(\")",
+					"captures": {
+						"1": {
+							"name": "entity.other.attribute-name.sdoc"
+						},
+						"2": {
+							"name": "punctuation.separator.key-value.sdoc"
+						},
+						"3": {
+							"name": "punctuation.definition.string.begin.sdoc"
+						},
+						"4": {
+							"name": "string.quoted.double.sdoc"
+						},
+						"5": {
+							"name": "punctuation.definition.string.end.sdoc"
+						}
+					}
+				},
+				{
+					"match": "(--[\\w-]+)(=)(\\{)((?:[^{}]|\\{[^{}]*\\})*)(\\})",
+					"captures": {
+						"1": {
+							"name": "entity.other.attribute-name.sdoc"
+						},
+						"2": {
+							"name": "punctuation.separator.key-value.sdoc"
+						},
+						"3": {
+							"name": "punctuation.section.embedded.begin.sdoc"
+						},
+						"4": {
+							"patterns": [
+								{
+									"include": "source.ts"
+								}
+							]
+						},
+						"5": {
+							"name": "punctuation.section.embedded.end.sdoc"
+						}
+					}
+				}
+			]
 		}
 	},
 	"patterns": [

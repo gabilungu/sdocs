@@ -98,7 +98,7 @@ describe('parseSdoc validation', () => {
 			'missing-attr',
 		);
 		expect(diagnosticCodes('[SHOWCASE title="X"]\n[example]\nx\n[/example]\n[/SHOWCASE]\n')).toContain(
-			'missing-attr',
+			'example-title-required',
 		);
 	});
 
@@ -336,5 +336,37 @@ describe('parser: reserved names and comment scrubbing (review regressions)', ()
 	it('a commented-out import never triggers duplicate-import', () => {
 		const codes = diagnosticCodes(`<script>\n\timport Nav from './Nav.svelte';\n</script>\n\n[SHOWCASE title="X"]\n\t[example title="A"]\n\t\t<script>\n\t\t\t// import Nav from './Nav.svelte';\n\t\t\tconst n = 1;\n\t\t</script>\n\t\t<Nav>{n}</Nav>\n\t[/example]\n[/SHOWCASE]\n`);
 		expect(codes).not.toContain('duplicate-import');
+	});
+});
+
+describe('description attribute + example-title enforcement', () => {
+	it('parses description on previews and examples', () => {
+		const doc = parseSdoc(`<script>
+	import X from './X.svelte';
+</script>
+
+[SHOWCASE title="X"]
+	[preview component={X} description="How you use it"]
+		<X />
+	[/preview]
+	[example title="A" description="What it shows"]
+		<X />
+	[/example]
+[/SHOWCASE]
+`);
+		expect(doc.diagnostics).toEqual([]);
+		const sc = doc.entities[0] as ShowcaseEntity;
+		expect(sc.previews[0].description).toBe('How you use it');
+		expect(sc.examples[0].description).toBe('What it shows');
+	});
+
+	it('a missing example title gets the dedicated diagnostic code', () => {
+		const codes = diagnosticCodes(`[SHOWCASE title="X"]
+	[example]
+		<b>x</b>
+	[/example]
+[/SHOWCASE]
+`);
+		expect(codes).toContain('example-title-required');
 	});
 });

@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.85] - 2026-07-08
+
+### Added
+
+- **`description` on previews and examples.** A short text rendered above a
+  preview's stage or under an example's heading — the block can now say what
+  it demonstrates.
+
+### Changed
+
+- **The code panel shows runnable code, not `{...args}`.** A plain spread
+  resolves to the current control values as concrete attributes — nothing set
+  shows `<X />`, edits appear as real props. A body that uses `args` in
+  richer ways (`{args.x}`, `foo={args}`) instead gains a genuine
+  `const args = { … }` script line, so the shown code always runs as
+  written.
+- **Missing example titles fail the build.** `title` on `[example]` was
+  always required but only warned; `sdocs build` now fails with the file and
+  position, and dev renders a loud "⚠ title required" heading instead of an
+  untitled stage.
+- **`--foo=` component props color like their sibling attributes** in
+  editor and code panels, instead of Svelte's CSS-property scope — values
+  keep their own string/expression coloring.
+
+## [0.0.84] - 2026-07-08
+
 ## [0.0.84] - 2026-07-08
 
 ### Fixed

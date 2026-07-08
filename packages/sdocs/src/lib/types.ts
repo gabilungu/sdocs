@@ -205,6 +205,8 @@ export interface ExtractedSnippet {
 	script?: string | null;
 	/** Block-level <style> content, when the block declares one */
 	style?: string | null;
+	/** Short text rendered with the block (description="…" on the opener) */
+	description?: string | null;
 	highlightedHtml?: string;
 	/** Preview URL for iframe (added by virtual module) */
 	previewUrl?: string;

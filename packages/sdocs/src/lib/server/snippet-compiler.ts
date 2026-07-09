@@ -276,7 +276,13 @@ export function generateIframeComponent(
 		...(stage?.background ? [`background: ${stage.background}`] : []),
 		...(stage?.minHeight ? [`min-height: ${stage.minHeight}`] : []),
 		...(stage && stage.maxWidth !== '100%'
-			? [`max-width: ${stage.maxWidth}`, 'margin-inline: auto']
+			? [
+					`max-width: ${stage.maxWidth}`,
+					// A constrained preview/example stage follows contentX like a
+					// DOC/PAGE column: left (the default) stays left, center centers,
+					// right hugs the end. A flow-root stage (no contentX) stays centered.
+					`margin-inline: ${!stage.contentX || stage.contentX === 'center' ? 'auto' : stage.contentX === 'right' ? 'auto 0' : '0'}`,
+				]
 			: []),
 	].join('; ');
 	// The file <script> (imports + shared values), lifted verbatim so previews

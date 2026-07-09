@@ -62,7 +62,9 @@ export function splitUnion(value: string): string[] {
 		if (c === '(' || c === '[' || c === '{' || c === '<') depth++;
 		else if (c === ')' || c === ']' || c === '}' || c === '>') depth = Math.max(0, depth - 1);
 		else if (c === '|' && depth === 0) {
-			parts.push(current.trim());
+			// Skip empty members so a leading, trailing, or doubled `|` — valid
+			// in a multi-line union — doesn't produce a blank chip.
+			if (current.trim()) parts.push(current.trim());
 			current = '';
 			continue;
 		}

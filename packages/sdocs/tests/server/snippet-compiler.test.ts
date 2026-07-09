@@ -149,6 +149,21 @@ describe('stage sizing', () => {
 		expect(out).toContain('style="display: flow-root; padding: 24px; max-width: 800px; margin-inline: auto"');
 	});
 
+	it('a constrained flex stage follows contentX for its margin', () => {
+		const at = (contentX: string) =>
+			generateIframeComponent('', '<b>x</b>', [], undefined, {
+				maxWidth: '200px',
+				padding: '16px',
+				direction: 'row',
+				gap: '8px',
+				contentX,
+				contentY: 'top',
+			});
+		expect(at('left')).toContain('max-width: 200px; margin-inline: 0"');
+		expect(at('center')).toContain('max-width: 200px; margin-inline: auto"');
+		expect(at('right')).toContain('max-width: 200px; margin-inline: auto 0"');
+	});
+
 	it('full-width stages get padding only', () => {
 		const out = generateIframeComponent('', '<b>x</b>', [], undefined, {
 			maxWidth: '100%',

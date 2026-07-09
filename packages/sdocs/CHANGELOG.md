@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.90] - 2026-07-09
+
+### Fixed
+
+- The prop table no longer renders a blank chip for a union type written with a
+  leading `|`, as multi-line unions commonly are.
+- A `[preview]`/`[example]` stage with a `maxWidth` now honours `contentX` for
+  its horizontal position (left by default) instead of always centering.
+  Full-page (LAYOUT) stages still center.
+
 ## [0.0.89] - 2026-07-09
 
 ### Fixed

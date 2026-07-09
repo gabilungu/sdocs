@@ -7,6 +7,12 @@ describe('splitUnion', () => {
 		expect(splitUnion("'sm' | 'md' | 'lg'")).toEqual(["'sm'", "'md'", "'lg'"]);
 	});
 
+	it('drops empty members from a leading, trailing, or doubled pipe', () => {
+		expect(splitUnion("| 'auto' | 'top' | 'bottom'")).toEqual(["'auto'", "'top'", "'bottom'"]);
+		expect(splitUnion("'a' | 'b' |")).toEqual(["'a'", "'b'"]);
+		expect(splitUnion("'a' || 'b'")).toEqual(["'a'", "'b'"]);
+	});
+
 	it('leaves a non-union whole', () => {
 		expect(splitUnion('string')).toEqual(['string']);
 		expect(splitUnion('Snippet<[Row]>')).toEqual(['Snippet<[Row]>']);

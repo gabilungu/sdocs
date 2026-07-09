@@ -33,6 +33,9 @@ export interface Sizing {
 	contentY: string | null;
 	/** background of preview/example stages — a CSS color or var() */
 	background: string | null;
+	/** minimum height of preview/example stages — a CSS length; reserves room
+	 * for content that overflows the stage, like an open dropdown */
+	minHeight: string | null;
 	/** table-of-contents visibility (DOC) */
 	toc: boolean | null;
 }
@@ -386,6 +389,7 @@ const STAGE_LAYOUT_ATTR_RULES: Record<string, AttrRule> = {
 	contentX: { required: false, kind: 'string', hint: 'contentX="center"' },
 	contentY: { required: false, kind: 'string', hint: 'contentY="middle"' },
 	background: { required: false, kind: 'string', hint: 'background="var(--bg)"' },
+	minHeight: { required: false, kind: 'string', hint: 'minHeight="240px"' },
 };
 
 function sizingOf(attrs: Attrs): Sizing {
@@ -398,6 +402,7 @@ function sizingOf(attrs: Attrs): Sizing {
 		contentX: stringAttr(attrs, 'contentX'),
 		contentY: stringAttr(attrs, 'contentY'),
 		background: stringAttr(attrs, 'background'),
+		minHeight: stringAttr(attrs, 'minHeight'),
 		toc: toc === null ? null : toc === 'true',
 	};
 }

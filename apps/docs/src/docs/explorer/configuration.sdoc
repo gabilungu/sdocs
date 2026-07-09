@@ -35,7 +35,7 @@
 	  static?: string;
 	  content?: {
 	    page?: { maxWidth?: string; padding?: string; toc?: boolean; contentX?: string };
-	    showcase?: { maxWidth?: string; padding?: string; direction?: string; gap?: string; contentX?: string; contentY?: string };
+	    showcase?: { maxWidth?: string; padding?: string; direction?: string; gap?: string; contentX?: string; contentY?: string; minHeight?: string };
 	    layout?: { maxWidth?: string; padding?: string };
 	  };
 	}
@@ -265,6 +265,7 @@
 	| `showcase` | `gap` | `16px` | stage `gap` |
 	| `showcase` | `contentX` | `left` | horizontal: `left`/`center`/`right`/`justify` |
 	| `showcase` | `contentY` | `top` | vertical: `top`/`middle`/`bottom`/`justify` |
+	| `showcase` | `minHeight` | none | minimum stage height; reserves room for content that overflows the stage, like an open dropdown |
 	| `layout` | `maxWidth` | `100%` | the full-page stage |
 	| `layout` | `padding` | `0px` | space inside the stage |
 
@@ -288,8 +289,9 @@
 
 	Entities and blocks override these in place with the same attributes:
 	`[DOC title="…" maxWidth="800px" toc="false"]`,
-	`[preview component={X} direction="column" gap="8px" background="var(--bg)"]` — block beats
-	entity beats config.
+	`[preview component={X} direction="column" gap="8px" background="var(--bg)" minHeight="240px"]` — block beats
+	entity beats config. `minHeight` is handy when a component opens content beyond
+	its box — an open dropdown or popover — that the auto-sized preview would clip.
 
 	## Full example
 

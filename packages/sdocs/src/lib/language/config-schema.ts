@@ -61,6 +61,11 @@ const background: ConfigFieldSchema = {
 	doc: "Preview/example stage background — a CSS color or a var() from the project's css (e.g. \`var(--bg)\`). Default: none.",
 	insert: ": '\${0}'",
 };
+const minHeight: ConfigFieldSchema = {
+	detail: 'string',
+	doc: 'Minimum preview/example stage height — any CSS length. Reserves room for content that overflows the stage, like an open dropdown. Default: none.',
+	insert: ": '$0'",
+};
 
 const contentY: ConfigFieldSchema = {
 	detail: "'top' | 'middle' | 'bottom' | 'justify'",
@@ -185,7 +190,7 @@ export const configSchema: ConfigSchema = {
 				detail: 'object',
 				doc: '`[SHOWCASE]` pages. `maxWidth` is the content column; `padding`/`direction`/`gap`/`contentX`/`contentY` are the default preview & example stage layout.',
 				insert: ': {\n\t$0\n}',
-				object: { maxWidth, padding, direction, gap, contentX, contentY, background },
+				object: { maxWidth, padding, direction, gap, contentX, contentY, background, minHeight },
 			},
 			layout: {
 				detail: 'object',

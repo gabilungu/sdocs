@@ -472,6 +472,7 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				contentX: string | null;
 				contentY: string | null;
 				background: string | null;
+				minHeight: string | null;
 			}) => ({
 				// Entity-level maxWidth on SHOWCASE/PAGE is the content column, not the
 				// stage; stages inside them span their panel unless the block says so.
@@ -489,6 +490,8 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 							contentY: block.contentY ?? entity.sizing.contentY ?? config.content.showcase.contentY,
 							background:
 								block.background ?? entity.sizing.background ?? config.content.showcase.background ?? undefined,
+							minHeight:
+								block.minHeight ?? entity.sizing.minHeight ?? config.content.showcase.minHeight ?? undefined,
 						}
 					: {}),
 			});
@@ -570,6 +573,7 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 							contentX: example.sizing.contentX ?? config.content.showcase.contentX,
 							contentY: example.sizing.contentY ?? config.content.showcase.contentY,
 							background: example.sizing.background ?? config.content.showcase.background ?? undefined,
+							minHeight: example.sizing.minHeight ?? config.content.showcase.minHeight ?? undefined,
 						};
 					}
 				});

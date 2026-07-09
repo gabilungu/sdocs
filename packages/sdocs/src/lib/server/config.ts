@@ -30,6 +30,7 @@ const DEFAULTS: ResolvedSdocsConfig = {
 			contentX: 'left',
 			contentY: 'top',
 			background: null,
+			minHeight: null,
 		},
 		layout: { maxWidth: '100%', padding: '0px' },
 	},

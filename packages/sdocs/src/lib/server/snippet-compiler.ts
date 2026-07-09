@@ -219,6 +219,7 @@ export function generateIframeComponent(
 		contentX?: string;
 		contentY?: string;
 		background?: string;
+		minHeight?: string;
 	},
 	extras?: {
 		/** Block-level <script> content (imports already resolved), appended
@@ -273,6 +274,7 @@ export function generateIframeComponent(
 		...(stage?.direction ? flexStage() : ['display: flow-root']),
 		...(stage ? [`padding: ${stage.padding}`] : []),
 		...(stage?.background ? [`background: ${stage.background}`] : []),
+		...(stage?.minHeight ? [`min-height: ${stage.minHeight}`] : []),
 		...(stage && stage.maxWidth !== '100%'
 			? [`max-width: ${stage.maxWidth}`, 'margin-inline: auto']
 			: []),

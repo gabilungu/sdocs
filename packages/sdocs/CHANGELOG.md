@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.88] - 2026-07-09
+
+### Added
+
+- `minHeight` — a stage sizing attribute for `[preview]` and `[example]` blocks
+  and the `content.showcase` config. It reserves a minimum height on the preview
+  stage so content that overflows the box — an open dropdown, a popover — is no
+  longer clipped by the auto-sized iframe. Resolves through the usual
+  config → entity → block cascade.
+
 ## [0.0.87] - 2026-07-08
 
 ### Fixed

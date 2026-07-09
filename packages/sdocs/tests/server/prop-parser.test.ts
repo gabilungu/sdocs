@@ -7,6 +7,31 @@ function byName(list: { name: string }[], name: string) {
 	return found!;
 }
 
+describe('module + instance scripts', () => {
+	// A leading `<script module>` must not hide the instance script's props.
+	const source = `<script module lang="ts">
+	let uid = 0;
+</script>
+
+<script lang="ts">
+	interface Props {
+		value?: string;
+		size?: 'sm' | 'md' | 'lg';
+	}
+	let { value = '', size = 'md' }: Props = $props();
+</script>
+
+<div></div>`;
+
+	it('extracts props from the instance script alongside a module script', () => {
+		const { props } = parseComponentSource(source);
+		const names = props.map((p) => p.name);
+		expect(names).toContain('value');
+		expect(names).toContain('size');
+		expect(byName(props, 'size').default).toBe('md');
+	});
+});
+
 describe('TypeScript components (interface Props)', () => {
 	const source = `<script lang="ts">
 	import type { Snippet } from 'svelte';

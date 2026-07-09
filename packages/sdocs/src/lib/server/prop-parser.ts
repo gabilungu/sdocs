@@ -67,8 +67,12 @@ export function parseComponentSource(source: string): ComponentData {
 // ─── Script extraction ───
 
 function extractScriptContent(source: string): string | null {
-	const match = source.match(/<script[^>]*>([\s\S]*?)<\/script>/);
-	return match ? match[1] : null;
+	// A component may carry both a module (`<script module>`) and an instance
+	// `<script>`; the `Props` interface and `$props()` live in the instance one.
+	// Concatenate every block so parsing sees the whole script surface whatever
+	// the order — otherwise a leading `<script module>` hides the props.
+	const blocks = [...source.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+	return blocks.length ? blocks.join('\n') : null;
 }
 
 function extractStyleContent(source: string): string | null {

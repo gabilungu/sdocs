@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.89] - 2026-07-09
+
+### Fixed
+
+- Prop extraction now reads a component's instance `<script>` even when a
+  `<script module>` block comes first, so components with a module script no
+  longer show an empty API table.
+
 ## [0.0.88] - 2026-07-09
 
 ### Added

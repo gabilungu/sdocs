@@ -15,6 +15,7 @@ describe('content sizing config', () => {
 			contentX: 'left',
 			contentY: 'top',
 			background: null,
+			minHeight: null,
 		});
 		expect(c.content.layout).toEqual({ maxWidth: '100%', padding: '0px' });
 	});
@@ -36,6 +37,7 @@ describe('content sizing config', () => {
 			contentX: 'center',
 			contentY: 'top',
 			background: null,
+			minHeight: null,
 		});
 		expect(c.content.layout).toEqual({ maxWidth: '900px', padding: '0px' });
 	});
@@ -121,10 +123,10 @@ describe('sizing attributes', () => {
 describe('attributeRules (shared by diagnostics and completions)', () => {
 	it('exposes the full attribute set per block kind', () => {
 		expect(Object.keys(attributeRules('preview'))).toEqual([
-			'component', 'args', 'title', 'description', 'maxWidth', 'padding', 'direction', 'gap', 'contentX', 'contentY', 'background',
+			'component', 'args', 'title', 'description', 'maxWidth', 'padding', 'direction', 'gap', 'contentX', 'contentY', 'background', 'minHeight',
 		]);
 		expect(Object.keys(attributeRules('example'))).toEqual([
-			'title', 'description', 'maxWidth', 'padding', 'direction', 'gap', 'contentX', 'contentY', 'background',
+			'title', 'description', 'maxWidth', 'padding', 'direction', 'gap', 'contentX', 'contentY', 'background', 'minHeight',
 		]);
 		expect(Object.keys(attributeRules('DOC'))).toEqual([
 			'title', 'slug', 'hide', 'maxWidth', 'padding', 'contentX', 'toc',

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { renderInlineMarkdown } from './format.js';
 	import type { Component } from 'svelte';
 	import type { DocEntry } from '../../types.js';
 	import { Icon } from '../../ui/Icon/index.js';
@@ -131,7 +132,7 @@
 					{example.name || '⚠ title required'}
 				</h3>
 				{#if example.description}
-					<p class="sdocs-block-description">{example.description}</p>
+					<p class="sdocs-block-description">{@html renderInlineMarkdown(example.description)}</p>
 				{/if}
 			{/if}
 			<div class="sdocs-panels">
@@ -156,7 +157,7 @@
 				<div class="sdocs-view-header">
 					<h1 class="sdocs-view-title">{displayTitle(meta.title)}</h1>
 					{#if meta.description}
-						<p class="sdocs-view-description">{meta.description}</p>
+						<p class="sdocs-view-description">{@html renderInlineMarkdown(meta.description)}</p>
 					{/if}
 				</div>
 			{/if}

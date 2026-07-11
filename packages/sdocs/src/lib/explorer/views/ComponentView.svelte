@@ -12,6 +12,7 @@
 		patchSnippetCode,
 		resolveArgsInCode,
 	} from './usage-code.js';
+	import { renderInlineMarkdown } from './format.js';
 	import { displayTitle } from '../tree-builder.js';
 	import { getQueryParam, setQueryParam } from '../router.svelte.js';
 
@@ -264,7 +265,7 @@
 		<div class="sdocs-view-header">
 			<h1 class="sdocs-view-title">{displayTitle(meta.title)}</h1>
 			{#if meta.description}
-				<p class="sdocs-view-description">{meta.description}</p>
+				<p class="sdocs-view-description">{@html renderInlineMarkdown(meta.description)}</p>
 			{/if}
 		</div>
 
@@ -289,7 +290,7 @@
 			{#if activePreview}
 				{#key activePreview.snippet.slug}
 					{#if activePreview.snippet.description}
-						<p class="sdocs-block-description">{activePreview.snippet.description}</p>
+						<p class="sdocs-block-description">{@html renderInlineMarkdown(activePreview.snippet.description)}</p>
 					{/if}
 					<div class="sdocs-preview-wrapper">
 						<PreviewFrame
@@ -446,7 +447,7 @@
 						{example.name || '⚠ title required'}
 					</h3>
 					{#if example.description}
-						<p class="sdocs-block-description">{example.description}</p>
+						<p class="sdocs-block-description">{@html renderInlineMarkdown(example.description)}</p>
 					{/if}
 					<div class="sdocs-panels">
 						<div class="sdocs-preview-wrapper">

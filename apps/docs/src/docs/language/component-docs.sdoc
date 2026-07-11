@@ -29,7 +29,7 @@
 	| `title` | yes | Sidebar path and display name — `"Forms / Button"` nests under Forms |
 	| `slug` | no | Overrides the URL segment (default: slugified title segment) |
 	| `hide` | no | A bare flag: routable, but never listed in a sidebar |
-	| `description` | no | Short text under the page title |
+	| `description` | no | Short text under the page title — inline markdown (`` `code` ``, `**bold**`, `*italics*`) renders styled |
 	| `maxWidth` | no | Content column width (default from config, `1200px`) |
 	| `padding` | no | Default stage padding for this entity's previews and examples (default `16px`) |
 	| `direction` | no | Default stage `flex-direction` (default `row`) |
@@ -49,7 +49,7 @@
 	| `component` | yes | The demonstrated component: an identifier imported in the file's `<script>`. Drives [prop extraction](/explorer/features/prop-extraction) and the controls. |
 	| `args` | no | This preview's control defaults |
 	| `title` | no | Tab label — defaults to the component's name |
-	| `description` | no | Short text shown above the stage |
+	| `description` | no | Short text shown above the stage — inline markdown renders styled |
 	| `maxWidth` | no | Stage width (default `100%`; narrower stages center) |
 	| `padding` | no | Stage padding — overrides the entity and config defaults |
 	| `direction` | no | Stage `flex-direction` — overrides the entity and config defaults |

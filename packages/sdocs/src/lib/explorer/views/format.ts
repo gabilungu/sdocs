@@ -83,6 +83,34 @@ export function typeParts(value: unknown): string[] {
 	return parts.length > 1 ? parts : [v];
 }
 
+function escapeHtml(s: string): string {
+	return s
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;');
+}
+
+/** Inline markdown for description prose — `` `code` ``, `**bold**`,
+ * `*italics*` — so a JSDoc or showcase description reads styled, not as raw
+ * backticks. Input is HTML-escaped first (descriptions legitimately mention
+ * tags like `<p>`), and emphasis never runs inside a code span. */
+export function renderInlineMarkdown(text: string): string {
+	const emphasize = (s: string) =>
+		s
+			.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+			.replace(/\*([^*\s][^*]*)\*/g, '<em>$1</em>');
+	// Code spans are literal — split them out before emphasis runs.
+	return text
+		.split(/(`[^`]+`)/)
+		.map((part) =>
+			part.startsWith('`') && part.endsWith('`') && part.length > 2
+				? `<code>${escapeHtml(part.slice(1, -1))}</code>`
+				: emphasize(escapeHtml(part)),
+		)
+		.join('');
+}
+
 /** Parse a union of string or number literals ("'sm' | 'md'", "1 | 2") into
  * select options — across line breaks and leading pipes, the way Prettier
  * wraps long unions. Mixed or non-literal members return null: no select can

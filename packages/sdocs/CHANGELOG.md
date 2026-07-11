@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.93] - 2026-07-11
+
+### Added
+
+- Descriptions render inline markdown: `` `code` `` becomes a styled chip
+  (like doc prose), `**bold**` and `*italics*` work, and HTML in the text
+  stays escaped — in showcase/doc headers, preview and example descriptions,
+  and every API-table row.
+
 ## [0.0.92] - 2026-07-11
 
 ### Added

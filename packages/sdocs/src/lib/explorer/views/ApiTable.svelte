@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { typeClass, typeParts, valueClass } from './format.js';
+	import { renderInlineMarkdown, typeClass, typeParts, valueClass } from './format.js';
 
 	interface Row {
 		name: string;
@@ -76,7 +76,7 @@
 				{#if row.description}
 					<!-- The description runs the full row width, under every column,
 					     so a long or multi-line text isn't clipped to one cell. -->
-					<div class="sdocs-api-desc">{row.description}</div>
+					<div class="sdocs-api-desc">{@html renderInlineMarkdown(row.description)}</div>
 				{/if}
 			</div>
 		{/each}

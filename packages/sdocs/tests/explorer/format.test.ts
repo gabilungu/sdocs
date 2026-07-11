@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { splitUnion, typeParts, typeClass, unionOptions } from '../../src/lib/explorer/views/format.js';
+import {
+	renderInlineMarkdown,
+	splitUnion,
+	typeParts,
+	typeClass,
+	unionOptions,
+} from '../../src/lib/explorer/views/format.js';
 
 describe('splitUnion', () => {
 	it('splits a top-level union', () => {
@@ -85,5 +91,35 @@ describe('unionOptions', () => {
 		expect(unionOptions('string')).toBeNull();
 		expect(unionOptions(null)).toBeNull();
 		expect(unionOptions("'a|b'")).toBeNull();
+	});
+});
+
+describe('renderInlineMarkdown (description prose)', () => {
+	it('renders backticks as code chips', () => {
+		expect(renderInlineMarkdown('set `--bg` to a colour')).toBe(
+			'set <code>--bg</code> to a colour',
+		);
+	});
+
+	it('renders bold and italics', () => {
+		expect(renderInlineMarkdown('a **colour** *or* an image')).toBe(
+			'a <strong>colour</strong> <em>or</em> an image',
+		);
+	});
+
+	it('escapes HTML in prose and inside code spans', () => {
+		expect(renderInlineMarkdown('renders a <p> tag')).toBe('renders a &lt;p&gt; tag');
+		expect(renderInlineMarkdown('caption → `<span>`')).toBe(
+			'caption → <code>&lt;span&gt;</code>',
+		);
+	});
+
+	it('never emphasizes inside a code span', () => {
+		expect(renderInlineMarkdown('`a * b * c`')).toBe('<code>a * b * c</code>');
+	});
+
+	it('leaves a lone backtick and bare asterisks alone', () => {
+		expect(renderInlineMarkdown('a ` b')).toBe('a ` b');
+		expect(renderInlineMarkdown('2 * 3 * 4')).toBe('2 * 3 * 4');
 	});
 });

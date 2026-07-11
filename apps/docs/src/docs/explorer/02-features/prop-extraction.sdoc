@@ -35,7 +35,7 @@
 
 	This extracts three props: `label` (string, no default), `size` (union with default `'md'`), `disabled` (boolean with default `false`).
 
-	JSDoc comments on interface members are picked up as descriptions:
+	JSDoc comments on interface members are picked up as descriptions — the whole comment, with hard-wrapped lines rejoined (list items keep their breaks), and inline markdown (`` `code` ``, `**bold**`, `*italics*`) rendered styled:
 
 	```ts
 	interface Props {

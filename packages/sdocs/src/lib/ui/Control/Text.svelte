@@ -3,10 +3,12 @@
 		/** Optional label; omit when the control sits next to its name (e.g. in a table) */
 		label?: string;
 		value: string;
+		/** Ghost text while the input is empty — e.g. the prop's default */
+		placeholder?: string;
 		onchange: (value: string) => void;
 	}
 
-	let { label, value, onchange }: Props = $props();
+	let { label, value, placeholder, onchange }: Props = $props();
 </script>
 
 <label class="sdocs-control">
@@ -16,6 +18,7 @@
 	<input
 		type="text"
 		{value}
+		{placeholder}
 		oninput={(e) => onchange(e.currentTarget.value)}
 		class="sdocs-control-input"
 	/>

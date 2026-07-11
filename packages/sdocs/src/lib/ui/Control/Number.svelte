@@ -2,11 +2,14 @@
 	interface Props {
 		/** Optional label; omit when the control sits next to its name (e.g. in a table) */
 		label?: string;
-		value: number;
+		/** Absent while the prop is unset — the input shows only the placeholder */
+		value?: number;
+		/** Ghost text while the input is empty — e.g. the prop's default */
+		placeholder?: string;
 		onchange: (value: number) => void;
 	}
 
-	let { label, value, onchange }: Props = $props();
+	let { label, value, placeholder, onchange }: Props = $props();
 </script>
 
 <label class="sdocs-control">
@@ -15,7 +18,8 @@
 	{/if}
 	<input
 		type="number"
-		{value}
+		value={value ?? ''}
+		{placeholder}
 		oninput={(e) => onchange(Number(e.currentTarget.value))}
 		class="sdocs-control-input"
 	/>

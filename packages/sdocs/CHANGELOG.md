@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.92] - 2026-07-11
+
+### Added
+
+- Controls distinguish **set** from **unset**. Every set control gets a small
+  ✕: on an optional prop it unsets the prop entirely — the attribute leaves
+  the shown code and the component renders its own default — while on a
+  required prop it resets to the documented default. A changed CSS custom
+  property gets the same ✕, returning it to its `var()` fallback.
+- Unset text and number inputs are empty with the prop's default as ghost
+  placeholder text, instead of displaying the default as if it were typed.
+
+### Changed
+
+- An empty string is a real value: clearing an input keeps the prop set to
+  `""` (the code shows `name=""`); only the ✕ unsets it.
+
 ## [0.0.91] - 2026-07-11
 
 ### Added

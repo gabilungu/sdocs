@@ -35,6 +35,8 @@
 	**Rules for detection:**
 
 	- All members must be string literals wrapped in quotes (`'sm'`, `"md"`).
+	- Members may be written across lines — the leading-pipe style Prettier
+	  wraps long unions into parses the same as a single line.
 	- Mixed unions (`'sm' | number`) are not supported and fall back to read-only display.
 
 	## Number union → select
@@ -88,6 +90,24 @@
 	```
 
 	For CSS custom properties, set defaults via the `var()` fallback in your component's `<style>` block (`var(--bg, #333)`) — sdocs picks these up automatically.
+
+	## Set vs unset
+
+	A control distinguishes **set** (the prop is in `args`) from **unset** (the
+	prop is absent and the component renders its own default):
+
+	- An unset text or number input is empty, with the prop's default as ghost
+	  placeholder text. An unset select shows the default — or, with no default,
+	  a disabled *Please select…* entry.
+	- An empty string is a **real value**, not unset: clearing an input keeps
+	  the prop set to `""` (and the code shows `name=""`).
+	- Every set control gets a small **✕** after it. On an optional prop it
+	  unsets the prop entirely — the attribute leaves the code and the component
+	  falls back to its own default. On a required prop it resets the value to
+	  the documented default instead.
+	- The same ✕ appears on a changed CSS custom property and returns it to its
+	  `var()` fallback — an unchanged var is never applied to the preview, so
+	  component defaults can't leak into nested components.
 
 	## Reset
 

@@ -7,6 +7,11 @@
 	import ApiTable from './ApiTable.svelte';
 	import PropControl from './PropControl.svelte';
 	import CssPropControl from './CssPropControl.svelte';
+	import {
+		generateFallbackCode,
+		patchSnippetCode,
+		resolveArgsInCode,
+	} from './usage-code.js';
 	import { displayTitle } from '../tree-builder.js';
 	import { getQueryParam, setQueryParam } from '../router.svelte.js';
 
@@ -98,117 +103,16 @@
 		propValues = { ...propValues, [name]: value };
 	}
 
+	// Unset: the prop leaves args entirely, so the component renders its own
+	// default (an empty string stays a real value — only ✕ unsets).
+	function handlePropUnset(name: string) {
+		const next = { ...propValues };
+		delete next[name];
+		propValues = next;
+	}
+
 	function handleCssChange(name: string, value: string) {
 		cssValues = { ...cssValues, [name]: value };
-	}
-
-	function formatAttr(name: string, value: unknown): string {
-		if (typeof value === 'string') return `${name}="${value}"`;
-		if (typeof value === 'boolean') return value ? name : `${name}={false}`;
-		return `${name}={${JSON.stringify(value)}}`;
-	}
-
-	function generateFallbackCode(name: string, props: Record<string, unknown>, css: Record<string, string>): string {
-		const attrs: string[] = [];
-		for (const [key, value] of Object.entries(props)) {
-			if (value === undefined || value === null || value === '') continue;
-			attrs.push(formatAttr(key, value));
-		}
-		for (const [key, value] of Object.entries(css)) {
-			if (value === undefined || value === '') continue;
-			attrs.push(`${key}="${value}"`);
-		}
-		if (attrs.length === 0) return `<${name} />`;
-		if (attrs.length <= 2) return `<${name} ${attrs.join(' ')} />`;
-		return `<${name}\n  ${attrs.join('\n  ')}\n/>`;
-	}
-
-	/**
-	 * Patch the Default snippet body with prop/CSS changes from Controls.
-	 * Finds the root component opening tag and updates/adds changed attributes.
-	 */
-	function patchSnippetCode(
-		snippetBody: string,
-		name: string,
-		currentProps: Record<string, unknown>,
-		currentCss: Record<string, string>,
-		initialProps: Record<string, unknown>,
-		initialCss: Record<string, string>,
-	): string {
-		// Collect only changed props/css
-		const changes: [string, unknown][] = [];
-		for (const [key, value] of Object.entries(currentProps)) {
-			if (JSON.stringify(value) !== JSON.stringify(initialProps[key])) {
-				changes.push([key, value]);
-			}
-		}
-		for (const [key, value] of Object.entries(currentCss)) {
-			if (value !== (initialCss[key] ?? '')) {
-				changes.push([key, value]);
-			}
-		}
-
-		if (changes.length === 0) return snippetBody;
-
-		// A block-level <script> can mention the component name (in a string,
-		// a comment, an import) — only search the markup after it. (The tag is
-		// split so this file's own script doesn't end here.)
-		const scriptCloseTag = '</scr' + 'ipt>';
-		const scriptClose = snippetBody.indexOf(scriptCloseTag);
-		const searchFrom = scriptClose === -1 ? 0 : scriptClose + scriptCloseTag.length;
-
-		// Find the opening tag: <ComponentName ...> or <ComponentName ... />
-		// (whole-name match, so <Tab doesn't hit <Tabs)
-		const escapedName = name.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
-		const tagMatch = snippetBody.slice(searchFrom).match(new RegExp(`<${escapedName}(?=[\\s/>])`));
-		if (!tagMatch || tagMatch.index === undefined) return snippetBody;
-		const tagStart = searchFrom + tagMatch.index;
-
-		// Find the end of the opening tag, respecting {} expressions
-		let braceDepth = 0;
-		let tagEnd = -1;
-		for (let i = tagStart + name.length + 1; i < snippetBody.length; i++) {
-			if (snippetBody[i] === '{') braceDepth++;
-			else if (snippetBody[i] === '}') braceDepth--;
-			else if (braceDepth === 0 && snippetBody[i] === '>') {
-				tagEnd = i;
-				break;
-			}
-		}
-		if (tagEnd === -1) return snippetBody;
-
-		const isSelfClosing = snippetBody[tagEnd - 1] === '/';
-		const attrsStart = tagStart + `<${name}`.length;
-		const attrsEnd = isSelfClosing ? tagEnd - 1 : tagEnd;
-		let attrs = snippetBody.slice(attrsStart, attrsEnd);
-
-		for (const [attrName, value] of changes) {
-			const formatted = formatAttr(attrName, value);
-			const escaped = attrName.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
-
-			// Try replacing existing: name="...", name={...}, or bare name
-			const patterns = [
-				new RegExp(`(\\s)${escaped}="[^"]*"`),
-				new RegExp(`(\\s)${escaped}=\\{[^}]*\\}`),
-				new RegExp(`(\\s)${escaped}(?=\\s|$)`),
-			];
-
-			let replaced = false;
-			for (const pattern of patterns) {
-				if (pattern.test(attrs)) {
-					attrs = attrs.replace(pattern, `$1${formatted}`);
-					replaced = true;
-					break;
-				}
-			}
-
-			if (!replaced) {
-				attrs += ` ${formatted}`;
-			}
-		}
-
-		const closing = isSelfClosing ? '/>' : '>';
-		return snippetBody.slice(0, attrsStart) + attrs + closing + snippetBody.slice(tagEnd + 1);
 	}
 
 	// Initial values for diffing (computed once per doc/tab change)
@@ -235,52 +139,12 @@
 		return out;
 	});
 
-	/** The current control values as an object literal for a const-args line. */
-	function argsObjectLiteral(props: Record<string, unknown>): string {
-		const entries = Object.entries(props)
-			.filter(([, v]) => v !== undefined && v !== null && v !== '')
-			.map(([k, v]) => `${k}: ${JSON.stringify(v)}`);
-		return `{ ${entries.join(', ')} }`;
-	}
-
-	/**
-	 * Make the shown code copy-pasteable: a plain {...args} spread resolves to
-	 * the current control values as concrete attributes; a body that uses
-	 * `args` in richer ways ({args.x}, foo={args}) instead gains a real
-	 * `const args = { … }` line, so the code always runs as written.
-	 */
-	function resolveArgsInCode(body: string): string {
-		const SPREAD = '{...args}';
-		const beyondSpread = /\bargs\b/.test(body.split(SPREAD).join(''));
-		if (beyondSpread) {
-			const constLine = `const args = ${argsObjectLiteral(propValues)};`;
-			if (/^\s*<script/.test(body)) {
-				// Body already opens with a block script — declare args first in it.
-				return body.replace(/(<script[^>]*>\n?)/, `$1\t${constLine}\n`);
-			}
-			return ['<script>', '\t' + constLine, '</scr' + 'ipt>', body].join('\n');
-		}
-		if (body.includes(SPREAD)) {
-			const attrs = Object.entries(propValues)
-				.filter(([k, v]) => v !== undefined && v !== null && v !== '')
-				.filter(([k]) => !new RegExp(`\\b${k}=`).test(body))
-				.map(([k, v]) => formatAttr(k, v));
-			const expanded = body
-				.replace(SPREAD, attrs.join(' '))
-				.replace(/ {2,}/g, ' ')
-				.replace(/<(\w[\w.]*) \/>/g, '<$1 />')
-				.replace(/ >/g, '>');
-			return expanded;
-		}
-		return body;
-	}
-
 	const usageCode = $derived.by(() => {
 		if (activePreview?.snippet.body) {
-			const resolved = resolveArgsInCode(activePreview.snippet.body);
+			const resolved = resolveArgsInCode(activePreview.snippet.body, propValues);
 			return patchSnippetCode(resolved, componentName, propValues, cssValues, initialProps, initialCss);
 		}
-		return generateFallbackCode(componentName, propValues, cssValues);
+		return generateFallbackCode(componentName, propValues, appliedCss);
 	});
 
 	// Usage code is generated in the browser, so it's highlighted client-side
@@ -461,7 +325,12 @@
 		{#snippet propControl(row: Record<string, unknown>)}
 			{@const prop = cd?.props.find((p) => p.name === row.name && p.category === 'prop')}
 			{#if prop}
-				<PropControl {prop} value={propValues[prop.name]} onchange={(v) => handlePropChange(prop.name, v)} />
+				<PropControl
+					{prop}
+					value={propValues[prop.name]}
+					onchange={(v) => handlePropChange(prop.name, v)}
+					onunset={() => handlePropUnset(prop.name)}
+				/>
 			{/if}
 		{/snippet}
 

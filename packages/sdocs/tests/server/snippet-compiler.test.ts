@@ -279,6 +279,26 @@ describe('stage background', () => {
 		});
 		expect(out).not.toContain('background:');
 	});
+
+	it('paints a flow-root (LAYOUT) stage with background and minHeight', () => {
+		const out = generateIframeComponent('', '<b>x</b>', [], undefined, {
+			maxWidth: '100%',
+			padding: '0px',
+			background: 'var(--base-100)',
+			minHeight: '100vh',
+		});
+		expect(out).toContain('display: flow-root');
+		expect(out).toContain('background: var(--base-100)');
+		expect(out).toContain('min-height: 100vh');
+	});
+});
+
+describe('stage css var updates', () => {
+	it('removes vars the controls no longer send before applying the new set', () => {
+		const out = generateIframeComponent('', '<b>x</b>', []);
+		expect(out).toContain('removeProperty');
+		expect(out).toContain('appliedCssKeys');
+	});
 });
 
 describe('preview page base', () => {

@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.91] - 2026-07-11
+
+### Added
+
+- `[LAYOUT]` entities accept `background` and `minHeight`, so a full-page
+  composition can paint its canvas and claim its height without a wrapper
+  element; matching `content.layout` config defaults (and completions) ship
+  with them.
+
+### Fixed
+
+- A union prop type written across lines (the Prettier wrap: leading-pipe
+  members) now generates a select control, exactly like its single-line form.
+- A select for an enum prop with no default now shows a disabled
+  "Please select…" placeholder instead of silently displaying the first
+  option as if it were chosen.
+- Prop descriptions keep their whole JSDoc text: hard-wrapped lines rejoin
+  into their sentence (list items keep their breaks), and the props table
+  renders the description across the full row instead of clipping it to the
+  Details column.
+- A doc added in a brand-new directory is picked up live: the dev server
+  watches each include pattern's root recursively instead of only the
+  directories that existed at startup.
+- CSS custom properties from the Controls only reach the preview stage once
+  they differ from the documented default — a seeded default no longer
+  cascades into nested components that read the same variable and override
+  their own fallbacks. Clearing a var back to its default also removes it
+  from the stage again.
+
 ## [0.0.90] - 2026-07-09
 
 ### Fixed

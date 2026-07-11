@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { splitUnion, typeParts, typeClass } from '../../src/lib/explorer/views/format.js';
+import { splitUnion, typeParts, typeClass, unionOptions } from '../../src/lib/explorer/views/format.js';
 
 describe('splitUnion', () => {
 	it('splits a top-level union', () => {
@@ -54,5 +54,36 @@ describe('typeParts + typeClass', () => {
 
 	it('classifies mixed members with base types and void', () => {
 		expect(typeParts('string | undefined').map(typeClass)).toEqual(['string', 'void']);
+	});
+});
+
+describe('unionOptions', () => {
+	it('parses a single-line literal union into options', () => {
+		expect(unionOptions("'sm' | 'md' | 'lg'")).toEqual(['sm', 'md', 'lg']);
+		expect(unionOptions('1 | 2 | 3')).toEqual(['1', '2', '3']);
+	});
+
+	it('parses a multi-line leading-pipe union (the Prettier wrap)', () => {
+		const wrapped = "\n\t\t| 'primary'\n\t\t| 'secondary'\n\t\t| 'tertiary'\n\t\t| 'outlined'\n\t\t| 'ghost'\n\t\t| 'link'";
+		expect(unionOptions(wrapped)).toEqual([
+			'primary',
+			'secondary',
+			'tertiary',
+			'outlined',
+			'ghost',
+			'link',
+		]);
+	});
+
+	it('rejects mixed or non-literal unions', () => {
+		expect(unionOptions("'medium' | number")).toBeNull();
+		expect(unionOptions('number | string')).toBeNull();
+		expect(unionOptions("'a' | 1")).toBeNull();
+	});
+
+	it('rejects non-unions and empty input', () => {
+		expect(unionOptions('string')).toBeNull();
+		expect(unionOptions(null)).toBeNull();
+		expect(unionOptions("'a|b'")).toBeNull();
 	});
 });

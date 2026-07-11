@@ -31,9 +31,13 @@
 	| `hide` | no | A bare flag: routable, but never listed in a sidebar |
 	| `maxWidth` | no | Stage width (default `100%`; narrower stages center) |
 	| `padding` | no | Space around the sketch inside the frame (default `0px`) |
+	| `background` | no | Stage background — a CSS color or a `var()` from the project's css |
+	| `minHeight` | no | Minimum stage height — any CSS length (e.g. `100vh` for a full page) |
 
 	Presentation attributes tune the stage; the sketch itself is whatever you
-	put in the body. Global defaults live in the config's [`content`
+	put in the body — so a full-page composition can paint its canvas
+	(`background`) and claim its height (`minHeight`) without a wrapper
+	element. Global defaults live in the config's [`content`
 	option](/explorer/configuration).
 
 	## The body

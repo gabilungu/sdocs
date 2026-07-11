@@ -53,9 +53,6 @@
 							{/each}
 						</div>
 					{/if}
-					{#if row.description}
-						<div class="sdocs-api-desc">{row.description}</div>
-					{/if}
 				</div>
 				{#if showDefault}
 					<div class="sdocs-api-default">
@@ -75,6 +72,11 @@
 					<div class="sdocs-api-control">
 						{@render control(row)}
 					</div>
+				{/if}
+				{#if row.description}
+					<!-- The description runs the full row width, under every column,
+					     so a long or multi-line text isn't clipped to one cell. -->
+					<div class="sdocs-api-desc">{row.description}</div>
 				{/if}
 			</div>
 		{/each}
@@ -101,7 +103,8 @@
 	.sdocs-api-row {
 		display: grid;
 		grid-template-columns: 200px minmax(0, 1fr) 120px 200px;
-		gap: 20px;
+		/* Tighter row gap: the full-width description sits on its own grid row */
+		gap: 8px 20px;
 		align-items: start;
 		padding: 12px 12px;
 		border-bottom: 1px solid var(--color-base-100);
@@ -129,7 +132,10 @@
 		gap: 6px;
 	}
 	.sdocs-api-desc {
+		grid-column: 1 / -1;
 		color: var(--color-base-500);
+		/* Reflowed JSDoc keeps deliberate breaks (lists, paragraphs) as \n */
+		white-space: pre-line;
 	}
 	.sdocs-api-default {
 		overflow-wrap: break-word;

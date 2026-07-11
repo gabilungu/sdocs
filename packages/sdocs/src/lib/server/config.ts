@@ -32,7 +32,7 @@ const DEFAULTS: ResolvedSdocsConfig = {
 			background: null,
 			minHeight: null,
 		},
-		layout: { maxWidth: '100%', padding: '0px' },
+		layout: { maxWidth: '100%', padding: '0px', background: null, minHeight: null },
 	},
 };
 

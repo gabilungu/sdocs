@@ -157,12 +157,24 @@ describe('parseSdoc validation', () => {
 	});
 
 	it('accepts LAYOUT presentation attributes', () => {
-		const doc = parseSdoc('[LAYOUT title="Login" padding="48px"]\n<div />\n[/LAYOUT]\n');
+		const doc = parseSdoc(
+			'[LAYOUT title="Login" padding="48px" background="var(--base-100)" minHeight="100vh"]\n<div />\n[/LAYOUT]\n',
+		);
 		expect(doc.diagnostics).toEqual([]);
 		expect(doc.entities[0]).toMatchObject({
 			kind: 'LAYOUT',
-			sizing: { maxWidth: null, padding: '48px' },
+			sizing: {
+				maxWidth: null,
+				padding: '48px',
+				background: 'var(--base-100)',
+				minHeight: '100vh',
+			},
 		});
+	});
+
+	it('rejects flex stage attributes on LAYOUT — its body stays flow-root', () => {
+		const doc = parseSdoc('[LAYOUT title="L" direction="row"]\nx\n[/LAYOUT]\n');
+		expect(doc.diagnostics.length).toBeGreaterThan(0);
 	});
 });
 

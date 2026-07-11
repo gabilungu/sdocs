@@ -71,7 +71,12 @@ export interface SdocsConfig {
 			contentY?: string;
 		};
 		/** [LAYOUT] stages. Defaults: maxWidth '100%', padding '0px'. */
-		layout?: ContentSizing;
+		layout?: ContentSizing & {
+			/** Stage background — a CSS color or a var() from the project's css. Default: none */
+			background?: string;
+			/** Minimum stage height — any CSS length. Default: none */
+			minHeight?: string;
+		};
 	};
 }
 
@@ -131,7 +136,7 @@ export interface ResolvedSdocsConfig {
 		doc: Required<ContentSizing> & { toc: boolean; contentX: string };
 		page: Required<ContentSizing> & { contentX: string };
 		showcase: Required<ContentSizing> & { direction: string; gap: string; contentX: string; contentY: string; background: string | null; minHeight: string | null };
-		layout: Required<ContentSizing>;
+		layout: Required<ContentSizing> & { background: string | null; minHeight: string | null };
 	};
 }
 

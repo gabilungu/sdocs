@@ -196,7 +196,7 @@ export const configSchema: ConfigSchema = {
 				detail: 'object',
 				doc: '`[LAYOUT]` stages. Defaults: `maxWidth` `100%`, `padding` `0px`.',
 				insert: ': {\n\t$0\n}',
-				object: { maxWidth, padding },
+				object: { maxWidth, padding, background, minHeight },
 			},
 		},
 	},

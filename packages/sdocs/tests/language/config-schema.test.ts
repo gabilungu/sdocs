@@ -17,7 +17,7 @@ describe('configSchema (drives config completion without an install)', () => {
 		expect(Object.keys(content.showcase.object!)).toEqual([
 			'maxWidth', 'padding', 'direction', 'gap', 'contentX', 'contentY', 'background', 'minHeight',
 		]);
-		expect(Object.keys(content.layout.object!)).toEqual(['maxWidth', 'padding']);
+		expect(Object.keys(content.layout.object!)).toEqual(['maxWidth', 'padding', 'background', 'minHeight']);
 	});
 
 	it('carries enum values for aligned keys', () => {

@@ -323,6 +323,9 @@ export function generateIframeComponent(
 	let __sdocsRef = $state();
 ${blockScriptSection}${stateBroadcast}
 	__sdocsOnMount(() => {
+		// Custom properties currently applied to the stage — so a var the
+		// Controls no longer send (back to its default) is removed again.
+		let appliedCssKeys: string[] = [];
 		window.addEventListener('message', (e) => {
 			if (e.data?.type === 'sdocs:update-props') {
 				args = { ...e.data.props };
@@ -333,6 +336,10 @@ ${blockScriptSection}${stateBroadcast}
 			if (e.data?.type === 'sdocs:update-css') {
 				const el = document.getElementById('sdocs-preview');
 				if (el) {
+					for (const key of appliedCssKeys) {
+						if (!(key in e.data.vars)) el.style.removeProperty(key);
+					}
+					appliedCssKeys = Object.keys(e.data.vars);
 					for (const [key, value] of Object.entries(e.data.vars)) {
 						el.style.setProperty(key, String(value));
 					}

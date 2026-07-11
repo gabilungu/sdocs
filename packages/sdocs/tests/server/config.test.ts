@@ -17,7 +17,7 @@ describe('content sizing config', () => {
 			background: null,
 			minHeight: null,
 		});
-		expect(c.content.layout).toEqual({ maxWidth: '100%', padding: '0px' });
+		expect(c.content.layout).toEqual({ maxWidth: '100%', padding: '0px', background: null, minHeight: null });
 	});
 
 	it('merges partial overrides per kind', () => {
@@ -39,7 +39,7 @@ describe('content sizing config', () => {
 			background: null,
 			minHeight: null,
 		});
-		expect(c.content.layout).toEqual({ maxWidth: '900px', padding: '0px' });
+		expect(c.content.layout).toEqual({ maxWidth: '900px', padding: '0px', background: null, minHeight: null });
 	});
 });
 
@@ -136,7 +136,7 @@ describe('attributeRules (shared by diagnostics and completions)', () => {
 		]);
 		expect(Object.keys(attributeRules('SHOWCASE'))).toContain('gap');
 		expect(Object.keys(attributeRules('SHOWCASE'))).toContain('slug');
-		expect(Object.keys(attributeRules('LAYOUT'))).toEqual(['title', 'slug', 'hide', 'maxWidth', 'padding']);
+		expect(Object.keys(attributeRules('LAYOUT'))).toEqual(['title', 'slug', 'hide', 'maxWidth', 'padding', 'background', 'minHeight']);
 	});
 
 	it('carries value kind and required flag for each attribute', () => {

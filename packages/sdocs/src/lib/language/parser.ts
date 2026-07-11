@@ -439,6 +439,11 @@ const ENTITY_ATTR_RULES: Record<string, Record<string, AttrRule>> = {
 		title: { required: true, kind: 'string', hint: 'title="Group / Name"' },
 		...ROUTE_ATTR_RULES,
 		...SIZING_ATTR_RULES,
+		// The page-canvas subset of the stage attributes: paint and size the
+		// full-bleed stage without a wrapper element. (The flex attributes stay
+		// SHOWCASE-only — a LAYOUT body is flow-root, not a flex stage.)
+		background: { required: false, kind: 'string', hint: 'background="var(--bg)"' },
+		minHeight: { required: false, kind: 'string', hint: 'minHeight="100vh"' },
 	},
 };
 

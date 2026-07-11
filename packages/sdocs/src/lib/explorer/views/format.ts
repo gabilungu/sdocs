@@ -82,3 +82,37 @@ export function typeParts(value: unknown): string[] {
 	const parts = splitUnion(v);
 	return parts.length > 1 ? parts : [v];
 }
+
+/** Parse a union of string or number literals ("'sm' | 'md'", "1 | 2") into
+ * select options — across line breaks and leading pipes, the way Prettier
+ * wraps long unions. Mixed or non-literal members return null: no select can
+ * represent them. */
+export function unionOptions(value: unknown): string[] | null {
+	if (value == null) return null;
+	const v = normalizeType(value);
+	if (!v.includes('|')) return null;
+	const parts = splitUnion(v);
+	if (parts.length < 2) return null;
+	const values: string[] = [];
+	let allStrings = true;
+	let allNumbers = true;
+	for (const part of parts) {
+		// Quoted string: 'value' or "value"
+		const strMatch = part.match(/^['"](.+)['"]$/);
+		if (strMatch) {
+			values.push(strMatch[1]);
+			allNumbers = false;
+			continue;
+		}
+		// Bare number: 1, 2, 3
+		if (/^\d+(\.\d+)?$/.test(part)) {
+			values.push(part);
+			allStrings = false;
+			continue;
+		}
+		// Mixed or unsupported (e.g. 'medium' | number) → null
+		return null;
+	}
+	if (values.length > 0 && (allStrings || allNumbers)) return values;
+	return null;
+}

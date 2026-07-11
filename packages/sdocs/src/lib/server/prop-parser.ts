@@ -151,7 +151,7 @@ function parseJsdocTypeProps(sourceFile: ts.SourceFile): InterfaceProp[] {
 								? propTag.typeExpression.type.getText(sourceFile)
 								: 'unknown',
 							optional: propTag.isBracketed,
-							description: comment ? comment.replace(/^-\s*/, '').trim() : null,
+							description: comment ? reflowJsdocText(comment.replace(/^-\s*/, '')) || null : null,
 						});
 					}
 				}
@@ -510,6 +510,31 @@ function parseCssProps(
 
 // ─── Helpers ───
 
+/** Reflow JSDoc description text: hard-wrapped lines rejoin into their
+ * sentence, while blank lines and list markers (`-`, `*`, `1.`) keep a real
+ * line break — so a multi-line description reads as written, not as wrapped. */
+export function reflowJsdocText(text: string): string {
+	const lines = text.split('\n').map((l) => l.trim());
+	let out = '';
+	for (const line of lines) {
+		if (!out) {
+			out = line;
+			continue;
+		}
+		if (line === '') {
+			// Paragraph break (collapse runs of blank lines to one break)
+			if (!out.endsWith('\n')) out += '\n';
+			continue;
+		}
+		if (/^([-*•]|\d+[.)])\s/.test(line)) {
+			out += (out.endsWith('\n') ? '' : '\n') + line;
+			continue;
+		}
+		out += (out.endsWith('\n') ? '' : ' ') + line;
+	}
+	return out.trim();
+}
+
 function getJsdocComment(
 	node: ts.Node,
 	sourceFile: ts.SourceFile,
@@ -527,11 +552,15 @@ function getJsdocComment(
 				.replace(/\s*\*\/$/, '')
 				.replace(/^\s*\*\s?/gm, '')
 				.trim();
-			// Skip @tags
-			const firstLine = text.split('\n')[0];
-			if (firstLine && !firstLine.startsWith('@')) {
-				return firstLine;
+			// The description is everything up to the first @tag line — the
+			// whole text, not just its first line.
+			const descLines: string[] = [];
+			for (const line of text.split('\n')) {
+				if (line.trim().startsWith('@')) break;
+				descLines.push(line);
 			}
+			const desc = reflowJsdocText(descLines.join('\n'));
+			if (desc) return desc;
 		}
 	}
 

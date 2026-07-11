@@ -223,6 +223,18 @@
 		return css;
 	});
 
+	// Only user-changed vars reach the stage. Custom properties inherit, so a
+	// seeded default applied to the stage would cascade into nested components
+	// that read the same var name and override their own fallbacks — the
+	// component's real default must come from its own var() fallback instead.
+	const appliedCss = $derived.by(() => {
+		const out: Record<string, string> = {};
+		for (const [key, value] of Object.entries(cssValues)) {
+			if (value !== (initialCss[key] ?? '')) out[key] = value;
+		}
+		return out;
+	});
+
 	/** The current control values as an object literal for a const-args line. */
 	function argsObjectLiteral(props: Record<string, unknown>): string {
 		const entries = Object.entries(props)
@@ -420,7 +432,7 @@
 							bind:this={defaultPreview}
 							src={activePreview.snippet.previewUrl ?? ''}
 							props={propValues}
-							cssVars={cssValues}
+							cssVars={appliedCss}
 							{activeStylesheet}
 							onStateValues={(values) => (liveStateValues = values)}
 							onready={resolveVarColors}

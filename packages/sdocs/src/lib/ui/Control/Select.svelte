@@ -4,10 +4,15 @@
 		label?: string;
 		value: string;
 		options: string[];
+		/** Shown as a disabled first option while no real option is selected —
+		 * without it a value-less select silently displays the first option. */
+		placeholder?: string;
 		onchange: (value: string) => void;
 	}
 
-	let { label, value, options, onchange }: Props = $props();
+	let { label, value, options, placeholder, onchange }: Props = $props();
+
+	const unset = $derived(placeholder !== undefined && !options.includes(value));
 </script>
 
 <label class="sdocs-control">
@@ -16,9 +21,12 @@
 	{/if}
 	<select
 		class="sdocs-control-select"
-		{value}
+		value={unset ? '' : value}
 		onchange={(e) => onchange(e.currentTarget.value)}
 	>
+		{#if unset}
+			<option value="" disabled selected>{placeholder}</option>
+		{/if}
 		{#each options as opt (opt)}
 			<option value={opt} selected={opt === value}>{opt}</option>
 		{/each}

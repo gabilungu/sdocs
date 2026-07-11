@@ -2,7 +2,7 @@ import type { Plugin, ViteDevServer } from 'vite';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { loadRawConfig, resolveAndFinalize } from './server/config.js';
-import { discoverDocFiles } from './server/discovery.js';
+import { discoverDocFiles, globBase } from './server/discovery.js';
 import { parseComponent } from './server/prop-parser.js';
 import { parseSdoc, offsetToPosition } from './language/index.js';
 import {
@@ -139,6 +139,11 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 			// Watch for .sdoc file add/unlink/change
 			server.watcher.on('add', async (filePath) => {
 				if (isDocFile(filePath)) {
+					// The include roots are watched recursively (see buildStart), so
+					// this also fires for docs in brand-new directories — but only
+					// files the include globs actually match become entries.
+					const files = await discoverDocFiles(config.include, root);
+					if (!files.includes(filePath)) return;
 					console.log(`[sdocs] New doc file: ${filePath}`);
 					await processDocFile(filePath);
 					invalidateVirtualModule(filePath);
@@ -180,12 +185,17 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 				throw new Error(`[sdocs] Build failed:\n${buildErrors.join('\n')}`);
 			}
 
-			// Explicitly watch doc files and their directories (outside Vite root)
+			// Explicitly watch doc files and their directories (outside Vite root),
+			// plus each include pattern's static root — recursively, so a doc
+			// added in a brand-new directory still fires the watcher's `add`.
 			if (server) {
 				const dirs = new Set<string>();
 				for (const file of files) {
 					server.watcher.add(file);
 					dirs.add(file.substring(0, file.lastIndexOf('/')));
+				}
+				for (const pattern of config.include) {
+					dirs.add(globBase(pattern));
 				}
 				for (const dir of dirs) {
 					server.watcher.add(dir);
@@ -492,6 +502,16 @@ export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean })
 								block.background ?? entity.sizing.background ?? config.content.showcase.background ?? undefined,
 							minHeight:
 								block.minHeight ?? entity.sizing.minHeight ?? config.content.showcase.minHeight ?? undefined,
+						}
+					: {}),
+				// A LAYOUT is the page canvas: it can paint and size its stage
+				// (background/minHeight) while staying flow-root.
+				...(entity.kind === 'LAYOUT'
+					? {
+							background:
+								entity.sizing.background ?? config.content.layout.background ?? undefined,
+							minHeight:
+								entity.sizing.minHeight ?? config.content.layout.minHeight ?? undefined,
 						}
 					: {}),
 			});

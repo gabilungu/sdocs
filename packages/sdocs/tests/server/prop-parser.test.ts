@@ -329,3 +329,41 @@ describe('CSS prop defaults: declarations, Mixed, comments', () => {
 		expect(data.cssProps[0].defaultUses).toBeUndefined();
 	});
 });
+
+describe('multi-line JSDoc descriptions', () => {
+	const source = `<script lang="ts">
+	interface Props {
+		/** Width: 'fill' (100%), 'hug' (fit content), a number (px), or any CSS
+		 * length. Default: 'fill'. */
+		width?: string;
+		/** Overflow behavior:
+		 * - 'visible' — content can spill out
+		 * - 'hidden' — clip both axes
+		 */
+		overflow?: string;
+		/** One line only. */
+		simple?: string;
+	}
+	let { width, overflow, simple }: Props = $props();
+</script>
+<div></div>`;
+
+	const data = parseComponentSource(source);
+	const byName = (name: string) => data.props.find((p) => p.name === name)!;
+
+	it('rejoins hard-wrapped lines into their sentence', () => {
+		expect(byName('width').description).toBe(
+			"Width: 'fill' (100%), 'hug' (fit content), a number (px), or any CSS length. Default: 'fill'.",
+		);
+	});
+
+	it('keeps list items on their own lines', () => {
+		expect(byName('overflow').description).toBe(
+			"Overflow behavior:\n- 'visible' — content can spill out\n- 'hidden' — clip both axes",
+		);
+	});
+
+	it('leaves a single-line description untouched', () => {
+		expect(byName('simple').description).toBe('One line only.');
+	});
+});

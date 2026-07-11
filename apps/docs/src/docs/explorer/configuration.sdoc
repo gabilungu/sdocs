@@ -35,8 +35,8 @@
 	  static?: string;
 	  content?: {
 	    page?: { maxWidth?: string; padding?: string; toc?: boolean; contentX?: string };
-	    showcase?: { maxWidth?: string; padding?: string; direction?: string; gap?: string; contentX?: string; contentY?: string; minHeight?: string };
-	    layout?: { maxWidth?: string; padding?: string };
+	    showcase?: { maxWidth?: string; padding?: string; direction?: string; gap?: string; contentX?: string; contentY?: string; background?: string; minHeight?: string };
+	    layout?: { maxWidth?: string; padding?: string; background?: string; minHeight?: string };
 	  };
 	}
 	```
@@ -265,9 +265,12 @@
 	| `showcase` | `gap` | `16px` | stage `gap` |
 	| `showcase` | `contentX` | `left` | horizontal: `left`/`center`/`right`/`justify` |
 	| `showcase` | `contentY` | `top` | vertical: `top`/`middle`/`bottom`/`justify` |
+	| `showcase` | `background` | none | stage background — a CSS color or a `var()` from the project's css |
 	| `showcase` | `minHeight` | none | minimum stage height; reserves room for content that overflows the stage, like an open dropdown |
 	| `layout` | `maxWidth` | `100%` | the full-page stage |
 	| `layout` | `padding` | `0px` | space inside the stage |
+	| `layout` | `background` | none | stage background — a CSS color or a `var()` from the project's css |
+	| `layout` | `minHeight` | none | minimum stage height — any CSS length |
 
 	A doc's `maxWidth` constrains the content column together with its table
 	of contents; hide the toc and the prose takes the full width. `contentX`

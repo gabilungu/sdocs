@@ -29,9 +29,9 @@ export async function newComponentDoc(uri?: vscode.Uri): Promise<void> {
 
 [SHOWCASE title="${componentName}" description=""]
 
-	[preview component={${componentName}}]
+	[component component={${componentName}}]
 		<${componentName} {...args} />
-	[/preview]
+	[/component]
 
 [/SHOWCASE]
 `;

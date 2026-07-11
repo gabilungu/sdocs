@@ -347,3 +347,39 @@ describe('entity-level script/style formatting', () => {
 		expect(formatted!).toContain('\n\t[/example]');
 	});
 });
+
+describe('formatting [component] blocks', () => {
+	it('keeps the [component] tag — never reprints it as [preview]', async () => {
+		const source = [
+			'[SHOWCASE title="B"]',
+			'',
+			'\t[component component={Button} args={{ label: "Hi" }}]',
+			'\t\t<Button   {...args}   />',
+			'\t[/component]',
+			'',
+			'[/SHOWCASE]',
+			'',
+		].join('\n');
+		const out = await formatSdoc(source, OPTIONS);
+		expect(out).toContain('[component component={Button}');
+		expect(out).toContain('[/component]');
+		expect(out).not.toContain('[preview');
+	});
+
+	it('still formats the [preview] alias under its own name', async () => {
+		const source = [
+			'[SHOWCASE title="B"]',
+			'',
+			'\t[preview component={Button}]',
+			'\t\t<Button   class="x"   />',
+			'\t[/preview]',
+			'',
+			'[/SHOWCASE]',
+			'',
+		].join('\n');
+		const out = await formatSdoc(source, OPTIONS);
+		expect(out).toContain('[preview component={Button}]');
+		expect(out).toContain('[/preview]');
+		expect(out).not.toContain('[component');
+	});
+});

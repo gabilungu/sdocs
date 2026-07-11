@@ -168,7 +168,7 @@ export async function formatSdoc(
 		if (lines) regions.push({ firstLine: first, lastLine: last, lines });
 	}
 
-	// Block bodies: Svelte fragments in [preview]/[example] and [LAYOUT];
+	// Block bodies: Svelte fragments in [component]/[example] and [LAYOUT];
 	// [DOC] bodies are markdown, except their [example] blocks — those are
 	// Svelte fragments like any example, with the prose around them markdown.
 	const bodies: { span: Span; indent: string; markdown?: boolean }[] = [];
@@ -300,8 +300,9 @@ export async function formatSdoc(
 		reopen(entity.openerSpan, entity.attrs, entity.kind, '');
 		retag(Math.max(entity.openerSpan.end, entity.span.end - 1), '', `[/${entity.kind}]`);
 		for (const block of entity.blocks) {
-			reopen(block.openerSpan, block.attrs, block.kind, oneLevel);
-			retag(Math.max(block.openerSpan.end, block.span.end - 1), oneLevel, `[/${block.kind}]`);
+			// The tag as written — [component] must not reprint as [preview].
+			reopen(block.openerSpan, block.attrs, block.tag, oneLevel);
+			retag(Math.max(block.openerSpan.end, block.span.end - 1), oneLevel, `[/${block.tag}]`);
 		}
 	}
 

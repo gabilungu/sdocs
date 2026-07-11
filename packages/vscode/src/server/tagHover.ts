@@ -13,7 +13,7 @@ const TAG_SHOWCASE: Record<string, string> = {
 	SHOWCASE: [
 		'**`[SHOWCASE]`** — component documentation entity',
 		'',
-		'Holds live `[preview]` blocks (rendered component, prop controls, extracted API) and frozen `[example]` blocks.',
+		'Holds live `[component]` blocks (rendered component, prop controls, extracted API) and frozen `[example]` blocks.',
 		'',
 		'- `title` *(required)* — sidebar path, `/`-separated: `title="Form / Button"`. A leading `:` on the first segment groups; a leading `@slug/` places the entity in that config-declared section.',
 		'- `description` — subtitle under the page heading.',
@@ -62,16 +62,23 @@ const TAG_SHOWCASE: Record<string, string> = {
 		'',
 		`[Layout docs reference](${SITE}/language/layout-docs)`,
 	].join('\n'),
-	preview: [
-		'**`[preview]`** — live component panel',
+	component: [
+		'**`[component]`** — live component panel',
 		'',
-		'Renders the component with editable prop controls, its extracted API tables, and its source. Several previews in one `[SHOWCASE]` render as tabs.',
+		'Renders the component with editable prop controls, its extracted API tables, and its source. Several component blocks in one `[SHOWCASE]` render as tabs.',
 		'',
 		'- `component` *(required)* — an identifier imported in the file `<script>`: `component={Button}`.',
 		'- `args` — initial props, as an object literal: `args={{ label: "Hi" }}`.',
-		'- `title` — tab label when an entity has several previews.',
+		'- `title` — tab label when an entity has several component blocks.',
 		'- `maxWidth` / `padding` / `direction` / `gap` — stage size & flow.',
 		'- `contentX` — horizontal: `left`/`center`/`right`/`justify`. `contentY` — vertical: `top`/`middle`/`bottom`/`justify`.',
+		'',
+		`[Component docs reference](${SITE}/language/component-docs)`,
+	].join('\n'),
+	preview: [
+		'**`[preview]`** — the old name for `[component]`',
+		'',
+		'Still parses, identically — `[component]` is the canonical tag for the live component panel.',
 		'',
 		`[Component docs reference](${SITE}/language/component-docs)`,
 	].join('\n'),
@@ -91,7 +98,7 @@ const TAG_SHOWCASE: Record<string, string> = {
 /** Hover for the sdoc tag token at `position`, if the position is on one. */
 export function sdocTagHover(source: string, position: Position): Hover | null {
 	const line = source.split('\n')[position.line] ?? '';
-	const re = /\[\/?(SHOWCASE|DOC|PAGE|LAYOUT|preview|example)\b\]?/g;
+	const re = /\[\/?(SHOWCASE|DOC|PAGE|LAYOUT|component|preview|example)\b\]?/g;
 	for (let m = re.exec(line); m; m = re.exec(line)) {
 		const start = m.index;
 		const end = m.index + m[0].length;

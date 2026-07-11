@@ -12,7 +12,7 @@ interface BlockSpec {
 const ENTITY_BLOCKS: BlockSpec[] = [
 	{
 		label: 'SHOWCASE',
-		detail: 'Component docs: previews with controls + examples',
+		detail: 'Component docs: live component blocks with controls + examples',
 		insert: 'SHOWCASE title="$1"]\n\n\t$0\n\n[/SHOWCASE]',
 	},
 	{
@@ -34,9 +34,9 @@ const ENTITY_BLOCKS: BlockSpec[] = [
 
 const SUB_BLOCKS: BlockSpec[] = [
 	{
-		label: 'preview',
+		label: 'component',
 		detail: 'Live showcase with interactive controls',
-		insert: 'preview component={$1}]\n\t$0\n[/preview]',
+		insert: 'component component={$1}]\n\t$0\n[/component]',
 	},
 	{
 		label: 'example',
@@ -54,7 +54,7 @@ const ATTR_SHOWCASE: Record<string, string> = {
 	description: 'One sentence shown under the page title.',
 	component: "The demonstrated component: an identifier imported in the file's `<script>`. Drives prop extraction and controls.",
 	args: "This preview's control defaults — plain literals only: `args={{ label: 'Hi', disabled: false }}`.",
-	maxWidth: 'Content column ([SHOWCASE]/[DOC]/[PAGE]) or stage ([LAYOUT]/[preview]/[example]) width. Overrides the config default.',
+	maxWidth: 'Content column ([SHOWCASE]/[DOC]/[PAGE]) or stage ([LAYOUT]/[component]/[example]) width. Overrides the config default.',
 	padding: 'Space around the content or stage. Overrides the entity and config defaults.',
 	direction: 'Stage `flex-direction` (`row`/`column`). Overrides the entity and config defaults.',
 	gap: 'Stage `gap` between items. Overrides the entity and config defaults.',
@@ -127,7 +127,7 @@ export class BlockCompletionProvider implements vscode.CompletionItemProvider {
 		}
 
 		// Attribute names on a block opener line.
-		const opener = /^\s*\[(SHOWCASE|DOC|PAGE|LAYOUT|preview|example)\b/.exec(line);
+		const opener = /^\s*\[(SHOWCASE|DOC|PAGE|LAYOUT|component|preview|example)\b/.exec(line);
 		if (!opener) return undefined;
 		const rules = attributeRules(opener[1]);
 		const tagEnd = line.indexOf('[') + 1 + opener[1].length;

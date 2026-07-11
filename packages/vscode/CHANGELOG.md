@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.59] - 2026-07-11
+
+### Changed
+
+- `[component]` is the canonical name for the live component block:
+  completions insert it, the new-doc template uses it, hovers document it
+  (with `[preview]` noted as the old name), the grammar highlights both, and
+  the formatter preserves whichever tag a file uses.
+
 ## [0.0.58] - 2026-07-09
 
 ### Added

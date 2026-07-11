@@ -11,9 +11,9 @@
 
 	[SHOWCASE title="Forms / Button" description="A flexible button."]
 
-		[preview component={Button} args={{ label: 'Click me', disabled: false }}]
+		[component component={Button} args={{ label: 'Click me', disabled: false }}]
 			<Button {...args} />
-		[/preview]
+		[/component]
 
 		[example title="Disabled"]
 			<Button label="Can't touch this" disabled />
@@ -38,11 +38,13 @@
 	| `contentY` | no | Default vertical alignment: `top`/`middle`/`bottom`/`justify` (default `top`) |
 	| `background` | no | Default stage background — a CSS color or a `var()` from the project's css |
 
-	## `[preview]`
+	## `[component]`
 
-	A preview is a live, interactive showcase. Each `[preview]` names the
+	A `[component]` block is a live, interactive showcase. Each one names the
 	component it demonstrates and declares the defaults for its
-	[interactive controls](/explorer/features/interactive-controls):
+	[interactive controls](/explorer/features/interactive-controls). (The
+	block's old name, `[preview]`, still parses identically — `[component]` is
+	the canonical tag.)
 
 	| Attribute | Required | Meaning |
 	|---|---|---|
@@ -75,18 +77,18 @@
 	```sdoc
 	[SHOWCASE title="Navigation / Tabs"]
 
-		[preview component={Tabs} args={{ active: 0 }}]
+		[component component={Tabs} args={{ active: 0 }}]
 			<Tabs {...args}>
 				<Tab label="One">…</Tab>
 				<Tab label="Two">…</Tab>
 			</Tabs>
-		[/preview]
+		[/component]
 
-		[preview component={Tab} args={{ label: 'One' }}]
+		[component component={Tab} args={{ label: 'One' }}]
 			<Tabs>
 				<Tab {...args}>…</Tab>
 			</Tabs>
-		[/preview]
+		[/component]
 
 	[/SHOWCASE]
 	```
@@ -110,7 +112,7 @@
 	always — the controls never touch them. Every example requires a `title`
 	(any text — spaces and punctuation welcome), unique within its `[SHOWCASE]`
 	block. `maxWidth`, `padding`, `direction`, `gap`, `contentX`, `contentY`, and
-	`background` tune its stage, like on `[preview]`; `description` adds a short
+	`background` tune its stage, like on `[component]`; `description` adds a short
 	text under the heading.
 
 	Examples belong to the page, not to a tab: they render below the preview
@@ -169,7 +171,7 @@
 	  stage (including the file script), `__sdocsExample` and a `$props()`
 	  call in scripts that feed a page body. `[PAGE]` scripts may use `args`
 	  freely — pages have no preview stage.
-	- Styles apply within the block's own stage. In a `[preview]`, a block
+	- Styles apply within the block's own stage. In a `[component]`, a block
 	  script's `component={X}` import may also live in the block's script.
 
 	## What sdocs extracts

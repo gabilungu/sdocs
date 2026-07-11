@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.94] - 2026-07-11
+
+### Changed
+
+- `[component]` is the canonical name for the live component block —
+  `[preview]` still parses identically as its old name. Diagnostics name the
+  tag as written, the grammar highlights both, and the docs use
+  `[component]` throughout.
+
 ## [0.0.93] - 2026-07-11
 
 ### Added

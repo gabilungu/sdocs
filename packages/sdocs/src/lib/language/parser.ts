@@ -468,7 +468,9 @@ const SUB_BLOCK_ATTR_RULES: Record<string, Record<string, AttrRule>> = {
  * ('SHOWCASE'|'DOC'|'PAGE'|'LAYOUT'|'preview'|'example'). Single source of
  * truth for both diagnostics and editor attribute completions. */
 export function attributeRules(kind: string): Record<string, AttrRule> {
-	return ENTITY_ATTR_RULES[kind] ?? SUB_BLOCK_ATTR_RULES[kind] ?? {};
+	// [component] is the canonical tag for the preview kind.
+	const key = kind === 'component' ? 'preview' : kind;
+	return ENTITY_ATTR_RULES[key] ?? SUB_BLOCK_ATTR_RULES[key] ?? {};
 }
 
 function checkAttrs(
@@ -600,7 +602,7 @@ function parsePreview(
 	outerImports: Map<string, Span>,
 	diagnostics: ScanError[],
 ): PreviewBlock {
-	checkAttrs('[preview]', block.attrs, SUB_BLOCK_ATTR_RULES.preview, block.openerSpan, diagnostics);
+	checkAttrs(`[${block.tag}]`, block.attrs, SUB_BLOCK_ATTR_RULES.preview, block.openerSpan, diagnostics);
 	checkNestedScript(block.script, outerImports, diagnostics);
 
 	let componentName: string | null = null;

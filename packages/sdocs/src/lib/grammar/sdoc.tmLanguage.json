@@ -512,7 +512,7 @@
 		},
 		"preview": {
 			"name": "meta.block.preview.sdoc",
-			"begin": "^\\s*(\\[)(preview)\\b(.*)$",
+			"begin": "^\\s*(\\[)(component|preview)\\b(.*)$",
 			"beginCaptures": {
 				"1": {
 					"name": "punctuation.definition.tag.begin.sdoc"
@@ -528,7 +528,7 @@
 					]
 				}
 			},
-			"end": "^\\s*(\\[/)(preview)(\\])\\s*$",
+			"end": "^\\s*(\\[/)(component|preview)(\\])\\s*$",
 			"endCaptures": {
 				"1": {
 					"name": "punctuation.definition.tag.begin.sdoc"
@@ -543,7 +543,7 @@
 			"patterns": [
 				{
 					"begin": "(^|\\G)",
-					"while": "(^|\\G)(?!\\s*\\[/preview\\]\\s*$)",
+					"while": "(^|\\G)(?!\\s*\\[/(?:component|preview)\\]\\s*$)",
 					"patterns": [
 						{
 							"include": "#opener-continuation"

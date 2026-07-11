@@ -67,7 +67,7 @@
 	default expand state — deep-linking doesn't auto-expand the path to the
 	entry.)
 
-	When a component doc has several `[preview]` blocks, the selected tab is
+	When a component doc has several `[component]` blocks, the selected tab is
 	tracked in the URL as `?tab=<preview-slug>` — so a specific preview is
 	shareable (`/components/navtree?tab=navtree-item`). The first tab is the
 	default and keeps the URL clean; switching entity drops the parameter.

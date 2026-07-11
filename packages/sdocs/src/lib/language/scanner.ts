@@ -28,6 +28,22 @@ export type SubBlockKind = 'preview' | 'example';
 export const ENTITY_KINDS: readonly EntityKind[] = ['SHOWCASE', 'DOC', 'PAGE', 'LAYOUT'];
 export const SUB_BLOCK_KINDS: readonly SubBlockKind[] = ['preview', 'example'];
 
+/** Tag names that open sub-blocks. `[component]` is the canonical name for
+ * the block that documents a component (kind 'preview'); `[preview]` stays a
+ * supported alias. Editor surfaces (completions, templates) offer the
+ * canonical names: SUB_BLOCK_TAGS. */
+export const SUB_BLOCK_TAGS: readonly string[] = ['component', 'example'];
+const SUB_BLOCK_TAG_KINDS: Record<string, SubBlockKind> = {
+	component: 'preview',
+	preview: 'preview',
+	example: 'example',
+};
+
+/** The kind a sub-block tag opens, or null for an unknown tag. */
+export function subBlockKindOf(name: string): SubBlockKind | null {
+	return SUB_BLOCK_TAG_KINDS[name] ?? null;
+}
+
 export interface AttrValue {
 	/** 'string' for name="text", 'expression' for name={expr}, 'bare' for a lone name */
 	kind: 'string' | 'expression' | 'bare';
@@ -43,6 +59,9 @@ export type Attrs = Record<string, AttrValue>;
 
 export interface SubBlock {
 	kind: SubBlockKind;
+	/** The tag as written — 'component', 'preview' (alias), or 'example' —
+	 * so diagnostics can name the block the author actually typed. */
+	tag: string;
 	attrs: Attrs;
 	/** Raw body between the opener line and the closer line (script/style included) */
 	body: string;
@@ -295,9 +314,6 @@ function isEntityKind(name: string): name is EntityKind {
 	return (ENTITY_KINDS as readonly string[]).includes(name);
 }
 
-function isSubBlockKind(name: string): name is SubBlockKind {
-	return (SUB_BLOCK_KINDS as readonly string[]).includes(name);
-}
 
 export function scanSdoc(source: string): SdocFile {
 	const lines = splitLines(source);
@@ -650,7 +666,7 @@ export function scanSdoc(source: string): SdocFile {
 				entity.span.end = tagStart + '[/SHOWCASE]'.length;
 				return i + 1;
 			}
-			if (token && !token.closer && isSubBlockKind(token.name)) {
+			if (token && !token.closer && subBlockKindOf(token.name)) {
 				const opener = scanOpener(i, token.name.length);
 				if (!opener) return lines.length;
 				const captured = captureBody(opener.nextLi, `[/${token.name}]`);
@@ -664,7 +680,8 @@ export function scanSdoc(source: string): SdocFile {
 				}
 				const sub = scanSubBlockBody(opener.nextLi, captured.nextLi - 1, token.name);
 				entity.blocks.push({
-					kind: token.name,
+					kind: subBlockKindOf(token.name)!,
+					tag: token.name,
 					attrs: opener.attrs,
 					body: captured.body,
 					bodySpan: captured.bodySpan,
@@ -679,7 +696,7 @@ export function scanSdoc(source: string): SdocFile {
 				continue;
 			}
 			const span = { start: line.start + line.text.indexOf(trimmed[0]), end: line.end };
-			if (token && isSubBlockKind(token.name.toLowerCase() as SubBlockKind) && !token.closer) {
+			if (token && subBlockKindOf(token.name.toLowerCase()) && !token.closer) {
 				errors.push({
 					code: 'casing',
 					message: `Sub-block tags are lowercase: [${token.name.toLowerCase()}].`,
@@ -702,7 +719,7 @@ export function scanSdoc(source: string): SdocFile {
 					code: token.closer ? 'stray-closer' : 'unknown-tag',
 					message: token.closer
 						? `Unexpected closer [/${token.name}] inside [SHOWCASE].`
-						: `Unknown block [${token.name}] inside [SHOWCASE] — expected [preview] or [example].`,
+						: `Unknown block [${token.name}] inside [SHOWCASE] — expected [component] or [example].`,
 					span,
 				});
 				i++;
@@ -710,7 +727,7 @@ export function scanSdoc(source: string): SdocFile {
 			}
 			errors.push({
 				code: 'text-outside-blocks',
-				message: 'Text inside [SHOWCASE] must be inside a [preview] or [example] block.',
+				message: 'Text inside [SHOWCASE] must be inside a [component] or [example] block.',
 				span,
 			});
 			i++;
@@ -839,6 +856,7 @@ export function scanSdoc(source: string): SdocFile {
 				const sub = scanSubBlockBody(opener.nextLi, captured.nextLi - 1, 'example');
 				entity.blocks.push({
 					kind: 'example',
+					tag: 'example',
 					attrs: opener.attrs,
 					body: captured.body,
 					bodySpan: captured.bodySpan,
@@ -853,10 +871,10 @@ export function scanSdoc(source: string): SdocFile {
 				i = captured.nextLi;
 				continue;
 			}
-			if (token && !token.closer && token.name === 'preview') {
+			if (token && !token.closer && subBlockKindOf(token.name) === 'preview') {
 				errors.push({
 					code: 'unknown-tag',
-					message: '[preview] is only valid inside [SHOWCASE] — docs showcase with [example].',
+					message: `[${token.name}] is only valid inside [SHOWCASE] — docs showcase with [example].`,
 					span: { start: line.start + line.text.indexOf('['), end: line.end },
 				});
 				i++;
@@ -988,13 +1006,13 @@ export function scanSdoc(source: string): SdocFile {
 			li++;
 			continue;
 		}
-		if (token && !token.closer && isSubBlockKind(token.name)) {
+		if (token && !token.closer && subBlockKindOf(token.name)) {
 			errors.push({
 				code: 'block-outside-entity',
 				message:
 					token.name === 'example'
 						? '[example] is only valid inside a [SHOWCASE] or [DOC] entity.'
-						: '[preview] is only valid inside a [SHOWCASE] entity.',
+						: `[${token.name}] is only valid inside a [SHOWCASE] entity.`,
 				span,
 			});
 			li++;

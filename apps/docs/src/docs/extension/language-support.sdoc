@@ -29,13 +29,13 @@
 	## Formatting
 
 	**Format Document** formats fragment-wise: the file `<script>` and
-	`<style>` and every `[preview]`/`[example]`/`[LAYOUT]` body run through
+	`<style>` and every `[component]`/`[example]`/`[LAYOUT]` body run through
 	prettier with the Svelte plugin independently. In `[DOC]` bodies, `[example]`
 	blocks format as Svelte fragments, Svelte islands (snippets, HTML sections,
 	component tags) too, and the markdown prose between them through prettier's
 	markdown formatter (markup normalized; prose lines never re-wrapped).
 	Everything reassembles at the structural indentation: entity tags sit at
-	column 0, `[preview]`/`[example]` tags one level in, bodies one level
+	column 0, `[component]`/`[example]` tags one level in, bodies one level
 	deeper — a misplaced `[/example]` or `[/DOC]` snaps back into place.
 	Width and indentation come from the project's `.prettierrc` when present
 	(so a `.sdoc` island wraps like a sibling `.svelte` file); a block opener
@@ -49,7 +49,7 @@
 
 	The extension ships a TextMate grammar for the block-based
 	[sdoc language](/language/overview): `[SHOWCASE]`, `[DOC]`, and `[LAYOUT]` entities,
-	`[preview]` and `[example]` blocks, and Svelte-style attributes, with
+	`[component]` and `[example]` blocks, and Svelte-style attributes, with
 	embedded TypeScript, Svelte, and CSS coloring inside `<script>`, block
 	bodies, and `<style>`. `[DOC]` bodies color as markdown — headings, bold,
 	lists, fences. The grammar also injects into markdown, so
@@ -62,7 +62,7 @@
 
 	- **Attribute completion** — inside a block opener, completions offer that
 	  block's attributes with documentation (`title` and `description` on
-	  `[SHOWCASE]`, `component` / `args` / `title` on `[preview]`, …), skipping
+	  `[SHOWCASE]`, `component` / `args` / `title` on `[component]`, …), skipping
 	  attributes already present.
 	- **`component={…}` value completion** — suggests the identifiers imported
 	  in the file's `<script>`.

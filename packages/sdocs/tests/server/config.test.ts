@@ -125,6 +125,8 @@ describe('attributeRules (shared by diagnostics and completions)', () => {
 		expect(Object.keys(attributeRules('preview'))).toEqual([
 			'component', 'args', 'title', 'description', 'maxWidth', 'padding', 'direction', 'gap', 'contentX', 'contentY', 'background', 'minHeight',
 		]);
+		// [component] is the canonical tag for the same block
+		expect(attributeRules('component')).toEqual(attributeRules('preview'));
 		expect(Object.keys(attributeRules('example'))).toEqual([
 			'title', 'description', 'maxWidth', 'padding', 'direction', 'gap', 'contentX', 'contentY', 'background', 'minHeight',
 		]);

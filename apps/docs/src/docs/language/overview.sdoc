@@ -30,9 +30,9 @@
 
 	[SHOWCASE title="Forms / Button" description="A flexible button."]
 
-		[preview component={Button} args={{ label: 'Click me', disabled: false }}]
+		[component component={Button} args={{ label: 'Click me', disabled: false }}]
 			<Button {...args} />
-		[/preview]
+		[/component]
 
 		[example title="With a very long label"]
 			<Button label="This label would never fit in an identifier" />
@@ -92,7 +92,7 @@
 
 	- Tags are line-anchored square brackets: `[SHOWCASE …]` opens, `[/SHOWCASE]` closes,
 	  each on its own line. Entity tags are UPPERCASE; the blocks inside them
-	  (`[preview]`, `[example]`) are lowercase. Casing is strict.
+	  (`[component]`, `[example]`) are lowercase. Casing is strict.
 	- Attributes use Svelte syntax: `title="text"` for strings,
 	  `component={Button}` for expressions. Openers may span multiple lines.
 	- Svelte code is valid only **inside** blocks. Body text outside any block is

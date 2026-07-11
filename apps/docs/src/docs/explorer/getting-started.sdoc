@@ -55,9 +55,9 @@
 
 	[SHOWCASE title="Components / Button" description="A flexible button."]
 
-		[preview component={Button} args={{ label: 'Click me', disabled: false }}]
+		[component component={Button} args={{ label: 'Click me', disabled: false }}]
 			<Button {...args} />
-		[/preview]
+		[/component]
 
 	[/SHOWCASE]
 	```

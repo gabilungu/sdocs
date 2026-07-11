@@ -7,9 +7,9 @@
 	description="One small component, three extraction features: class/...rest forwarding renders as chips under the props (not fake required rows); the size union gets per-member badges and a text control; and --accent — used with two different var() fallbacks — reports Mixed, with the per-property breakdown on hover."
 ]
 
-	[preview component={Swatch} args={{ label: "Accent", size: "md" }}]
+	[component component={Swatch} args={{ label: "Accent", size: "md" }}]
 		<Swatch {...args} />
-	[/preview]
+	[/component]
 
 	[example title="Sizes" contentY="middle"]
 		<Swatch label="sm" size="sm" />

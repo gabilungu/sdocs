@@ -292,7 +292,7 @@
 
 	Entities and blocks override these in place with the same attributes:
 	`[DOC title="…" maxWidth="800px" toc="false"]`,
-	`[preview component={X} direction="column" gap="8px" background="var(--bg)" minHeight="240px"]` — block beats
+	`[component component={X} direction="column" gap="8px" background="var(--bg)" minHeight="240px"]` — block beats
 	entity beats config. `minHeight` is handy when a component opens content beyond
 	its box — an open dropdown or popover — that the auto-sized preview would clip.
 

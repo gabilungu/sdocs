@@ -669,3 +669,53 @@ describe('entity-level scripts: fields and scope chain', () => {
 		expect(codes).toContain('duplicate-import');
 	});
 });
+
+describe('[component] — canonical name for the preview block', () => {
+	const source = [
+		'<script lang="ts">',
+		"\timport Button from './Button.svelte';",
+		'</script>',
+		'',
+		'[SHOWCASE title="B"]',
+		'\t[component component={Button} args={{ label: "Hi" }}]',
+		'\t\t<Button {...args} />',
+		'\t[/component]',
+		'[/SHOWCASE]',
+		'',
+	].join('\n');
+
+	it('parses like [preview] with no diagnostics', () => {
+		const doc = parseSdoc(source);
+		expect(doc.diagnostics).toEqual([]);
+		const entity = doc.entities[0];
+		expect(entity.kind).toBe('SHOWCASE');
+		if (entity.kind !== 'SHOWCASE') return;
+		expect(entity.previews).toHaveLength(1);
+		expect(entity.previews[0].componentName).toBe('Button');
+		expect(entity.previews[0].args).toEqual({ label: 'Hi' });
+	});
+
+	it('names the written tag in attribute diagnostics', () => {
+		const doc = parseSdoc(
+			'[SHOWCASE title="B"]\n\t[component component={Button} bogus="x"]\n\t\t<Button />\n\t[/component]\n[/SHOWCASE]\n',
+		);
+		const messages = doc.diagnostics.map((d) => d.message).join('\n');
+		expect(messages).toContain('[component]');
+		expect(messages).not.toContain('[preview]');
+	});
+
+	it('keeps [preview] parsing as an alias of the same block', () => {
+		const doc = parseSdoc(
+			'[SHOWCASE title="B"]\n\t[preview component={Button}]\n\t\t<Button />\n\t[/preview]\n[/SHOWCASE]\n',
+		);
+		expect(doc.diagnostics).toEqual([]);
+		const entity = doc.entities[0];
+		if (entity.kind !== 'SHOWCASE') return;
+		expect(entity.previews).toHaveLength(1);
+	});
+
+	it('is rejected outside [SHOWCASE], naming the written tag', () => {
+		const doc = parseSdoc('[DOC title="D"]\n[component component={B}]\nx\n[/component]\n[/DOC]\n');
+		expect(doc.diagnostics.map((d) => d.message).join('\n')).toContain('[component] is only valid inside [SHOWCASE]');
+	});
+});

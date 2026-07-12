@@ -21,13 +21,13 @@ describe('parseSdoc typed entities', () => {
 
 [SHOWCASE title="Navigation / Tabs" description="A tab bar."]
 
-	[preview component={Tabs} args={{ active: 0 }}]
+	[component component={Tabs} args={{ active: 0 }}]
 		<Tabs {...args}><Tab label="One">…</Tab></Tabs>
-	[/preview]
+	[/component]
 
-	[preview component={Tab} args={{ label: 'One' }}]
+	[component component={Tab} args={{ label: 'One' }}]
 		<Tabs><Tab {...args}>…</Tab></Tabs>
-	[/preview]
+	[/component]
 
 	[example title="Vertical"]
 		<Tabs vertical />
@@ -72,12 +72,12 @@ describe('parseSdoc typed entities', () => {
 	it('uses title= as the tab label override', () => {
 		const overridden = parseSdoc(
 			`[SHOWCASE title="X"]
-[preview component={Button} title="As a link" args={{ a: 1 }}]
+[component component={Button} title="As a link" args={{ a: 1 }}]
 x
-[/preview]
-[preview component={Button}]
+[/component]
+[component component={Button}]
 x
-[/preview]
+[/component]
 [/SHOWCASE]
 `,
 		);
@@ -94,7 +94,7 @@ describe('parseSdoc validation', () => {
 	});
 
 	it('requires component on previews and title on examples', () => {
-		expect(diagnosticCodes('[SHOWCASE title="X"]\n[preview]\nx\n[/preview]\n[/SHOWCASE]\n')).toContain(
+		expect(diagnosticCodes('[SHOWCASE title="X"]\n[component]\nx\n[/component]\n[/SHOWCASE]\n')).toContain(
 			'missing-attr',
 		);
 		expect(diagnosticCodes('[SHOWCASE title="X"]\n[example]\nx\n[/example]\n[/SHOWCASE]\n')).toContain(
@@ -125,16 +125,25 @@ describe('parseSdoc validation', () => {
 	it('rejects wrong attribute value kinds', () => {
 		expect(diagnosticCodes('[SHOWCASE title={x}]\n[/SHOWCASE]\n')).toContain('attr-value-kind');
 		expect(
-			diagnosticCodes('[SHOWCASE title="X"]\n[preview component="Button"]\nx\n[/preview]\n[/SHOWCASE]\n'),
+			diagnosticCodes('[SHOWCASE title="X"]\n[component component="Button"]\nx\n[/component]\n[/SHOWCASE]\n'),
 		).toContain('attr-value-kind');
 	});
 
 	it('rejects non-identifier component expressions', () => {
 		expect(
 			diagnosticCodes(
-				'[SHOWCASE title="X"]\n[preview component={Tabs.Tab}]\nx\n[/preview]\n[/SHOWCASE]\n',
+				'[SHOWCASE title="X"]\n[component component={makeTab()}]\nx\n[/component]\n[/SHOWCASE]\n',
 			),
 		).toContain('component-identifier');
+	});
+
+	it('accepts member access for compound components', () => {
+		const doc = parseSdoc(
+			'[SHOWCASE title="X"]\n[component component={NavTree.Group}]\nx\n[/component]\n[/SHOWCASE]\n',
+		);
+		expect(doc.diagnostics).toEqual([]);
+		const entity = doc.entities[0] as ShowcaseEntity;
+		expect(entity.previews[0].componentName).toBe('NavTree.Group');
 	});
 
 	it('rejects duplicate example titles and preview labels', () => {
@@ -145,7 +154,7 @@ describe('parseSdoc validation', () => {
 		).toContain('duplicate-example-title');
 		expect(
 			diagnosticCodes(
-				'[SHOWCASE title="X"]\n[preview component={B}]\nx\n[/preview]\n[preview component={B}]\ny\n[/preview]\n[/SHOWCASE]\n',
+				'[SHOWCASE title="X"]\n[component component={B}]\nx\n[/component]\n[component component={B}]\ny\n[/component]\n[/SHOWCASE]\n',
 			),
 		).toContain('duplicate-preview-label');
 	});
@@ -264,12 +273,12 @@ describe('block-level scripts: parsed fields and duplicate-import rule', () => {
 
 [SHOWCASE title="Nav"]
 
-	[preview component={Nav}]
+	[component component={Nav}]
 		<script lang="ts">
 			let active = $state('Home');
 		</script>
 		<Nav {active} />
-	[/preview]
+	[/component]
 
 	[example title="Styled"]
 		<span class="big">hi</span>
@@ -368,9 +377,9 @@ describe('description attribute + example-title enforcement', () => {
 </script>
 
 [SHOWCASE title="X"]
-	[preview component={X} description="How you use it"]
+	[component component={X} description="How you use it"]
 		<X />
-	[/preview]
+	[/component]
 	[example title="A" description="What it shows"]
 		<X />
 	[/example]
@@ -451,7 +460,7 @@ describe('reserved names: file script (review regression F1)', () => {
 	it('a clean file script stays diagnostic-free', () => {
 		expect(
 			diagnosticCodes(
-				`<script>\n\timport Nav from './Nav.svelte';\n\tconst sizes = ['s', 'm'];\n</script>\n\n[SHOWCASE title="X"]\n\t[preview component={Nav}]\n\t\t<Nav />\n\t[/preview]\n[/SHOWCASE]\n`,
+				`<script>\n\timport Nav from './Nav.svelte';\n\tconst sizes = ['s', 'm'];\n</script>\n\n[SHOWCASE title="X"]\n\t[component component={Nav}]\n\t\t<Nav />\n\t[/component]\n[/SHOWCASE]\n`,
 			),
 		).toEqual([]);
 	});
@@ -574,7 +583,7 @@ describe('import-shaped text inside strings (review regression F4)', () => {
 describe('example slug collisions (review regression F5)', () => {
 	it('warns when an example slug lands on a preview slug', () => {
 		const doc = parseSdoc(
-			`<script>\n\timport Button from './Button.svelte';\n</script>\n\n[SHOWCASE title="X"]\n\t[preview component={Button} title="X Ray"]\n\t\t<Button />\n\t[/preview]\n\t[example title="Ray"]\n\t\t<Button />\n\t[/example]\n[/SHOWCASE]\n`,
+			`<script>\n\timport Button from './Button.svelte';\n</script>\n\n[SHOWCASE title="X"]\n\t[component component={Button} title="X Ray"]\n\t\t<Button />\n\t[/component]\n\t[example title="Ray"]\n\t\t<Button />\n\t[/example]\n[/SHOWCASE]\n`,
 		);
 		const collision = doc.diagnostics.find((d) => d.code === 'example-slug-collision');
 		expect(collision?.message).toContain('"Ray"');
@@ -600,7 +609,7 @@ describe('example slug collisions (review regression F5)', () => {
 	it('disjoint slugs stay silent', () => {
 		expect(
 			diagnosticCodes(
-				`<script>\n\timport Button from './Button.svelte';\n</script>\n\n[SHOWCASE title="X"]\n\t[preview component={Button}]\n\t\t<Button />\n\t[/preview]\n\t[example title="Ray"]\n\t\t<Button />\n\t[/example]\n[/SHOWCASE]\n`,
+				`<script>\n\timport Button from './Button.svelte';\n</script>\n\n[SHOWCASE title="X"]\n\t[component component={Button}]\n\t\t<Button />\n\t[/component]\n\t[example title="Ray"]\n\t\t<Button />\n\t[/example]\n[/SHOWCASE]\n`,
 			),
 		).toEqual([]);
 	});
@@ -670,7 +679,7 @@ describe('entity-level scripts: fields and scope chain', () => {
 	});
 });
 
-describe('[component] — canonical name for the preview block', () => {
+describe('[component] block', () => {
 	const source = [
 		'<script lang="ts">',
 		"\timport Button from './Button.svelte';",
@@ -684,7 +693,7 @@ describe('[component] — canonical name for the preview block', () => {
 		'',
 	].join('\n');
 
-	it('parses like [preview] with no diagnostics', () => {
+	it('parses with no diagnostics', () => {
 		const doc = parseSdoc(source);
 		expect(doc.diagnostics).toEqual([]);
 		const entity = doc.entities[0];
@@ -695,26 +704,25 @@ describe('[component] — canonical name for the preview block', () => {
 		expect(entity.previews[0].args).toEqual({ label: 'Hi' });
 	});
 
-	it('names the written tag in attribute diagnostics', () => {
+	it('names the [component] tag in attribute diagnostics', () => {
 		const doc = parseSdoc(
 			'[SHOWCASE title="B"]\n\t[component component={Button} bogus="x"]\n\t\t<Button />\n\t[/component]\n[/SHOWCASE]\n',
 		);
 		const messages = doc.diagnostics.map((d) => d.message).join('\n');
 		expect(messages).toContain('[component]');
-		expect(messages).not.toContain('[preview]');
 	});
 
-	it('keeps [preview] parsing as an alias of the same block', () => {
+	it('rejects the removed [preview] tag', () => {
 		const doc = parseSdoc(
 			'[SHOWCASE title="B"]\n\t[preview component={Button}]\n\t\t<Button />\n\t[/preview]\n[/SHOWCASE]\n',
 		);
-		expect(doc.diagnostics).toEqual([]);
+		expect(doc.diagnostics.length).toBeGreaterThan(0);
 		const entity = doc.entities[0];
 		if (entity.kind !== 'SHOWCASE') return;
-		expect(entity.previews).toHaveLength(1);
+		expect(entity.previews).toHaveLength(0);
 	});
 
-	it('is rejected outside [SHOWCASE], naming the written tag', () => {
+	it('is rejected outside [SHOWCASE]', () => {
 		const doc = parseSdoc('[DOC title="D"]\n[component component={B}]\nx\n[/component]\n[/DOC]\n');
 		expect(doc.diagnostics.map((d) => d.message).join('\n')).toContain('[component] is only valid inside [SHOWCASE]');
 	});

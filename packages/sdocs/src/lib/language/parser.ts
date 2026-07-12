@@ -230,7 +230,9 @@ export function previewSlug(label: string): string {
 	return slugifyTitle(label);
 }
 
-const IDENTIFIER_RE = /^[A-Z][A-Za-z0-9_]*$/;
+// A component reference: a PascalCase identifier, optionally with member
+// access into a compound (`NavTree.Group`, `Grid.Cell`).
+const IDENTIFIER_RE = /^[A-Z][A-Za-z0-9_]*(\.[A-Z][A-Za-z0-9_]*)*$/;
 
 const IMPORT_RE = /import\s+(?:type\s+)?([^'"]+?)\s+from\s*['"][^'"]+['"]/g;
 

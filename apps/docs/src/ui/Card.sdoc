@@ -5,12 +5,12 @@
 
 [SHOWCASE title="@demo/Card" description="Linked card with an icon tile, body text, and a call-to-action line."]
 
-	[preview component={Card} args={{ href: '#', title: 'CLI', linkText: 'Command reference' }}]
+	[component component={Card} args={{ href: '#', title: 'CLI', linkText: 'Command reference' }}]
 		<Card {...args}>
 			Starts the Explorer in any project with zero install, and ships it as a
 			static site.
 		</Card>
-	[/preview]
+	[/component]
 
 	[example title="WithIcon"]
 		<Card {...args}>

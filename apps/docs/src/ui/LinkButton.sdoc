@@ -4,9 +4,9 @@
 
 [SHOWCASE title="@demo/LinkButton" description="Button-shaped link used for the site's calls to action."]
 
-	[preview component={LinkButton} args={{ href: '#', variant: 'primary', external: false }}]
+	[component component={LinkButton} args={{ href: '#', variant: 'primary', external: false }}]
 		<LinkButton {...args}>Get started</LinkButton>
-	[/preview]
+	[/component]
 
 	[example title="Secondary"]
 		<LinkButton {...args} variant="secondary">Documentation</LinkButton>

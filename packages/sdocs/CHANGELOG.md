@@ -7,14 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.95] - 2026-07-12
+
+### Added
+
+- `component={…}` resolves a compound sub-component via member access —
+  `component={NavTree.Item}`, `component={Grid.Cell}` — and follows a bare
+  identifier through an index module's default export
+  (`component={NavTree}` → the root component). A single
+  `import NavTree from './index.js'` now documents a whole compound family;
+  the separate root/sub-component imports are no longer needed.
+
+### Removed
+
+- **Breaking:** the `[preview]` tag is gone — use `[component]`. (It was a
+  short-lived alias; there are no published consumers.)
+
 ## [0.0.94] - 2026-07-11
 
 ### Changed
 
-- `[component]` is the canonical name for the live component block —
-  `[preview]` still parses identically as its old name. Diagnostics name the
-  tag as written, the grammar highlights both, and the docs use
-  `[component]` throughout.
+- `[component]` is the canonical name for the live component block (renamed
+  from `[preview]`). Diagnostics name the tag, the grammar highlights it, and
+  the docs use `[component]` throughout.
 
 ## [0.0.93] - 2026-07-11
 

@@ -7,9 +7,9 @@ const FULL = `<script lang="ts">
 
 [SHOWCASE title="Forms / Button" description="A flexible button."]
 
-	[preview component={Button} args={{ label: 'Hi', count: 2 }}]
+	[component component={Button} args={{ label: 'Hi', count: 2 }}]
 		<Button {...args} />
-	[/preview]
+	[/component]
 
 	[example title="Disabled"]
 		<Button label="Nope" disabled />
@@ -24,7 +24,7 @@ const FULL = `<script lang="ts">
 	A [reference link][SHOWCASE] and a fence:
 
 	\`\`\`svelte
-	[preview looks like a tag but is content]
+	[component looks like a tag but is content]
 	\`\`\`
 
 [/DOC]
@@ -76,7 +76,7 @@ describe('scanSdoc structure', () => {
 	it('keeps bracket-looking lines inside bodies as content', () => {
 		const page = file.entities[1];
 		expect(page.body).toContain('[reference link][SHOWCASE]');
-		expect(page.body).toContain('[preview looks like a tag but is content]');
+		expect(page.body).toContain('[component looks like a tag but is content]');
 		expect(file.entities).toHaveLength(3);
 	});
 
@@ -113,7 +113,7 @@ describe('scanSdoc details', () => {
 
 	it('tolerates CRLF line endings and a BOM', () => {
 		const file = scanSdoc(
-			'﻿[SHOWCASE title="X"]\r\n[preview component={B}]\r\n<B />\r\n[/preview]\r\n[/SHOWCASE]\r\n',
+			'﻿[SHOWCASE title="X"]\r\n[component component={B}]\r\n<B />\r\n[/component]\r\n[/SHOWCASE]\r\n',
 		);
 		expect(file.errors).toEqual([]);
 		expect(file.entities[0].blocks[0].body).toContain('<B />');
@@ -121,7 +121,7 @@ describe('scanSdoc details', () => {
 
 	it('handles nested braces and strings in expression attributes', () => {
 		const file = scanSdoc(
-			`[SHOWCASE title="X"]\n[preview component={Button} args={{ a: '}', b: { }, c: "]" }}]\nx\n[/preview]\n[/SHOWCASE]\n`,
+			`[SHOWCASE title="X"]\n[component component={Button} args={{ a: '}', b: { }, c: "]" }}]\nx\n[/component]\n[/SHOWCASE]\n`,
 		);
 		expect(file.errors).toEqual([]);
 		expect(file.entities[0].blocks[0].attrs.args.raw).toBe(`{ a: '}', b: { }, c: "]" }`);
@@ -140,13 +140,13 @@ describe('scanSdoc errors', () => {
 
 	it('rejects wrong casing with a targeted message', () => {
 		expect(codes('[showcase title="X"]\n[/showcase]\n')).toContain('casing');
-		expect(codes('[SHOWCASE title="X"]\n[PREVIEW component={B}]\nx\n[/PREVIEW]\n[/SHOWCASE]\n')).toContain(
+		expect(codes('[SHOWCASE title="X"]\n[COMPONENT component={B}]\nx\n[/COMPONENT]\n[/SHOWCASE]\n')).toContain(
 			'casing',
 		);
 	});
 
 	it('rejects sub-blocks outside SHOWCASE and unknown blocks inside', () => {
-		expect(codes('[preview component={B}]\nx\n[/preview]\n')).toContain('block-outside-entity');
+		expect(codes('[component component={B}]\nx\n[/component]\n')).toContain('block-outside-entity');
 		expect(codes('[SHOWCASE title="X"]\n[stuff]\nx\n[/stuff]\n[/SHOWCASE]\n')).toContain('unknown-tag');
 	});
 
@@ -156,7 +156,7 @@ describe('scanSdoc errors', () => {
 
 	it('reports unclosed blocks', () => {
 		expect(codes('[SHOWCASE title="X"]\n')).toContain('unclosed-block');
-		expect(codes('[SHOWCASE title="X"]\n[preview component={B}]\nx\n[/SHOWCASE]\n')).toContain(
+		expect(codes('[SHOWCASE title="X"]\n[component component={B}]\nx\n[/SHOWCASE]\n')).toContain(
 			'unclosed-block',
 		);
 		expect(codes('[DOC title="X"]\ntext\n')).toContain('unclosed-block');
@@ -268,10 +268,10 @@ describe('block-level <script> and <style> in sub-block bodies', () => {
 
 	it('flags a block <script> left unclosed before the block closer', () => {
 		const file = scanSdoc(`[SHOWCASE title="X"]
-	[preview component={Nav}]
+	[component component={Nav}]
 		<script>
 			const a = 1;
-	[/preview]
+	[/component]
 [/SHOWCASE]
 `);
 		expect(file.errors.map((e) => e.code)).toContain('unclosed-tag');
@@ -302,10 +302,10 @@ describe('block-level <script> and <style> in sub-block bodies', () => {
 describe('unclosed block script (review regression)', () => {
 	it('reports only unclosed-tag, not a contradictory position error', () => {
 		const file = scanSdoc(`[SHOWCASE title="X"]
-	[preview component={Nav}]
+	[component component={Nav}]
 		<script>
 			const a = 1;
-	[/preview]
+	[/component]
 [/SHOWCASE]
 `);
 		const codes = file.errors.map((e) => e.code);

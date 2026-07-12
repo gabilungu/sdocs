@@ -3,7 +3,7 @@
  * shiki under BOTH regex engines (Oniguruma, which VS Code uses, and the
  * JavaScript engine the Explorer client uses) and assert the sdoc scopes
  * survive multi-block files — the regression where the Svelte grammar's
- * catch-all text region swallowed everything after the first [preview].
+ * catch-all text region swallowed everything after the first [component].
  */
 
 import { describe, expect, it } from 'vitest';
@@ -32,13 +32,13 @@ const MULTI_BLOCK = `<script lang="ts">
 
 [SHOWCASE title="Nav / Tabs" description="A tab bar."]
 
-	[preview component={Tabs} args={{ active: 0 }}]
+	[component component={Tabs} args={{ active: 0 }}]
 		<Tabs {...args}>content ends in a tag</Tabs>
-	[/preview]
+	[/component]
 
-	[preview component={Tab} title="Child"]
+	[component component={Tab} title="Child"]
 		<Tabs><Tab {...args} /></Tabs>
-	[/preview]
+	[/component]
 
 	[example title="Frozen"]
 		<Tabs vertical>x</Tabs>
@@ -71,12 +71,12 @@ const WRAPPED = `<script lang="ts">
 	description="Long enough that the opener wraps onto several lines in the formatter."
 ]
 
-	[preview
+	[component
 		component={Root}
 		args={{ active: 0 }}
 	]
 		<Root {...args}>body</Root>
-	[/preview]
+	[/component]
 
 [/SHOWCASE]
 `;
@@ -95,8 +95,8 @@ function assertSdocScopes(tokens: Tokens, source: string) {
 	const firstDocs = lines.findIndex((l) => l.includes('[SHOWCASE'));
 	const checks: [string, string][] = [
 		['[SHOWCASE opener', colorOf(tokens, lines, '[SHOWCASE')],
-		['[/preview] #1', colorOf(tokens, lines, '[/preview]')],
-		['second [preview', colorOf(tokens, lines, '[preview', lines.findIndex((l) => l.includes('[/preview]')))],
+		['[/component] #1', colorOf(tokens, lines, '[/component]')],
+		['second [component', colorOf(tokens, lines, '[component', lines.findIndex((l) => l.includes('[/component]')))],
 		['[example opener', colorOf(tokens, lines, '[example')],
 		['[/SHOWCASE] closer', colorOf(tokens, lines, '[/SHOWCASE]')],
 		['[DOC after SHOWCASE', colorOf(tokens, lines, '[DOC', firstDocs + 1)],
@@ -123,12 +123,12 @@ function assertWrappedOpener(tokens: Tokens, source: string) {
 	// Wrapped block-opener attribute names, including one with an {{…}} value.
 	expect(scopeOf(li('\t\tcomponent='), 'component'), 'wrapped component=').toContain('attribute-name.sdoc');
 	expect(scopeOf(li('\t\targs='), 'args'), 'wrapped args=').toContain('attribute-name.sdoc');
-	// The standalone ] that closes the wrapped [preview opener is the tag end —
+	// The standalone ] that closes the wrapped [component opener is the tag end —
 	// the regression turned this into text.svelte and desynced the body below.
 	expect(scopeOf(li('\t]'), ']'), 'standalone ] of wrapped preview').toContain('tag.end.sdoc');
 	// Body after the wrapped opener still highlights as Svelte, and the closers survive.
 	expect(scopeOf(li('<Root {...args}'), 'Root'), 'body component after wrapped opener').toContain('svelte');
-	expect(scopeOf(li('[/preview]'), 'preview'), '[/preview] after wrapped opener').toContain('.sdoc');
+	expect(scopeOf(li('[/component]'), 'component'), '[/component] after wrapped opener').toContain('.sdoc');
 }
 
 describe('sdoc grammar (Oniguruma engine, as in VS Code)', () => {

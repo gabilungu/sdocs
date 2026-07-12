@@ -1,4 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import {
 	extractImports,
 	planEntitySnippets,
@@ -48,12 +51,62 @@ describe('resolveComponentImport', () => {
 	});
 });
 
+describe('resolveComponentImport — compound components (index module)', () => {
+	// A real on-disk compound: index.ts re-exports the root and sub-components,
+	// so the resolver has to read it and follow the bindings to the .svelte.
+	let dir: string;
+	let sdocPath: string;
+
+	beforeAll(() => {
+		dir = mkdtempSync(join(tmpdir(), 'sdocs-compound-'));
+		writeFileSync(join(dir, 'Nav.svelte'), '<nav></nav>');
+		writeFileSync(join(dir, 'Group.svelte'), '<div></div>');
+		writeFileSync(join(dir, 'Item.svelte'), '<a></a>');
+		writeFileSync(
+			join(dir, 'index.ts'),
+			[
+				"import Root from './Nav.svelte';",
+				"import Group from './Group.svelte';",
+				"import Item from './Item.svelte';",
+				'const Nav = Object.assign(Root, { Group, Item });',
+				'export { Nav, Group, Item };',
+				'export default Nav;',
+				'',
+			].join('\n'),
+		);
+		sdocPath = join(dir, 'Nav.sdoc');
+	});
+
+	afterAll(() => rmSync(dir, { recursive: true, force: true }));
+
+	const imports = ["import Nav from './index.js';"];
+
+	it("follows a bare identifier through the module's default export to the root .svelte", () => {
+		expect(resolveComponentImport('Nav', imports, sdocPath)).toBe(join(dir, 'Nav.svelte'));
+	});
+
+	it('follows member access to the sub-component .svelte', () => {
+		expect(resolveComponentImport('Nav.Group', imports, sdocPath)).toBe(join(dir, 'Group.svelte'));
+		expect(resolveComponentImport('Nav.Item', imports, sdocPath)).toBe(join(dir, 'Item.svelte'));
+	});
+
+	it('returns null for a member the module does not export', () => {
+		expect(resolveComponentImport('Nav.Missing', imports, sdocPath)).toBe(null);
+	});
+
+	it('still resolves a direct .svelte import unchanged', () => {
+		expect(
+			resolveComponentImport('Group', ["import Group from './Group.svelte';"], sdocPath),
+		).toBe(join(dir, 'Group.svelte'));
+	});
+});
+
 describe('planEntitySnippets slug uniqueness (review regression F5)', () => {
 	const entityOf = (source: string) => parseSdoc(source).entities[0];
 
 	it('keeps the preview slug and de-collides the example slug', () => {
 		const entity = entityOf(
-			`<script>\n\timport Button from './Button.svelte';\n</script>\n\n[SHOWCASE title="X"]\n\t[preview component={Button} title="X Ray"]\n\t\t<Button />\n\t[/preview]\n\t[example title="Ray"]\n\t\t<Button />\n\t[/example]\n[/SHOWCASE]\n`,
+			`<script>\n\timport Button from './Button.svelte';\n</script>\n\n[SHOWCASE title="X"]\n\t[component component={Button} title="X Ray"]\n\t\t<Button />\n\t[/component]\n\t[example title="Ray"]\n\t\t<Button />\n\t[/example]\n[/SHOWCASE]\n`,
 		);
 		const slugs = planEntitySnippets(entity).map((s) => s.slug);
 		expect(slugs).toEqual(['x-ray', 'x-ray-2']);
@@ -77,7 +130,7 @@ describe('planEntitySnippets slug uniqueness (review regression F5)', () => {
 
 	it('never yields duplicate slugs', () => {
 		const sources = [
-			`<script>\n\timport Button from './Button.svelte';\n</script>\n\n[SHOWCASE title="X"]\n\t[preview component={Button} title="X Ray"]\n\t\t<Button />\n\t[/preview]\n\t[preview component={Button} title="Content"]\n\t\t<Button />\n\t[/preview]\n\t[example title="Ray"]\n\t\t<Button />\n\t[/example]\n\t[example title="Ray!"]\n\t\t<Button />\n\t[/example]\n[/SHOWCASE]\n`,
+			`<script>\n\timport Button from './Button.svelte';\n</script>\n\n[SHOWCASE title="X"]\n\t[component component={Button} title="X Ray"]\n\t\t<Button />\n\t[/component]\n\t[component component={Button} title="Content"]\n\t\t<Button />\n\t[/component]\n\t[example title="Ray"]\n\t\t<Button />\n\t[/example]\n\t[example title="Ray!"]\n\t\t<Button />\n\t[/example]\n[/SHOWCASE]\n`,
 			`[DOC title="D"]\n\tbody\n\t[example title="A"]\n\t\t<b>x</b>\n\t[/example]\n\t[example title="A!"]\n\t\t<b>y</b>\n\t[/example]\n[/DOC]\n`,
 			`[PAGE title="P"]\n\tx\n[/PAGE]\n`,
 			`[LAYOUT title="L"]\n\tx\n[/LAYOUT]\n`,

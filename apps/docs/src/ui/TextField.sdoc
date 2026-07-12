@@ -4,9 +4,9 @@
 
 [SHOWCASE title="@demo/TextField" description="Labeled text input with a character counter. Exposes focus()/clear() methods, oninput/onchange events, and an exported length state."]
 
-	[preview component={TextField} args={{ label: 'Your name', placeholder: 'Ada Lovelace', disabled: false, maxlength: 60 }}]
+	[component component={TextField} args={{ label: 'Your name', placeholder: 'Ada Lovelace', disabled: false, maxlength: 60 }}]
 		<TextField {...args} />
-	[/preview]
+	[/component]
 
 	[example title="Disabled"]
 		<TextField {...args} label="Read only" disabled />

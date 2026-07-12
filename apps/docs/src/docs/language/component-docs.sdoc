@@ -43,8 +43,8 @@
 	A `[component]` block is a live, interactive showcase. Each one names the
 	component it demonstrates and declares the defaults for its
 	[interactive controls](/explorer/features/interactive-controls). (The
-	block's old name, `[preview]`, still parses identically — `[component]` is
-	the canonical tag.)
+	block resolves a compound sub-component too — `component={NavTree.Item}` —
+	so a single `import NavTree from './index.js'` documents the whole family.)
 
 	| Attribute | Required | Meaning |
 	|---|---|---|

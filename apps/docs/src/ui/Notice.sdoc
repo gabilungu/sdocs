@@ -4,12 +4,12 @@
 
 [SHOWCASE title="@demo/Notice" description="Kitchen sink: every documented feature in one component — text, number, boolean, and union props; events; plain and parameterized snippets; methods; exported state; and annotated CSS custom properties."]
 
-	[preview component={Notice} args={{ title: 'Build finished', tone: 'success', dismissible: true, count: 1 }}]
+	[component component={Notice} args={{ title: 'Build finished', tone: 'success', dismissible: true, count: 1 }}]
 		<Notice {...args}>
 			All 12 pages compiled in 1.2s — try dismissing me, or change my props
 			in the table below.
 		</Notice>
-	[/preview]
+	[/component]
 
 	[example title="WithIconSnippet"]
 		<Notice {...args} title="Deploy warning" tone="warning">

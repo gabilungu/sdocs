@@ -4,6 +4,7 @@
  * from this module, so build inputs always byte-match plugin output.
  */
 
+import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import type { SdocEntity } from '../language/index.js';
 import { exampleSlug, previewSlug } from '../language/parser.js';
@@ -134,20 +135,84 @@ export function extractImports(scriptContent: string): string[] {
 	return imports;
 }
 
-/** Resolve a preview's component identifier to an absolute .svelte path via
- * the file's imports. Returns null when the identifier isn't imported. */
+/** Resolve a default-imported identifier to the raw path it imports from
+ * (relative to `fromPath`). Returns null when the identifier isn't imported. */
+function importedPath(name: string, imports: string[], fromPath: string): string | null {
+	for (const imp of imports) {
+		const match = imp.match(new RegExp(`import\\s+${name}\\s+from\\s+['"](.+?)['"]`));
+		if (match) return resolve(dirname(fromPath), match[1]);
+	}
+	return null;
+}
+
+/** Read a module referenced by an import specifier, trying the extensions ESM
+ * lets you omit or rewrite (`./index.js` often *is* `index.ts`). Returns the
+ * source and the real path, or null. */
+function readModule(path: string): { source: string; path: string } | null {
+	const candidates = [
+		path,
+		path.replace(/\.m?js$/, (m) => (m === '.mjs' ? '.mts' : '.ts')),
+		`${path}.ts`,
+		`${path}.js`,
+		`${path}/index.ts`,
+		`${path}/index.js`,
+	];
+	for (const p of candidates) {
+		try {
+			return { source: readFileSync(p, 'utf8'), path: p };
+		} catch {
+			/* try the next candidate */
+		}
+	}
+	return null;
+}
+
+/** Trace a binding inside a JS/TS module to the .svelte file it ultimately
+ * refers to — following default imports, `const X = Object.assign(Base, …)`
+ * (the compound-component idiom), and plain `const X = Y` aliases. */
+function resolveInModule(name: string, source: string, modulePath: string, depth: number): string | null {
+	if (depth <= 0) return null;
+	const target = importedPath(name, [source], modulePath);
+	if (target) return followToSvelte(target, null, depth - 1);
+	// `const X = Object.assign(Base, { … })` → the Base component
+	const assign = source.match(new RegExp(`\\b${name}\\s*=\\s*Object\\.assign\\(\\s*([A-Za-z_$][\\w$]*)`));
+	if (assign) return resolveInModule(assign[1], source, modulePath, depth - 1);
+	// `const X = Y` alias
+	const alias = source.match(new RegExp(`\\b${name}\\s*=\\s*([A-Za-z_$][\\w$]*)\\s*[;\\n]`));
+	if (alias) return resolveInModule(alias[1], source, modulePath, depth - 1);
+	return null;
+}
+
+/** Follow a resolved import target: a `.svelte` file is the answer; a JS/TS
+ * module is followed through its `export default` (bare identifier) or its
+ * binding for `member` (member access). */
+function followToSvelte(path: string, member: string | null, depth: number): string | null {
+	if (depth <= 0) return null;
+	if (path.endsWith('.svelte')) return member ? null : path;
+	const mod = readModule(path);
+	if (!mod) return path.endsWith('.svelte') ? path : null;
+	if (member) return resolveInModule(member, mod.source, mod.path, depth);
+	// Bare identifier landing on a module → its default export.
+	const def =
+		mod.source.match(/export\s+default\s+([A-Za-z_$][\w$]*)/)?.[1] ??
+		mod.source.match(/export\s*\{[^}]*\b([A-Za-z_$][\w$]*)\s+as\s+default\b/)?.[1];
+	return def ? resolveInModule(def, mod.source, mod.path, depth) : null;
+}
+
+/** Resolve a `component={…}` reference to an absolute `.svelte` path via the
+ * file's imports. Handles a bare identifier (`Button`), a compound default
+ * exported from an index module (`NavTree` → index.ts → the root component),
+ * and member access into that module (`NavTree.Group` → Group.svelte).
+ * Returns null when it can't be traced to a component. */
 export function resolveComponentImport(
 	componentName: string,
 	imports: string[],
 	docFilePath: string,
 ): string | null {
-	for (const imp of imports) {
-		const match = imp.match(
-			new RegExp(`import\\s+${componentName}\\s+from\\s+['"](.+?)['"]`),
-		);
-		if (match) {
-			return resolve(dirname(docFilePath), match[1]);
-		}
-	}
-	return null;
+	const dot = componentName.indexOf('.');
+	const base = dot === -1 ? componentName : componentName.slice(0, dot);
+	const member = dot === -1 ? null : componentName.slice(dot + 1);
+	const basePath = importedPath(base, imports, docFilePath);
+	if (!basePath) return null;
+	return followToSvelte(basePath, member, 8);
 }

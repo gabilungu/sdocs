@@ -48,7 +48,7 @@ function makeBareProject(): string {
 	);
 	writeFileSync(
 		join(dir, 'src/Thing.sdoc'),
-		'<script>\n\timport Thing from "./Thing.svelte";\n</script>\n\n[SHOWCASE title="Thing"]\n\n\t[preview component={Thing} args={{ label: \'hi\' }}]\n\t\t<Thing {...args} />\n\t[/preview]\n\n[/SHOWCASE]\n',
+		'<script>\n\timport Thing from "./Thing.svelte";\n</script>\n\n[SHOWCASE title="Thing"]\n\n\t[component component={Thing} args={{ label: \'hi\' }}]\n\t\t<Thing {...args} />\n\t[/component]\n\n[/SHOWCASE]\n',
 	);
 	return dir;
 }

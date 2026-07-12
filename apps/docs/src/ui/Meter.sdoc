@@ -4,9 +4,9 @@
 
 [SHOWCASE title="@demo/Meter" description="Progress meter themed entirely through annotated CSS custom properties — try the color and dimension controls."]
 
-	[preview component={Meter} args={{ value: 64, max: 100, label: 'Docs coverage' }}]
+	[component component={Meter} args={{ value: 64, max: 100, label: 'Docs coverage' }}]
 		<Meter {...args} />
-	[/preview]
+	[/component]
 
 	[example title="Full"]
 		<Meter {...args} label="Shipped" value={100} />

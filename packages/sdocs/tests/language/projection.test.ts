@@ -25,9 +25,9 @@ const SOURCE = `<script lang="ts">
 
 [SHOWCASE title="Nav / Tabs" description="A tab bar."]
 
-	[preview component={Tabs} args={{ active: 0 }}]
+	[component component={Tabs} args={{ active: 0 }}]
 		<Tabs {...args} active={shared}>x</Tabs>
-	[/preview]
+	[/component]
 
 	[example title="Wrapped child"]
 		<Tabs><Tab {...args} /></Tabs>
@@ -77,8 +77,8 @@ describe('projectSdoc', () => {
 	});
 
 	it('rewrites sub-block openers to snippet wrappers in place', () => {
-		expect(lines[at('[preview')]).toBe('{#snippet __sdocs$0_0(args: any)}');
-		expect(lines[at('[/preview]')]).toBe('{/snippet}');
+		expect(lines[at('[component')]).toBe('{#snippet __sdocs$0_0(args: any)}');
+		expect(lines[at('[/component]')]).toBe('{/snippet}');
 		expect(lines[at('[example')]).toBe('{#snippet __sdocs$0_1(args: any)}');
 	});
 

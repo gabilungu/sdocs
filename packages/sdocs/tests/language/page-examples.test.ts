@@ -63,15 +63,15 @@ describe('scanner: [example] inside [DOC]', () => {
 		expect(body).toContain('More prose.');
 	});
 
-	it('rejects [preview] inside [DOC] with a pointed message', () => {
-		const bad = scanSdoc('[DOC title="P"]\n\t[preview component={X}]\n\t\t<X />\n\t[/preview]\n[/DOC]\n');
+	it('rejects [component] inside [DOC] with a pointed message', () => {
+		const bad = scanSdoc('[DOC title="P"]\n\t[component component={X}]\n\t\t<X />\n\t[/component]\n[/DOC]\n');
 		expect(bad.errors.map((e) => e.code)).toContain('unknown-tag');
 		expect(bad.errors[0].message).toContain('[example]');
 	});
 
 	it('leaves block syntax inside markdown fences as prose', () => {
 		const fenced = scanSdoc(
-			'[DOC title="P"]\n\t```\n\t[example title="not real"]\n\t[preview]\n\t```\n[/DOC]\n',
+			'[DOC title="P"]\n\t```\n\t[example title="not real"]\n\t[component]\n\t```\n[/DOC]\n',
 		);
 		expect(fenced.errors).toEqual([]);
 		expect(fenced.entities[0].blocks).toEqual([]);

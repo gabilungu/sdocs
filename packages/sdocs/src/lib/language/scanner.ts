@@ -28,14 +28,11 @@ export type SubBlockKind = 'preview' | 'example';
 export const ENTITY_KINDS: readonly EntityKind[] = ['SHOWCASE', 'DOC', 'PAGE', 'LAYOUT'];
 export const SUB_BLOCK_KINDS: readonly SubBlockKind[] = ['preview', 'example'];
 
-/** Tag names that open sub-blocks. `[component]` is the canonical name for
- * the block that documents a component (kind 'preview'); `[preview]` stays a
- * supported alias. Editor surfaces (completions, templates) offer the
- * canonical names: SUB_BLOCK_TAGS. */
+/** Tag names that open sub-blocks. `[component]` documents a component (its
+ * internal kind is 'preview'); `[example]` is a frozen snippet. */
 export const SUB_BLOCK_TAGS: readonly string[] = ['component', 'example'];
 const SUB_BLOCK_TAG_KINDS: Record<string, SubBlockKind> = {
 	component: 'preview',
-	preview: 'preview',
 	example: 'example',
 };
 

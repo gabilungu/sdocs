@@ -75,13 +75,6 @@ const TAG_SHOWCASE: Record<string, string> = {
 		'',
 		`[Component docs reference](${SITE}/language/component-docs)`,
 	].join('\n'),
-	preview: [
-		'**`[preview]`** — the old name for `[component]`',
-		'',
-		'Still parses, identically — `[component]` is the canonical tag for the live component panel.',
-		'',
-		`[Component docs reference](${SITE}/language/component-docs)`,
-	].join('\n'),
 	example: [
 		'**`[example]`** — frozen example',
 		'',
@@ -98,7 +91,7 @@ const TAG_SHOWCASE: Record<string, string> = {
 /** Hover for the sdoc tag token at `position`, if the position is on one. */
 export function sdocTagHover(source: string, position: Position): Hover | null {
 	const line = source.split('\n')[position.line] ?? '';
-	const re = /\[\/?(SHOWCASE|DOC|PAGE|LAYOUT|component|preview|example)\b\]?/g;
+	const re = /\[\/?(SHOWCASE|DOC|PAGE|LAYOUT|component|example)\b\]?/g;
 	for (let m = re.exec(line); m; m = re.exec(line)) {
 		const start = m.index;
 		const end = m.index + m[0].length;

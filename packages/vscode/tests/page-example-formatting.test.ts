@@ -171,9 +171,9 @@ describe('opener wrapping at printWidth (default 80)', () => {
 		const source = [
 			`[SHOWCASE title="@demo/Widget" description="${desc}"]`,
 			'',
-			'\t[preview component={Widget}]',
+			'\t[component component={Widget}]',
 			'\t\t<Widget />',
-			'\t[/preview]',
+			'\t[/component]',
 			'',
 			'[/SHOWCASE]',
 			'',
@@ -185,7 +185,7 @@ describe('opener wrapping at printWidth (default 80)', () => {
 			['[SHOWCASE', '\ttitle="@demo/Widget"', `\tdescription="${desc}"`, ']'].join('\n'),
 		);
 		// the short sub-block opener stays on one line
-		expect(out).toContain('\t[preview component={Widget}]');
+		expect(out).toContain('\t[component component={Widget}]');
 	});
 
 	it('wraps a wide sub-block opener at its own indent', async () => {
@@ -193,16 +193,16 @@ describe('opener wrapping at printWidth (default 80)', () => {
 		const source = [
 			'[SHOWCASE title="D"]',
 			'',
-			`\t[preview component={Widget} ${args}]`,
+			`\t[component component={Widget} ${args}]`,
 			'\t\t<Widget />',
-			'\t[/preview]',
+			'\t[/component]',
 			'',
 			'[/SHOWCASE]',
 			'',
 		].join('\n');
 		const out = await formatSdoc(source, OPTIONS);
 		expect(out).not.toBeNull();
-		expect(out).toContain(['\t[preview', '\t\tcomponent={Widget}', `\t\t${args}`, '\t]'].join('\n'));
+		expect(out).toContain(['\t[component', '\t\tcomponent={Widget}', `\t\t${args}`, '\t]'].join('\n'));
 		// the short entity opener above it is untouched
 		expect(out).toContain('[SHOWCASE title="D"]');
 	});
@@ -214,9 +214,9 @@ describe('opener wrapping at printWidth (default 80)', () => {
 			`\tdescription="${desc}"`,
 			']',
 			'',
-			'\t[preview component={Widget}]',
+			'\t[component component={Widget}]',
 			'\t\t<Widget />',
-			'\t[/preview]',
+			'\t[/component]',
 			'',
 			'[/SHOWCASE]',
 			'',
@@ -349,7 +349,7 @@ describe('entity-level script/style formatting', () => {
 });
 
 describe('formatting [component] blocks', () => {
-	it('keeps the [component] tag — never reprints it as [preview]', async () => {
+	it('formats a [component] block and its body', async () => {
 		const source = [
 			'[SHOWCASE title="B"]',
 			'',
@@ -363,23 +363,22 @@ describe('formatting [component] blocks', () => {
 		const out = await formatSdoc(source, OPTIONS);
 		expect(out).toContain('[component component={Button}');
 		expect(out).toContain('[/component]');
-		expect(out).not.toContain('[preview');
+		expect(out).toContain('<Button {...args} />');
 	});
 
-	it('still formats the [preview] alias under its own name', async () => {
+	it('formats a member-access component reference', async () => {
 		const source = [
 			'[SHOWCASE title="B"]',
 			'',
-			'\t[preview component={Button}]',
-			'\t\t<Button   class="x"   />',
-			'\t[/preview]',
+			'\t[component component={NavTree.Group}]',
+			'\t\t<NavTree.Group   label="x"  />',
+			'\t[/component]',
 			'',
 			'[/SHOWCASE]',
 			'',
 		].join('\n');
 		const out = await formatSdoc(source, OPTIONS);
-		expect(out).toContain('[preview component={Button}]');
-		expect(out).toContain('[/preview]');
-		expect(out).not.toContain('[component');
+		expect(out).toContain('[component component={NavTree.Group}]');
+		expect(out).toContain('<NavTree.Group label="x" />');
 	});
 });

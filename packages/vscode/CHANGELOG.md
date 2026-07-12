@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.60] - 2026-07-12
+
+### Removed
+
+- The `[preview]` tag is gone (use `[component]`): completions, the new-doc
+  template, hover, and the grammar no longer mention it.
+
 ## [0.0.59] - 2026-07-11
 
 ### Changed

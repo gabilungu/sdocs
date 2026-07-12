@@ -127,7 +127,7 @@ export class BlockCompletionProvider implements vscode.CompletionItemProvider {
 		}
 
 		// Attribute names on a block opener line.
-		const opener = /^\s*\[(SHOWCASE|DOC|PAGE|LAYOUT|component|preview|example)\b/.exec(line);
+		const opener = /^\s*\[(SHOWCASE|DOC|PAGE|LAYOUT|component|example)\b/.exec(line);
 		if (!opener) return undefined;
 		const rules = attributeRules(opener[1]);
 		const tagEnd = line.indexOf('[') + 1 + opener[1].length;

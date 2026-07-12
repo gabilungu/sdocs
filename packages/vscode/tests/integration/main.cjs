@@ -32,9 +32,9 @@ const BUTTON_SDOC = `<script lang="ts">
 
 [SHOWCASE title="Button" description=""]
 
-	[preview component={Button} args={{ label: "Login" }}]
+	[component component={Button} args={{ label: "Login" }}]
 		<Button {...args} />
-	[/preview]
+	[/component]
 
 	[example title="Sizes"]
 		<Button size="xs" label="Extra small" />

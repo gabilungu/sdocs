@@ -88,7 +88,7 @@ describe('sdoc language server over LSP', () => {
 		// Opener lines project to generated {#snippet} wrappers; a forwarded
 		// completion there offers e.g. `{/snippet}` whose textEdit REPLACES
 		// authored opener text — same gate as hover/definition/signature.
-		const line = lines.findIndex((l) => l.includes('[preview'));
+		const line = lines.findIndex((l) => l.includes('[component'));
 		const res = (await client.connection.sendRequest('textDocument/completion', {
 			textDocument: { uri },
 			position: { line, character: lines[line].indexOf('component=') },
@@ -100,7 +100,7 @@ describe('sdoc language server over LSP', () => {
 
 	it('definition of a snippet arg never targets a generated wrapper line', async () => {
 		// `args` is declared by the generated {#snippet} wrapper on the
-		// [preview] opener line — a target with virtual coordinates that used
+		// [component] opener line — a target with virtual coordinates that used
 		// to come back as a garbage span inside the authored opener. Dropped
 		// entirely: fewer results beat wrong ones.
 		const line = lines.findIndex((l) => l.includes('{...args}'));
@@ -155,7 +155,7 @@ describe('sdoc language server over LSP', () => {
 		expect(formatted).toContain(
 			"args={{ title: 'Build finished', tone: 'success', dismissible: true, count: 1 }}",
 		);
-		expect(formatted).toContain('[/preview]');
+		expect(formatted).toContain('[/component]');
 		expect(formatted).toContain('[/SHOWCASE]');
 		await client.changeDoc(uri, 5, source);
 	});
@@ -172,8 +172,8 @@ describe('sdoc language server over LSP', () => {
 		expect(opener?.contents?.value).toContain('component documentation entity');
 		expect(opener?.contents?.value).not.toContain('{#snippet');
 
-		const previewLine = lines.findIndex((l) => l.includes('[preview'));
-		const preview = await hoverAt(previewLine, lines[previewLine].indexOf('[preview') + 3);
+		const previewLine = lines.findIndex((l) => l.includes('[component'));
+		const preview = await hoverAt(previewLine, lines[previewLine].indexOf('[component') + 3);
 		expect(preview?.contents?.value).toContain('live component panel');
 
 		const closerLine = lines.findIndex((l) => l.includes('[/SHOWCASE]'));

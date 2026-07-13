@@ -204,6 +204,14 @@ describe('parseArgsLiteral', () => {
 		});
 	});
 
+	it('parses null (nullable props like duration: null), keeping the rest of the object', () => {
+		expect(parse(`{ duration: null, title: 'Hi', showProgress: false }`).values).toEqual({
+			duration: null,
+			title: 'Hi',
+			showProgress: false,
+		});
+	});
+
 	it('parses empty objects, quoted keys, and escaped strings', () => {
 		expect(parse('{}').values).toEqual({});
 		expect(parse(`{ "data-x": 'a', b: "it\\'s" }`).values).toEqual({ 'data-x': 'a', b: "it's" });

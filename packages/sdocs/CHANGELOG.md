@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.97] - 2026-07-13
+
+### Fixed
+
+- `args={{ … }}` accepts `null` as a value, so a nullable prop (e.g. a
+  `duration: number | null`) can be seeded from the block header. Previously any
+  non-literal value rejected the **whole** args object, so a single `null`
+  silently dropped every other arg and the preview fell back to its defaults.
+
 ## [0.0.96] - 2026-07-13
 
 ### Fixed

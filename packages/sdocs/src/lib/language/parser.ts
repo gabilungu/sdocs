@@ -17,7 +17,7 @@ import {
 } from './scanner.js';
 import { declaredBindings, scrubScriptText } from './script-scan.js';
 
-export type ArgValue = string | number | boolean;
+export type ArgValue = string | number | boolean | null;
 
 /** Explicit presentation overrides from stage attributes */
 export interface Sizing {
@@ -541,8 +541,8 @@ function routeSlugAttr(attrs: Attrs, diagnostics: ScanError[]): string | null {
 
 /**
  * Parse a preview args expression: a flat object literal whose values are
- * plain literals (strings, numbers, booleans). Anything richer belongs in
- * the block body, so it is rejected here.
+ * plain literals (strings, numbers, booleans, null). Anything richer belongs
+ * in the block body, so it is rejected here.
  */
 export function parseArgsLiteral(
 	raw: string,
@@ -579,9 +579,12 @@ export function parseArgsLiteral(
 		} else if ((m = rest.match(/^(true|false)\b/))) {
 			values[key] = m[0] === 'true';
 			i += m[0].length;
+		} else if ((m = rest.match(/^null\b/))) {
+			values[key] = null;
+			i += m[0].length;
 		} else {
 			return fail(
-				`args value for "${key}" must be a plain literal (string, number, or boolean); richer values go in the block body.`,
+				`args value for "${key}" must be a plain literal (string, number, boolean, or null); richer values go in the block body.`,
 			);
 		}
 		ws();

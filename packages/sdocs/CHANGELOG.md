@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.96] - 2026-07-13
+
+### Fixed
+
+- A `[LAYOUT]` preview now fills the height of the frame and scrolls inside it
+  when the sketch is taller — like a real browser window — instead of
+  collapsing to the content height (which left the canvas short and the
+  `background` painting only part of the frame). Component previews still grow
+  to their content as before.
+
 ## [0.0.95] - 2026-07-12
 
 ### Added

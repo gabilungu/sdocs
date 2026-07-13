@@ -40,6 +40,9 @@
 	element. Global defaults live in the config's [`content`
 	option](/explorer/configuration).
 
+	The frame fills the viewport height and scrolls when the sketch is taller,
+	so a `100vh` composition previews just like a real browser window.
+
 	## The body
 
 	The body is full Svelte — components, expressions, `{#if}`/`{#each}`

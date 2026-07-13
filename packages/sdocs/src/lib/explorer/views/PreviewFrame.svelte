@@ -47,6 +47,14 @@
 	let ready = $state(false);
 	let contentHeight = $state(0);
 
+	// Component previews grow the frame to their content and let the outer view
+	// scroll. A LAYOUT is a full-page canvas: it fills the viewport height and
+	// scrolls inside the frame like a browser window, so ignore the reported
+	// content height there.
+	const frameHeight = $derived(
+		fullHeight ? undefined : contentHeight ? `${contentHeight}px` : undefined
+	);
+
 	onMount(() => {
 		function onMessage(e: MessageEvent) {
 			if (e.data?.type === 'sdocs:preview-ready') {
@@ -113,8 +121,8 @@
 		src={resolvedSrc}
 		title="Component preview"
 		class="sdocs-iframe"
-		scrolling="no"
-		style:height={contentHeight ? `${contentHeight}px` : undefined}
+		scrolling={fullHeight ? 'auto' : 'no'}
+		style:height={frameHeight}
 	></iframe>
 </div>
 
@@ -136,5 +144,6 @@
 	.full-height .sdocs-iframe {
 		height: 100%;
 		min-height: 0;
+		max-height: none;
 	}
 </style>

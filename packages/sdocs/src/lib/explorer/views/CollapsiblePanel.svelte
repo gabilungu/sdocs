@@ -11,6 +11,8 @@
 	}
 
 	let { title, defaultExpanded = true, flush = false, children }: Props = $props();
+	// svelte-ignore state_referenced_locally -- defaultExpanded seeds the
+	// initial state by design; later prop changes must not force the panel.
 	let expanded = $state(defaultExpanded);
 </script>
 

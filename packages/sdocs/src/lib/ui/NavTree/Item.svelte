@@ -67,7 +67,7 @@
 		</button>
 		{#if expanded}
 			<div class="NavTree-children">
-				{@render children()}
+				{@render children?.()}
 			</div>
 		{/if}
 	</div>

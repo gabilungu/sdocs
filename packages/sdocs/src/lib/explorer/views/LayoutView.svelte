@@ -13,7 +13,7 @@
 </script>
 
 <div class="sdocs-layout-view">
-	{#if contentSnippet}
+	{#if contentSnippet?.previewUrl}
 		<PreviewFrame src={contentSnippet.previewUrl} {activeStylesheet} fullHeight />
 	{/if}
 </div>

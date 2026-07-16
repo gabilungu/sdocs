@@ -80,8 +80,12 @@ export async function loadConfig(root: string): Promise<ResolvedSdocsConfig> {
 	return resolveAndFinalize(rawConfig, root);
 }
 
-/** Resolve config and finalize paths */
-export function resolveAndFinalize(userConfig: SdocsConfig, root: string): ResolvedSdocsConfig {
+/** Resolve config and finalize paths. Accepts an already-resolved config
+ * too — resolution is idempotent, every field passes through unchanged. */
+export function resolveAndFinalize(
+	userConfig: SdocsConfig | ResolvedSdocsConfig,
+	root: string,
+): ResolvedSdocsConfig {
 	const resolved = resolveConfig(userConfig);
 	resolved.include = resolveIncludePatterns(resolved.include, root);
 	resolved.css = resolveCssPaths(resolved.css, root);
@@ -112,7 +116,7 @@ function capitalize(s: string): string {
 }
 
 /** The home route as bare segments ('guides/introduction'), or null. */
-function normalizeHome(home: string | undefined): string | null {
+function normalizeHome(home: string | null | undefined): string | null {
 	if (!home) return null;
 	return home.replace(/^\/+|\/+$/g, '');
 }
@@ -124,7 +128,7 @@ export function normalizeBase(base: string | undefined): string {
 }
 
 /** Merge user config with defaults */
-export function resolveConfig(userConfig: SdocsConfig): ResolvedSdocsConfig {
+export function resolveConfig(userConfig: SdocsConfig | ResolvedSdocsConfig): ResolvedSdocsConfig {
 	const include = userConfig.include
 		? Array.isArray(userConfig.include)
 			? userConfig.include

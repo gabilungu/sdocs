@@ -1,8 +1,6 @@
-<script lang="ts">
-	import type { Snippet } from 'svelte';
-	import { renderInlineMarkdown, typeClass, typeParts, valueClass } from './format.js';
-
-	interface Row {
+<script lang="ts" module>
+	/** One API-table row — also the parameter of the `control` snippet. */
+	export interface Row {
 		name: string;
 		type?: string | null;
 		default?: string | null;
@@ -11,6 +9,11 @@
 		description?: string | null;
 		required?: boolean;
 	}
+</script>
+
+<script lang="ts">
+	import type { Snippet } from 'svelte';
+	import { renderInlineMarkdown, typeClass, typeParts, valueClass } from './format.js';
 
 	interface Props {
 		rows: Row[];

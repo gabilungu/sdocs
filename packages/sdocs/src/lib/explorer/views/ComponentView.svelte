@@ -4,7 +4,7 @@
 	import { highlightSvelte } from '../highlighter.js';
 	import CollapsiblePanel from './CollapsiblePanel.svelte';
 	import PreviewFrame from './PreviewFrame.svelte';
-	import ApiTable from './ApiTable.svelte';
+	import ApiTable, { type Row } from './ApiTable.svelte';
 	import PropControl from './PropControl.svelte';
 	import CssPropControl from './CssPropControl.svelte';
 	import {
@@ -223,7 +223,6 @@
 		(cd?.methods ?? []).map((m) => ({
 			name: m.name,
 			type: `(${m.params ?? ''}) => ${m.returnType || 'void'}`,
-			params: m.params,
 			description: m.description,
 		})),
 	);
@@ -323,7 +322,7 @@
 			{/if}
 		</div>
 
-		{#snippet propControl(row: Record<string, unknown>)}
+		{#snippet propControl(row: Row)}
 			{@const prop = cd?.props.find((p) => p.name === row.name && p.category === 'prop')}
 			{#if prop}
 				<PropControl
@@ -335,8 +334,9 @@
 			{/if}
 		{/snippet}
 
-		{#snippet methodControl(row: Record<string, unknown>)}
-			{@const hasParams = String(row.params ?? '').trim().length > 0}
+		{#snippet methodControl(row: Row)}
+			{@const method = cd?.methods.find((m) => m.name === row.name)}
+			{@const hasParams = String(method?.params ?? '').trim().length > 0}
 			<button
 				class="sdocs-run-btn"
 				disabled={hasParams || !defaultPreview}
@@ -347,7 +347,7 @@
 			</button>
 		{/snippet}
 
-		{#snippet cssPropControl(row: Record<string, unknown>)}
+		{#snippet cssPropControl(row: Row)}
 			{@const cssProp = cd?.cssProps.find((p) => p.name === row.name)}
 			{#if cssProp}
 				<CssPropControl

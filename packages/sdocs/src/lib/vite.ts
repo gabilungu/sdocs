@@ -63,7 +63,9 @@ function allSnippets(entry: DocEntry): ExtractedSnippet[] {
 	];
 }
 
-export function sdocsPlugin(userConfig?: SdocsConfig & { _buildMode?: boolean }): Plugin {
+export function sdocsPlugin(
+	userConfig?: (SdocsConfig | ResolvedSdocsConfig) & { _buildMode?: boolean },
+): Plugin {
 	let config: ResolvedSdocsConfig;
 	let root: string;
 	let server: ViteDevServer;

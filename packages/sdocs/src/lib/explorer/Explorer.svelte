@@ -63,6 +63,8 @@
 		mcp = false
 	}: Props = $props();
 
+	// svelte-ignore state_referenced_locally -- static config for this app
+	// instance; context is written once at init by design.
 	setContext('sdocs-preview-base', previewBase);
 
 	// Pre-0.0.61 props: `logo` was the header text and `icon` the image. An

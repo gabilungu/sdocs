@@ -26,6 +26,7 @@ Commands:
   build           Build the Explorer as a static site
   preview         Serve built site locally
   init            Scaffold sdocs.config.js
+  mcp             Serve the sdocs MCP server on stdio (authoring tools for agents)
 
 Options:
   --base <path>   Public base path for build (e.g. /repo/ for project Pages)
@@ -75,6 +76,11 @@ async function main() {
 		case 'init': {
 			const { initCommand } = await import('../commands/init.js');
 			await initCommand();
+			break;
+		}
+		case 'mcp': {
+			const { mcpCommand } = await import('../commands/mcp.js');
+			await mcpCommand();
 			break;
 		}
 		default:

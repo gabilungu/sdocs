@@ -593,13 +593,16 @@
 		margin: 24px 0;
 	}
 	.sdocs-section-title {
-		font-size: 18px;
+		/* Same treatment as a sidebar group label. */
+		font-size: 11px;
 		font-weight: 600;
-		color: var(--color-base-900);
-		margin: 24px 0 16px;
+		color: var(--color-base-400);
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+		margin: 32px 0 16px;
 	}
 	.sdocs-example + .sdocs-example {
-		margin-top: 16px;
+		margin-top: 40px;
 	}
 	.sdocs-example {
 		display: flex;

@@ -53,7 +53,7 @@
 
 {#snippet content()}
 	{#if left}<span class="NavTree-left">{@render left()}</span>{/if}
-	<span class="NavTree-item-label">{label}</span>
+	<span class="NavTree-item-label" title={label}>{label}</span>
 	{#if right}<span class="NavTree-right">{@render right()}</span>{/if}
 	<span class="NavTree-chevron" class:visible={isFolder}>
 		<Icon name={expanded ? 'chevron-down' : 'chevron-right'} --w="var(--expander-size, 14px)" --h="var(--expander-size, 14px)" --fill="var(--expander-color, var(--color-base-300))" />
@@ -122,6 +122,12 @@
 
 	.NavTree-item-label {
 		flex: 1;
+		/* A long name trims to an ellipsis instead of wrapping or pushing the
+		   chevron out; the title attribute keeps the full name reachable. */
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.NavTree-left {

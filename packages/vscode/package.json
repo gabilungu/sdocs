@@ -2,7 +2,7 @@
 	"name": "sdocs",
 	"displayName": "sdocs",
 	"description": "Language support for sdocs — Svelte component documentation (.sdoc)",
-	"version": "0.0.61",
+	"version": "0.0.62",
 	"publisher": "gabilungu",
 	"license": "MIT",
 	"repository": {
@@ -12,7 +12,7 @@
 	},
 	"icon": "icons/sdocs-icon.png",
 	"engines": {
-		"vscode": "^1.90.0"
+		"vscode": "^1.101.0"
 	},
 	"categories": [
 		"Programming Languages"
@@ -193,7 +193,13 @@
 					"group": "navigation"
 				}
 			]
-		}
+		},
+		"mcpServerDefinitionProviders": [
+			{
+				"id": "sdocs.mcp",
+				"label": "sdocs"
+			}
+		]
 	},
 	"scripts": {
 		"compile": "node esbuild.js",
@@ -205,7 +211,7 @@
 	},
 	"devDependencies": {
 		"@types/node": "^20.19.43",
-		"@types/vscode": "^1.90.0",
+		"@types/vscode": "^1.101.0",
 		"@vscode/test-electron": "^3.0.0",
 		"@vscode/vsce": "^3.0.0",
 		"esbuild": "^0.24.0",

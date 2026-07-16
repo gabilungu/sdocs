@@ -25,6 +25,14 @@
 	  workspace as a card, with Run / Open / Stop controls and live status.
 	- **[Docs tabs](/extension/docs-tabs)** — the Explorer opens in an editor tab,
 	  one per project, with refresh and restart buttons and `Cmd+R` support.
+	- **MCP server** — the extension registers the
+	  [sdocs MCP server](/cli/commands#sdocs-mcp) with the editor, so agent
+	  features can validate `.sdoc` files with the real parser, scaffold starter
+	  docs from a component's extracted props, read the authoring guide, and
+	  read the workspace itself — the docs map (`list_docs`) and any
+	  component's extracted API (`get_component_api`). It prefers the
+	  workspace's own sdocs install and falls back to `npx`; the editor starts
+	  and stops it on demand.
 
 	## Scaffolding new docs
 

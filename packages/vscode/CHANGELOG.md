@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.62] - 2026-07-16
+
+### Added
+
+- The extension registers the sdocs MCP server with the editor
+  (`sdocs mcp` — authoring tools: `validate_sdoc`, `scaffold_component_doc`,
+  `get_authoring_guide`, `list_docs`, `get_component_api`), preferring the
+  workspace's own sdocs install and falling back to `npx`. The editor starts
+  and stops the server on demand.
+
+### Changed
+
+- Requires VS Code 1.101 or newer (the MCP server definition API).
+
 ## [0.0.61] - 2026-07-13
 
 ### Fixed

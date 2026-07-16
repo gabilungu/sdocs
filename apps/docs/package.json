@@ -4,7 +4,9 @@
 	"version": "0.0.0",
 	"type": "module",
 	"scripts": {
+		"predev": "node ./scripts/sync-llms.js",
 		"dev": "node ../../packages/sdocs/bin/sdocs.js dev",
+		"prebuild": "node ./scripts/sync-llms.js",
 		"build": "node ../../packages/sdocs/bin/sdocs.js build"
 	},
 	"devDependencies": {

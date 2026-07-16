@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.98] - 2026-07-16
+
+### Added
+
+- `sdocs mcp` — an MCP server with authoring tools, built directly on the
+  shipped parser and extractor: `validate_sdoc` (diagnostics with 1-based
+  positions plus the entities found), `scaffold_component_doc` (a starter
+  `.sdoc` derived from a component's extracted props — returns text, never
+  writes files), `get_authoring_guide` (also served as the
+  `sdocs://authoring-guide` resource), `list_docs` (the project's `.sdoc`
+  files, their entities, and the components they document), and
+  `get_component_api` (a component's full extracted API — props, events,
+  snippets, methods, states, CSS custom properties, class/rest forwarding).
+  Runs on stdio (`npx sdocs mcp`); while `sdocs dev` runs the same server is
+  served at `/mcp` (stateless streamable HTTP, localhost-guarded). Built sites
+  carry no MCP endpoint.
+- The authoring guide ships in the package as `llms.txt` (the docs site serves
+  a synced copy at `/llms.txt`).
+
+### Changed
+
+- Explorer polish: the **Examples** section heading now matches the sidebar
+  group labels (small uppercase) with more breathing room between examples,
+  and long names in the sidebar trim to an ellipsis instead of wrapping —
+  hover for the full name.
+
+### Fixed
+
+- A page inside a plain folder (`title="Components / Button"` with no `:`
+  group) showed the full path as its heading and browser-tab title; every page
+  now shows just the entity's name — the title's last segment — like `:group`
+  pages always did.
+
 ## [0.0.97] - 2026-07-13
 
 ### Fixed

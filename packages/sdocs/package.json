@@ -1,6 +1,6 @@
 {
 	"name": "sdocs",
-	"version": "0.0.97",
+	"version": "0.0.98",
 	"description": "A lightweight documentation tool for Svelte 5 components",
 	"type": "module",
 	"license": "MIT",
@@ -38,6 +38,7 @@
 	"files": [
 		"dist",
 		"bin",
+		"llms.txt",
 		"CHANGELOG.md"
 	],
 	"peerDependencies": {

@@ -472,10 +472,10 @@ function reorderComponentChildren(nodes: TreeNode[]): void {
  * directive (see buildTree) — neither is part of the displayed title.
  */
 export function displayTitle(title: string | null | undefined): string {
-	const rest = splitSection(title).rest;
-	if (!rest.startsWith(':')) return rest;
-	// ':Group / Name' — the sidebar already shows the group; the page (and
-	// tab) title is just the name.
-	const slash = rest.indexOf('/');
-	return slash === -1 ? rest.slice(1).trim() : rest.slice(slash + 1).trim();
+	// Groups and folders already structure the sidebar; the page (and tab)
+	// title is just the last path segment.
+	const segments = splitSection(title).rest.split('/');
+	const leaf = segments[segments.length - 1].trim();
+	// A lone ':Group' segment: the colon marks a bold group, not the name.
+	return segments.length === 1 && leaf.startsWith(':') ? leaf.slice(1).trim() : leaf;
 }

@@ -64,6 +64,7 @@ npx sdocs dev      # dev server at http://localhost:3000
 | `npx sdocs run` | Same as `dev`, but works without installing sdocs |
 | `npx sdocs build` | Build a static site to `dist/` |
 | `npx sdocs preview` | Serve the built `dist/` locally |
+| `npx sdocs mcp` | Serve the sdocs MCP server on stdio (authoring tools for agents) |
 
 Global flags: `--version`/`-v`, `--help`/`-h`. All commands read
 `sdocs.config.js` (or `.ts`/`.mjs`) from the current directory; the config is
@@ -91,6 +92,36 @@ project that doesn't even depend on sdocs: `npx --yes sdocs build` then publish
 existing Vite/SvelteKit app via its Vite plugin (`sdocsPlugin()`); options
 passed there override the config file, and `routing` defaults to `'hash'` when
 embedded.
+
+## MCP server
+
+sdocs ships an MCP server with authoring tools, so an agent can validate and
+scaffold `.sdoc` files against the real parser instead of guessing — and read
+the current project's components and docs through the same extraction the
+Explorer uses:
+
+- `validate_sdoc { source }` — parse `.sdoc` text, return diagnostics
+  (message, code, 1-based line/column) and the entities found.
+- `scaffold_component_doc { componentPath, title? }` — extract a `.svelte`
+  component's props and return a starter `.sdoc` (control defaults derived
+  from the props) plus the suggested file path; it never writes files.
+- `get_authoring_guide {}` — this guide. Also exposed as the
+  `sdocs://authoring-guide` resource.
+- `list_docs {}` — map the project's documentation: every `.sdoc` file the
+  config's `include` globs match, each with its entities (kind, title) and the
+  components its previews document.
+- `get_component_api { componentPath }` — a component's full extracted API:
+  props (types, defaults, descriptions), events, snippets, methods, states,
+  CSS custom properties, and class/rest forwarding.
+
+Two ways to connect:
+
+- **stdio** — `npx sdocs mcp` (e.g. `claude mcp add sdocs -- npx -y sdocs mcp`,
+  or the equivalent stdio entry in any MCP client config). The VS Code sdocs
+  extension registers this server automatically.
+- **HTTP** — while `sdocs dev` runs, the same server is served at
+  `http://localhost:3000/mcp` (stateless streamable HTTP, POST). Dev only:
+  built sites are static and carry no MCP endpoint.
 
 ## Configuration
 
@@ -202,17 +233,39 @@ the **docs** context (the docs app's own styling, its CSS variables) — the
 project `css` never touches them. Rule of thumb: *prose is docs-styled, stages
 are project-styled.*
 
-## Titles place entities in the sidebar
+## Titles place entities: sections, groups, folders
 
-`title` is a `/`-separated path; each segment becomes a group, like folders.
-`title="Forms / Button"` puts Button in the Forms group; order within a group
-follows file order. Two prefixes on the first segment add structure:
+The `title` is a `/`-separated path that builds a three-level navigation
+hierarchy:
 
-- `:` → a bold sidebar group — `title=":Forms / Button"`.
-- `@slug/` → assigns the entity to a top-bar section (declared in
-  `sdocs.config.js`) — `title="@components/Forms / Button"`. Unknown slug = error.
+- **Section** (`@slug/` prefix) — the top-level separation: a **tab in the top
+  bar**, declared in `sdocs.config.js` (`sections: [{ slug, title?, order? }]`).
+  Each section has its own sidebar tree, and the slug is the first route
+  segment. `title="@components/…"`. An undeclared slug is a full-page error;
+  a title with no `@` goes to the `docs` section (implicit when no sections
+  are declared). Use sections for the site's major areas: Guides vs Components.
+- **Group** (`:` prefix on the first segment after the section) — a **bold
+  uppercase header** carving the sidebar into areas of similar things
+  (`:Layout`, `:Form`, `:Display`). Expanded by default; only the first
+  segment can be a group. `title="@components/:Form / Button"`.
+- **Folder** (any plain segment) — a **collapsible tree node** that stacks
+  entities under it: `title="Foundations / Page 1"`, `"Foundations / Page 2"`
+  puts both pages under a Foundations folder. Folders nest
+  (`"Forms / Inputs / Text"`), are purely structural (not pages themselves),
+  and start collapsed.
 
-Combine them: `title="@components/:Layout / Shell"`.
+Combine all three: `title="@components/:Layout / sdocs / Button"` → the
+`components` tab, the **LAYOUT** group, an `sdocs` folder, a Button page.
+
+Two more structural facts:
+
+- A component page with examples becomes its own expandable node: a **Docs**
+  child (the overview) plus one sub-page per example.
+- **Ordering**: siblings at every level sort alphabetically; pin items first by
+  listing their route paths in the section's `order` array
+  (`order: ['introduction', 'form/button']`). The page heading and browser tab
+  show only the title's **last segment** — the levels above it structure the
+  nav, not the page.
 
 ## `[SHOWCASE]` — documenting a component
 
@@ -335,24 +388,52 @@ SvelteKit `+layout.svelte` — it *is* a page.)
 
 ## Writing components so sdocs documents them well
 
-For every previewed component, sdocs parses the source and builds API tables —
-props, events, snippets, methods, states, CSS custom properties. To make them
-render well:
+For every previewed component, sdocs parses the source and extracts its full
+public API. What's extracted, and from where:
 
-- **Props** come from the component's `interface Props`. For a **select control**,
-  type the prop as an **inline union** (`variant?: 'primary' | 'secondary'`); a
-  type *alias* (`variant?: Variant`) can't be expanded into a control.
+| Category | Source |
+|---|---|
+| Props | `interface Props { … }` + `let { … } = $props()` (defaults come from the destructuring) |
+| Events | props named `on*` whose type contains `=>` (a non-callback `on*` prop stays a prop) |
+| Snippets | props typed `Snippet` or `Snippet<[…]>` (the parameter tuple is preserved) |
+| Methods | `export function foo() { … }` |
+| States | `export const x = $state(…)` / `$derived(…)` |
+| CSS custom properties | `var(--name, default?)` usages in the `<style>` block + `@cssvar` annotations |
+
+Rules that make the tables (and interactive controls) come out right:
+
+- **JSDoc descriptions**: a `/** … */` comment on an interface member, exported
+  function, or state becomes its description — hard-wrapped lines are rejoined
+  (list items keep their breaks) and inline markdown (`` `code` ``, `**bold**`,
+  `*italics*`) renders styled.
+- **Select controls** need an **inline union** (`variant?: 'primary' | 'secondary'`);
+  a type *alias* (`variant?: Variant`) can't be expanded into a control.
 - **Snippets**: for `children` / named snippets to be categorized as snippets
   (not props), declare a **named `interface Props`** — an inline
   `{ children: Snippet }` type is read as a prop.
-- **`class` / `...rest` forwarding** render as chips under the props (not fake
-  required rows).
-- **CSS custom properties**: document each with a JSDoc `@cssvar` tag above the
-  Props interface —
-  `@cssvar {color} --bg - Surface background (default: var(--base-0))`. Types
-  `color` and `dimension` get specialised controls; other tokens (`shorthand`,
-  `length`, `string`) fall back to a text field. Use a single token in the braces
-  — a union there fails to parse and drops the var from the docs.
+- **`class` / `...rest` forwarding** (a merged `class` + rest spread on the root
+  element) is recognized from the `$props()` destructuring and rendered as chips
+  under the props — never as fake required prop rows. When the interface
+  `extends` a type (e.g. `HTMLAttributes<HTMLDivElement>`), the chip names it.
+- **Plain-JS components** get the same extraction through JSDoc: an inline
+  `/** @type {{ label?: string }} */` on the `$props()` declaration, or
+  `@typedef {Object} Props` + `@property {string} [label] - Description` (the
+  bracketed name marks it optional; this form carries descriptions too).
+- **CSS custom properties**: every `var(--x, fallback)` in the `<style>` block
+  is extracted. The default shown is the root `--x: value` declaration if the
+  component sets one, else the `var()` fallback when every use agrees — uses
+  that disagree show **Mixed** (hover for the per-property breakdown). Add a
+  `@cssvar` annotation in a JSDoc block inside the `<script>` to give a var a
+  type and description:
+  `@cssvar {color} --bg - Surface background (default: var(--base-0))`.
+  Types `color` (colour picker) and `dimension` (number + px) get specialised
+  controls; other tokens (`shorthand`, `length`, `string`) fall back to a text
+  field. Use a single token in the braces — a union there fails to parse and
+  drops the var from the docs. A trailing `(default: …)` in the description
+  sets the documented default.
+- **Limitations**: untyped `$props()` with no JSDoc extracts names and defaults
+  only; non-`on*` callbacks are classified as props; complex or imported types
+  show by name only (sdocs doesn't follow imports).
 
 ## Two authoring conventions worth internalising
 

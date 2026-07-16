@@ -171,9 +171,9 @@
 	```
 
 	What a page does **not** have: controls and prop extraction. If you find
-	yourself wanting stateful logic, the content is probably a
-	[component doc](/language/component-docs) or a
-	[layout](/language/layout-docs).
+	yourself wanting stateful logic, the content is probably
+	a [component doc](/language/component-docs) or
+	a [layout](/language/layout-docs).
 
 	## Table of contents
 
@@ -181,7 +181,8 @@
 	shown on the right; as the page scrolls, the entry for the section in view
 	highlights. Heading IDs are slugified — lowercased, non-word characters
 	stripped, spaces as hyphens — so `## Getting Started` anchors at
-	`#getting-started`. The page header shows the entity `title`; a top-level
+	`#getting-started`. The page header shows the entity's name — the `title`'s
+	last path segment (groups and folders already structure the sidebar); a top-level
 	`#` heading in the body is neither required nor listed.
 
 	## When to reach for a doc

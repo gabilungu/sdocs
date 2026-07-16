@@ -19,7 +19,7 @@
 
 <div class="NavTree-group {className}">
 	<button class="NavTree-group-label" onclick={onclick ?? toggle}>
-		<span class="NavTree-group-text">{label}</span>
+		<span class="NavTree-group-text" title={label}>{label}</span>
 		<span class="NavTree-chevron">
 			<Icon name={expanded ? 'chevron-down' : 'chevron-right'} --w="14px" --h="14px" />
 		</span>
@@ -65,6 +65,10 @@
 
 	.NavTree-group-text {
 		flex: 1;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.NavTree-chevron {

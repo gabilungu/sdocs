@@ -59,6 +59,10 @@ describe('displayTitle', () => {
 		expect(displayTitle('@components/Icon')).toBe('Icon');
 		expect(displayTitle(':Utils / Placeholder')).toBe('Placeholder');
 		expect(displayTitle('Markdown')).toBe('Markdown');
+		// Plain folders (no ':' group) show the leaf too — never the full path.
+		expect(displayTitle('Components/Button')).toBe('Button');
+		expect(displayTitle('Forms / Inputs / Text')).toBe('Text');
+		expect(displayTitle('@components/:Layout / sdocs / Button')).toBe('Button');
 	});
 });
 

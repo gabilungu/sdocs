@@ -37,9 +37,16 @@ false errors on the block syntax:
 - **sdocs view** — the activity-bar icon lists the sdocs projects in your
   workspace; click one to run its docs and browse them inside the editor.
   Add extra folders with the `sdocs.scopes` setting.
+- **MCP server** — the extension registers the sdocs MCP server with the
+  editor, so agent features can validate `.sdoc` files with the real parser,
+  scaffold starter docs from a component's extracted props, read the authoring
+  guide, and read the workspace's docs map and component APIs. It prefers the
+  workspace's own sdocs install (falling back to `npx`); the editor starts and
+  stops it on demand.
 
 ## Requirements
 
+- VS Code **1.101** or newer.
 - [Svelte for VS Code](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode)
   — installed automatically as a dependency; it provides the Svelte grammar
   the sdoc highlighting embeds (and the editing experience for your `.svelte`

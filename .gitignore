@@ -32,3 +32,6 @@ Thumbs.db
 # Vite timestamp temp files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Synced from packages/sdocs/llms.txt at docs dev/build (see apps/docs/scripts)
+apps/docs/static/llms.txt

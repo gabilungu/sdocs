@@ -33,7 +33,23 @@ npx sdocs dev      # Start dev server with HMR
 npx sdocs build    # Build a static site — every route prerendered to real HTML
 npx sdocs preview  # Preview the built site locally
 npx sdocs init     # Scaffold a sdocs.config.js file
+npx sdocs mcp      # Serve the sdocs MCP server on stdio (authoring tools for agents)
 ```
+
+### MCP server
+
+`sdocs mcp` serves an [MCP](https://modelcontextprotocol.io) server so agent
+tooling works against the real parser and extractor instead of guessing at the
+format: `validate_sdoc` (parse `.sdoc` text, return diagnostics),
+`scaffold_component_doc` (a starter doc from a component's extracted props),
+`get_authoring_guide` (the full format reference — also on the web as
+[llms.txt](https://gabilungu.github.io/sdocs/llms.txt)), `list_docs` (the
+project's docs and the components they document), and `get_component_api` (a
+component's full extracted API). Register it as a stdio server in any MCP
+client — e.g. `claude mcp add sdocs -- npx -y sdocs mcp` — or, while
+`sdocs dev` runs, point a local client at `http://localhost:3000/mcp`. The
+[VS Code extension](https://marketplace.visualstudio.com/items?itemName=gabilungu.sdocs)
+registers it with the editor automatically. Built sites carry no MCP endpoint.
 
 ### Embedded in a SvelteKit / Vite Project
 

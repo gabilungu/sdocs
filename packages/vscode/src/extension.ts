@@ -8,6 +8,7 @@ import { newComponentDoc } from './newComponentDoc';
 import { SdocsRunner } from './SdocsRunner';
 import { SdocsPanels } from './SdocsPanels';
 import { ScopesWebview } from './ScopesWebview';
+import { registerMcpProvider } from './McpProvider';
 
 // sdocs.config.* files register as the `sdocs-config` language so the
 // explorer shows the mascot icon — but the TS language server only serves
@@ -67,6 +68,7 @@ export function activate(context: vscode.ExtensionContext) {
 		new SdocDiagnostics(),
 		runner,
 		panels,
+		registerMcpProvider(),
 		vscode.window.registerWebviewViewProvider('sdocsScopes', scopesView),
 		runner.onReady(({ dir, url }) => panels.open(dir, url, path.basename(dir))),
 		vscode.commands.registerCommand('sdocs.newComponentDoc', newComponentDoc),

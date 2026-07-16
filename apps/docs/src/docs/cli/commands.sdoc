@@ -12,6 +12,7 @@
 	| `npx sdocs run` | Same as `dev` — works without installing sdocs (see below) |
 	| `npx sdocs build` | Build a static documentation site to `dist/` |
 	| `npx sdocs preview` | Preview the built site locally |
+	| `npx sdocs mcp` | Serve the sdocs MCP server on stdio — authoring tools for agents |
 
 	All commands read `sdocs.config.js` (or `sdocs.config.ts` / `sdocs.config.mjs`) from the current directory.
 
@@ -98,6 +99,41 @@
 	## `sdocs preview`
 
 	Serves the contents of `dist/` locally. Requires `sdocs build` to have run first.
+
+	## `sdocs mcp`
+
+	Serves the sdocs [MCP](https://modelcontextprotocol.io) server on stdio, so
+	agent tooling can work against the real parser instead of guessing at the
+	format — and read the current project's components and docs through the same
+	extraction the Explorer uses:
+
+	- **`validate_sdoc`** — parse `.sdoc` text and return the diagnostics
+	  (message, code, 1-based line/column) plus the entities found.
+	- **`scaffold_component_doc`** — extract a `.svelte` component's props and
+	  return a starter `.sdoc` with control defaults derived from them, plus the
+	  suggested file path. It never writes files — the client does.
+	- **`get_authoring_guide`** — the full authoring guide (also served as the
+	  `sdocs://authoring-guide` resource, and on the web as
+	  [/llms.txt](/llms.txt)).
+	- **`list_docs`** — map the project's documentation: every `.sdoc` file the
+	  config's `include` globs match, each with its entities and the components
+	  its previews document.
+	- **`get_component_api`** — a component's full extracted API: props (types,
+	  defaults, descriptions), events, snippets, methods, states, CSS custom
+	  properties, and `class`/`…rest` forwarding — see
+	  [prop extraction](/explorer/features/prop-extraction).
+
+	Register it as a stdio server in any MCP client — for example:
+
+	```bash
+	claude mcp add sdocs -- npx -y sdocs mcp
+	```
+
+	The [VS Code extension](/extension/overview) registers the same server with
+	the editor automatically, and while `sdocs dev` runs, it's also served over
+	HTTP at `http://localhost:3000/mcp` (stateless streamable HTTP — point a
+	local MCP client at that URL). Built sites are static files and carry no MCP
+	endpoint.
 
 	## See also
 

@@ -63,15 +63,17 @@
 	| [`[PAGE]`](/language/svelte-pages) | a Svelte-built page | plain Svelte in the docs context — landing pages, custom routes |
 	| [`[LAYOUT]`](/language/layout-docs) | a full-page sketch | rendered in an isolated frame |
 
-	The `title` attribute places each entity in the sidebar — path segments
-	separated by `/` create groups, exactly like folders:
-	`title="Forms / Button"` puts Button inside the Forms group. Within a group,
-	entities appear in document order, then by file path. Two prefixes on the
-	first segment add structure above folders: `:` makes a bold sidebar group
-	(`title=":Forms / Button"`), and `@slug/` assigns the entity to a top-bar
-	[section](/explorer/features/sidebar#sections-top-bar) declared in the
+	The `title` attribute places each entity in the sidebar — plain path
+	segments separated by `/` create collapsible **folders**:
+	`title="Forms / Button"` puts Button inside a Forms folder. Siblings at
+	every level sort alphabetically (pin items first with the section's
+	[`order` array](/explorer/features/sidebar#ordering)). Two prefixes on the
+	first segment add structure above folders: `:` makes a bold sidebar
+	**group** header (`title=":Forms / Button"`), and `@slug/` assigns the
+	entity to a top-bar
+	[**section**](/explorer/features/sidebar#sections-top-bar) declared in the
 	config (`title="@components/Forms / Button"`); an unknown slug is a
-	full-page error.
+	full-page error. The page shows the title's last segment as its heading.
 
 	## Multiple entities per file
 
@@ -81,7 +83,8 @@
 
 	- Name the file after its **main entity** (`Button.sdoc`), and put that
 	  entity first.
-	- Sidebar order within a group follows the order in the file.
+	- The sidebar sorts siblings alphabetically regardless of file order — pin
+	  a different order with the section's `order` array.
 	- If a file grows past a handful of entities, consider splitting it — the
 	  editor will nudge you.
 

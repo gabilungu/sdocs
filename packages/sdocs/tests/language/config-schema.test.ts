@@ -5,7 +5,7 @@ describe('configSchema (drives config completion without an install)', () => {
 	it('exposes the top-level config keys', () => {
 		expect(Object.keys(configSchema)).toEqual([
 			'include', 'port', 'open', 'css', 'static', 'title', 'logo', 'favicon',
-			'sections', 'home', 'routing', 'base', 'content',
+			'sections', 'home', 'mcp', 'routing', 'base', 'content',
 		]);
 	});
 

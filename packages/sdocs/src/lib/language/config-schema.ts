@@ -130,6 +130,12 @@ export const configSchema: ConfigSchema = {
 		doc: "Route path of the landing page, e.g. `'guides/introduction'`. Must resolve to an entity; without it the root shows the About page.",
 		insert: ": '$0'",
 	},
+	mcp: {
+		detail: 'boolean',
+		doc: 'Serve the MCP server while `sdocs dev` runs (the `/mcp` endpoint and the top-bar MCP button). Default: `true`. Built sites never carry an MCP endpoint.',
+		insert: ': ${0:false}',
+		values: ['true', 'false'],
+	},
 	routing: {
 		detail: "'history' | 'hash'",
 		doc: "URL style: `'history'` for real paths (standalone CLI default), `'hash'` for `#/` URLs (embedded default).",

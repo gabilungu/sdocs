@@ -120,8 +120,11 @@ Two ways to connect:
   or the equivalent stdio entry in any MCP client config). The VS Code sdocs
   extension registers this server automatically.
 - **HTTP** — while `sdocs dev` runs, the same server is served at
-  `http://localhost:3000/mcp` (stateless streamable HTTP, POST). Dev only:
-  built sites are static and carry no MCP endpoint.
+  `http://localhost:3000/mcp` (stateless streamable HTTP, POST), and the
+  Explorer top bar shows an **MCP** button with the connection info. Dev only:
+  built sites are static and carry no MCP endpoint. Disable both with
+  `mcp: false` in `sdocs.config.js` (the explicit `sdocs mcp` command still
+  works).
 
 ## Configuration
 
@@ -142,6 +145,7 @@ interface SdocsConfig {
 	home?: string;                       // route path of the landing page
 	routing?: 'history' | 'hash';        // Default 'history' (CLI), 'hash' (embedded)
 	base?: string;                       // public base path for build. Default '/'
+	mcp?: boolean;                       // serve /mcp + the top-bar MCP button in dev. Default true
 	static?: string;                     // static assets folder, served at site root
 	content?: {                          // per-entity-kind sizing/stage defaults (see below)
 		doc?:      { maxWidth?: string; padding?: string; toc?: boolean; contentX?: string };

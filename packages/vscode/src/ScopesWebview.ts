@@ -61,6 +61,14 @@ export class ScopesWebview implements vscode.WebviewViewProvider {
 				this.runner.stop(msg.dir);
 				this.panels.close(msg.dir);
 				break;
+			case 'copy-mcp': {
+				const mcpUrl = this.runner.mcpUrl(msg.dir);
+				if (mcpUrl) {
+					await vscode.env.clipboard.writeText(mcpUrl);
+					vscode.window.setStatusBarMessage('sdocs: MCP endpoint copied', 2000);
+				}
+				break;
+			}
 		}
 	}
 
@@ -75,6 +83,7 @@ export class ScopesWebview implements vscode.WebviewViewProvider {
 	private card(scope: Scope): string {
 		const status = this.runner.status(scope.dir);
 		const url = this.runner.url(scope.dir);
+		const mcpUrl = this.runner.mcpUrl(scope.dir);
 		const port = url ? new URL(url).port : null;
 		const dir = escapeHtml(scope.dir);
 		const label = escapeHtml(scope.label);
@@ -104,6 +113,11 @@ export class ScopesWebview implements vscode.WebviewViewProvider {
 			</div>
 			<div class="path" title="${dir}">${escapeHtml(scope.relPath)}</div>
 			${url ? `<div class="url">${escapeHtml(url)}</div>` : ''}
+			${
+				mcpUrl
+					? `<div class="mcp"><span class="mcp-tag">MCP</span><span class="mcp-url" title="${escapeHtml(mcpUrl)}">${escapeHtml(mcpUrl)}</span><button data-type="copy-mcp" data-dir="${dir}" title="Copy the MCP endpoint">Copy</button></div>`
+					: ''
+			}
 			<div class="actions">${actions}</div>
 		</div>`;
 	}
@@ -160,6 +174,19 @@ function pageHtml(cards: string): string {
 		color: var(--vscode-textLink-foreground);
 		overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 	}
+	.mcp { display: flex; align-items: center; gap: 6px; margin-top: 5px; min-width: 0; }
+	.mcp-tag {
+		flex: none; font-size: 9px; font-weight: 600; letter-spacing: .05em;
+		padding: 1px 5px; border-radius: 3px;
+		background: var(--vscode-badge-background); color: var(--vscode-badge-foreground);
+	}
+	.mcp-url {
+		flex: 1; min-width: 0;
+		font-family: var(--vscode-editor-font-family, monospace); font-size: 11px;
+		color: var(--vscode-descriptionForeground);
+		overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+	}
+	.mcp button { flex: none; padding: 1px 7px; font-size: 10px; }
 	.actions { display: flex; gap: 6px; margin-top: 9px; flex-wrap: wrap; }
 	button {
 		border: none; border-radius: 4px; padding: 3px 10px; cursor: pointer;

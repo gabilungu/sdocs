@@ -41,6 +41,9 @@
 		basePath?: string;
 		/** Version of sdocs that built the site, shown on the About page */
 		sdocsVersion?: string;
+		/** The dev server serves the MCP endpoint — shows the top-bar MCP
+		 * button. Only ever true in `sdocs dev` (config `mcp`, default on). */
+		mcp?: boolean;
 	}
 
 	let {
@@ -56,7 +59,8 @@
 		home = null,
 		routing = 'hash',
 		basePath = '',
-		sdocsVersion
+		sdocsVersion,
+		mcp = false
 	}: Props = $props();
 
 	setContext('sdocs-preview-base', previewBase);
@@ -106,6 +110,16 @@
 	});
 
 	const currentRoute = $derived(getRoute());
+
+	// When framed (the editor's docs tab), announce every route change to the
+	// parent, so a refresh or server restart can come back to the same page.
+	$effect(() => {
+		void currentRoute;
+		if (window.parent !== window) {
+			window.parent.postMessage({ type: 'sdocs:route', href: location.href }, '*');
+		}
+	});
+
 	const sectionMap = $derived(buildSections(docs, { sections, home }));
 	// The About page (mascot + stats + sdocs version) lives at /about and is
 	// the landing page whenever the config sets no `home`.
@@ -180,6 +194,7 @@
 		{cssNames}
 		{activeStylesheet}
 		{theme}
+		{mcp}
 		onToggleFullscreen={() => (sidebarHidden = true)}
 		onStylesheetChange={(name) => (activeStylesheet = name)}
 		onThemeChange={(t) => (theme = t)}

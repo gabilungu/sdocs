@@ -32,6 +32,7 @@
 	  home?: string;
 	  routing?: 'history' | 'hash';
 	  base?: string;
+	  mcp?: boolean;
 	  static?: string;
 	  content?: {
 	    doc?: { maxWidth?: string; padding?: string; toc?: boolean; contentX?: string };
@@ -242,6 +243,24 @@
 
 	`sdocs build` also writes a `404.html` (a copy of the shell), so an unknown
 	deep link on a static host still boots the app instead of a bare 404.
+
+	### `mcp`
+
+	Whether `sdocs dev` serves the [MCP server](/cli/commands#sdocs-mcp) — the
+	`/mcp` endpoint and the **MCP** button in the top bar (next to the theme
+	toggle), which opens the connection info: the HTTP endpoint, the stdio
+	command, and the tool list.
+
+	- **Type:** `boolean`
+	- **Default:** `true`
+
+	```js
+	mcp: false
+	```
+
+	Turning it off removes the endpoint and the button. The explicit
+	`npx sdocs mcp` command is unaffected, and built sites never serve an MCP
+	endpoint either way.
 
 	### `content`
 

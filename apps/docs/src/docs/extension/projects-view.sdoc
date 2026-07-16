@@ -29,6 +29,10 @@
 	- **Browser ↗** — opens the running docs in your default browser.
 	- **Stop** — stops the server.
 
+	A running card also shows the project's
+	[MCP endpoint](/cli/commands#sdocs-mcp) with a copy button (hidden when the
+	project sets `mcp: false`).
+
 	Server logs stream to the **sdocs** output channel.
 
 [/DOC]

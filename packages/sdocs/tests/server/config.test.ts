@@ -2,6 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { resolveConfig, resolveAndFinalize } from '../../src/lib/server/config.js';
 import { parseSdoc, attributeRules } from '../../src/lib/language/index.js';
 
+describe('mcp config', () => {
+	it('defaults on, and honours mcp: false', () => {
+		expect(resolveConfig({}).mcp).toBe(true);
+		expect(resolveConfig({ mcp: false }).mcp).toBe(false);
+	});
+});
+
 describe('content sizing config', () => {
 	it('applies the documented defaults', () => {
 		const c = resolveConfig({});

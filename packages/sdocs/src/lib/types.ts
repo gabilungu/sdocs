@@ -34,6 +34,10 @@ export interface SdocsConfig {
 	 * GitHub project Pages site. Applies to `sdocs build` only — `sdocs dev`
 	 * always serves at the root. Default: '/'. */
 	base?: string;
+	/** Serve the MCP server while `sdocs dev` runs (the /mcp endpoint and the
+	 * top-bar MCP button). Default: true. The explicit `sdocs mcp` command is
+	 * unaffected; built sites never carry an MCP endpoint. */
+	mcp?: boolean;
 
 	/** Content presentation per entity kind; entity/block attributes override these. */
 	content?: {
@@ -132,6 +136,8 @@ export interface ResolvedSdocsConfig {
 	routing: 'history' | 'hash' | null;
 	/** Normalized public base path for the build (leading + trailing slash). */
 	base: string;
+	/** Serve the MCP server (endpoint + top-bar button) in dev. */
+	mcp: boolean;
 	content: {
 		doc: Required<ContentSizing> & { toc: boolean; contentX: string };
 		page: Required<ContentSizing> & { contentX: string };

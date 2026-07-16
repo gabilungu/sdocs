@@ -13,6 +13,8 @@
 		cssNames?: string[];
 		activeStylesheet?: string;
 		theme?: ThemeMode;
+		/** This dev server serves the MCP endpoint — show the MCP button. */
+		mcp?: boolean;
 		onToggleFullscreen?: () => void;
 		onStylesheetChange?: (name: string) => void;
 		onThemeChange?: (theme: ThemeMode) => void;
@@ -26,6 +28,7 @@
 		cssNames = [],
 		activeStylesheet,
 		theme = 'light',
+		mcp = false,
 		onToggleFullscreen,
 		onStylesheetChange,
 		onThemeChange,
@@ -33,6 +36,36 @@
 
 	const themeIcons: Record<ThemeMode, string> = { light: '☀', dark: '☽' };
 	const themeLabels: Record<ThemeMode, string> = { light: 'Light', dark: 'Dark' };
+
+	// MCP info modal — endpoint resolved from the page, so it's right for any
+	// host/port the dev server actually runs on.
+	let mcpDialog: HTMLDialogElement | undefined = $state();
+	let mcpUrl = $state('');
+	let copied = $state('');
+	const MCP_STDIO = 'npx sdocs mcp';
+	const MCP_TOOLS = [
+		['validate_sdoc', 'parse .sdoc text, return diagnostics and entities'],
+		['scaffold_component_doc', 'a starter .sdoc from a component’s extracted props'],
+		['get_authoring_guide', 'the full format reference (also at /llms.txt on the sdocs site)'],
+		['list_docs', 'this project’s .sdoc files and the components they document'],
+		['get_component_api', 'a component’s full extracted API'],
+	];
+
+	function openMcp() {
+		mcpUrl = `${location.origin}/mcp`;
+		copied = '';
+		mcpDialog?.showModal();
+	}
+
+	async function copy(text: string) {
+		try {
+			await navigator.clipboard.writeText(text);
+			copied = text;
+			setTimeout(() => (copied = ''), 1500);
+		} catch {
+			// Clipboard unavailable — the text is visible to select manually.
+		}
+	}
 </script>
 
 <header class="sdocs-topbar">
@@ -68,6 +101,11 @@
 				{/each}
 			</select>
 		{/if}
+		{#if mcp}
+			<button class="sdocs-topbar-btn sdocs-mcp-btn" onclick={openMcp} title="MCP server">
+				MCP
+			</button>
+		{/if}
 		<button class="sdocs-topbar-btn" onclick={() => onThemeChange?.(theme === 'light' ? 'dark' : 'light')} title="{themeLabels[theme]} theme">
 			{themeIcons[theme]}
 		</button>
@@ -76,6 +114,53 @@
 		</button>
 	</div>
 </header>
+
+{#if mcp}
+	<dialog
+		class="sdocs-mcp-dialog"
+		bind:this={mcpDialog}
+		onclick={(e) => e.target === mcpDialog && mcpDialog?.close()}
+	>
+		<div class="sdocs-mcp-body">
+			<div class="sdocs-mcp-head">
+				<h2>MCP server</h2>
+				<button class="sdocs-topbar-btn" onclick={() => mcpDialog?.close()} title="Close">✕</button>
+			</div>
+			<p class="sdocs-mcp-lead">
+				This dev server also serves the sdocs MCP server — authoring tools an
+				agent can use to read this project's components and write valid
+				<code>.sdoc</code> docs.
+			</p>
+
+			<div class="sdocs-mcp-row">
+				<span class="sdocs-mcp-label">HTTP</span>
+				<code>{mcpUrl}</code>
+				<button class="sdocs-topbar-btn" onclick={() => copy(mcpUrl)}>
+					{copied === mcpUrl ? 'Copied' : 'Copy'}
+				</button>
+			</div>
+			<div class="sdocs-mcp-row">
+				<span class="sdocs-mcp-label">stdio</span>
+				<code>{MCP_STDIO}</code>
+				<button class="sdocs-topbar-btn" onclick={() => copy(MCP_STDIO)}>
+					{copied === MCP_STDIO ? 'Copied' : 'Copy'}
+				</button>
+			</div>
+
+			<h3>Tools</h3>
+			<ul class="sdocs-mcp-tools">
+				{#each MCP_TOOLS as [name, blurb] (name)}
+					<li><code>{name}</code> — {blurb}</li>
+				{/each}
+			</ul>
+
+			<p class="sdocs-mcp-note">
+				Turn this off with <code>mcp: false</code> in <code>sdocs.config.js</code>.
+				Built sites never serve an MCP endpoint.
+			</p>
+		</div>
+	</dialog>
+{/if}
 
 <style>
 	.sdocs-topbar {
@@ -155,5 +240,100 @@
 	}
 	.sdocs-topbar-btn:hover {
 		background: var(--color-base-100);
+	}
+	.sdocs-mcp-btn {
+		font-size: 11px;
+		font-weight: 600;
+		letter-spacing: 0.04em;
+	}
+
+	/* MCP info modal */
+	.sdocs-mcp-dialog {
+		width: min(560px, calc(100vw - 48px));
+		padding: 0;
+		border: 1px solid var(--color-base-200);
+		border-radius: 10px;
+		background: var(--color-base-0);
+		color: var(--color-base-800);
+		font-family: var(--sans);
+		font-size: 13px;
+	}
+	.sdocs-mcp-dialog::backdrop {
+		background: rgb(0 0 0 / 0.35);
+	}
+	.sdocs-mcp-body {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		padding: 20px 24px;
+	}
+	.sdocs-mcp-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+	.sdocs-mcp-head h2 {
+		margin: 0;
+		font-size: 16px;
+		font-weight: 600;
+		color: var(--color-base-900);
+	}
+	.sdocs-mcp-lead {
+		margin: 0;
+		color: var(--color-base-600);
+		line-height: 1.5;
+	}
+	.sdocs-mcp-row {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+	.sdocs-mcp-label {
+		flex-shrink: 0;
+		width: 40px;
+		font-size: 11px;
+		font-weight: 600;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+		color: var(--color-base-400);
+	}
+	.sdocs-mcp-row code {
+		flex: 1;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		padding: 5px 8px;
+		border: 1px solid var(--color-base-150);
+		border-radius: 6px;
+		background: var(--color-base-50);
+		font-size: 12px;
+	}
+	.sdocs-mcp-body h3 {
+		margin: 6px 0 0;
+		font-size: 11px;
+		font-weight: 600;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+		color: var(--color-base-400);
+	}
+	.sdocs-mcp-tools {
+		margin: 0;
+		padding-left: 18px;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		color: var(--color-base-600);
+	}
+	.sdocs-mcp-tools code,
+	.sdocs-mcp-lead code,
+	.sdocs-mcp-note code {
+		font-size: 12px;
+		color: var(--color-base-800);
+	}
+	.sdocs-mcp-note {
+		margin: 4px 0 0;
+		font-size: 12px;
+		color: var(--color-base-500);
 	}
 </style>

@@ -9,6 +9,8 @@ export interface RunningScope {
 	process: ChildProcess;
 	status: ScopeStatus;
 	url?: string;
+	/** The /mcp endpoint, when the server announces one (config mcp on). */
+	mcpUrl?: string;
 }
 
 /** Starts and stops `sdocs run` processes, one per scope directory. */
@@ -28,6 +30,10 @@ export class SdocsRunner implements vscode.Disposable {
 
 	url(scopeDir: string): string | undefined {
 		return this.scopes.get(scopeDir)?.url;
+	}
+
+	mcpUrl(scopeDir: string): string | undefined {
+		return this.scopes.get(scopeDir)?.mcpUrl;
 	}
 
 	/** Start sdocs in the scope; announces readiness via onReady. */
@@ -65,6 +71,14 @@ export class SdocsRunner implements vscode.Disposable {
 					this.output.appendLine(`[${scopeDir}] ready at ${scope.url}`);
 					this.emitter.fire();
 					this.readyEmitter.fire({ dir: scopeDir, url: scope.url });
+				}
+			}
+			if (!scope.mcpUrl) {
+				// The dev server prints "➜  MCP: <url>/mcp" when the endpoint is on.
+				const mcp = text.match(/MCP:\s+(https?:\/\/localhost:\d+\/mcp)/);
+				if (mcp) {
+					scope.mcpUrl = mcp[1];
+					this.emitter.fire();
 				}
 			}
 		};

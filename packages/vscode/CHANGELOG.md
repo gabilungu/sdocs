@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.63] - 2026-07-16
+
+### Added
+
+- A running project card shows the project's MCP endpoint with a copy button
+  (hidden when the project sets `mcp: false`).
+
+### Fixed
+
+- The docs tab keeps its place: **Refresh sdocs Tab** and **Restart Server**
+  now return to the page you were on instead of the site root (the framed
+  Explorer announces its route; sdocs 0.0.99).
+
 ## [0.0.62] - 2026-07-16
 
 ### Added

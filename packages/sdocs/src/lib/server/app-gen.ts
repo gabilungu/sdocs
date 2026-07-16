@@ -137,8 +137,10 @@ function generateIndexHtml(title: string, favicon: string): string {
 </html>`;
 }
 
-/** The Explorer props literal shared by the client and server entries. */
-function explorerPropsJs(config: ResolvedSdocsConfig, basePath: string): string {
+/** The Explorer props literal shared by the client and server entries.
+ * `mcp` is true only for the dev server (which actually serves /mcp) —
+ * builds and prerenders always pass false. */
+function explorerPropsJs(config: ResolvedSdocsConfig, basePath: string, mcp: boolean): string {
 	return `{
 	docs,
 	cssNames,
@@ -150,6 +152,7 @@ function explorerPropsJs(config: ResolvedSdocsConfig, basePath: string): string 
 	routing: ${JSON.stringify(config.routing ?? 'history')},
 	basePath: ${JSON.stringify(basePath)},
 	sdocsVersion: ${JSON.stringify(sdocsVersion())},
+	mcp: ${JSON.stringify(mcp)},
 }`;
 }
 
@@ -158,14 +161,14 @@ function explorerPropsJs(config: ResolvedSdocsConfig, basePath: string): string 
  * A prerendered page (static build output) hydrates; the router initializes
  * and the route's content component resolves BEFORE the first client render,
  * so it matches the server HTML. A bare shell (dev) simply mounts. */
-function generateEntryJs(config: ResolvedSdocsConfig, basePath: string): string {
+function generateEntryJs(config: ResolvedSdocsConfig, basePath: string, mcp = false): string {
 	return `import { mount, hydrate } from 'svelte';
 import { docs, cssNames, pageModules } from 'virtual:sdocs';
 import Explorer from './explorer/Explorer.svelte';
 import { initRouter, getRoute } from './explorer/router.svelte.js';
 import { buildSections, resolveRoute } from './explorer/tree-builder.js';
 
-const props = ${explorerPropsJs(config, basePath)};
+const props = ${explorerPropsJs(config, basePath, mcp)};
 
 async function boot() {
 	initRouter(props.routing, props.basePath);
@@ -197,7 +200,7 @@ import { docs, cssNames, pageModules } from 'virtual:sdocs';
 import Explorer from './explorer/Explorer.svelte';
 import { setServerRoute } from './explorer/router.svelte.js';
 
-const props = ${explorerPropsJs(config, basePath)};
+const props = ${explorerPropsJs(config, basePath, false)};
 
 const preloaded = {};
 for (const [key, load] of Object.entries(pageModules)) {
@@ -305,7 +308,7 @@ export async function generateDevFiles(
 
 	await writeFile(resolve(sdocsDir, 'index.html'), generateIndexHtml(config.title, config.favicon));
 	// Dev always serves at the root — `base` applies to the build only.
-	await writeFile(resolve(sdocsDir, 'entry.js'), generateEntryJs(config, ''));
+	await writeFile(resolve(sdocsDir, 'entry.js'), generateEntryJs(config, '', config.mcp));
 
 	return sdocsDir;
 }

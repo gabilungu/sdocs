@@ -68,13 +68,17 @@ export async function devCommand(): Promise<void> {
 				},
 			}),
 			sdocsPlugin({ ...config, include: absoluteIncludes }),
-			{
-				// The MCP authoring endpoint — dev server only, never in a build.
-				name: 'sdocs-mcp-endpoint',
-				configureServer(s) {
-					s.middlewares.use('/mcp', mcpHttpHandler());
-				},
-			},
+			...(config.mcp
+				? [
+						{
+							// The MCP authoring endpoint — dev server only, never in a build.
+							name: 'sdocs-mcp-endpoint',
+							configureServer(s: import('vite').ViteDevServer) {
+								s.middlewares.use('/mcp', mcpHttpHandler());
+							},
+						},
+					]
+				: []),
 		],
 		server: {
 			port: config.port,
@@ -91,7 +95,7 @@ export async function devCommand(): Promise<void> {
 	await server.listen();
 	server.printUrls();
 	const localUrl = server.resolvedUrls?.local[0];
-	if (localUrl) console.log(`  ➜  MCP:      ${localUrl}mcp`);
+	if (config.mcp && localUrl) console.log(`  ➜  MCP:      ${localUrl}mcp`);
 
 	// Cleanup on exit
 	const cleanup = async () => {

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.99] - 2026-07-16
+
+### Added
+
+- `mcp` config option (default `true`): whether `sdocs dev` serves the MCP
+  server. On, the dev server also shows an **MCP** button in the top bar (next
+  to the theme toggle) that opens the connection info — the HTTP endpoint, the
+  stdio command, and the tool list. `mcp: false` removes the endpoint and the
+  button; the explicit `sdocs mcp` command is unaffected.
+- When the Explorer runs inside an iframe (the editor's docs tab, any
+  embedding page), it posts its route to the parent frame on every navigation
+  (`{ type: 'sdocs:route', href }`), so the host can restore the location
+  after a reload or server restart.
+
 ## [0.0.98] - 2026-07-16
 
 ### Added

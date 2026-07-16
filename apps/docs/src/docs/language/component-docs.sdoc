@@ -60,8 +60,9 @@
 	| `contentY` | no | Vertical alignment: `top`/`middle`/`bottom`/`justify` |
 	| `background` | no | Stage background — a CSS color or a `var()` from the project's css |
 
-	`args` values are **plain literals** — strings, numbers, booleans. They stay
-	simple because the controls send them into the isolated preview at runtime.
+	`args` values are **plain literals** — strings, numbers, booleans, and `null`.
+	They stay simple because the controls send them into the isolated preview at
+	runtime.
 	Anything richer (arrays, objects, imported values) belongs directly in the
 	body markup, where full Svelte is available.
 

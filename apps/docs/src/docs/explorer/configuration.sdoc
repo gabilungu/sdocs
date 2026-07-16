@@ -34,7 +34,8 @@
 	  base?: string;
 	  static?: string;
 	  content?: {
-	    page?: { maxWidth?: string; padding?: string; toc?: boolean; contentX?: string };
+	    doc?: { maxWidth?: string; padding?: string; toc?: boolean; contentX?: string };
+	    page?: { maxWidth?: string; padding?: string; contentX?: string };
 	    showcase?: { maxWidth?: string; padding?: string; direction?: string; gap?: string; contentX?: string; contentY?: string; background?: string; minHeight?: string };
 	    layout?: { maxWidth?: string; padding?: string; background?: string; minHeight?: string };
 	  };

@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.102] - 2026-07-23
+
+### Added
+
+- Every stage is resizable: the component preview, each `[example]`, the
+  full-page example view, and `[LAYOUT]` pages ride in a two-pane split — drag
+  the handle (or focus it and use the arrow keys, Home / End) to narrow or
+  widen the iframe down to 1px and test responsive behaviour, with a live
+  pixel readout that matches the viewport exactly — click it to reset the
+  width (it stays reachable at the view edge when the window shrinks below
+  the stored width). Previews and examples start at the content column width;
+  layouts start fully expanded, the handle hugging the right edge. The code panels (Preview Code, Component Source,
+  each example's Code) sit below on their own, at the normal column width.
+
+### Changed
+
+- The preview stage is a bare viewport: no border, no corner radius — the
+  resize canvas and handle delineate it, and the iframe gets the pane's exact
+  width.
+- **The default stage padding is now `0px`** (was `16px`): previews and
+  examples render edge-to-edge by default. Restore the old spacing with
+  `content: { showcase: { padding: '16px' } }` in `sdocs.config.js`, or
+  per entity/block with the `padding` attribute.
+- Page descriptions (the text under a SHOWCASE or DOC title) get a roomier
+  line height, matching the preview description.
+
 ## [0.0.101] - 2026-07-23
 
 ### Changed

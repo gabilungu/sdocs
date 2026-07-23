@@ -186,7 +186,7 @@ Key options:
 |---|---|---|---|
 | `doc` | `1200px` | `32px` | `toc: true`, `contentX: left` |
 | `page` | `1200px` | `32px` | `contentX: left` |
-| `showcase` (stages) | `1200px` | `16px` | `direction: row`, `gap: 16px`, `contentX: left`, `contentY: top`, `background`/`minHeight`: none |
+| `showcase` (stages) | `1200px` | `0px` | `direction: row`, `gap: 16px`, `contentX: left`, `contentY: top`, `background`/`minHeight`: none |
 | `layout` | `100%` | `0px` | `background`/`minHeight`: none |
 
 `minHeight` reserves room for content that overflows the stage (an open dropdown

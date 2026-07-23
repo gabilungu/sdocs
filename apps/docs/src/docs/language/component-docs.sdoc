@@ -31,7 +31,7 @@
 	| `hide` | no | A bare flag: routable, but never listed in a sidebar |
 	| `description` | no | Short text under the page title — inline markdown (`` `code` ``, `**bold**`, `*italics*`) renders styled |
 	| `maxWidth` | no | Content column width (default from config, `1200px`) |
-	| `padding` | no | Default stage padding for this entity's previews and examples (default `16px`) |
+	| `padding` | no | Default stage padding for this entity's previews and examples (default `0px`) |
 	| `direction` | no | Default stage `flex-direction` (default `row`) |
 	| `gap` | no | Default stage `gap` (default `16px`) |
 	| `contentX` | no | Default horizontal alignment: `left`/`center`/`right`/`justify` (default `left`) |

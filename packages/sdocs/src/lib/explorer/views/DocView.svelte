@@ -220,6 +220,7 @@
 	}
 	.sdocs-view-description {
 		font-size: 14px;
+		line-height: 1.5;
 		color: var(--color-base-500);
 		margin: 6px 0 0;
 	}

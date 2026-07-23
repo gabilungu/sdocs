@@ -3,6 +3,7 @@
 	import { Icon } from '../../ui/Icon/index.js';
 	import { highlightSvelte } from '../highlighter.js';
 	import CollapsiblePanel from './CollapsiblePanel.svelte';
+	import TwoPaneSplit from '../../ui/TwoPaneSplit/TwoPaneSplit.svelte';
 	import PreviewFrame from './PreviewFrame.svelte';
 	import ApiTable, { type Row } from './ApiTable.svelte';
 	import PropControl from './PropControl.svelte';
@@ -178,6 +179,22 @@
 		cssValues = newCss;
 	}
 
+	// Resizable stage widths. Each starts at the content column width (capped
+	// to the room, minus the handle bar) and resets when the entity changes;
+	// dragging writes the pixel size back.
+	const defaultStageWidth = $derived(
+		doc.maxWidth ? `min(calc(100% - 10px), ${doc.maxWidth})` : 'calc(100% - 10px)',
+	);
+	let previewWidth = $state<number | string>('100%');
+	let focusedWidth = $state<number | string>('100%');
+	// Per-example drag overrides; an example without one sits at the default.
+	let exampleOverrides = $state<Record<string, number | string>>({});
+	$effect(() => {
+		previewWidth = defaultStageWidth;
+		focusedWidth = defaultStageWidth;
+		exampleOverrides = {};
+	});
+
 	const hasEditableControls = $derived(
 		!!cd && (cd.props.some((p) => p.category === 'prop') || cd.cssProps.length > 0),
 	);
@@ -244,17 +261,38 @@
 	);
 </script>
 
-<div class="sdocs-component-view" style:max-width={doc.maxWidth}>
+<div class="sdocs-component-view" style:--sdocs-content-max={doc.maxWidth}>
 	{#if focusedSnippet}
 		<!-- Example full-page view -->
 		<div class="sdocs-view-header">
 			<h1 class="sdocs-view-title">{displayTitle(meta.title)} / {snippetName}</h1>
 		</div>
+		<!-- The example IS the page — its stage rides the same resizable split. -->
+		<div class="sdocs-preview-split">
+			<TwoPaneSplit bind:leftWidth={focusedWidth} leftMinWidth={1} handleBarWidth={10} height="auto">
+				{#snippet left()}
+					<div class="sdocs-preview-pane">
+						<div class="sdocs-preview-wrapper">
+							<PreviewFrame src={focusedSnippet.previewUrl ?? ''} {activeStylesheet} />
+						</div>
+					</div>
+				{/snippet}
+				{#snippet right()}
+					<div class="sdocs-resize-canvas"></div>
+				{/snippet}
+			</TwoPaneSplit>
+			{#if typeof focusedWidth === 'number'}
+				<button
+					class="sdocs-resize-readout"
+					style:left={`min(${focusedWidth + 18}px, calc(100% - 64px))`}
+					title="Reset width"
+					onclick={() => (focusedWidth = defaultStageWidth)}
+				>
+					{focusedWidth}px
+				</button>
+			{/if}
+		</div>
 		<div class="sdocs-panels">
-			<!-- The example IS the page — its stage renders directly, no accordion. -->
-			<div class="sdocs-preview-wrapper">
-				<PreviewFrame src={focusedSnippet.previewUrl ?? ''} {activeStylesheet} />
-			</div>
 			<CollapsiblePanel title="Code" defaultExpanded={false} flush>
 				<div class="sdocs-code-block">{@html focusedSnippet.highlightedHtml ?? ''}</div>
 			</CollapsiblePanel>
@@ -290,23 +328,45 @@
 			<p class="sdocs-preview-description">{@html renderInlineMarkdown(activePreview.snippet.description)}</p>
 		{/if}
 
-		<div class="sdocs-panels">
-			<!-- Showcase -->
-			{#if activePreview}
-				{#key activePreview.snippet.slug}
-					<div class="sdocs-preview-wrapper">
-						<PreviewFrame
-							bind:this={defaultPreview}
-							src={activePreview.snippet.previewUrl ?? ''}
-							props={propValues}
-							cssVars={appliedCss}
-							{activeStylesheet}
-							onStateValues={(values) => (liveStateValues = values)}
-							onready={resolveVarColors}
-						/>
-					</div>
-				{/key}
+		{#if activePreview}
+			<!-- The stage rides in a resizable pane spanning the full view width:
+			     drag the handle to narrow the iframe and test responsive layouts. -->
+			<div class="sdocs-preview-split">
+				<TwoPaneSplit bind:leftWidth={previewWidth} leftMinWidth={1} handleBarWidth={10} height="auto">
+					{#snippet left()}
+						<div class="sdocs-preview-pane">
+							{#key activePreview.snippet.slug}
+								<div class="sdocs-preview-wrapper">
+									<PreviewFrame
+										bind:this={defaultPreview}
+										src={activePreview.snippet.previewUrl ?? ''}
+										props={propValues}
+										cssVars={appliedCss}
+										{activeStylesheet}
+										onStateValues={(values) => (liveStateValues = values)}
+										onready={resolveVarColors}
+									/>
+								</div>
+							{/key}
+						</div>
+					{/snippet}
+					{#snippet right()}
+						<div class="sdocs-resize-canvas"></div>
+					{/snippet}
+				</TwoPaneSplit>
+				{#if typeof previewWidth === 'number'}
+					<button
+						class="sdocs-resize-readout"
+						style:left={`min(${previewWidth + 18}px, calc(100% - 64px))`}
+						title="Reset width"
+						onclick={() => (previewWidth = defaultStageWidth)}
+					>
+						{previewWidth}px
+					</button>
+				{/if}
+			</div>
 
+			<div class="sdocs-panels">
 				<CollapsiblePanel title="Preview Code" defaultExpanded={false} flush>
 					<div class="sdocs-code-block">
 						{#if highlightedUsageHtml}
@@ -322,8 +382,8 @@
 						<div class="sdocs-code-block">{@html activePreview.highlightedSource}</div>
 					</CollapsiblePanel>
 				{/if}
-			{/if}
-		</div>
+			</div>
+		{/if}
 
 		{#snippet propControl(row: Row)}
 			{@const prop = cd?.props.find((p) => p.name === row.name && p.category === 'prop')}
@@ -444,6 +504,7 @@
 			<hr class="sdocs-divider" />
 			<h2 class="sdocs-section-title">Examples</h2>
 			{#each exampleSnippets as example (example.name)}
+				{@const w = exampleOverrides[example.slug] ?? defaultStageWidth}
 				<div class="sdocs-example">
 					<h3 class="sdocs-example-title">
 						<Icon name="bookmark" --w="14px" --h="14px" --fill="var(--color-example-500)" />
@@ -452,10 +513,43 @@
 					{#if example.description}
 						<p class="sdocs-block-description">{@html renderInlineMarkdown(example.description)}</p>
 					{/if}
+					<div class="sdocs-preview-split">
+						<TwoPaneSplit
+							bind:leftWidth={
+								() => exampleOverrides[example.slug] ?? defaultStageWidth,
+								(v) => (exampleOverrides[example.slug] = v)
+							}
+							leftMinWidth={1}
+							handleBarWidth={10}
+							height="auto"
+						>
+							{#snippet left()}
+								<div class="sdocs-preview-pane">
+									<div class="sdocs-preview-wrapper">
+										<PreviewFrame src={example.previewUrl ?? ''} {activeStylesheet} />
+									</div>
+								</div>
+							{/snippet}
+							{#snippet right()}
+								<div class="sdocs-resize-canvas"></div>
+							{/snippet}
+						</TwoPaneSplit>
+						{#if typeof w === 'number'}
+							<button
+								class="sdocs-resize-readout"
+								style:left={`min(${w + 18}px, calc(100% - 64px))`}
+								title="Reset width"
+								onclick={() => {
+									const next = { ...exampleOverrides };
+									delete next[example.slug];
+									exampleOverrides = next;
+								}}
+							>
+								{w}px
+							</button>
+						{/if}
+					</div>
 					<div class="sdocs-panels">
-						<div class="sdocs-preview-wrapper">
-							<PreviewFrame src={example.previewUrl ?? ''} {activeStylesheet} />
-						</div>
 						<CollapsiblePanel title="Code" defaultExpanded={false} flush>
 							<div class="sdocs-code-block">{@html example.highlightedHtml ?? ''}</div>
 						</CollapsiblePanel>
@@ -470,8 +564,85 @@
 <style>
 	.sdocs-component-view {
 		padding: 24px 32px;
-		/* max-width comes from the doc entry (config/entity cascade) */
+		/* Everything sits in a content column capped at the doc's maxWidth
+		   (config/entity cascade) — except the resizable preview split, which
+		   spans the full view so the stage can grow past the column. */
+		display: grid;
+		grid-template-columns: minmax(0, var(--sdocs-content-max, 1200px)) 1fr;
 		font-family: var(--sans);
+	}
+	.sdocs-component-view > * {
+		grid-column: 1;
+	}
+	.sdocs-component-view > .sdocs-preview-split {
+		grid-column: 1 / -1;
+	}
+	.sdocs-component-view > .sdocs-example {
+		grid-column: 1 / -1;
+	}
+	.sdocs-example > .sdocs-example-title,
+	.sdocs-example > .sdocs-block-description,
+	.sdocs-example > .sdocs-panels {
+		max-width: var(--sdocs-content-max, 1200px);
+	}
+
+	/* The resizable stage: the pane carries the panel chrome; the canvas on the
+	   right is the empty room to drag into. */
+	.sdocs-preview-split {
+		position: relative;
+		margin-bottom: 32px;
+		/* Clip the x-overhang (the handle's outer lip, a readout that ran off
+		   the page) without creating a scroll container. */
+		overflow-x: clip;
+		/* The handle bar is invisible until hovered — the grey only appears
+		   when the pointer reaches it (or while dragging). */
+		--handleBg: transparent;
+	}
+	/* The split is never shorter than the width readout (21px) plus a hair of
+	   air, so the chip fits centred even beside a tiny preview. */
+	.sdocs-preview-split :global(.TwoPaneSplit) {
+		min-height: 25px;
+	}
+	/* Bare viewport: no border, no radius — the canvas stripes and the handle
+	   bar delineate the stage, and the iframe width is exactly the pane's. */
+	.sdocs-preview-pane {
+		height: 100%;
+		box-sizing: border-box;
+		background: var(--color-base-0);
+	}
+	.sdocs-resize-canvas {
+		height: 100%;
+		box-sizing: border-box;
+		border-radius: 8px;
+		background:
+			repeating-linear-gradient(
+				45deg,
+				transparent 0 6px,
+				var(--color-base-100) 6px 7px
+			);
+	}
+	/* Rides beside the handle, vertically centred, clamped inside the view so
+	   it stays reachable when the window shrinks below the stored width.
+	   Clicking it resets the stage to its default width. */
+	.sdocs-resize-readout {
+		position: absolute;
+		top: 50%;
+		transform: translateY(-50%);
+		z-index: 3;
+		display: inline-block;
+		padding: 2px 7px;
+		border: 1px solid var(--color-base-150);
+		border-radius: 4px;
+		background: var(--color-base-0);
+		font-family: var(--mono, monospace);
+		font-size: 11px;
+		color: var(--color-base-500);
+		white-space: nowrap;
+		cursor: pointer;
+	}
+	.sdocs-resize-readout:hover {
+		background: var(--color-base-50);
+		color: var(--color-base-700);
 	}
 	.sdocs-doc-section {
 		margin-top: 28px;
@@ -574,6 +745,7 @@
 	}
 	.sdocs-view-description {
 		font-size: 14px;
+		line-height: 1.5;
 		color: var(--color-base-500);
 		margin: 6px 0 0;
 	}

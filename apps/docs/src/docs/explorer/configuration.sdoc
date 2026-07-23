@@ -280,7 +280,7 @@
 	| `page` | `padding` | `32px` | space around the page content |
 	| `page` | `contentX` | `left` | places the container: `left`/`center`/`right` |
 	| `showcase` | `maxWidth` | `1200px` | the showcase content column |
-	| `showcase` | `padding` | `16px` | preview & example stages (in `[SHOWCASE]` and `[DOC]`) |
+	| `showcase` | `padding` | `0px` | preview & example stages (in `[SHOWCASE]` and `[DOC]`) |
 	| `showcase` | `direction` | `row` | stage `flex-direction` |
 	| `showcase` | `gap` | `16px` | stage `gap` |
 	| `showcase` | `contentX` | `left` | horizontal: `left`/`center`/`right`/`justify` |

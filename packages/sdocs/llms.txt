@@ -263,8 +263,10 @@ Combine all three: `title="@components/:Layout / sdocs / Button"` → the
 
 Two more structural facts:
 
-- A component page with examples becomes its own expandable node: a **Docs**
-  child (the overview) plus one sub-page per example.
+- A component page with examples becomes its own expandable node with one
+  sub-page per example — selecting the component itself shows its docs. A doc
+  with several `[component]` previews gets a distinct compound icon.
+- `:` groups are always expanded; folders start collapsed.
 - **Ordering**: siblings at every level sort alphabetically; pin items first by
   listing their route paths in the section's `order` array
   (`order: ['introduction', 'form/button']`). The page heading and browser tab

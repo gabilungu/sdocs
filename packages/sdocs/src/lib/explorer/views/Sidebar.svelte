@@ -28,7 +28,7 @@
 
 	function collectDefaults(nodes: TreeNode[], set: SvelteSet<string>) {
 		for (const node of nodes) {
-			if (node.defaultExpanded || node.type === 'group') {
+			if (node.defaultExpanded) {
 				set.add(node.path.join('/'));
 			}
 			if (node.children.length > 0) {
@@ -81,15 +81,17 @@
 		);
 	}
 
+	/** A compound component: several [component] previews, or sub-components
+	 * nested under it in the tree. */
+	function isCompound(node: TreeNode): boolean {
+		return (node.doc?.previews?.length ?? 0) > 1 || node.children.some((c) => c.entity);
+	}
+
 	function iconName(node: TreeNode, expanded: boolean): string {
 		switch (node.type) {
 			case 'folder': return expanded ? 'folder-open' : 'folder';
 			case 'component':
-				if (node.children.length > 0) {
-					const hasChildComponent = node.children.some(c => c.type === 'component' && c.children.length > 0);
-					return hasChildComponent ? 'component' : 'diamond';
-				}
-				if (node.name === 'Docs') return 'file-code';
+				if (node.entity) return isCompound(node) ? 'component' : 'diamond';
 				return 'bookmark';
 			case 'doc':
 			case 'page': return 'file-text';
@@ -102,9 +104,7 @@
 		switch (node.type) {
 			case 'folder': return 'var(--color-base-400)';
 			case 'component':
-				if (node.children.length > 0) return 'var(--color-component-500)';
-				if (node.name === 'Docs') return 'var(--color-docs-500)';
-				return 'var(--color-example-500)';
+				return node.entity ? 'var(--color-component-500)' : 'var(--color-example-500)';
 			case 'doc':
 			case 'page': return 'var(--color-page-550)';
 			case 'layout': return 'var(--color-layout-500)';
@@ -135,9 +135,7 @@
 	function hoverBg(node: TreeNode): string {
 		switch (node.type) {
 			case 'component':
-				if (node.children.length > 0) return 'var(--color-component-50)';
-				if (node.name === 'Docs') return 'var(--color-docs-50)';
-				return 'var(--color-example-50)';
+				return node.entity ? 'var(--color-component-50)' : 'var(--color-example-50)';
 			case 'doc':
 			case 'page': return 'var(--color-page-50)';
 			case 'layout': return 'var(--color-layout-50)';
@@ -148,9 +146,7 @@
 	function activeBg(node: TreeNode): string {
 		switch (node.type) {
 			case 'component':
-				if (node.children.length > 0) return 'var(--color-component-100)';
-				if (node.name === 'Docs') return 'var(--color-docs-100)';
-				return 'var(--color-example-100)';
+				return node.entity ? 'var(--color-component-100)' : 'var(--color-example-100)';
 			case 'doc':
 			case 'page': return 'var(--color-page-100)';
 			case 'layout': return 'var(--color-layout-100)';
@@ -161,9 +157,7 @@
 	function activeHoverBg(node: TreeNode): string {
 		switch (node.type) {
 			case 'component':
-				if (node.children.length > 0) return 'var(--color-component-150)';
-				if (node.name === 'Docs') return 'var(--color-docs-150)';
-				return 'var(--color-example-150)';
+				return node.entity ? 'var(--color-component-150)' : 'var(--color-example-150)';
 			case 'doc':
 			case 'page': return 'var(--color-page-150)';
 			case 'layout': return 'var(--color-layout-150)';
@@ -199,7 +193,7 @@
 	{@const expanded = isExpanded(pathKey)}
 
 	{#if node.type === 'group'}
-		<NavTree.Group label={node.name} {expanded} onclick={() => toggleExpanded(pathKey)}>
+		<NavTree.Group label={node.name} static>
 			{#each node.children as child (child.path.join('/'))}
 				{@render treeNode(child)}
 			{/each}
@@ -210,11 +204,8 @@
 			{expanded}
 			active={isActive(node.route)}
 			onclick={() => {
-				const wasCollapsed = !expandedSet.has(pathKey);
 				toggleExpanded(pathKey);
-				if (wasCollapsed && node.type !== 'folder') {
-					navigate(node.route);
-				}
+				if (node.type !== 'folder') navigate(node.route);
 			}}
 			--font-weight="500"
 			--bg-hover={hoverBg(node)}

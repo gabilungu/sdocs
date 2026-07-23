@@ -29,7 +29,9 @@
 	title: ':Design System / Components / Button'
 	```
 
-	The group reads as a section heading but is still collapsible like any folder. The `:` prefix only works on the first segment. Use groups to carve the sidebar into major areas (`:Docs`, `:Components`, `:Patterns`).
+	The group reads as a section heading and is always expanded — it can't be
+	collapsed. The `:` prefix only works on the first segment. Use groups to
+	carve the sidebar into major areas (`:Docs`, `:Components`, `:Patterns`).
 
 	## Sections (top bar)
 
@@ -95,13 +97,15 @@
 	A component doc with examples expands into sub-entries in the sidebar:
 
 	```
-	Button
-	  Docs         ← the main component page
+	Button         ← the component page (description, live previews, API tables)
 	  WithIcon     ← example
 	  Disabled     ← example
 	```
 
-	The "Docs" entry is the component overview (description, live previews, API tables). Each `[example]` is also a standalone sub-page.
+	Selecting the component itself shows its docs; each `[example]` is also a
+	standalone sub-page. A doc with several `[component]` previews (a compound
+	family) gets a distinct multi-part icon in place of the single-component
+	mark.
 
 	## See also
 

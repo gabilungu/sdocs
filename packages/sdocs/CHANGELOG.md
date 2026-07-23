@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.103] - 2026-07-23
+
+### Changed
+
+- Sidebar: the redundant **Docs** child under each component is gone —
+  selecting the component itself shows its docs (clicking also toggles its
+  examples). A doc with several `[component]` previews now carries the
+  compound multi-part icon, like nested component families always did.
+- Sidebar: `:` groups are always expanded — the header is a plain label, no
+  longer a collapse toggle.
+
 ## [0.0.102] - 2026-07-23
 
 ### Added

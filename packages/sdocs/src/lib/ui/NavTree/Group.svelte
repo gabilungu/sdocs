@@ -8,9 +8,20 @@
 		children?: Snippet;
 		class?: string;
 		onclick?: () => void;
+		/** Always expanded: no chevron, no toggle, no pointer affordance. */
+		static?: boolean;
 	}
 
-	let { label, expanded = $bindable(true), children, class: className = '', onclick }: Props = $props();
+	let {
+		label,
+		expanded = $bindable(true),
+		children,
+		class: className = '',
+		onclick,
+		static: isStatic = false,
+	}: Props = $props();
+
+	const open = $derived(isStatic || expanded);
 
 	function toggle() {
 		expanded = !expanded;
@@ -18,13 +29,19 @@
 </script>
 
 <div class="NavTree-group {className}">
-	<button class="NavTree-group-label" onclick={onclick ?? toggle}>
-		<span class="NavTree-group-text" title={label}>{label}</span>
-		<span class="NavTree-chevron">
-			<Icon name={expanded ? 'chevron-down' : 'chevron-right'} --w="14px" --h="14px" />
-		</span>
-	</button>
-	{#if expanded && children}
+	{#if isStatic}
+		<div class="NavTree-group-label is-static">
+			<span class="NavTree-group-text" title={label}>{label}</span>
+		</div>
+	{:else}
+		<button class="NavTree-group-label" onclick={onclick ?? toggle}>
+			<span class="NavTree-group-text" title={label}>{label}</span>
+			<span class="NavTree-chevron">
+				<Icon name={expanded ? 'chevron-down' : 'chevron-right'} --w="14px" --h="14px" />
+			</span>
+		</button>
+	{/if}
+	{#if open && children}
 		<div class="NavTree-group-children">
 			{@render children()}
 		</div>
@@ -59,8 +76,11 @@
 		text-align: left;
 	}
 
-	.NavTree-group-label:hover {
+	.NavTree-group-label:not(.is-static):hover {
 		color: var(--color-base-600);
+	}
+	.NavTree-group-label.is-static {
+		cursor: default;
 	}
 
 	.NavTree-group-text {

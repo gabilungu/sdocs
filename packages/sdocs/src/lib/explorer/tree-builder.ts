@@ -308,17 +308,7 @@ export function buildTree(
 			componentNode.entity = true;
 			componentNode.examples = examples;
 
-			// Add "Docs" child — same doc, same route as the component itself
-			componentNode.children.unshift({
-				name: 'Docs',
-				type: 'component',
-				path: itemPath,
-				route: componentNode.route,
-				children: [],
-				doc,
-			});
-
-			// Add example children
+			// Add example children — the component node itself is the docs page
 			const usedExampleSlugs = new Set<string>();
 			for (const ex of examples) {
 				componentNode.children.push({
@@ -348,7 +338,7 @@ export function buildTree(
 		}
 	}
 
-	// Reorder component children: Docs → examples → sub-components (sorted by name)
+	// Reorder component children: examples → sub-components (sorted by name)
 	reorderComponentChildren(root);
 
 	return root;
@@ -365,7 +355,7 @@ function uniqueSlug(slug: string, used: Set<string>): string {
 }
 
 /** Register every doc-bearing node's route; two entities on one route is an
- * error (the component's own "Docs" child shares its parent's route by design). */
+ * error. */
 function registerRoutes(
 	nodes: TreeNode[],
 	routes: Map<string, RouteTarget>,
@@ -410,7 +400,7 @@ function pruneHidden(nodes: TreeNode[]): TreeNode[] {
 /**
  * Sort each level: items whose section-relative route path appears in the
  * section's `order` array come first (in array order), the rest follow
- * alphabetically. Component children keep their Docs → examples order.
+ * alphabetically. Component children keep their examples-first order.
  */
 function orderTree(nodes: TreeNode[], order: string[], prefixLen: number): void {
 	const rank = (node: TreeNode): number => {
@@ -436,18 +426,15 @@ function firstDocRoute(nodes: TreeNode[]): string[] | null {
 	return null;
 }
 
-/** Reorder component children: Docs first, then examples, then sub-components sorted by name */
+/** Reorder component children: examples first, then sub-components sorted by name */
 function reorderComponentChildren(nodes: TreeNode[]): void {
 	for (const node of nodes) {
 		if (node.type === 'component' && node.doc && node.children.length > 0) {
-			const docs: TreeNode[] = [];
 			const examples: TreeNode[] = [];
 			const subComponents: TreeNode[] = [];
 
 			for (const child of node.children) {
-				if (child.name === 'Docs') {
-					docs.push(child);
-				} else if (child.doc === node.doc) {
+				if (child.doc === node.doc) {
 					examples.push(child);
 				} else {
 					subComponents.push(child);
@@ -457,7 +444,7 @@ function reorderComponentChildren(nodes: TreeNode[]): void {
 			subComponents.sort((a, b) => a.name.localeCompare(b.name));
 
 			node.children.length = 0;
-			node.children.push(...docs, ...examples, ...subComponents);
+			node.children.push(...examples, ...subComponents);
 		}
 
 		if (node.children.length > 0) {

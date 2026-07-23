@@ -284,13 +284,16 @@
 			</div>
 		{/if}
 
+		{#if activePreview?.snippet.description}
+			<!-- The preview's description: prose between the tabs and the stage,
+			     never part of the preview panel itself. -->
+			<p class="sdocs-preview-description">{@html renderInlineMarkdown(activePreview.snippet.description)}</p>
+		{/if}
+
 		<div class="sdocs-panels">
 			<!-- Showcase -->
 			{#if activePreview}
 				{#key activePreview.snippet.slug}
-					{#if activePreview.snippet.description}
-						<p class="sdocs-block-description">{@html renderInlineMarkdown(activePreview.snippet.description)}</p>
-					{/if}
 					<div class="sdocs-preview-wrapper">
 						<PreviewFrame
 							bind:this={defaultPreview}
@@ -612,6 +615,12 @@
 	.sdocs-block-description {
 		margin: -2px 0 10px;
 		font-size: 13px;
+		color: var(--color-base-500);
+	}
+	.sdocs-preview-description {
+		margin: 2px 0 12px;
+		font-size: 13px;
+		line-height: 1.5;
 		color: var(--color-base-500);
 	}
 	.sdocs-example-title {

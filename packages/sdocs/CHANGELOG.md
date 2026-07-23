@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.101] - 2026-07-23
+
+### Changed
+
+- A `[component]` description now renders as prose between the preview tabs
+  and the stage, instead of inside the preview panel where it read as part of
+  the stage chrome.
+
 ## [0.0.100] - 2026-07-17
 
 ### Changed

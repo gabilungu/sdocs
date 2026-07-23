@@ -83,8 +83,10 @@
 
 	## Fullscreen mode
 
-	Clicking the fullscreen button hides the sidebar. This is a UI state only —
-	it doesn't affect the URL, and it isn't persisted.
+	Clicking the fullscreen button hides the top bar and the sidebar — only the
+	content remains. To leave, move the pointer into the top-left corner (an
+	**Exit fullscreen** button appears) or press <kbd>Esc</kbd>. This is a UI
+	state only — it doesn't affect the URL, and it isn't persisted.
 
 	## See also
 

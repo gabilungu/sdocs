@@ -84,7 +84,8 @@
 			: rawLogo,
 	);
 
-	let sidebarHidden = $state(false);
+	// Fullscreen: the top bar and sidebar leave; only the content remains.
+	let fullscreen = $state(false);
 	let activeStylesheet = $state<string | undefined>(undefined);
 	let theme = $state<ThemeMode>('light');
 
@@ -182,34 +183,44 @@
 	}
 </script>
 
-<svelte:window onclick={onLinkClick} />
+<svelte:window
+	onclick={onLinkClick}
+	onkeydown={(e) => {
+		if (e.key === 'Escape' && fullscreen) fullscreen = false;
+	}}
+/>
 
 <div class="sdocs-app">
 	{#if sectionMap.errors.length > 0}
 		<ErrorScreen errors={sectionMap.errors} />
 	{:else}
-	<TopBar
-		title={headerTitle}
-		logo={headerLogo}
-		sections={sectionMap.sections}
-		activeSlug={routeSection?.slug}
-		{cssNames}
-		{activeStylesheet}
-		{theme}
-		{mcp}
-		onToggleFullscreen={() => (sidebarHidden = true)}
-		onStylesheetChange={(name) => (activeStylesheet = name)}
-		onThemeChange={(t) => (theme = t)}
-	/>
-	<div class="sdocs-body">
-		{#if sidebarHidden}
-			<button class="sdocs-exit-fullscreen" onclick={() => (sidebarHidden = false)}>
+	{#if !fullscreen}
+		<TopBar
+			title={headerTitle}
+			logo={headerLogo}
+			sections={sectionMap.sections}
+			activeSlug={routeSection?.slug}
+			{cssNames}
+			{activeStylesheet}
+			{theme}
+			{mcp}
+			onToggleFullscreen={() => (fullscreen = true)}
+			onStylesheetChange={(name) => (activeStylesheet = name)}
+			onThemeChange={(t) => (theme = t)}
+		/>
+	{:else}
+		<!-- A hot corner: invisible until the pointer (or focus) reaches it. -->
+		<div class="sdocs-exit-zone">
+			<button class="sdocs-exit-fullscreen" onclick={() => (fullscreen = false)}>
 				&#9664; Exit fullscreen
 			</button>
-		{:else if activeSection}
+		</div>
+	{/if}
+	<div class="sdocs-body">
+		{#if !fullscreen && activeSection}
 			<Sidebar tree={activeSection.tree} {currentRoute} />
 		{/if}
-		<main class="sdocs-main" class:sdocs-main-fullscreen={sidebarHidden}>
+		<main class="sdocs-main" class:sdocs-main-fullscreen={fullscreen}>
 			{#if resolved}
 				{#if resolved.doc.kind === 'doc'}
 					<DocView doc={resolved.doc} {activeStylesheet} {pageModules} {preloaded} />
@@ -251,11 +262,20 @@
 	.sdocs-main-fullscreen {
 		overflow-y: auto;
 	}
-	.sdocs-exit-fullscreen {
+	/* The hover target: big enough to find blind, small enough to not sit on
+	   content clicks (the content's top-left padding area). */
+	.sdocs-exit-zone {
 		position: fixed;
+		top: 0;
+		left: 0;
+		width: 160px;
+		height: 56px;
+		z-index: 100;
+	}
+	.sdocs-exit-fullscreen {
+		position: absolute;
 		top: 12px;
 		left: 12px;
-		z-index: 100;
 		padding: 6px 12px;
 		border: 1px solid var(--color-base-200);
 		border-radius: 6px;
@@ -264,6 +284,16 @@
 		color: var(--color-base-600);
 		cursor: pointer;
 		font-family: var(--sans);
+		opacity: 0;
+		transform: translateY(-4px);
+		transition:
+			opacity 0.15s ease,
+			transform 0.15s ease;
+	}
+	.sdocs-exit-zone:hover .sdocs-exit-fullscreen,
+	.sdocs-exit-fullscreen:focus-visible {
+		opacity: 1;
+		transform: translateY(0);
 	}
 	.sdocs-exit-fullscreen:hover {
 		background: var(--color-base-100);

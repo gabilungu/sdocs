@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.100] - 2026-07-17
+
+### Changed
+
+- Fullscreen is now truly full screen: the button hides the top bar as well as
+  the sidebar. To leave, move the pointer into the top-left corner — an
+  **Exit fullscreen** button fades in — or press Esc.
+
 ## [0.0.99] - 2026-07-16
 
 ### Added

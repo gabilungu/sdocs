@@ -347,6 +347,21 @@ ${blockScriptSection}${stateBroadcast}
 			}
 		});
 
+		// Internal links leave the stage: the host app navigates instead of the
+		// iframe reloading into a nested Explorer. External links, downloads,
+		// target="_blank", and same-page #anchors keep their native behaviour.
+		document.addEventListener('click', (e) => {
+			if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+			const anchor = (e.target as Element | null)?.closest?.('a');
+			if (!anchor || anchor.target || anchor.hasAttribute('download')) return;
+			if (!anchor.getAttribute('href')) return;
+			const url = new URL(anchor.href, location.href);
+			if (url.origin !== location.origin) return;
+			if (url.pathname === location.pathname && url.hash) return;
+			e.preventDefault();
+			window.parent.postMessage({ type: 'sdocs:navigate', href: url.href }, '*');
+		});
+
 		// Assign IDs to headings for ToC scroll-to
 		const preview = document.getElementById('sdocs-preview');
 		if (preview) {

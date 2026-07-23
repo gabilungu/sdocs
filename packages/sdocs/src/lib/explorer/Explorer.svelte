@@ -11,6 +11,7 @@
 	import AboutPage from './views/AboutPage.svelte';
 	import ErrorScreen from './views/ErrorScreen.svelte';
 	import { onMount, setContext, type Component } from 'svelte';
+	import { initLayoutWidth } from './layout-width.svelte.js';
 	import '../ui/styles/sdocs.css';
 
 	type ThemeMode = 'light' | 'dark';
@@ -98,6 +99,7 @@
 
 	onMount(() => {
 		initRouter(routing, basePath);
+		initLayoutWidth();
 		const saved = localStorage.getItem('sdocs-theme') as ThemeMode | null;
 		if (saved && (saved === 'light' || saved === 'dark')) {
 			theme = saved;

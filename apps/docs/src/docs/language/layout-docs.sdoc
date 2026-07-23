@@ -53,6 +53,17 @@
 
 	No controls, no prop extraction — just the composition.
 
+	## Linking between pages
+
+	An `<a>` inside any stage that points at another sdocs route — a sister
+	layout, a component page, a doc — navigates the **app**, not the iframe:
+	the stage forwards the click to the Explorer, so a multi-screen sketch can
+	wire its flows together (a login layout linking to its forgot-password
+	sister) without the site re-rendering inside the stage. External links,
+	`target="_blank"`, downloads, and same-page `#anchors` keep their native
+	behaviour. Write stage links like stage assets: base-relative
+	(`href="components/layouts/auth/login"`) so they survive a sub-path deploy.
+
 	## Not a SvelteKit layout
 
 	Despite the name, `[LAYOUT]` has nothing to do with SvelteKit's

@@ -67,6 +67,26 @@ export function navigate(segments: string[], opts?: { replace?: boolean }): void
 	}
 }
 
+/** Navigate to an app URL — an href forwarded from a stage link. Strips the
+ * base and splits into segments; hash mode reads the #/ route. A URL that
+ * isn't ours is ignored. */
+export function navigateHref(href: string): void {
+	try {
+		const url = new URL(href, location.href);
+		if (url.origin !== location.origin) return;
+		if (mode === 'hash') {
+			const h = url.hash.startsWith('#/') ? url.hash.slice(2) : '';
+			navigate(h.split('/').filter(Boolean).map(decodeURIComponent));
+			return;
+		}
+		let path = url.pathname;
+		if (base && path.startsWith(base)) path = path.slice(base.length);
+		navigate(path.split('/').filter(Boolean).map(decodeURIComponent));
+	} catch {
+		// Not a parseable URL — ignore.
+	}
+}
+
 /** Href string for a route, in the active mode (for <a href>) */
 export function routeHref(segments: string[]): string {
 	const path = segments.map(encodeURIComponent).join('/');

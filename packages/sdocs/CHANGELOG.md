@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- The resize canvas beside the stages draws its diagonal hatch from a tiled
+  image instead of hairline CSS gradients, which shimmered at fractional
+  device-pixel ratios.
+
+### Changed
+
+- `[LAYOUT]` pages share one remembered width: resizing any layout applies to
+  every layout page and survives reloads — dial in a viewport once and click
+  through a multi-screen flow at that size. Clicking the width readout resets
+  it to full width. Component previews and examples keep their own per-page
+  widths.
+- The drag grip sits lighter and turns white on hover, over the grey bar that
+  fades in.
+
+### Added
+
+- Links between pages work from inside a stage: an `<a>` in a layout, preview,
+  or example that points at another sdocs route navigates the app instead of
+  reloading the Explorer inside the iframe — multi-screen `[LAYOUT]` sketches
+  can wire their flows together. External links, `target="_blank"`, downloads,
+  and same-page `#anchors` keep their native behaviour.
+
 ## [0.0.103] - 2026-07-23
 
 ### Changed

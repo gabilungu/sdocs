@@ -1,7 +1,9 @@
 <script lang="ts">
 	import type { DocEntry } from '../../types.js';
 	import PreviewFrame from './PreviewFrame.svelte';
+	import diagonalsUrl from './diagonals.png';
 	import TwoPaneSplit from '../../ui/TwoPaneSplit/TwoPaneSplit.svelte';
+	import { layoutWidth, setLayoutWidth, clearLayoutWidth } from '../layout-width.svelte.js';
 
 	interface Props {
 		doc: DocEntry;
@@ -12,37 +14,39 @@
 
 	const contentSnippet = $derived(doc.content);
 
-	// Fully expanded by default: the layout hugs the right edge of the page,
-	// the handle bar riding against it. Dragging narrows the frame to test
-	// responsive behaviour; resets when the entity changes.
-	let previewWidth = $state<number | string>('calc(100% - 10px)');
-	$effect(() => {
-		doc;
-		previewWidth = 'calc(100% - 10px)';
-	});
+	// Fully expanded without an override — the layout hugs the right edge of
+	// the page, the handle bar riding against it. Dragging sets the width
+	// shared by every layout page, persisted across reloads.
+	const effectiveWidth = $derived(layoutWidth() ?? 'calc(100% - 10px)');
 </script>
 
 <div class="sdocs-layout-view">
 	{#if contentSnippet?.previewUrl}
 		{@const previewUrl = contentSnippet.previewUrl}
-		<TwoPaneSplit bind:leftWidth={previewWidth} leftMinWidth={1} handleBarWidth={10} height="fill">
+		<TwoPaneSplit
+			bind:leftWidth={() => effectiveWidth, (v) => setLayoutWidth(v as number)}
+			leftMinWidth={1}
+			handleBarWidth={10}
+			height="fill"
+		>
 			{#snippet left()}
 				<div class="sdocs-layout-pane">
 					<PreviewFrame src={previewUrl} {activeStylesheet} fullHeight />
 				</div>
 			{/snippet}
 			{#snippet right()}
-				<div class="sdocs-resize-canvas"></div>
+				<div class="sdocs-resize-canvas" style:background-image={`url(${diagonalsUrl})`}></div>
 			{/snippet}
 		</TwoPaneSplit>
-		{#if typeof previewWidth === 'number'}
+		{@const w = layoutWidth()}
+		{#if w !== null}
 			<button
 				class="sdocs-resize-readout"
-				style:left={`min(${previewWidth + 18}px, calc(100% - 64px))`}
+				style:left={`min(${w + 18}px, calc(100% - 64px))`}
 				title="Reset width"
-				onclick={() => (previewWidth = 'calc(100% - 10px)')}
+				onclick={clearLayoutWidth}
 			>
-				{previewWidth}px
+				{w}px
 			</button>
 		{/if}
 	{/if}
@@ -56,8 +60,11 @@
 		overflow-x: clip;
 		display: flex;
 		flex-direction: column;
-		/* The handle bar is invisible until hovered, like the component view. */
+		/* The handle bar is invisible until hovered, like the component view,
+		   and the grip line sits light until then. */
 		--handleBg: transparent;
+		--handleColor: var(--color-base-300);
+		--hoverHandleColor: var(--color-base-0);
 	}
 	.sdocs-layout-view > :global(.TwoPaneSplit) {
 		flex: 1;
@@ -75,12 +82,11 @@
 	.sdocs-resize-canvas {
 		height: 100%;
 		box-sizing: border-box;
-		background:
-			repeating-linear-gradient(
-				45deg,
-				transparent 0 6px,
-				var(--color-base-100) 6px 7px
-			);
+		/* The diagonal-hatch tile (an image beats hairline gradients, which
+		   shimmer at fractional device-pixel ratios). The 26px tile is a 2x
+		   export — displayed at 13px it maps 1:1 to retina device pixels. */
+		background-repeat: repeat;
+		background-size: 13px 13px;
 	}
 	/* Rides beside the handle, vertically centred, clamped inside the view so
 	   it stays reachable when the window shrinks below the stored width.

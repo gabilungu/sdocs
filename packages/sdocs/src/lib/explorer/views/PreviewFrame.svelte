@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getContext, onMount, untrack } from 'svelte';
+	import { navigateHref } from '../router.svelte.js';
 
 	interface Props {
 		src: string;
@@ -69,6 +70,11 @@
 			}
 			if (e.data?.type === 'sdocs:state-values' && e.source === iframe?.contentWindow) {
 				onStateValues?.(e.data.values);
+			}
+			// A link inside the stage that points at an app route — navigate the
+			// host app; the iframe itself never leaves its stage page.
+			if (e.data?.type === 'sdocs:navigate' && e.source === iframe?.contentWindow) {
+				navigateHref(String(e.data.href));
 			}
 		}
 		window.addEventListener('message', onMessage);

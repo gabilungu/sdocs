@@ -392,6 +392,10 @@ full-page composition previews like a real browser window; use a viewport unit
 collapses against the content-height canvas. (Despite the name, unrelated to a
 SvelteKit `+layout.svelte` — it *is* a page.)
 
+Layouts can link to each other (and to any sdocs page) with plain anchors —
+see "Linking between pages" below — so a multi-screen sketch wires its flows
+together: a cart layout's checkout button opens the payment layout.
+
 ## Writing components so sdocs documents them well
 
 For every previewed component, sdocs parses the source and extracts its full
@@ -440,6 +444,29 @@ Rules that make the tables (and interactive controls) come out right:
 - **Limitations**: untyped `$props()` with no JSDoc extracts names and defaults
   only; non-`on*` callbacks are classified as props; complex or imported types
   show by name only (sdocs doesn't follow imports).
+
+## Linking between pages from a stage
+
+An `<a>` inside any stage (a preview, an example, or a layout body) that
+points at another sdocs route navigates the **app**, not the iframe — the
+Explorer never re-renders inside the stage. Write the href as the target
+page's route, **base-relative** (no leading slash), exactly like stage assets:
+
+```svelte
+<a href="guides/flows/payment">Payment</a>
+
+<!-- A button as the link: wrap it in the anchor -->
+<a href="components/layouts/auth/sign-up" style="display: block; text-decoration: none;">
+	<Button text="Sign up" width="fill" />
+</a>
+```
+
+The route is the section slug plus the slugified title path — what the URL bar
+shows for that page. The stage page carries a `<base href>`, so base-relative
+links resolve in dev and under a sub-path deploy alike; a root-absolute
+`/guides/…` breaks under a sub-path. External `http(s)` links,
+`target="_blank"`, `download`, and same-page `#anchors` keep their native
+behaviour.
 
 ## Two authoring conventions worth internalising
 

@@ -5,6 +5,7 @@
 	import CollapsiblePanel from './CollapsiblePanel.svelte';
 	import TwoPaneSplit from '../../ui/TwoPaneSplit/TwoPaneSplit.svelte';
 	import PreviewFrame from './PreviewFrame.svelte';
+	import diagonalsUrl from './diagonals.png';
 	import ApiTable, { type Row } from './ApiTable.svelte';
 	import PropControl from './PropControl.svelte';
 	import CssPropControl from './CssPropControl.svelte';
@@ -179,9 +180,10 @@
 		cssValues = newCss;
 	}
 
-	// Resizable stage widths. Each starts at the content column width (capped
-	// to the room, minus the handle bar) and resets when the entity changes;
-	// dragging writes the pixel size back.
+	// Resizable stage widths, local to this page. Each starts at the content
+	// column width (capped to the room, minus the handle bar) and resets when
+	// the entity changes; dragging writes the pixel size back. Only [LAYOUT]
+	// pages remember their width across pages and reloads.
 	const defaultStageWidth = $derived(
 		doc.maxWidth ? `min(calc(100% - 10px), ${doc.maxWidth})` : 'calc(100% - 10px)',
 	);
@@ -278,7 +280,7 @@
 					</div>
 				{/snippet}
 				{#snippet right()}
-					<div class="sdocs-resize-canvas"></div>
+					<div class="sdocs-resize-canvas" style:background-image={`url(${diagonalsUrl})`}></div>
 				{/snippet}
 			</TwoPaneSplit>
 			{#if typeof focusedWidth === 'number'}
@@ -351,7 +353,7 @@
 						</div>
 					{/snippet}
 					{#snippet right()}
-						<div class="sdocs-resize-canvas"></div>
+						<div class="sdocs-resize-canvas" style:background-image={`url(${diagonalsUrl})`}></div>
 					{/snippet}
 				</TwoPaneSplit>
 				{#if typeof previewWidth === 'number'}
@@ -531,7 +533,7 @@
 								</div>
 							{/snippet}
 							{#snippet right()}
-								<div class="sdocs-resize-canvas"></div>
+								<div class="sdocs-resize-canvas" style:background-image={`url(${diagonalsUrl})`}></div>
 							{/snippet}
 						</TwoPaneSplit>
 						{#if typeof w === 'number'}
@@ -595,8 +597,11 @@
 		   the page) without creating a scroll container. */
 		overflow-x: clip;
 		/* The handle bar is invisible until hovered — the grey only appears
-		   when the pointer reaches it (or while dragging). */
+		   when the pointer reaches it (or while dragging) — and the grip line
+		   sits light until then. */
 		--handleBg: transparent;
+		--handleColor: var(--color-base-300);
+		--hoverHandleColor: var(--color-base-0);
 	}
 	/* The split is never shorter than the width readout (21px) plus a hair of
 	   air, so the chip fits centred even beside a tiny preview. */
@@ -614,12 +619,11 @@
 		height: 100%;
 		box-sizing: border-box;
 		border-radius: 8px;
-		background:
-			repeating-linear-gradient(
-				45deg,
-				transparent 0 6px,
-				var(--color-base-100) 6px 7px
-			);
+		/* The diagonal-hatch tile (an image beats hairline gradients, which
+		   shimmer at fractional device-pixel ratios). The 26px tile is a 2x
+		   export — displayed at 13px it maps 1:1 to retina device pixels. */
+		background-repeat: repeat;
+		background-size: 13px 13px;
 	}
 	/* Rides beside the handle, vertically centred, clamped inside the view so
 	   it stays reachable when the window shrinks below the stored width.

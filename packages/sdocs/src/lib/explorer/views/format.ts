@@ -11,8 +11,10 @@ export function typeClass(value: unknown): string {
 	if (v === 'string' || /^'[^']*'(\s*\|\s*'[^']*')*$/.test(v)) return 'string';
 	if (v === 'number' || /^\d+(\.\d+)?(\s*\|\s*\d+(\.\d+)?)*$/.test(v)) return 'number';
 	if (v === 'boolean') return 'boolean';
-	if (v.includes('=>')) return 'function';
+	// Snippet before function: a `Snippet<[{ close: () => void }]>` has an
+	// arrow inside its parameter type but is still a snippet, not a callback.
 	if (v.startsWith('Snippet')) return 'snippet';
+	if (v.includes('=>')) return 'function';
 	if (v === 'color') return 'color';
 	if (v === 'dimension') return 'dimension';
 	if (v === 'void' || v === 'undefined' || v === 'null') return 'void';

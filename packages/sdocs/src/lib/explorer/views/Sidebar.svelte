@@ -204,14 +204,26 @@
 			{expanded}
 			active={isActive(node.route)}
 			onclick={() => {
-				toggleExpanded(pathKey);
-				if (node.type !== 'folder') navigate(node.route);
+				// Folders only toggle. For a page item: navigate and expand it,
+				// but clicking the item you're already on collapses it (a second
+				// click closes what the first opened).
+				if (node.type === 'folder') {
+					toggleExpanded(pathKey);
+					return;
+				}
+				if (isExactActive(node.route)) {
+					toggleExpanded(pathKey);
+					return;
+				}
+				if (!expandedSet.has(pathKey)) toggleExpanded(pathKey);
+				navigate(node.route);
 			}}
+			ontoggle={() => toggleExpanded(pathKey)}
 			--font-weight="500"
 			--bg-hover={hoverBg(node)}
 			--bg-active={activeBg(node)}
 			--bg-active-hover={activeHoverBg(node)}
-			--r="4px"
+			--r="6px"
 			--expander-color-active={expanderActiveColor(node)}
 			--expander-color-hover={expanderHoverColor(node)}
 		>
@@ -229,7 +241,7 @@
 			--bg-hover={hoverBg(node)}
 			--bg-active={activeBg(node)}
 			--bg-active-hover={activeHoverBg(node)}
-			--r="4px"
+			--r="6px"
 		>
 			{#snippet left()}<Icon name={iconName(node, false)} --w="14px" --h="14px" --fill={iconColor(node)} />{/snippet}
 		</NavTree.Item>
@@ -249,7 +261,8 @@
 		font-size: 13px;
 	}
 	.sdocs-sidebar-search {
-		padding: 8px 16px;
+		padding: 8px;
+		border-bottom: 1px solid var(--color-base-200);
 	}
 	.sdocs-search-input {
 		width: 100%;
@@ -269,6 +282,11 @@
 	.sdocs-sidebar-tree {
 		flex: 1;
 		overflow-y: auto;
+		overflow-x: hidden;
 		padding: 8px;
+		/* Root items stack with the same 1px gap group children get. */
+		display: flex;
+		flex-direction: column;
+		gap: 1px;
 	}
 </style>

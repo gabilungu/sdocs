@@ -61,6 +61,11 @@ describe('typeParts + typeClass', () => {
 	it('classifies mixed members with base types and void', () => {
 		expect(typeParts('string | undefined').map(typeClass)).toEqual(['string', 'void']);
 	});
+
+	it('classifies a Snippet as a snippet even with an arrow inside its params', () => {
+		expect(typeClass('Snippet')).toBe('snippet');
+		expect(typeClass('Snippet<[{ close: () => void }]>')).toBe('snippet');
+	});
 });
 
 describe('unionOptions', () => {

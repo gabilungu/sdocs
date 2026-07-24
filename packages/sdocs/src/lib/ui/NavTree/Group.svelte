@@ -63,7 +63,7 @@
 		display: flex;
 		align-items: center;
 		width: 100%;
-		padding: 0 12px;
+		padding: 0 8px;
 		border: none;
 		background: none;
 		font: inherit;

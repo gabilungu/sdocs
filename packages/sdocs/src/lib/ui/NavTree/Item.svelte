@@ -2,24 +2,6 @@
 	import type { Snippet } from 'svelte';
 	import { Icon } from '../Icon/index.js';
 
-	/**
-	 * @cssvar {shorthand} --p - Padding
-	 * @cssvar {shorthand} --m - Margin
-	 * @cssvar {length} --r - Border radius
-	 * @cssvar {shorthand} --b - Border
-	 * @cssvar {color} --bg - Background color
-	 * @cssvar {color} --bg-active - Background when active
-	 * @cssvar {color} --bg-active-hover - Background when active and hovered
-	 * @cssvar {color} --bg-hover - Background on hover
-	 * @cssvar {color} --expander-color - Expander icon color
-	 * @cssvar {color} --expander-color-active - Expander icon color when active
-	 * @cssvar {color} --expander-color-hover - Expander icon color on hover
-	 * @cssvar {length} --expander-size - Expander icon size
-	 * @cssvar {color} --font-color - Text color
-	 * @cssvar {color} --font-color-active - Text color when active
-	 * @cssvar {color} --font-color-hover - Text color on hover
-	 * @cssvar {string} --font-weight - Font weight
-	 */
 	interface Props {
 		label: string;
 		href?: string;
@@ -30,6 +12,8 @@
 		children?: Snippet;
 		class?: string;
 		onclick?: () => void;
+		/** Chevron click — defaults to toggling `expanded` internally. */
+		ontoggle?: () => void;
 	}
 
 	let {
@@ -42,6 +26,7 @@
 		children,
 		class: className = '',
 		onclick,
+		ontoggle,
 	}: Props = $props();
 
 	const isFolder = $derived(!!children);
@@ -55,16 +40,25 @@
 	{#if left}<span class="NavTree-left">{@render left()}</span>{/if}
 	<span class="NavTree-item-label" title={label}>{label}</span>
 	{#if right}<span class="NavTree-right">{@render right()}</span>{/if}
-	<span class="NavTree-chevron" class:visible={isFolder}>
-		<Icon name={expanded ? 'chevron-down' : 'chevron-right'} --w="var(--expander-size, 14px)" --h="var(--expander-size, 14px)" --fill="var(--expander-color, var(--color-base-300))" />
-	</span>
 {/snippet}
 
 {#if isFolder}
 	<div class="NavTree-item-wrapper {className}">
-		<button class="NavTree-item" class:active onclick={onclick ?? toggle}>
-			{@render content()}
-		</button>
+		<!-- Two independent controls in one row: the main button (the page)
+		     and the chevron (the expand toggle) with its own hover/press. -->
+		<div class="NavTree-item NavTree-row" class:active>
+			<button class="NavTree-main" onclick={onclick ?? toggle}>
+				{@render content()}
+			</button>
+			<button
+				class="NavTree-chevron-btn"
+				aria-label={expanded ? 'Collapse' : 'Expand'}
+				aria-expanded={expanded}
+				onclick={ontoggle ?? toggle}
+			>
+				<Icon name={expanded ? 'chevron-down' : 'chevron-right'} --w="var(--expander-size, 14px)" --h="var(--expander-size, 14px)" --fill="var(--expander-color, var(--color-base-300))" />
+			</button>
+		</div>
 		{#if expanded}
 			<div class="NavTree-children">
 				{@render children?.()}
@@ -88,7 +82,7 @@
 		gap: 6px;
 		width: 100%;
 		height: 28px;
-		padding: var(--p, 0 12px);
+		padding: var(--p, 0 5px 0 8px);
 		margin: var(--m, 0);
 		border-radius: var(--r, 0);
 		border: var(--b, none);
@@ -120,6 +114,23 @@
 		--expander-color: var(--expander-color-hover, var(--color-base-500));
 	}
 
+	/* The main button fills the row; the chevron rides beside it. */
+	.NavTree-main {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		height: 100%;
+		padding: 0;
+		border: none;
+		background: none;
+		font: inherit;
+		color: inherit;
+		cursor: pointer;
+		text-align: left;
+	}
+
 	.NavTree-item-label {
 		flex: 1;
 		/* A long name trims to an ellipsis instead of wrapping or pushing the
@@ -142,17 +153,26 @@
 		flex-shrink: 0;
 	}
 
-	.NavTree-chevron {
+	/* The chevron: a rounded-square toggle with its own hover/press. */
+	.NavTree-chevron-btn {
+		flex-shrink: 0;
 		display: inline-flex;
 		align-items: center;
-		width: var(--expander-size, 14px);
-		color: var(--expander-color, var(--color-base-300));
-		flex-shrink: 0;
-		visibility: hidden;
+		justify-content: center;
+		width: 20px;
+		height: 20px;
+		padding: 0;
+		border: none;
+		border-radius: 4px;
+		background: none;
+		cursor: pointer;
+		transition: background-color 0.1s ease;
 	}
-
-	.NavTree-chevron.visible {
-		visibility: visible;
+	.NavTree-chevron-btn:hover {
+		background: rgb(255 255 255 / 0.5);
+	}
+	.NavTree-chevron-btn:active {
+		background: rgb(255 255 255 / 0.7);
 	}
 
 	.NavTree-item-wrapper {

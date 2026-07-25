@@ -112,6 +112,11 @@
 		<button class="sdocs-topbar-btn" onclick={() => onToggleFullscreen?.()} title="Fullscreen">
 			&#x26F6;
 		</button>
+		<!-- A real link: middle-click and open-in-new-tab work, and history
+		     mode routes it client-side like any other internal anchor. -->
+		<a class="sdocs-topbar-btn sdocs-about-btn" href={routeHref(['about'])} title="About">
+			&#9432;
+		</a>
 	</div>
 </header>
 
@@ -240,6 +245,12 @@
 	}
 	.sdocs-topbar-btn:hover {
 		background: var(--color-base-100);
+	}
+	/* The About link wears the button's chrome. */
+	.sdocs-about-btn {
+		display: inline-flex;
+		align-items: center;
+		text-decoration: none;
 	}
 	.sdocs-mcp-btn {
 		font-size: 11px;

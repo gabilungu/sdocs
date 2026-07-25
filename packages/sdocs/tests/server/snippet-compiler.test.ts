@@ -314,6 +314,33 @@ describe('preview page base', () => {
 	});
 });
 
+describe('generated stage: declared args and failures', () => {
+	it('seeds the declared args into the initial state', () => {
+		// A component that reads a required prop on first render must have it
+		// before the Controls' first message — otherwise the stage throws and
+		// goes blank.
+		const generated = generateIframeComponent('', '<Avatar {...args} />', [], 'Avatar', undefined, {
+			args: { name: 'Mara Ionescu', size: 40, round: true, note: null },
+		});
+		expect(generated).toContain(
+			'let args = $state({"name":"Mara Ionescu","size":40,"round":true,"note":null})',
+		);
+	});
+
+	it('starts empty when the block declares no args', () => {
+		const generated = generateIframeComponent('', '<Thing />');
+		expect(generated).toContain('let args = $state({})');
+	});
+
+	it('wraps the stage in a boundary so a throw is visible, not blank', () => {
+		const generated = generateIframeComponent('', '<Thing />');
+		expect(generated).toContain('<svelte:boundary>');
+		expect(generated).toContain('{#snippet failed(error)}');
+		// And it still compiles.
+		expect(() => compile(generated, { filename: '/@sdocs/iframe/x.svelte' })).not.toThrow();
+	});
+});
+
 describe('sdocsWarningFilter', () => {
 	// A file <style> targets the file's stages; the same block also lands in
 	// the generated page component, where those selectors match nothing —
@@ -344,6 +371,31 @@ describe('sdocsWarningFilter', () => {
 	it('never suppresses other diagnostics', () => {
 		expect(
 			sdocsWarningFilter({ code: 'a11y_missing_attribute', filename: '/@sdocs/page/abc.svelte' }),
+		).toBe(true);
+	});
+
+	it('drops the tabindex warning shiki causes in generated prose', () => {
+		// Rendered markdown emits `<pre tabindex="0">` — correct for a
+		// scrollable code block, and not the author's markup.
+		expect(
+			sdocsWarningFilter({
+				code: 'a11y_no_noninteractive_tabindex',
+				filename: '/@sdocs/page/guide.svelte',
+			}),
+		).toBe(false);
+		// A stage carries authored markup, so there it's a real warning.
+		expect(
+			sdocsWarningFilter({
+				code: 'a11y_no_noninteractive_tabindex',
+				filename: '/@sdocs/iframe/guide/demo.svelte',
+			}),
+		).toBe(true);
+		// As it is in the project's own components.
+		expect(
+			sdocsWarningFilter({
+				code: 'a11y_no_noninteractive_tabindex',
+				filename: '/src/lib/Button.svelte',
+			}),
 		).toBe(true);
 	});
 });

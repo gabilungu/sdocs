@@ -48,12 +48,14 @@ async function main() {
 	const args = process.argv.slice(2);
 	const command = args[0];
 
-	if (!command || command === '--help' || command === '-h') {
+	// Asking for help or the version never runs a command — `sdocs build
+	// --help` must print help, not start a build and overwrite dist/.
+	if (!command || args.includes('--help') || args.includes('-h')) {
 		console.log(HELP);
 		return;
 	}
 
-	if (command === '--version' || command === '-v') {
+	if (args.includes('--version') || args.includes('-v')) {
 		console.log(getVersion());
 		return;
 	}

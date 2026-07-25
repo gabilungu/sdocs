@@ -249,8 +249,10 @@ export interface PreviewEntry {
 	componentData: ComponentData | null;
 	/** Highlighted component source HTML */
 	highlightedSource: string | null;
-	/** Control defaults for this preview */
-	args: Record<string, unknown>;
+	/** Control defaults for this preview. The parser only admits plain
+	 * literals, so these are always serializable — which is what lets them
+	 * seed the generated stage's initial state. */
+	args: Record<string, string | number | boolean | null>;
 	snippet: ExtractedSnippet;
 }
 

@@ -137,10 +137,31 @@ export function extractImports(scriptContent: string): string[] {
 
 /** Resolve a default-imported identifier to the raw path it imports from
  * (relative to `fromPath`). Returns null when the identifier isn't imported. */
-function importedPath(name: string, imports: string[], fromPath: string): string | null {
+/** Where an identifier's import points, and which binding it names there:
+ * `null` for a default import (`import X from …`), the source name for a
+ * named one (`import { X } from …`, `import { Y as X } from …`). */
+interface ImportTarget {
+	path: string;
+	/** The binding to follow inside that module; null → its default export. */
+	binding: string | null;
+}
+
+function importedPath(name: string, imports: string[], fromPath: string): ImportTarget | null {
 	for (const imp of imports) {
-		const match = imp.match(new RegExp(`import\\s+${name}\\s+from\\s+['"](.+?)['"]`));
-		if (match) return resolve(dirname(fromPath), match[1]);
+		const def = imp.match(new RegExp(`import\\s+${name}\\s+from\\s+['"](.+?)['"]`));
+		if (def) return { path: resolve(dirname(fromPath), def[1]), binding: null };
+		// A named import — optionally aliased — inside the braces.
+		const named = imp.match(
+			new RegExp(
+				`import\\s*\\{[^}]*?\\b(?:([A-Za-z_$][\\w$]*)\\s+as\\s+)?${name}\\b[^}]*\\}\\s*from\\s*['"](.+?)['"]`,
+			),
+		);
+		if (named) {
+			return {
+				path: resolve(dirname(fromPath), named[2]),
+				binding: named[1] ?? name,
+			};
+		}
 	}
 	return null;
 }
@@ -173,7 +194,20 @@ function readModule(path: string): { source: string; path: string } | null {
 function resolveInModule(name: string, source: string, modulePath: string, depth: number): string | null {
 	if (depth <= 0) return null;
 	const target = importedPath(name, [source], modulePath);
-	if (target) return followToSvelte(target, null, depth - 1);
+	if (target) return followToSvelte(target.path, target.binding, depth - 1);
+	// `export { default as X } from './X.svelte'` — the barrel-file idiom, where
+	// the binding never exists locally. `export { Y as X } from '…'` follows Y
+	// into that module; a bare `export { X } from '…'` follows X.
+	const reExport = source.match(
+		new RegExp(`export\\s*\\{[^}]*?\\b(?:([A-Za-z_$][\\w$]*)\\s+as\\s+)?${name}\\b[^}]*\\}\\s*from\\s*['"](.+?)['"]`),
+	);
+	if (reExport) {
+		const from = resolve(dirname(modulePath), reExport[2]);
+		const source_name = reExport[1] ?? name;
+		return source_name === 'default'
+			? followToSvelte(from, null, depth - 1)
+			: followToSvelte(from, source_name, depth - 1);
+	}
 	// `const X = Object.assign(Base, { … })` → the Base component
 	const assign = source.match(new RegExp(`\\b${name}\\s*=\\s*Object\\.assign\\(\\s*([A-Za-z_$][\\w$]*)`));
 	if (assign) return resolveInModule(assign[1], source, modulePath, depth - 1);
@@ -192,8 +226,14 @@ function followToSvelte(path: string, member: string | null, depth: number): str
 	const mod = readModule(path);
 	if (!mod) return path.endsWith('.svelte') ? path : null;
 	if (member) return resolveInModule(member, mod.source, mod.path, depth);
-	// Bare identifier landing on a module → its default export.
+	// Bare identifier landing on a module → its default export. The compound
+	// idiom is often written inline (`export default Object.assign(Base, …)`),
+	// where the first identifier is `Object` — take the assign target instead.
+	const inlineAssign = mod.source.match(
+		/export\s+default\s+Object\.assign\(\s*([A-Za-z_$][\w$]*)/,
+	)?.[1];
 	const def =
+		inlineAssign ??
 		mod.source.match(/export\s+default\s+([A-Za-z_$][\w$]*)/)?.[1] ??
 		mod.source.match(/export\s*\{[^}]*\b([A-Za-z_$][\w$]*)\s+as\s+default\b/)?.[1];
 	return def ? resolveInModule(def, mod.source, mod.path, depth) : null;
@@ -212,7 +252,10 @@ export function resolveComponentImport(
 	const dot = componentName.indexOf('.');
 	const base = dot === -1 ? componentName : componentName.slice(0, dot);
 	const member = dot === -1 ? null : componentName.slice(dot + 1);
-	const basePath = importedPath(base, imports, docFilePath);
-	if (!basePath) return null;
-	return followToSvelte(basePath, member, 8);
+	const target = importedPath(base, imports, docFilePath);
+	if (!target) return null;
+	// `Tree.Item` resolves the member inside the module either way; a bare
+	// identifier follows the default export, or the binding a named import
+	// asked for (`import { Tree } from './index.js'`).
+	return followToSvelte(target.path, member ?? target.binding, 8);
 }

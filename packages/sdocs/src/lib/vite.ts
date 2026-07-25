@@ -331,13 +331,19 @@ export function sdocsPlugin(
 				const styles = [docStyleCache.get(parsed.docFilePath), entry.entityStyle, snippet.style]
 					.filter((s): s is string => !!s?.trim())
 					.join('\n\n');
+				// The stage's own declared args seed the initial state, so a
+				// component reading a required prop has it on first render —
+				// the Controls' first message only confirms them. Examples
+				// declare none.
+				const stageArgs =
+					entry.previews.find((p) => p.snippet.slug === snippet.slug)?.args ?? undefined;
 				return generateIframeComponent(
 					scriptPrelude,
 					snippet.markup ?? snippet.body,
 					stateNames,
 					preview?.componentName ?? undefined,
 					snippet.stage,
-					{ blockScript, styles: styles || undefined },
+					{ blockScript, styles: styles || undefined, args: stageArgs },
 				);
 			}
 

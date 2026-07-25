@@ -101,6 +101,69 @@ describe('resolveComponentImport — compound components (index module)', () => 
 	});
 });
 
+describe('resolveComponentImport — other index shapes', () => {
+	let dir: string;
+	let sdocPath: string;
+
+	beforeAll(() => {
+		dir = mkdtempSync(join(tmpdir(), 'sdocs-index-shapes-'));
+		writeFileSync(join(dir, 'ListBox.svelte'), '<div></div>');
+		writeFileSync(join(dir, 'Option.svelte'), '<div></div>');
+		sdocPath = join(dir, 'Doc.sdoc');
+	});
+
+	afterAll(() => rmSync(dir, { recursive: true, force: true }));
+
+	it('follows an inline `export default Object.assign(Base, …)` to Base', () => {
+		// The identifier after `export default` is `Object` — the assign target
+		// is the component.
+		writeFileSync(
+			join(dir, 'index.ts'),
+			[
+				"import Root from './ListBox.svelte';",
+				"import Option from './Option.svelte';",
+				'export default Object.assign(Root, { Option });',
+				'',
+			].join('\n'),
+		);
+		const imports = ["import ListBox from './index.js';"];
+		expect(resolveComponentImport('ListBox', imports, sdocPath)).toBe(join(dir, 'ListBox.svelte'));
+		expect(resolveComponentImport('ListBox.Option', imports, sdocPath)).toBe(
+			join(dir, 'Option.svelte'),
+		);
+	});
+
+	it('follows `export { default as X } from …` re-exports (a barrel file)', () => {
+		writeFileSync(
+			join(dir, 'index.ts'),
+			[
+				"export { default as ListBox } from './ListBox.svelte';",
+				"export { default as Option } from './Option.svelte';",
+				'',
+			].join('\n'),
+		);
+		// A named import names the binding to follow.
+		expect(
+			resolveComponentImport('ListBox', ["import { ListBox } from './index.js';"], sdocPath),
+		).toBe(join(dir, 'ListBox.svelte'));
+		// A default import from a module with no default export stays null —
+		// that import wouldn't work at runtime either.
+		expect(resolveComponentImport('ListBox', ["import ListBox from './index.js';"], sdocPath)).toBe(
+			null,
+		);
+	});
+
+	it('follows an aliased named import', () => {
+		writeFileSync(
+			join(dir, 'index.ts'),
+			["export { default as Option } from './Option.svelte';", ''].join('\n'),
+		);
+		expect(
+			resolveComponentImport('Opt', ["import { Option as Opt } from './index.js';"], sdocPath),
+		).toBe(join(dir, 'Option.svelte'));
+	});
+});
+
 describe('planEntitySnippets slug uniqueness (review regression F5)', () => {
 	const entityOf = (source: string) => parseSdoc(source).entities[0];
 

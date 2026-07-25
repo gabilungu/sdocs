@@ -25,7 +25,10 @@
 	| `--version`, `-v` | Print the package version |
 	| `--help`, `-h` | Print the help message |
 
-	Per-command flags are not currently accepted — configure via the config file.
+	`--help` and `--version` work anywhere in the arguments and never run the
+	command: `sdocs build --help` prints this help and writes nothing.
+	Other per-command flags are not currently accepted — configure via the
+	config file.
 
 	## `sdocs init`
 
@@ -113,7 +116,10 @@
 	- **relative imports that resolve to no file** on disk (the specifier is
 	  read the same way the import rewriter reads it, so an import-shaped
 	  string inside a code sample is never mistaken for one),
-	- **grammar diagnostics** from the parser.
+	- **grammar diagnostics** from the parser,
+	- **`component={…}` references that resolve to no component file** — the
+	  preview still renders, but its API tables and controls silently don't, so
+	  `check` treats it as an error you can gate on (the build only warns).
 
 	Each problem prints its file (with a line where it maps back cleanly), the
 	entity, and the stage:

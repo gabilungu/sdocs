@@ -12,6 +12,7 @@ import {
 	sdocsWarningFilter,
 } from './snippet-compiler.js';
 import { renderPageMarkdown } from './page-markdown.js';
+import { extractImports, resolveComponentImport } from './doc-model.js';
 
 /**
  * Compile every documentation stage the way the dev server does.
@@ -34,8 +35,9 @@ export interface CheckProblem {
 	entity?: string;
 	/** Which stage: a preview label, an example title, or the body */
 	stage?: string;
-	/** 'grammar' (parser), 'compile' (Svelte), or 'import' (unresolved path) */
-	kind: 'grammar' | 'compile' | 'import';
+	/** 'grammar' (parser), 'compile' (Svelte), 'import' (unresolved path), or
+	 * 'component' (a `component={…}` that traces to no component file) */
+	kind: 'grammar' | 'compile' | 'import' | 'component';
 	severity: 'error' | 'warning';
 	message: string;
 	/** 1-based line in the .sdoc file, when it maps back confidently */
@@ -247,6 +249,33 @@ export async function checkDocFile(filePath: string, cwd: string): Promise<Check
 		};
 
 		if (entity.kind === 'SHOWCASE') {
+			// `component={X}` must trace to a real component file: without it the
+			// preview still renders, but its API tables and controls silently
+			// don't. The build only warns; here it's an error you can gate on.
+			const fileImports = extractImports(fileScript);
+			const entityImports = extractImports(entityScript);
+			for (const p of entity.previews) {
+				if (!p.componentName) continue;
+				const blockImports = p.script ? extractImports(p.script.content) : [];
+				const resolvedComponent = resolveComponentImport(
+					p.componentName,
+					[...blockImports, ...entityImports, ...fileImports],
+					filePath,
+				);
+				if (!resolvedComponent || !existsSync(resolvedComponent)) {
+					problems.push({
+						file,
+						entity: entity.title,
+						stage: p.label,
+						kind: 'component',
+						severity: 'error',
+						message:
+							`component={${p.componentName}} doesn't resolve to a component file — ` +
+							"check the import in the file's, the entity's, or the block's <script>.",
+						line: offsetToPosition(source, p.span.start).line + 1,
+					});
+				}
+			}
 			for (const p of entity.previews) {
 				checkStage(p.label, p.markup, p.bodySpan, p.script?.content ?? null, p.style?.content ?? null, false);
 			}
@@ -263,15 +292,12 @@ export async function checkDocFile(filePath: string, cwd: string): Promise<Check
 				rendered.html,
 				[fileStyle, entityStyle].filter((s) => s.trim()).join('\n\n') || undefined,
 			);
+			// A page-module filename, so the shared warning filter treats this
+			// exactly as the dev server and the build do.
 			const { problems: bodyProblems } = compileStage(
 				generated,
-				`/@sdocs/check/${entity.slug}.svelte`,
+				`/@sdocs/page/${entity.slug}.svelte`,
 				() => undefined,
-				// Prose markup is rendered by sdocs' own markdown pipeline, and
-				// shiki emits `<pre tabindex="0">` (the a11y-correct thing for a
-				// scrollable code block). Svelte's rule flags it, but the author
-				// can't act on markup they didn't write — don't report it.
-				(p) => p.code !== 'a11y_no_noninteractive_tabindex',
 			);
 			for (const p of bodyProblems) {
 				problems.push({ file, entity: entity.title, stage: 'body', ...p });

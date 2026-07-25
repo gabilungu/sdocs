@@ -243,6 +243,10 @@ export function generateIframeComponent(
 		minHeight?: string;
 	},
 	extras?: {
+		/** The block's declared `args={{ … }}` literal — seeded as the initial
+		 * state so a component using a required prop has it on first render,
+		 * before the Controls' first message arrives. */
+		args?: Record<string, string | number | boolean | null>;
 		/** Block-level <script> content (imports already resolved), appended
 		 * after the wrapper plumbing so it can reference `args`. */
 		blockScript?: string;
@@ -340,7 +344,7 @@ export function generateIframeComponent(
 	return `<script lang="ts">
 	${importBlock}import { onMount as __sdocsOnMount } from 'svelte';
 
-	let args = $state({});
+	let args = $state(${JSON.stringify(extras?.args ?? {})});
 	let __sdocsRef = $state();
 ${blockScriptSection}${stateBroadcast}
 	__sdocsOnMount(() => {
@@ -412,7 +416,24 @@ ${stylesTag}<div id="sdocs-preview" style="${stageStyle}">
 	{#snippet SdocsPreview(args)}
 		${injectRootRef(snippetBody, componentName)}
 	{/snippet}
-	{@render SdocsPreview(args)}
+	<svelte:boundary>
+		{@render SdocsPreview(args)}
+		{#snippet failed(error)}
+			<!-- Styled inline: the generated stage carries no scoped <style> —
+			     user stage CSS is injected globally, and a style block here
+			     would change what reaches the stage. -->
+			<div
+				class="sdocs-stage-error"
+				role="alert"
+				style="padding:12px 14px;border:1px solid #f3b0b0;border-radius:8px;color:#8a1f1f;font-family:ui-sans-serif,system-ui,sans-serif;font-size:13px;line-height:1.5"
+			>
+				<strong>This preview threw while rendering.</strong>
+				<pre style="margin:6px 0 0;white-space:pre-wrap;font-size:12px">{String(
+						(error as Error)?.message ?? error,
+					)}</pre>
+			</div>
+		{/snippet}
+	</svelte:boundary>
 </div>`;
 }
 
@@ -555,18 +576,33 @@ export interface ParsedSnippetId {
 /**
  * Svelte `compilerOptions.warningFilter` for sdocs' generated modules.
  *
- * A file-level `<style>` is documented as CSS for the file's stages, and the
- * same block is injected into every stage *and* into the DOC/PAGE component.
- * In the stages it's a global `{@html}` block; in the page component it's a
- * real scoped style, so Svelte correctly reports every stage-targeting
- * selector as unused there — a warning about markup that lives in another
- * compilation unit. Drop that one diagnostic for `/@sdocs/` modules only;
- * the project's own components keep every warning they'd normally get.
+ * Two diagnostics are about markup and CSS the `.sdoc` author never wrote and
+ * can't change, so reporting them only buries the warnings that matter:
+ *
+ * - `css_unused_selector` in any generated module. A file-level `<style>` is
+ *   documented as CSS for the file's stages, and the same block is injected
+ *   into every stage *and* into the DOC/PAGE component. In the stages it's a
+ *   global `{@html}` block; in the page component it's a real scoped style,
+ *   so every stage-targeting selector is correctly "unused" there — a warning
+ *   about markup that lives in another compilation unit.
+ * - `a11y_no_noninteractive_tabindex` in a generated **page** module. Prose
+ *   is rendered by sdocs' markdown pipeline, and shiki emits
+ *   `<pre tabindex="0">` — which is the a11y-correct thing for a scrollable
+ *   code block, and comes from us, not the author.
+ *
+ * Everything else survives, and the project's own components keep every
+ * warning they'd normally get.
  */
 export function sdocsWarningFilter(warning: { code: string; filename?: string }): boolean {
-	return !(
-		warning.code === 'css_unused_selector' && (warning.filename ?? '').includes('/@sdocs/')
-	);
+	const filename = warning.filename ?? '';
+	const generated = filename.includes('/@sdocs/');
+	if (!generated) return true;
+	if (warning.code === 'css_unused_selector') return false;
+	// Page modules carry rendered markdown; stages carry authored markup.
+	if (warning.code === 'a11y_no_noninteractive_tabindex' && filename.includes('/@sdocs/page/')) {
+		return false;
+	}
+	return true;
 }
 
 /** Build the virtual module ID for an iframe wrapper component */

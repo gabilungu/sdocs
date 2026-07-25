@@ -154,6 +154,28 @@ describe('checkDocFile', () => {
 		expect(problem?.line).toBe(2);
 	});
 
+	it('reports a component={…} that resolves to no component file', async () => {
+		const file = write(
+			'BadComponent.sdoc',
+			`<script lang="ts">
+	import Thing from './Thing.svelte';
+</script>
+
+[SHOWCASE title="Typo"]
+	[component component={Thnig}]
+		<Thing />
+	[/component]
+[/SHOWCASE]
+`,
+		);
+		const result = await checkDocFile(file, dir);
+		expect(result.ok).toBe(false);
+		const problem = result.problems.find((p) => p.kind === 'component');
+		expect(problem?.severity).toBe('error');
+		expect(problem?.message).toContain('Thnig');
+		expect(problem?.stage).toBe('Thnig');
+	});
+
 	it('reports grammar diagnostics too', async () => {
 		const file = write('BadGrammar.sdoc', '[SHOWCASE title="X" nope="y"]\n[/SHOWCASE]\n');
 		const result = await checkDocFile(file, dir);

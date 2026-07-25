@@ -1,5 +1,12 @@
 import { dirname, relative, resolve, sep } from 'node:path';
 import { scrubScriptText } from '../language/script-scan.js';
+import {
+	PREVIEW_BOOTSTRAP_JS,
+	PREVIEW_RUNTIME_JS,
+	PREVIEW_URL_PARAMS_JS,
+	stageAttrs,
+	type StageIdentityAttrs,
+} from './preview-runtime.js';
 
 /** Base64url encode a string (URL-safe, no padding) */
 export function base64urlEncode(str: string): string {
@@ -31,12 +38,20 @@ export function encodeEntityId(filePath: string, entitySlug: string): string {
 }
 
 /** Decode an encoded entity id back to an absolute path + entity slug */
-function decodeEntityId(encoded: string): { docFilePath: string; entitySlug: string } {
+function decodeEntityId(encoded: string): {
+	docFilePath: string;
+	entitySlug: string;
+	relPath: string;
+} {
 	const decoded = base64urlDecode(encoded);
 	const hash = decoded.lastIndexOf('#');
 	const relPath = hash === -1 ? decoded : decoded.slice(0, hash);
 	return {
 		docFilePath: resolve(docPathRoot, relPath),
+		// Kept so a caller that encoded against a different root — the MCP
+		// server over stdio has no dev server to ask — can still be matched by
+		// path suffix instead of being told the stage doesn't exist.
+		relPath: relPath.replace(/^(\.\.\/)+/, ''),
 		entitySlug: hash === -1 ? '' : decoded.slice(hash + 1),
 	};
 }
@@ -492,7 +507,9 @@ function generateCssLinks(css: string | Record<string, string> | null): string {
 export function generateMountScript(iframeComponentId: string): string {
 	return `import { mount } from 'svelte';
 import App from '${iframeComponentId}';
+${PREVIEW_URL_PARAMS_JS}
 mount(App, { target: document.getElementById('app') });
+${PREVIEW_RUNTIME_JS}
 
 // Listen for sdocs messages from the parent frame
 window.addEventListener('message', (e) => {
@@ -509,18 +526,24 @@ window.addEventListener('message', (e) => {
 });`;
 }
 
-function previewHtmlShell(cssLinks: string, script: string, base = '/'): string {
+function previewHtmlShell(
+	cssLinks: string,
+	script: string,
+	base = '/',
+	stage: StageIdentityAttrs | null = null,
+): string {
 	// The <base> makes base-RELATIVE asset URLs (src="hero.png",
 	// url('hero.png'), a path prop) resolve against the site base in dev and
 	// in builds deployed under a sub-path alike — the portable way to point a
 	// stage at the static folder. Root-absolute '/x' keeps meaning the domain
 	// root, as everywhere on the web.
 	return `<!DOCTYPE html>
-<html>
+<html${stageAttrs(stage)}>
 <head>
 	<meta charset="utf-8">
 	<base href="${base}">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<script>${PREVIEW_BOOTSTRAP_JS}</script>
 	${cssLinks}
 	<style>body { margin: 0; }</style>
 </head>
@@ -536,6 +559,7 @@ export function generatePreviewHtml(
 	iframeComponentId: string,
 	css: string | Record<string, string> | null,
 	base = '/',
+	stage: StageIdentityAttrs | null = null,
 ): string {
 	return previewHtmlShell(
 		generateCssLinks(css),
@@ -543,6 +567,7 @@ export function generatePreviewHtml(
 ${generateMountScript(iframeComponentId)}
 	</script>`,
 		base,
+		stage,
 	);
 }
 
@@ -571,6 +596,9 @@ export interface ParsedSnippetId {
 	docFilePath: string;
 	entitySlug: string;
 	snippetSlug: string;
+	/** The decoded doc path, leading `../` stripped — for suffix matching when
+	 * the caller encoded against a different root. */
+	relPath?: string;
 }
 
 /**
@@ -629,7 +657,8 @@ export function pageVirtualId(docFilePath: string, entitySlug: string): string {
 export function parsePageId(id: string): { docFilePath: string; entitySlug: string } | null {
 	const match = id.match(/^\/@sdocs\/page\/([^/]+)\.svelte$/);
 	if (!match) return null;
-	return decodeEntityId(match[1]);
+	const { docFilePath, entitySlug } = decodeEntityId(match[1]);
+	return { docFilePath, entitySlug };
 }
 
 /** Virtual module ID for a preview's mount script (embedded production builds) */
@@ -641,19 +670,21 @@ export function mountVirtualId(docFilePath: string, entitySlug: string, snippetS
 export function parseMountId(id: string): ParsedSnippetId | null {
 	const match = id.match(/^\/@sdocs\/mount\/([^/]+)\/([\w-]+)\.js$/);
 	if (!match) return null;
-	return { ...decodeEntityId(match[1]), snippetSlug: match[2] };
+	const { docFilePath, entitySlug } = decodeEntityId(match[1]);
+	return { docFilePath, entitySlug, snippetSlug: match[2] };
 }
 
 /** Parse an iframe virtual ID back into its parts */
 export function parseIframeId(id: string): ParsedSnippetId | null {
 	const match = id.match(/^\/@sdocs\/iframe\/([^/]+)\/([\w-]+)\.svelte$/);
 	if (!match) return null;
-	return { ...decodeEntityId(match[1]), snippetSlug: match[2] };
+	const { docFilePath, entitySlug } = decodeEntityId(match[1]);
+	return { docFilePath, entitySlug, snippetSlug: match[2] };
 }
 
 /** Parse a preview URL back into its parts */
 export function parsePreviewUrl(url: string): ParsedSnippetId | null {
-	const match = url.match(/^\/@sdocs\/preview\/([^/]+)\/([\w-]+)$/);
+	const match = url.split('?')[0].match(/^\/@sdocs\/preview\/([^/]+)\/([\w-]+)$/);
 	if (!match) return null;
 	return { ...decodeEntityId(match[1]), snippetSlug: match[2] };
 }

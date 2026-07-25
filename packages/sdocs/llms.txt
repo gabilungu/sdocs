@@ -139,9 +139,45 @@ Explorer uses:
   components documented from more than one file, references that resolve to
   no source, and documented components outside the globs. A compound family
   is measured per sub-component.
+- `resolve_visual_target { target, file? }` — resolve a stage ("Button /
+  Sizes", a route, or a stage id like "sdocs:k3f9a") to a preview-only route,
+  the selectors to wait on, the `.svelte` file and `.sdoc` line behind it, its
+  declared `args`, and its resolved stage layout. Ambiguity is reported, never
+  guessed.
 - `get_component_api { componentPath }` — a component's full extracted API:
   props (types, defaults, descriptions), events, snippets, methods, states,
   CSS custom properties, and class/rest forwarding.
+
+The server also serves `sdocs://visual-testing-guide`: how to inspect a
+component through a browser without photographing the whole Explorer.
+
+### Looking at a component with a browser
+
+Every stage is its own page. `/@sdocs/preview/<token>/<slug>` renders one
+`[component]`, `[example]`, or `[LAYOUT]` — project css, declared args, no
+Explorer chrome — and works as a direct top-level navigation. Photographing
+that instead of the Explorer is the difference between ~2 image tokens and
+~2000 for the same button.
+
+The page carries what automation needs:
+
+- `<html data-sdocs-stage-ready>` — set after mount, webfonts, and image
+  decode. A stage that *fails* is marked ready too (with
+  `data-sdocs-stage-error="render|script|timeout"`), so a client never hangs.
+- `window.__sdocs.stage` — `{ id, kind, name, component }`.
+- `window.__sdocs.captureRect(selector?, { padding })` — a clip rect grown to
+  include what the element actually paints. A tight crop to `boundingBox()`
+  **clips shadows, glows, and focus rings**; this reads the computed styles
+  instead. Reports `bleeds` (paints outside its box) and `clipped` (the halo
+  runs past the viewport).
+- `window.__sdocs.inkBleed(selector?)` — the per-side overflow on its own.
+- `?theme=<name>` sets `data-sdocs-theme` on the document; `?css=<name>` picks
+  a configured stylesheet. Media-query themes are the browser's to emulate.
+
+Prefer reading the DOM over any screenshot: `getComputedStyle` answers spacing
+and color questions exactly, where an image can only be estimated from. In dev,
+each stage shows a copyable id on hover — the handle for
+`resolve_visual_target`. sdocs takes no screenshots and depends on no browser.
 
 Two ways to connect:
 

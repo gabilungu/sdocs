@@ -8,7 +8,8 @@ import type { ResolvedSdocsConfig } from '../types.js';
 import { discoverDocFiles } from './discovery.js';
 import { parseSdoc } from '../language/index.js';
 import { planIframeSnippets } from './doc-model.js';
-import { encodeEntityId, setDocPathRoot } from './snippet-compiler.js';
+import { encodeEntityId, generatePreviewHtml, setDocPathRoot } from './snippet-compiler.js';
+import { describeStages, type StageDescriptor } from './preview-runtime.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -214,70 +215,13 @@ export function renderRoute(segments) {
 }`;
 }
 
-/** Generate a preview HTML page for an iframe snippet */
-function generatePreviewHtml(
-	iframeVirtualId: string,
-	css: string | Record<string, string> | null,
-	base = '/',
-): string {
-	const normHref = (href: string) =>
-		href.startsWith('http') ? href : href.startsWith('/') ? `/@fs${href}` : '/' + href;
-
-	let cssLinks = '';
-	if (css) {
-		if (typeof css === 'string') {
-			cssLinks = `<link rel="stylesheet" href="${normHref(css)}">`;
-		} else {
-			const names = Object.keys(css);
-			cssLinks = names
-				.map(
-					(name, i) =>
-						`<link rel="stylesheet" href="${normHref(css[name])}" data-sdocs-stylesheet="${name}"${i > 0 ? ' disabled' : ''}>`,
-				)
-				.join('\n\t');
-		}
-	}
-
-	return `<!DOCTYPE html>
-<html>
-<head>
-	<meta charset="utf-8">
-	<base href="${base}">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	${cssLinks}
-	<style>body { margin: 0; }</style>
-</head>
-<body>
-	<div id="app"></div>
-	<script type="module">
-		import { mount } from 'svelte';
-		import Preview from '${iframeVirtualId}';
-		mount(Preview, { target: document.getElementById('app') });
-
-		window.addEventListener('message', (e) => {
-			if (e.data?.type === 'sdocs:update-stylesheet') {
-				const name = e.data.name;
-				document.querySelectorAll('link[data-sdocs-stylesheet]').forEach((link) => {
-					link.disabled = link.dataset.sdocsStylesheet !== name;
-				});
-			}
-			if (e.data?.type === 'sdocs:scroll-to') {
-				const el = document.getElementById(e.data.id);
-				if (el) el.scrollIntoView({ behavior: 'smooth' });
-			}
-		});
-	</script>
-</body>
-</html>`;
-}
-
 /** Discover doc files and plan snippet slugs per entity (lightweight, no highlighting) */
 async function discoverSnippets(
 	config: ResolvedSdocsConfig,
 	cwd: string,
-): Promise<Array<{ filePath: string; entitySlug: string; snippetSlugs: string[] }>> {
+): Promise<Array<{ filePath: string; entitySlug: string; stages: StageDescriptor[] }>> {
 	const files = await discoverDocFiles(config.include, cwd);
-	const results: Array<{ filePath: string; entitySlug: string; snippetSlugs: string[] }> = [];
+	const results: Array<{ filePath: string; entitySlug: string; stages: StageDescriptor[] }> = [];
 
 	for (const filePath of files) {
 		const source = await readFile(filePath, 'utf-8');
@@ -287,7 +231,7 @@ async function discoverSnippets(
 				filePath,
 				entitySlug: entity.slug,
 				// Iframe pages only: DOC and PAGE content compiles natively in the Explorer.
-				snippetSlugs: planIframeSnippets(entity).map((s) => s.slug),
+				stages: describeStages(entity, planIframeSnippets(entity), filePath),
 			});
 		}
 	}
@@ -339,17 +283,17 @@ export async function generateBuildFiles(
 	// Discover snippets and generate preview HTML pages
 	const docSnippets = await discoverSnippets(config, cwd);
 
-	for (const { filePath, entitySlug, snippetSlugs } of docSnippets) {
+	for (const { filePath, entitySlug, stages } of docSnippets) {
 		const encoded = encodeEntityId(filePath, entitySlug);
-		for (const snippetSlug of snippetSlugs) {
-			const iframeId = `/@sdocs/iframe/${encoded}/${snippetSlug}.svelte`;
+		for (const stage of stages) {
+			const iframeId = `/@sdocs/iframe/${encoded}/${stage.slug}.svelte`;
 			const previewDir = resolve(sdocsDir, 'previews', encoded);
 			await mkdir(previewDir, { recursive: true });
 
-			const previewPath = resolve(previewDir, `${snippetSlug}.html`);
-			await writeFile(previewPath, generatePreviewHtml(iframeId, config.css, config.base));
+			const previewPath = resolve(previewDir, `${stage.slug}.html`);
+			await writeFile(previewPath, generatePreviewHtml(iframeId, config.css, config.base, stage));
 
-			const inputKey = `preview-${encoded}-${snippetSlug}`;
+			const inputKey = `preview-${encoded}-${stage.slug}`;
 			inputs[inputKey] = previewPath;
 		}
 	}

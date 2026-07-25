@@ -11,6 +11,8 @@ import {
 	extractImports,
 	resolveComponentImport,
 } from './server/doc-model.js';
+import { stageId, stageIdentity } from './server/preview-runtime.js';
+import { resolveStageLayout, type SizingAttrs } from './server/stage-layout.js';
 import { renderPageMarkdown, applyBaseToHtml } from './server/page-markdown.js';
 import { highlight, disposeHighlighter } from './server/highlighter.js';
 import {
@@ -111,7 +113,20 @@ export function sdocsPlugin(
 				const parsed = parsePreviewUrl(req.url);
 				if (!parsed) return next();
 
-				const entry = docEntries.get(entityKey(parsed.docFilePath, parsed.entitySlug));
+				let entry = docEntries.get(entityKey(parsed.docFilePath, parsed.entitySlug));
+				if (!entry && parsed.relPath) {
+					// The token was encoded against a different root — the MCP server
+					// over stdio has no dev server to ask which one. The doc path is
+					// still in there, so match it by suffix rather than 404 a stage
+					// that plainly exists.
+					const suffix = `/${parsed.relPath}#${parsed.entitySlug}`;
+					for (const [key, value] of docEntries) {
+						if (key.endsWith(suffix)) {
+							entry = value;
+							break;
+						}
+					}
+				}
 				if (!entry) {
 					res.statusCode = 404;
 					res.end('Doc not found');
@@ -126,7 +141,14 @@ export function sdocsPlugin(
 				}
 
 				const iframeId = iframeVirtualId(parsed.docFilePath, parsed.entitySlug, snippet.slug);
-				const html = generatePreviewHtml(iframeId, config.css, base);
+				const html = generatePreviewHtml(iframeId, config.css, base, {
+					id: stageId(
+						stageIdentity(parsed.docFilePath, parsed.entitySlug, snippet.slug),
+					),
+					kind: snippet.role === 'preview' ? 'component' : snippet.role,
+					name: snippet.name,
+					component: snippet.componentName ?? null,
+				});
 
 				res.setHeader('Content-Type', 'text/html');
 				// Let Vite transform the HTML (resolves imports, injects HMR client)
@@ -450,6 +472,8 @@ export function sdocsPlugin(
 				script: p.script,
 				style: p.style,
 				description: p.description,
+				componentName: p.componentName ?? null,
+				stageId: stageId(stageIdentity(filePath, entity.slug, p.slug)),
 			}));
 
 			const entry: DocEntry = {
@@ -474,56 +498,16 @@ export function sdocsPlugin(
 			};
 
 			// Sizing cascade: block attribute -> entity attribute -> config default.
-			const kindKey =
+			const kindDefaults = config.content[
 				entity.kind === 'SHOWCASE'
 					? 'showcase'
 					: entity.kind === 'DOC'
 						? 'doc'
 						: entity.kind === 'PAGE'
 							? 'page'
-							: 'layout';
-			const kindDefaults = config.content[kindKey];
-			const stageOf = (block?: {
-				maxWidth: string | null;
-				padding: string | null;
-				direction: string | null;
-				gap: string | null;
-				contentX: string | null;
-				contentY: string | null;
-				background: string | null;
-				minHeight: string | null;
-			}) => ({
-				// Entity-level maxWidth on SHOWCASE/PAGE is the content column, not the
-				// stage; stages inside them span their panel unless the block says so.
-				maxWidth:
-					block?.maxWidth ??
-					(entity.kind === 'LAYOUT' ? (entity.sizing.maxWidth ?? kindDefaults.maxWidth) : '100%'),
-				padding: block?.padding ?? entity.sizing.padding ?? kindDefaults.padding,
-				// direction/gap/contentX flex the preview/example stages only
-				...(entity.kind === 'SHOWCASE' && block
-					? {
-							direction:
-								block.direction ?? entity.sizing.direction ?? config.content.showcase.direction,
-							gap: block.gap ?? entity.sizing.gap ?? config.content.showcase.gap,
-							contentX: block.contentX ?? entity.sizing.contentX ?? config.content.showcase.contentX,
-							contentY: block.contentY ?? entity.sizing.contentY ?? config.content.showcase.contentY,
-							background:
-								block.background ?? entity.sizing.background ?? config.content.showcase.background ?? undefined,
-							minHeight:
-								block.minHeight ?? entity.sizing.minHeight ?? config.content.showcase.minHeight ?? undefined,
-						}
-					: {}),
-				// A LAYOUT is the page canvas: it can paint and size its stage
-				// (background/minHeight) while staying flow-root.
-				...(entity.kind === 'LAYOUT'
-					? {
-							background:
-								entity.sizing.background ?? config.content.layout.background ?? undefined,
-							minHeight:
-								entity.sizing.minHeight ?? config.content.layout.minHeight ?? undefined,
-						}
-					: {}),
-			});
+							: 'layout'
+			];
+			const stageOf = (block?: SizingAttrs) => resolveStageLayout(entity, block, config);
 			entry.maxWidth = entity.sizing.maxWidth ?? kindDefaults.maxWidth;
 			if (entity.kind === 'DOC') {
 				entry.showToc = entity.sizing.toc ?? config.content.doc.toc;

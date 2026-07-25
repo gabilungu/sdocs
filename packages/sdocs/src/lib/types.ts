@@ -233,6 +233,11 @@ export interface ExtractedSnippet {
 	highlightedHtml?: string;
 	/** Preview URL for iframe (added by virtual module) */
 	previewUrl?: string;
+	/** Short stable handle for this stage — readable, quotable, and the thing
+	 * the MCP server resolves back to a preview URL and a source file. */
+	stageId?: string;
+	/** For a [component] preview: the component reference it demonstrates */
+	componentName?: string | null;
 	/** Resolved stage layout applied inside the iframe (config → entity → block) */
 	stage?: StageLayout;
 }

@@ -12,9 +12,44 @@
 		onStateValues?: (values: Record<string, unknown>) => void;
 		/** Called once the iframe reports ready (theme css loaded) */
 		onready?: () => void;
+		/** The stage this frame shows — names the iframe and carries the id an
+		 * agent resolves back to this exact preview. */
+		stage?: {
+			stageId?: string;
+			name?: string;
+			role?: string;
+			componentName?: string | null;
+		} | null;
 	}
 
-	let { src, props = {}, cssVars = {}, activeStylesheet, fullHeight = false, onStateValues, onready }: Props = $props();
+	let { src, props = {}, cssVars = {}, activeStylesheet, fullHeight = false, onStateValues, onready, stage = null }: Props = $props();
+
+	const stageKind = $derived(stage?.role === 'preview' ? 'component' : stage?.role);
+	// "Button — Sizes preview": a showcase holds many frames, and an
+	// accessibility tree (or an automation client) full of identical
+	// "Component preview" labels can't tell them apart.
+	const frameTitle = $derived(
+		stage?.name
+			? `${stage.componentName ? `${stage.componentName} — ` : ''}${stage.name} ${
+					stage.role === 'example' ? 'example' : 'preview'
+				}`
+			: 'Component preview',
+	);
+
+	// Dev only: the id is a handle for the MCP server, which a built site
+	// never serves. Vite folds this to false, so the chip leaves no trace.
+	const showStageId = import.meta.env.DEV;
+	let copied = $state(false);
+	function copyStageId() {
+		if (!stage?.stageId) return;
+		navigator.clipboard?.writeText(`sdocs:${stage.stageId}`).then(
+			() => {
+				copied = true;
+				setTimeout(() => (copied = false), 1200);
+			},
+			() => {},
+		);
+	}
 
 	/** Invoke a zero-argument method on the preview's root component */
 	export function callMethod(name: string): void {
@@ -125,17 +160,57 @@
 	<iframe
 		bind:this={iframe}
 		src={resolvedSrc}
-		title="Component preview"
+		title={frameTitle}
 		class="sdocs-iframe"
 		scrolling={fullHeight ? 'auto' : 'no'}
 		style:height={frameHeight}
+		data-sdocs-stage-id={stage?.stageId}
+		data-sdocs-stage-kind={stageKind}
 	></iframe>
+	{#if showStageId && stage?.stageId}
+		<!-- The handle you say out loud. Quiet until you go looking for it:
+		     every stage wearing a visible code all the time is noise for the
+		     humans reading the docs, and the id is only ever wanted for one
+		     stage at a time — the one under the cursor. -->
+		<button
+			type="button"
+			class="sdocs-stage-id"
+			title="Copy this stage's id — an agent can resolve it to this exact preview"
+			onclick={copyStageId}
+		>
+			{copied ? 'copied' : `sdocs:${stage.stageId}`}
+		</button>
+	{/if}
 </div>
 
 <style>
 	.sdocs-preview-frame {
+		position: relative;
 		overflow: hidden;
 		background: var(--color-base-0);
+	}
+	.sdocs-stage-id {
+		position: absolute;
+		right: 4px;
+		bottom: 4px;
+		padding: 1px 5px;
+		border: none;
+		border-radius: 4px;
+		background: var(--color-base-100);
+		color: var(--color-base-400);
+		font-family: var(--mono, ui-monospace, monospace);
+		font-size: 10px;
+		line-height: 1.5;
+		cursor: pointer;
+		opacity: 0;
+		transition: opacity 0.12s ease;
+	}
+	.sdocs-preview-frame:hover .sdocs-stage-id,
+	.sdocs-stage-id:focus-visible {
+		opacity: 1;
+	}
+	.sdocs-stage-id:hover {
+		color: var(--color-base-600);
 	}
 	.sdocs-preview-frame.full-height {
 		flex: 1;

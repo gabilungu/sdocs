@@ -200,10 +200,69 @@
 	  which don't, plus duplicates, unresolved references, and components
 	  outside the globs; the same data as
 	  [`sdocs coverage`](#sdocs-coverage).
+	- **`resolve_visual_target`** — resolve a stage (a `[component]` preview, an
+	  `[example]`, a `[LAYOUT]`) to a **preview-only route**, the selectors an
+	  automation client waits on, and the files behind it. See
+	  [visual inspection](#visual-inspection).
 	- **`get_component_api`** — a component's full extracted API: props (types,
 	  defaults, descriptions), events, snippets, methods, states, CSS custom
 	  properties, and `class`/`…rest` forwarding — see
 	  [prop extraction](/explorer/features/prop-extraction).
+
+	### Visual inspection
+
+	Every stage is also its own page — open
+	`/@sdocs/preview/…` directly and you get that one component, with the
+	project's css and its declared `args`, and no Explorer around it. That
+	matters when an agent is looking at your components through a browser:
+	photographing the whole Explorer to inspect one button costs **hundreds of
+	times more image tokens** than photographing the button.
+
+	| What gets captured | Pixels | ≈ image tokens |
+	|---|---|---|
+	| The Explorer page | 1934×1162 | ~1970 |
+	| The stage | 1934×64 | ~108 |
+	| The component | 42×36 | ~2 |
+
+	`resolve_visual_target` takes the name you'd say out loud — `"Button /
+	Sizes"`, a route, or the id shown under a stage — and returns the preview
+	route, `source.component` (the `.svelte` file to edit), `source.doc` with a
+	line, the declared `args`, and the resolved stage layout. So what you *see*
+	leads straight to what you *change*, without reproducing any slug rules.
+
+	Each stage page carries the pieces automation needs:
+
+	| Thing | Where |
+	|---|---|
+	| Ready marker | `<html data-sdocs-stage-ready>` — set after mount, webfonts, and image decode |
+	| Failed stage | `<html data-sdocs-stage-error="render \| script \| timeout">` |
+	| Identity | `window.__sdocs.stage` → `{ id, kind, name, component }` |
+	| Capture rect | `window.__sdocs.captureRect(selector?, { padding })` |
+	| Ink overflow | `window.__sdocs.inkBleed(selector?)` |
+
+	A stage always ends up marked ready, **even when it fails** — a client
+	waiting on the marker gets an answer instead of a timeout.
+
+	`captureRect` exists for a specific trap: a screenshot cropped to an
+	element's bounding box **clips its shadow**. A glow, a focus ring, or a
+	`filter: drop-shadow` paints outside the border box, and that's usually the
+	very thing under review. The helper reads the computed styles and grows the
+	rect by the ink each element actually casts, then reports `bleeds` (the
+	component paints outside its box) and `clipped` (the halo runs past the
+	viewport — widen it, or give the stage more `padding`). The stage's own
+	`padding` is the author's answer to the same question, which is why
+	capturing `#sdocs-preview` is the safe default for a component with a halo.
+
+	A direct visit can also ask for a variant: `?theme=dark` sets
+	`data-sdocs-theme` on the stage document (for css keyed off the attribute —
+	`prefers-color-scheme` is the browser's to emulate), and `?css=<name>`
+	picks between the stylesheets configured under
+	[`css`](/explorer/configuration#css).
+
+	In dev, each stage shows its id on hover — click it to copy. That's the
+	handle to hand an agent: *"look at sdocs:k3f9a"*. The full procedure, with
+	worked Playwright examples, is the `sdocs://visual-testing-guide` resource.
+	sdocs takes no screenshots itself and depends on no browser.
 
 	Register it as a stdio server in any MCP client — for example:
 

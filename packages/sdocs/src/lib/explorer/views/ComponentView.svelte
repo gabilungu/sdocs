@@ -275,7 +275,7 @@
 				{#snippet left()}
 					<div class="sdocs-preview-pane">
 						<div class="sdocs-preview-wrapper">
-							<PreviewFrame src={focusedSnippet.previewUrl ?? ''} {activeStylesheet} />
+							<PreviewFrame src={focusedSnippet.previewUrl ?? ''} {activeStylesheet} stage={focusedSnippet} />
 						</div>
 					</div>
 				{/snippet}
@@ -342,6 +342,7 @@
 									<PreviewFrame
 										bind:this={defaultPreview}
 										src={activePreview.snippet.previewUrl ?? ''}
+										stage={activePreview.snippet}
 										props={propValues}
 										cssVars={appliedCss}
 										{activeStylesheet}
@@ -528,7 +529,7 @@
 							{#snippet left()}
 								<div class="sdocs-preview-pane">
 									<div class="sdocs-preview-wrapper">
-										<PreviewFrame src={example.previewUrl ?? ''} {activeStylesheet} />
+										<PreviewFrame src={example.previewUrl ?? ''} {activeStylesheet} stage={example} />
 									</div>
 								</div>
 							{/snippet}

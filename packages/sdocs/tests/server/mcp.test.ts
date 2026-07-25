@@ -67,7 +67,7 @@ describe('MCP handler', () => {
 		expect((await rpc('nope/nope')).error?.code).toBe(-32601);
 	});
 
-	it('lists the seven tools', async () => {
+	it('lists the eight tools', async () => {
 		const { result } = await rpc('tools/list');
 		const names = (result as { tools: { name: string }[] }).tools.map((t) => t.name);
 		expect(names).toEqual([
@@ -77,8 +77,28 @@ describe('MCP handler', () => {
 			'list_docs',
 			'check_docs',
 			'check_coverage',
+			'resolve_visual_target',
 			'get_component_api',
 		]);
+	});
+
+	it('serves the visual testing guide as a resource', async () => {
+		const list = (await rpc('resources/list')).result as { resources: { uri: string }[] };
+		expect(list.resources.map((r) => r.uri)).toContain('sdocs://visual-testing-guide');
+		const read = (await rpc('resources/read', { uri: 'sdocs://visual-testing-guide' }))
+			.result as { contents: { text: string }[] };
+		expect(read.contents[0].text).toContain('captureRect');
+	});
+
+	it('tells clients not to photograph the Explorer to inspect one component', async () => {
+		const { result } = await rpc('initialize', {
+			protocolVersion: '2025-06-18',
+			capabilities: {},
+			clientInfo: { name: 'test', version: '0' },
+		});
+		const instructions = (result as Record<string, any>).instructions as string;
+		expect(instructions).toContain('resolve_visual_target');
+		expect(instructions).toContain('data-sdocs-stage-ready');
 	});
 
 	it('validates a correct .sdoc (null args included)', async () => {
@@ -202,6 +222,111 @@ describe('MCP handler', () => {
 		} finally {
 			process.chdir(prev);
 		}
+	});
+
+	describe('resolve_visual_target', () => {
+		/** A project with two stages, one of which is a real component preview. */
+		const project = () => {
+			const dir = mkdtempSync(join(tmpdir(), 'sdocs-mcp-visual-'));
+			writeFileSync(
+				join(dir, 'sdocs.config.js'),
+				'export default {\n\tinclude: ["./**/*.sdoc"],\n};\n',
+			);
+			writeFileSync(
+				join(dir, 'Button.svelte'),
+				'<script lang="ts">\n\tlet { label = "hi" } = $props();\n</script>\n\n<button>{label}</button>\n',
+			);
+			writeFileSync(
+				join(dir, 'Button.sdoc'),
+				'<script lang="ts">\n\timport Button from "./Button.svelte";\n</script>\n\n' +
+					'[SHOWCASE title="Forms / Button"]\n' +
+					'\t[component component={Button} args={{ label: "Hi" }} padding="24px"]\n' +
+					'\t\t<Button {...args} />\n' +
+					'\t[/component]\n\n' +
+					'\t[example title="Sizes"]\n' +
+					'\t\t<Button label="Small" />\n' +
+					'\t[/example]\n' +
+					'[/SHOWCASE]\n',
+			);
+			return dir;
+		};
+
+		const inProject = async <T>(fn: () => Promise<T>): Promise<T> => {
+			const dir = project();
+			const prev = process.cwd();
+			process.chdir(dir);
+			try {
+				return await fn();
+			} finally {
+				process.chdir(prev);
+			}
+		};
+
+		it('resolves a qualified name to a preview route and the files behind it', async () => {
+			await inProject(async () => {
+				const r = (await callTool('resolve_visual_target', { target: 'Button / Sizes' }))
+					.structuredContent as Record<string, any>;
+				expect(r.resolved).toBeTruthy();
+				expect(r.resolved.name).toBe('Sizes');
+				expect(r.resolved.kind).toBe('example');
+				// Relative on purpose: it has to work at any host, port, or base.
+				expect(r.resolved.previewRoute).toMatch(/^\/@sdocs\/preview\/[^/]+\/x-sizes$/);
+				expect(r.resolved.builtPreviewPath).toMatch(/^\/previews\/[^/]+\/x-sizes\.html$/);
+				expect(r.resolved.source.doc).toBe('Button.sdoc');
+				expect(r.resolved.source.line).toBeGreaterThan(0);
+			});
+		});
+
+		it('reports the component file to edit, not just the route to look at', async () => {
+			await inProject(async () => {
+				const r = (await callTool('resolve_visual_target', { target: 'Button' }))
+					.structuredContent as Record<string, any>;
+				const hit = r.resolved ?? r.ambiguous?.[0];
+				expect(hit.kind).toBe('component');
+				expect(hit.source.component).toBe('Button.svelte');
+				expect(hit.args).toEqual({ label: 'Hi' });
+			});
+		});
+
+		it("reports the author's stage padding — the room a shadow gets to live in", async () => {
+			await inProject(async () => {
+				const r = (await callTool('resolve_visual_target', { target: 'Button' }))
+					.structuredContent as Record<string, any>;
+				const hit = r.resolved ?? r.ambiguous?.[0];
+				expect(hit.stageLayout.padding).toBe('24px');
+			});
+		});
+
+		it('accepts a stage id, with or without the sdocs: prefix', async () => {
+			await inProject(async () => {
+				const first = (await callTool('resolve_visual_target', { target: 'Button / Sizes' }))
+					.structuredContent as Record<string, any>;
+				const id = first.resolved.stageId;
+				for (const target of [id, `sdocs:${id}`]) {
+					const r = (await callTool('resolve_visual_target', { target }))
+						.structuredContent as Record<string, any>;
+					expect(r.resolved.stageId).toBe(id);
+				}
+			});
+		});
+
+		it('carries the selectors an automation client waits on', async () => {
+			await inProject(async () => {
+				const r = (await callTool('resolve_visual_target', { target: 'Button / Sizes' }))
+					.structuredContent as Record<string, any>;
+				expect(r.resolved.readySelector).toBe('[data-sdocs-stage-ready]');
+				expect(r.resolved.stageSelector).toBe('#sdocs-preview');
+			});
+		});
+
+		it('returns nothing rather than a wrong guess', async () => {
+			await inProject(async () => {
+				const r = (await callTool('resolve_visual_target', { target: 'Nothing Like This' }))
+					.structuredContent as Record<string, any>;
+				expect(r.resolved).toBe(null);
+				expect(r.hint).toBeTruthy();
+			});
+		});
 	});
 
 	it('compiles every stage with check_docs and reports what breaks', async () => {

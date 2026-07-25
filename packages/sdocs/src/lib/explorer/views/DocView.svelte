@@ -137,7 +137,7 @@
 			{/if}
 			<div class="sdocs-panels">
 				<div class="sdocs-preview-wrapper">
-					<PreviewFrame src={example.previewUrl ?? ''} {activeStylesheet} />
+					<PreviewFrame src={example.previewUrl ?? ''} {activeStylesheet} stage={example} />
 				</div>
 				<CollapsiblePanel title="Code" defaultExpanded={false} flush>
 					<div class="sdocs-code-block">{@html example.highlightedHtml ?? ''}</div>

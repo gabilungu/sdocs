@@ -8,6 +8,17 @@ import { parseComponentSource } from '../server/prop-parser.js';
 import { loadConfig } from '../server/config.js';
 import { discoverDocFiles } from '../server/discovery.js';
 import { buildSections } from '../explorer/tree-builder.js';
+import {
+	extractImports,
+	exampleSlug,
+	planIframeSnippets,
+	previewSlug,
+	resolveComponentImport,
+} from '../server/doc-model.js';
+import { buildPreviewUrl, previewUrl } from '../server/snippet-compiler.js';
+import { describeStages } from '../server/preview-runtime.js';
+import { resolveStageLayout } from '../server/stage-layout.js';
+import { VISUAL_TESTING_GUIDE } from './visual-guide.js';
 import { checkDocFiles } from '../server/check.js';
 import { measureCoverage } from '../server/coverage.js';
 import type { DocEntry, ParsedProp } from '../types.js';
@@ -64,6 +75,7 @@ const PROTOCOL_VERSIONS = ['2024-11-05', '2025-03-26', '2025-06-18'];
 const LATEST_PROTOCOL = PROTOCOL_VERSIONS[PROTOCOL_VERSIONS.length - 1];
 
 const GUIDE_URI = 'sdocs://authoring-guide';
+const VISUAL_URI = 'sdocs://visual-testing-guide';
 
 const INSTRUCTIONS =
 	'sdocs authoring tools. Before writing .sdoc documentation, read the ' +
@@ -76,7 +88,20 @@ const INSTRUCTIONS =
 	'states, CSS custom properties). validate_sdoc checks the grammar only — ' +
 	'run check_docs to compile every stage and catch what the grammar cannot ' +
 	'see: Svelte errors inside examples, imports that resolve nowhere, and ' +
-	'broken page or layout bodies.';
+	'broken page or layout bodies.\n\n' +
+	'For visual inspection, do not screenshot the Explorer by default. Call ' +
+	'resolve_visual_target to get a preview-only route for the stage, open that ' +
+	'route directly in the browser, wait for the [data-sdocs-stage-ready] ' +
+	'marker, then locate the smallest relevant element and take an element ' +
+	'screenshot at CSS-pixel scale. Photographing the whole Explorer to look at ' +
+	'one component costs hundreds of times more image tokens than photographing ' +
+	'the component. Prefer reading the DOM over taking any picture at all: ' +
+	'getComputedStyle answers questions about spacing, color, and size exactly, ' +
+	'where an image can only be estimated from. Capture the whole stage when ' +
+	'the relationship between several elements matters, or when the component ' +
+	'casts a shadow or glow past its own box; capture the Explorer only when ' +
+	'diagnosing the documentation UI itself. sdocs://visual-testing-guide has ' +
+	'the full procedure and worked examples.';
 
 const TOOLS = [
 	{
@@ -166,6 +191,35 @@ const TOOLS = [
 			'more than one .sdoc file, references that resolve to no file, and ' +
 			'documented components outside the globs.',
 		inputSchema: { type: 'object', properties: {} },
+	},
+	{
+		name: 'resolve_visual_target',
+		description:
+			'Resolve a stage — a [component] preview, an [example], or a [LAYOUT] — ' +
+			'to a preview-only route and stable selectors intended for browser ' +
+			'automation, plus the source files behind it. Accepts a name ' +
+			'("Button / Sizes"), a site route, or the id shown under a stage in the ' +
+			'dev Explorer ("sdocs:k3f9a"). Navigate directly to previewRoute: it ' +
+			'renders that one stage with no Explorer UI around it. Prefer element ' +
+			'screenshots over page or full-page screenshots — photographing the ' +
+			'Explorer to inspect one small component costs hundreds of times more ' +
+			'image tokens than photographing the component. Read ' +
+			'sdocs://visual-testing-guide before your first capture.',
+		inputSchema: {
+			type: 'object',
+			properties: {
+				target: {
+					type: 'string',
+					description:
+						'Stage name ("Button / Sizes" or "Sizes"), a site route, or a stage id ("sdocs:k3f9a")',
+				},
+				file: {
+					type: 'string',
+					description: 'Optional .sdoc file to search, when a name is ambiguous across files',
+				},
+			},
+			required: ['target'],
+		},
 	},
 	{
 		name: 'get_component_api',
@@ -396,6 +450,159 @@ async function getComponentApi(params: Record<string, unknown>) {
 	});
 }
 
+/**
+ * Resolve a human's way of naming a stage — "Button / Sizes", a route, or the
+ * id printed under it — to the machine's: a preview-only URL, the files behind
+ * it, and the room the author reserved around it.
+ *
+ * The point is that a client never has to reproduce the slug rules or decode a
+ * route to look at one component, and never has to guess which file to edit
+ * once it sees the problem.
+ */
+async function resolveVisualTarget(params: Record<string, unknown>) {
+	const raw = typeof params.target === 'string' ? params.target.trim() : '';
+	if (!raw) throw new RpcError(-32602, 'target is required');
+	const cwd = process.cwd();
+	const config = await loadConfig(cwd);
+	const files = await discoverDocFiles(
+		config.include.map((p) => resolve(cwd, p)),
+		cwd,
+	);
+
+	const needle = raw.replace(/^sdocs:/i, '').trim();
+	const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+	const wanted = norm(needle);
+	const onlyFile = typeof params.file === 'string' && params.file ? params.file : null;
+
+	interface Candidate {
+		score: number;
+		payload: Record<string, unknown>;
+	}
+	const candidates: Candidate[] = [];
+
+	for (const file of files) {
+		const rel = relative(cwd, file);
+		if (onlyFile && rel !== onlyFile && file !== resolve(cwd, onlyFile)) continue;
+		const source = await readFile(file, 'utf-8');
+		const doc = parseSdoc(source);
+		const fileImports = extractImports(doc.script?.content ?? '');
+
+		for (const entity of doc.entities) {
+			const planned = planIframeSnippets(entity);
+			const stages = describeStages(entity, planned, file);
+			const entityImports = extractImports(entity.script?.content ?? '');
+			const blocks = new Map<string, { componentName?: string | null; args?: unknown; sizing?: unknown; script?: { content: string } | null; line?: number }>();
+			if (entity.kind === 'SHOWCASE') {
+				for (const p of entity.previews) {
+					blocks.set(previewSlug(p.label), {
+						componentName: p.componentName,
+						args: p.args ?? null,
+						sizing: p.sizing,
+						script: p.script,
+						line: offsetToPosition(source, p.span.start).line + 1,
+					});
+				}
+			}
+			const entityExamples = 'examples' in entity ? entity.examples : [];
+			for (const ex of entityExamples) {
+				const slug = exampleSlug(ex.title);
+				if (!blocks.has(slug)) {
+					blocks.set(slug, {
+						sizing: ex.sizing,
+						script: ex.script,
+						line: offsetToPosition(source, ex.span.start).line + 1,
+					});
+				}
+			}
+
+			for (const [i, stage] of stages.entries()) {
+				const plan = planned[i];
+				const block = blocks.get(stage.slug);
+				// "Button / Sizes" and "Sizes" both name this stage; so does the id.
+				const entityName = entity.title.split('/').pop()?.trim() ?? entity.title;
+				const full = norm(`${entityName} ${stage.name}`);
+				const short = norm(stage.name);
+				let score = 0;
+				if (stage.id === needle) score = 100;
+				else if (full === wanted) score = 90;
+				else if (norm(entity.title + ' ' + stage.name) === wanted) score = 85;
+				else if (short === wanted) score = 70;
+				else if (full.includes(wanted) || wanted.includes(full)) score = 50;
+				else if (short.includes(wanted)) score = 30;
+				if (!score) continue;
+
+				const componentPath = block?.componentName
+					? resolveComponentImport(
+							block.componentName,
+							[
+								...extractImports(block.script?.content ?? ''),
+								...entityImports,
+								...fileImports,
+							],
+							file,
+						)
+					: null;
+
+				candidates.push({
+					score,
+					payload: {
+						stageId: stage.id,
+						name: stage.name,
+						kind: stage.kind,
+						component: stage.component,
+						entity: entity.title,
+						// Where to point a browser. Relative on purpose: it works at
+						// whatever host, port, or base the site is actually served on.
+						previewRoute: previewUrl(file, entity.slug, stage.slug),
+						builtPreviewPath: buildPreviewUrl(file, entity.slug, stage.slug),
+						readySelector: '[data-sdocs-stage-ready]',
+						stageSelector: '#sdocs-preview',
+						source: {
+							component: componentPath ? relative(cwd, componentPath) : null,
+							doc: rel,
+							line: block?.line ?? null,
+						},
+						args: (block?.args as Record<string, unknown> | null) ?? null,
+						// The author's own answer to "how much room does this need?" —
+						// a stage with padding already holds the component's shadow or
+						// glow, so the stage is the safe thing to capture.
+						stageLayout: resolveStageLayout(
+							entity as never,
+							(block?.sizing as never) ?? undefined,
+							config,
+						),
+						role: plan?.role ?? stage.kind,
+					},
+				});
+			}
+		}
+	}
+
+	if (candidates.length === 0) {
+		return toolResult({
+			target: raw,
+			resolved: null,
+			hint:
+				'Nothing matched. list_docs shows every entity and example by name; ' +
+				'a stage id is the code shown under a preview in the dev Explorer.',
+		});
+	}
+	candidates.sort((a, b) => b.score - a.score);
+	const best = candidates[0].score;
+	const top = candidates.filter((c) => c.score === best).map((c) => c.payload);
+	return toolResult({
+		target: raw,
+		// Ambiguity is reported, never guessed away: two stages can legitimately
+		// share a name across files, and picking one silently sends an agent to
+		// edit the wrong component.
+		resolved: top.length === 1 ? top[0] : null,
+		...(top.length > 1 ? { ambiguous: top } : {}),
+		...(candidates.length > top.length
+			? { alsoMatched: candidates.slice(top.length, top.length + 5).map((c) => c.payload.stageId) }
+			: {}),
+	});
+}
+
 async function checkDocs(params: Record<string, unknown>) {
 	const cwd = process.cwd();
 	const config = await loadConfig(cwd);
@@ -531,6 +738,8 @@ async function dispatch(method: string, params: Record<string, unknown>): Promis
 					return checkDocs(args);
 				case 'check_coverage':
 					return checkCoverage();
+				case 'resolve_visual_target':
+					return resolveVisualTarget(args);
 				default:
 					throw new RpcError(-32602, `Unknown tool "${String(params.name)}"`);
 			}
@@ -546,9 +755,26 @@ async function dispatch(method: string, params: Record<string, unknown>): Promis
 							'Setup, configuration, the CLI, and the full .sdoc format reference.',
 						mimeType: 'text/markdown',
 					},
+					{
+						uri: VISUAL_URI,
+						name: 'visual-testing-guide',
+						title: 'Inspecting sdocs previews with a browser',
+						description:
+							'How to photograph one component instead of the whole Explorer: ' +
+							'preview-only routes, the ready marker, and capturing shadows ' +
+							'and glows without clipping them.',
+						mimeType: 'text/markdown',
+					},
 				],
 			};
 		case 'resources/read': {
+			if (params.uri === VISUAL_URI) {
+				return {
+					contents: [
+						{ uri: VISUAL_URI, mimeType: 'text/markdown', text: VISUAL_TESTING_GUIDE },
+					],
+				};
+			}
 			if (params.uri !== GUIDE_URI) {
 				throw new RpcError(-32002, `Unknown resource "${String(params.uri)}"`);
 			}

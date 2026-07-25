@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.112] - 2026-07-25
+
+### Added
+
+- **Stages are addressable, so an agent can look at one component instead of
+  the whole app.** A preview page was always directly navigable; now it says
+  what it is and when it's ready, and the MCP server can hand a client the
+  route. Photographing the Explorer to inspect one button costs roughly a
+  thousand times the image tokens of photographing the button (measured:
+  ~1970 vs ~2 on a 42x36px component), which is real money on the agent's side.
+  - **`resolve_visual_target`** (MCP): resolve `"Button / Sizes"`, a route, or
+    a stage id to a preview-only route, the selectors to wait on, the `.svelte`
+    file **and** `.sdoc` line behind it, its declared `args`, and its resolved
+    stage layout — so what you look at leads straight to what you edit, with no
+    slug rules to reproduce. Ambiguous names are reported, never guessed.
+  - **A ready marker**: `<html data-sdocs-stage-ready>`, set after mount,
+    webfonts, and image decode. A stage that fails is marked ready too, with
+    `data-sdocs-stage-error="render | script | timeout"` — a client waiting on
+    the marker gets an answer instead of a timeout.
+  - **`window.__sdocs.captureRect(selector?, { padding })`**: a clip rect grown
+    to include what an element actually paints. Cropping to `boundingBox()`
+    clips shadows, glows, and focus rings — usually the very thing under
+    review — so the rect is grown by ink read from computed styles, and reports
+    `bleeds` and `clipped` rather than silently cutting the halo.
+    `inkBleed(selector?)` returns the per-side overflow alone.
+  - **Stage ids**: a short stable handle per stage, shown on hover in the dev
+    Explorer and copyable — the thing you say out loud ("look at sdocs:k3f9a")
+    and hand to an agent. Dev only; a built site never shows one.
+  - **`sdocs://visual-testing-guide`** and expanded `initialize.instructions`:
+    read the DOM before taking any picture, then the element, then the stage,
+    and the Explorer only when the Explorer is the bug.
+  - **`?theme=`/`?css=`** on a stage URL: set `data-sdocs-theme`, or pick a
+    configured stylesheet, on a direct visit. Media-query themes stay the
+    browser's to emulate — sdocs doesn't fake `prefers-color-scheme`.
+- Preview iframes carry a distinct accessible title (`Button — Sizes preview`)
+  and `data-sdocs-stage-id`/`data-sdocs-stage-kind`, instead of every frame in
+  a showcase being labelled `Component preview`.
+
+  sdocs still takes no screenshots and depends on no browser: it exposes the
+  route, the selectors, and the metadata; a separate browser tool does the
+  looking.
+
+### Fixed
+
+- The dev server and the build shared one preview-page generator instead of two
+  copies that had to be kept in step by hand.
+- A preview URL carrying a query string (`?theme=dark`) is served rather than
+  falling through to a 404.
+
 ## [0.0.111] - 2026-07-25
 
 ### Changed

@@ -31,7 +31,7 @@
 		>
 			{#snippet left()}
 				<div class="sdocs-layout-pane">
-					<PreviewFrame src={previewUrl} {activeStylesheet} fullHeight />
+					<PreviewFrame src={previewUrl} {activeStylesheet} fullHeight stage={contentSnippet} />
 				</div>
 			{/snippet}
 			{#snippet right()}

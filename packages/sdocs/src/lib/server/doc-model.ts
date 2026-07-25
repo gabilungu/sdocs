@@ -27,6 +27,8 @@ export interface PlannedSnippet {
 	style: string | null;
 	/** Short text rendered with the block, when present */
 	description: string | null;
+	/** For a [component] preview: the component reference it demonstrates */
+	componentName?: string | null;
 }
 
 // Slug derivation lives with the parser (it diagnoses collisions at parse
@@ -80,6 +82,7 @@ export function planEntitySnippets(entity: SdocEntity): PlannedSnippet[] {
 				name: p.label,
 				slug,
 				role: 'preview' as const,
+				componentName: p.componentName ?? null,
 				...blockParts(p),
 			};
 		});

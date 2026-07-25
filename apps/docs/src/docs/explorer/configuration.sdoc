@@ -33,6 +33,7 @@
 	  routing?: 'history' | 'hash';
 	  base?: string;
 	  mcp?: boolean;
+	  components?: string | string[];
 	  static?: string;
 	  content?: {
 	    doc?: { maxWidth?: string; padding?: string; toc?: boolean; contentX?: string };
@@ -261,6 +262,24 @@
 	Turning it off removes the endpoint and the button. The explicit
 	`npx sdocs mcp` command is unaffected, and built sites never serve an MCP
 	endpoint either way.
+
+	### `components`
+
+	Glob(s) locating your component sources — what
+	[`sdocs coverage`](/cli/commands#sdocs-coverage) measures documentation
+	against.
+
+	- **Type:** `string | string[]`
+	- **Default:** the [`include`](#include) globs with `.sdoc` swapped for
+	  `.svelte`
+
+	The default is right whenever docs sit next to their components
+	(`./src/**/*.sdoc` → `./src/**/*.svelte`). Set it when they don't, or to
+	narrow coverage to your public API:
+
+	```js
+	components: './src/lib/components/**/*.svelte'
+	```
 
 	### `content`
 

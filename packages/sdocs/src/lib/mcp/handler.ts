@@ -9,6 +9,7 @@ import { loadConfig } from '../server/config.js';
 import { discoverDocFiles } from '../server/discovery.js';
 import { buildSections } from '../explorer/tree-builder.js';
 import { checkDocFiles } from '../server/check.js';
+import { measureCoverage } from '../server/coverage.js';
 import type { DocEntry, ParsedProp } from '../types.js';
 
 /**
@@ -152,6 +153,19 @@ const TOOLS = [
 				},
 			},
 		},
+	},
+	{
+		name: 'check_coverage',
+		description:
+			'Documentation coverage: which components have a [component] preview ' +
+			'and which do not. Compares the component source globs (config ' +
+			'`components`, defaulting to the include globs with .sdoc swapped for ' +
+			'.svelte) against every [component] in the project, resolved with the ' +
+			"Explorer's own resolver — so a compound family counts per " +
+			'sub-component. Reports undocumented files, components documented from ' +
+			'more than one .sdoc file, references that resolve to no file, and ' +
+			'documented components outside the globs.',
+		inputSchema: { type: 'object', properties: {} },
 	},
 	{
 		name: 'get_component_api',
@@ -409,6 +423,23 @@ async function checkDocs(params: Record<string, unknown>) {
 	});
 }
 
+async function checkCoverage() {
+	const cwd = process.cwd();
+	const config = await loadConfig(cwd);
+	const files = await discoverDocFiles(
+		config.include.map((p) => resolve(cwd, p)),
+		cwd,
+	);
+	const result = await measureCoverage(files, config.components, cwd);
+	return toolResult({
+		...result,
+		note:
+			result.counts.components === 0
+				? 'No component files matched — set `components` in sdocs.config.js to the globs locating them.'
+				: 'Undocumented components have no [component] preview. A compound family is measured per sub-component.',
+	});
+}
+
 // --- Result helpers ----------------------------------------------------------
 
 function toolResult(structured: Record<string, unknown>) {
@@ -498,6 +529,8 @@ async function dispatch(method: string, params: Record<string, unknown>): Promis
 					return getComponentApi(args);
 				case 'check_docs':
 					return checkDocs(args);
+				case 'check_coverage':
+					return checkCoverage();
 				default:
 					throw new RpcError(-32602, `Unknown tool "${String(params.name)}"`);
 			}

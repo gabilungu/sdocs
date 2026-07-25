@@ -26,6 +26,7 @@ Commands:
   build           Build the Explorer as a static site
   preview         Serve built site locally
   check           Compile every doc stage and report what breaks (exits 1 on error)
+  coverage        Report which components have a [component] preview
   init            Scaffold sdocs.config.js
   mcp             Serve the sdocs MCP server on stdio (authoring tools for agents)
 
@@ -77,6 +78,11 @@ async function main() {
 		case 'check': {
 			const { checkCommand } = await import('../commands/check.js');
 			await checkCommand();
+			break;
+		}
+		case 'coverage': {
+			const { coverageCommand } = await import('../commands/coverage.js');
+			await coverageCommand();
 			break;
 		}
 		case 'init': {

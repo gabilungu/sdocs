@@ -13,6 +13,7 @@
 	| `npx sdocs build` | Build a static documentation site to `dist/` |
 	| `npx sdocs preview` | Preview the built site locally |
 	| `npx sdocs check` | Compile every doc stage and report what breaks |
+	| `npx sdocs coverage` | Report which components have a `[component]` preview |
 	| `npx sdocs mcp` | Serve the sdocs MCP server on stdio — authoring tools for agents |
 
 	All commands read `sdocs.config.js` (or `sdocs.config.ts` / `sdocs.config.mjs`) from the current directory.
@@ -133,6 +134,35 @@
 	happen at runtime. The [MCP server](#sdocs-mcp)'s `check_docs` tool runs
 	the same check.
 
+	## `sdocs coverage`
+
+	Reports which components have a `[component]` preview and which don't,
+	measuring the [`components`](/explorer/configuration#components) globs
+	against every `[component]` in the project:
+
+	```bash
+	npx sdocs coverage
+	```
+
+	```
+	Undocumented (1):
+	  src/lib/components/Toast/Toaster.svelte
+
+	[sdocs] 41/42 components documented (98%) — matched src/**/*.svelte.
+	```
+
+	References resolve through the same resolver the Explorer uses, so a
+	compound family is measured **per sub-component**: `component={NavTree}`
+	and `component={NavTree.Item}` land on different files and each counts on
+	its own. Several previews of one component *within a single* `.sdoc` is a
+	supported pattern (tabs) and is never reported as a duplicate — only a
+	component documented from **more than one file** is.
+
+	It also reports `[component]` references with no component source behind
+	them, and documented components that fall outside the globs (usually a sign
+	the globs are too narrow). It's a report, not a gate: it always exits 0.
+	The [MCP server](#sdocs-mcp)'s `check_coverage` tool returns the same data.
+
 	## `sdocs mcp`
 
 	Serves the sdocs [MCP](https://modelcontextprotocol.io) server on stdio, so
@@ -157,6 +187,10 @@
 	  relative imports, and grammar diagnostics; the same check as
 	  [`sdocs check`](#sdocs-check). Takes an optional `file` to check one
 	  document.
+	- **`check_coverage`** — which components have a `[component]` preview and
+	  which don't, plus duplicates, unresolved references, and components
+	  outside the globs; the same data as
+	  [`sdocs coverage`](#sdocs-coverage).
 	- **`get_component_api`** — a component's full extracted API: props (types,
 	  defaults, descriptions), events, snippets, methods, states, CSS custom
 	  properties, and `class`/`…rest` forwarding — see

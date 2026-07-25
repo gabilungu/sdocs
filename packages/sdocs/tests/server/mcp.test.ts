@@ -67,7 +67,7 @@ describe('MCP handler', () => {
 		expect((await rpc('nope/nope')).error?.code).toBe(-32601);
 	});
 
-	it('lists the six tools', async () => {
+	it('lists the seven tools', async () => {
 		const { result } = await rpc('tools/list');
 		const names = (result as { tools: { name: string }[] }).tools.map((t) => t.name);
 		expect(names).toEqual([
@@ -76,6 +76,7 @@ describe('MCP handler', () => {
 			'get_authoring_guide',
 			'list_docs',
 			'check_docs',
+			'check_coverage',
 			'get_component_api',
 		]);
 	});
@@ -224,6 +225,28 @@ describe('MCP handler', () => {
 			expect(result.errorCount).toBeGreaterThan(0);
 			expect(result.checked.stages).toBe(2);
 			expect(result.problems.some((p: any) => p.stage === 'Unclosed')).toBe(true);
+		} finally {
+			process.chdir(prev);
+		}
+	});
+
+	it('reports documentation coverage with check_coverage', async () => {
+		const dir = mkdtempSync(join(tmpdir(), 'sdocs-mcp-cov-'));
+		writeFileSync(join(dir, 'sdocs.config.js'), 'export default {\n\tinclude: ["./**/*.sdoc"],\n};\n');
+		const component = '<script lang="ts">\n\tlet { label = "hi" } = $props();\n</script>\n\n<span>{label}</span>\n';
+		writeFileSync(join(dir, 'Shown.svelte'), component);
+		writeFileSync(join(dir, 'Hidden.svelte'), component);
+		writeFileSync(
+			join(dir, 'Shown.sdoc'),
+			'<script lang="ts">\n\timport Shown from "./Shown.svelte";\n</script>\n\n' +
+				'[SHOWCASE title="Shown"]\n\t[component component={Shown}]\n\t\t<Shown />\n\t[/component]\n[/SHOWCASE]\n',
+		);
+		const prev = process.cwd();
+		process.chdir(dir);
+		try {
+			const result = (await callTool('check_coverage')).structuredContent as Record<string, any>;
+			expect(result.counts).toMatchObject({ components: 2, documented: 1, undocumented: 1 });
+			expect(result.undocumented).toEqual(['Hidden.svelte']);
 		} finally {
 			process.chdir(prev);
 		}

@@ -20,6 +20,7 @@ const DEFAULTS: ResolvedSdocsConfig = {
 	routing: null,
 	base: '/',
 	mcp: true,
+	components: [],
 	content: {
 		doc: { maxWidth: '1200px', padding: '32px', toc: true, contentX: 'left' },
 		page: { maxWidth: '1200px', padding: '32px', contentX: 'left' },
@@ -47,6 +48,16 @@ export function findConfigFile(root: string): string | null {
 }
 
 /** Resolve include glob patterns to absolute paths */
+/** Component globs for coverage: the configured value, or the include globs
+ * with `.sdoc` swapped for `.svelte` (docs commonly sit beside components). */
+function normalizeComponents(
+	components: string | string[] | undefined,
+	include: string[],
+): string[] {
+	if (components) return Array.isArray(components) ? components : [components];
+	return include.map((p) => p.replace(/\.sdoc$/, '.svelte'));
+}
+
 function resolveIncludePatterns(patterns: string[], root: string): string[] {
 	return patterns.map((p) => (p.startsWith('/') ? p : resolve(root, p)));
 }
@@ -88,6 +99,7 @@ export function resolveAndFinalize(
 ): ResolvedSdocsConfig {
 	const resolved = resolveConfig(userConfig);
 	resolved.include = resolveIncludePatterns(resolved.include, root);
+	resolved.components = resolveIncludePatterns(resolved.components, root);
 	resolved.css = resolveCssPaths(resolved.css, root);
 	if (resolved.static) resolved.static = resolve(root, resolved.static);
 	return resolved;
@@ -163,6 +175,9 @@ export function resolveConfig(userConfig: SdocsConfig | ResolvedSdocsConfig): Re
 		routing: userConfig.routing ?? DEFAULTS.routing,
 		base: normalizeBase(userConfig.base),
 		mcp: userConfig.mcp ?? DEFAULTS.mcp,
+		// Coverage measures docs against these; without an explicit setting,
+		// look for components wherever the docs live.
+		components: normalizeComponents(userConfig.components, include),
 		content: {
 			doc: { ...DEFAULTS.content.doc, ...userConfig.content?.doc },
 			page: { ...DEFAULTS.content.page, ...userConfig.content?.page },

@@ -38,6 +38,11 @@ export interface SdocsConfig {
 	 * top-bar MCP button). Default: true. The explicit `sdocs mcp` command is
 	 * unaffected; built sites never carry an MCP endpoint. */
 	mcp?: boolean;
+	/** Glob(s) locating the components documentation coverage is measured
+	 * against (`sdocs coverage`, the MCP `check_coverage` tool). Defaults to
+	 * the `include` globs with `.sdoc` swapped for `.svelte` — right when docs
+	 * sit next to their components; set it when they don't. */
+	components?: string | string[];
 
 	/** Content presentation per entity kind; entity/block attributes override these. */
 	content?: {
@@ -138,6 +143,8 @@ export interface ResolvedSdocsConfig {
 	base: string;
 	/** Serve the MCP server (endpoint + top-bar button) in dev. */
 	mcp: boolean;
+	/** Globs locating component sources, for documentation coverage. */
+	components: string[];
 	content: {
 		doc: Required<ContentSizing> & { toc: boolean; contentX: string };
 		page: Required<ContentSizing> & { contentX: string };

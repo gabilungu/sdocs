@@ -130,6 +130,11 @@ export const configSchema: ConfigSchema = {
 		doc: "Route path of the landing page, e.g. `'guides/introduction'`. Must resolve to an entity; without it the root shows the About page.",
 		insert: ": '$0'",
 	},
+	components: {
+		detail: 'string | string[]',
+		doc: 'Glob(s) locating component sources for documentation coverage (`sdocs coverage`). Default: the `include` globs with `.sdoc` swapped for `.svelte`.',
+		insert: ": '$0'",
+	},
 	mcp: {
 		detail: 'boolean',
 		doc: 'Serve the MCP server while `sdocs dev` runs (the `/mcp` endpoint and the top-bar MCP button). Default: `true`. Built sites never carry an MCP endpoint.',

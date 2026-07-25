@@ -44,7 +44,11 @@
 	component it demonstrates and declares the defaults for its
 	[interactive controls](/explorer/features/interactive-controls). (The
 	block resolves a compound sub-component too — `component={NavTree.Item}` —
-	so a single `import NavTree from './index.js'` documents the whole family.)
+	so a single `import NavTree from './index.js'` documents the whole family.
+	The index module is read as TypeScript, so the root resolves through
+	`export default`, `export { X as default }`, `Object.assign(Root, …)`, and
+	type-annotated forms like
+	`const Nav: typeof Root & { Item: typeof Item } = Object.assign(…)`.)
 
 	| Attribute | Required | Meaning |
 	|---|---|---|

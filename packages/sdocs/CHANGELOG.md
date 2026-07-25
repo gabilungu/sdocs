@@ -7,6 +7,153 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.111] - 2026-07-25
+
+### Changed
+
+- **`sdocs build` now fails on a `component={…}` reference that resolves to no
+  component file**, with the same message and the same file/line `sdocs check`
+  prints. Until now the build only warned and exited 0, so a preview whose API
+  tables and controls had silently vanished could still deploy — `check` and
+  `build` disagreed about the same document. The dev server still only warns:
+  a typo shouldn't take the server down while you fix it.
+
+### Fixed
+
+- **A compound root with a TypeScript type annotation resolves.**
+  `const ListBox: typeof Root & { Option: typeof Option } = Object.assign(Root,
+  { Option })` resolved its members but not its root — the annotation sits
+  between the binding and the `=`, where the resolver wasn't looking. Module
+  resolution now reads the real TypeScript AST instead of matching source text,
+  so annotations, line breaks, and formatting no longer change the outcome, and
+  code inside comments and strings is no longer mistaken for a binding.
+- A `component={…}` whose import resolves to a path with no file on disk is now
+  reported like an unresolved reference instead of a bare parse warning.
+
+## [0.0.110] - 2026-07-25
+
+### Added
+
+- An **About** button in the top bar, after the fullscreen control — a real
+  link to the About page, so middle-click and open-in-new-tab work.
+
+## [0.0.109] - 2026-07-25
+
+### Fixed
+
+- **A preview no longer renders blank when its component reads a required prop
+  immediately.** The generated stage started with `args = {}` and received the
+  declared `args={{ … }}` only afterwards, so a component dereferencing a
+  required prop threw before the first update. The declared args now seed the
+  stage's initial state (they're plain literals by design, so they serialize
+  exactly), and a stage that throws anyway shows the error in place instead of
+  leaving an unexplained blank frame.
+- **`--help` and `--version` never run a command.** `sdocs build --help`
+  started a full production build and wrote `dist/` — which could overwrite
+  another tool's package output. Both flags are now recognised anywhere in the
+  arguments and handled before dispatch.
+- **Compound roots resolve from more index shapes.** `export default
+  Object.assign(Base, { … })` written inline resolved its members but not its
+  root (the identifier after `export default` is `Object`). Barrel files
+  (`export { default as X } from './X.svelte'`) and named or aliased imports
+  (`import { X }`, `import { Y as X }`) now resolve too. A default import from
+  a module with no default export still correctly resolves to nothing.
+- **Generated prose no longer reports `a11y_no_noninteractive_tabindex`.**
+  shiki emits `<pre tabindex="0">` for scrollable code blocks — correct, and
+  not the author's markup — so the warning is filtered for generated page
+  modules during dev, build, and `sdocs check`. Stages and the project's own
+  components keep the warning.
+
+### Added
+
+- `sdocs check` reports a `component={…}` that resolves to no component file
+  as an error. The preview still renders, but its API tables and controls
+  silently don't — the build only warns, so this is the gate for it.
+
+## [0.0.108] - 2026-07-25
+
+### Added
+
+- **`sdocs coverage`** and the MCP **`check_coverage`** tool: which components
+  have a `[component]` preview and which don't. References resolve through the
+  Explorer's own resolver, so a compound family is measured **per
+  sub-component** (`component={NavTree}` and `component={NavTree.Item}` land
+  on different files). Also reports components documented from more than one
+  `.sdoc` file, `[component]` references with no component source behind them,
+  and documented components outside the globs. Several previews of one
+  component *within* one file is a supported pattern and is never flagged as a
+  duplicate. It's a report, not a gate — the command always exits 0.
+- **`components`** config option: the glob(s) coverage measures against.
+  Defaults to the `include` globs with `.sdoc` swapped for `.svelte`, which is
+  right whenever docs sit beside their components; set it when they don't, or
+  to narrow coverage to the public API.
+
+## [0.0.107] - 2026-07-25
+
+### Added
+
+- **`sdocs check`** and the MCP **`check_docs`** tool: compile every
+  documentation stage — each `[component]` preview, each `[example]`, and
+  every `[DOC]`/`[PAGE]`/`[LAYOUT]` body — the way the dev server does, and
+  report what breaks. This catches the class of problem the grammar check
+  can't see, which until now surfaced only when the route was opened:
+  - Svelte compile errors inside a stage,
+  - relative imports that resolve to no file on disk (read with the same
+    scanner the import rewriter uses, so an import-shaped line inside a code
+    sample is never mistaken for one, and a Vite query like `?raw` resolves),
+  - grammar diagnostics from the parser.
+
+  Each problem names the file (with a `.sdoc` line where it maps back
+  cleanly), the entity, and the stage. The CLI exits **1** on any error, so CI
+  can gate on it; `check_docs` takes an optional `file` to check one document.
+  Neither type-checks, and neither can see runtime-only failures.
+
+## [0.0.106] - 2026-07-25
+
+### Added
+
+- `list_docs` returns the **route** each entity serves at, plus one per
+  example. The routes come from the Explorer's own router — folders, sections,
+  and `slug=` overrides included — so automation can open every page without
+  reimplementing the slug rules.
+
+### Fixed
+
+- A native attribute inherited through the Props heritage
+  (`interface Props extends HTMLAttributes<…>`) is no longer reported as
+  **required** when it's destructured explicitly instead of left in `...rest`.
+  Requiredness now comes from the declaration; only an untyped component still
+  falls back to "no default means required".
+- A file-level `<style>` no longer produces false unused-selector warnings in
+  the dev-server output. The same block is injected into every stage *and*
+  into the generated DOC/PAGE component, where stage-targeting selectors match
+  nothing — that one diagnostic is now filtered for `/@sdocs/` modules only,
+  so the project's own components keep every warning they'd normally get.
+
+### Changed
+
+- The slug algorithm is documented explicitly, including that **CamelCase is
+  not split** (`IconButton` → `iconbutton`, not `icon-button`) and that
+  `slug="…"` on the entity opener overrides the segment.
+
+## [0.0.105] - 2026-07-24
+
+### Changed
+
+- Sidebar polish: the chevron is an independent rounded-square toggle inside
+  the item (click it to expand/collapse without navigating; white on hover);
+  clicking the item you're already on toggles it; items without children have
+  no chevron; a divider sits under the search box; root items get the same
+  1px gap as nested ones; and no more horizontal scrollbar when the vertical
+  one appears.
+
+### Fixed
+
+- A `Snippet` whose parameter type contains an arrow (e.g.
+  `Snippet<[{ close: () => void }]>`) is coloured as a snippet, not a function.
+
+## [0.0.104] - 2026-07-24
+
 ### Fixed
 
 - The resize canvas beside the stages draws its diagonal hatch from a tiled

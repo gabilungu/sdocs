@@ -153,6 +153,64 @@ describe('resolveComponentImport — other index shapes', () => {
 		);
 	});
 
+	it('follows a compound root carrying a TypeScript type annotation', () => {
+		// `const X: SomeType = Object.assign(…)` — the annotation sits between
+		// the binding and the `=`, which is invisible to the AST but fatal to
+		// anything reading the source as text.
+		writeFileSync(
+			join(dir, 'index.ts'),
+			[
+				"import Root from './ListBox.svelte';",
+				"import Option from './Option.svelte';",
+				'',
+				'const ListBox: typeof Root & { Option: typeof Option } =',
+				'  Object.assign(Root, { Option });',
+				'',
+				'export default ListBox;',
+				'',
+			].join('\n'),
+		);
+		const imports = ["import ListBox from './index.js';"];
+		expect(resolveComponentImport('ListBox', imports, sdocPath)).toBe(join(dir, 'ListBox.svelte'));
+		expect(resolveComponentImport('ListBox.Option', imports, sdocPath)).toBe(
+			join(dir, 'Option.svelte'),
+		);
+	});
+
+	it('follows an annotated alias that is not an Object.assign at all', () => {
+		writeFileSync(
+			join(dir, 'index.ts'),
+			[
+				"import Root from './ListBox.svelte';",
+				'const ListBox: typeof Root = Root;',
+				'export { ListBox as default };',
+				'',
+			].join('\n'),
+		);
+		expect(
+			resolveComponentImport('ListBox', ["import ListBox from './index.js';"], sdocPath),
+		).toBe(join(dir, 'ListBox.svelte'));
+	});
+
+	it('does not mistake an import inside a comment or string for a binding', () => {
+		// Text-matching resolvers happily read code out of comments; the AST
+		// never sees them.
+		writeFileSync(
+			join(dir, 'index.ts'),
+			[
+				"import Root from './ListBox.svelte';",
+				"// const ListBox = Object.assign(Wrong, {});",
+				"const sample = \"const ListBox = Object.assign(AlsoWrong, {})\";",
+				'const ListBox: typeof Root = Root;',
+				'export default ListBox;',
+				'',
+			].join('\n'),
+		);
+		expect(
+			resolveComponentImport('ListBox', ["import ListBox from './index.js';"], sdocPath),
+		).toBe(join(dir, 'ListBox.svelte'));
+	});
+
 	it('follows an aliased named import', () => {
 		writeFileSync(
 			join(dir, 'index.ts'),

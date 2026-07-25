@@ -93,6 +93,11 @@ build, printing each problem with its file, entity, and stage, and exiting 1
 when anything errors — the CI gate for "do all the docs still work?". The MCP
 `check_docs` tool runs the same check.
 
+A build fails on site-structure errors (unknown `@section`, two entities on one
+route, an unresolvable `home`) and on a `component={…}` reference that resolves
+to no component file — the same error `check` reports. The dev server only warns
+about the latter, so the doc can be fixed while it runs.
+
 Because `run`/`build` need no local install, CI can build a docs site from a
 project that doesn't even depend on sdocs: `npx --yes sdocs build` then publish
 `dist/`.
@@ -328,6 +333,10 @@ Attributes: `title` (required), `description` (inline markdown), `slug`, `hide`
 - `component={X}` (required) — an identifier imported in a `<script>`. Drives
   prop extraction and the interactive controls. Compound members resolve too —
   `component={NavTree.Item}` from a single `import NavTree from './index.js'`.
+  The index module is read as TypeScript, so the root resolves through
+  `export default`, `export { X as default }`, `Object.assign(Root, …)`, and
+  annotated forms (`const Nav: typeof Root & { Item: typeof Item } = …`).
+  A reference that resolves to nothing is an error in `check` and in a build.
 - `args={{ … }}` (optional) — this preview's control defaults. In scope in the
   body: spread it (`<X {...args} />`), pick from it, or ignore it.
 - `title` (tab label — defaults to the component name; set it to distinguish two

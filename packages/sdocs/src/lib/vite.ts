@@ -1,5 +1,6 @@
 import type { Plugin, ViteDevServer } from 'vite';
 import { readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { loadRawConfig, resolveAndFinalize } from './server/config.js';
 import { discoverDocFiles, globBase } from './server/discovery.js';
@@ -545,14 +546,23 @@ export function sdocsPlugin(
 							[...blockImports, ...entityImports, ...imports],
 							filePath,
 						);
+						// A path that resolved but names no file is just as broken as
+						// one that never resolved — `sdocs check` treats them alike.
+						if (componentPath && !existsSync(componentPath)) componentPath = null;
 						if (componentPath) {
 							const loaded = await loadComponent(componentPath);
 							componentData = loaded.data;
 							highlightedSource = loaded.highlighted;
 						} else {
-							console.warn(
-								`[sdocs] ${filePath}: component {${preview.componentName}} is not imported in the file's <script> or the block's`,
-							);
+							const pos = offsetToPosition(source, preview.span.start);
+							const where = `${filePath}:${pos.line + 1}:${pos.column + 1}`;
+							const message =
+								`component={${preview.componentName}} doesn't resolve to a component file — ` +
+								"check the import in the file's, the entity's, or the block's <script>.";
+							console.warn(`[sdocs] ${where} — ${message}`);
+							// The preview would ship as an empty stage. Dev keeps
+							// running so the doc can be fixed in place; a build stops.
+							if (isBuild) buildErrors.push(`${where} — ${message}`);
 						}
 					}
 					snippet.stage = stageOf(preview.sizing);

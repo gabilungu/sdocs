@@ -6,6 +6,7 @@
 
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
+import ts from 'typescript';
 import type { SdocEntity } from '../language/index.js';
 import { exampleSlug, previewSlug } from '../language/parser.js';
 import { scrubScriptText } from '../language/script-scan.js';
@@ -188,32 +189,111 @@ function readModule(path: string): { source: string; path: string } | null {
 	return null;
 }
 
-/** Trace a binding inside a JS/TS module to the .svelte file it ultimately
- * refers to — following default imports, `const X = Object.assign(Base, …)`
- * (the compound-component idiom), and plain `const X = Y` aliases. */
-function resolveInModule(name: string, source: string, modulePath: string, depth: number): string | null {
-	if (depth <= 0) return null;
-	const target = importedPath(name, [source], modulePath);
-	if (target) return followToSvelte(target.path, target.binding, depth - 1);
-	// `export { default as X } from './X.svelte'` — the barrel-file idiom, where
-	// the binding never exists locally. `export { Y as X } from '…'` follows Y
-	// into that module; a bare `export { X } from '…'` follows X.
-	const reExport = source.match(
-		new RegExp(`export\\s*\\{[^}]*?\\b(?:([A-Za-z_$][\\w$]*)\\s+as\\s+)?${name}\\b[^}]*\\}\\s*from\\s*['"](.+?)['"]`),
-	);
-	if (reExport) {
-		const from = resolve(dirname(modulePath), reExport[2]);
-		const source_name = reExport[1] ?? name;
-		return source_name === 'default'
-			? followToSvelte(from, null, depth - 1)
-			: followToSvelte(from, source_name, depth - 1);
+/** Parse a JS/TS module once, for binding lookups. */
+function parseModule(source: string, path: string): ts.SourceFile {
+	return ts.createSourceFile(path, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+}
+
+/** The identifier a compound initializer points at:
+ * `Object.assign(Base, …)` → `Base`, a bare `Base` → `Base`. */
+function initializerTarget(expr: ts.Expression): string | null {
+	if (ts.isIdentifier(expr)) return expr.text;
+	if (
+		ts.isCallExpression(expr) &&
+		ts.isPropertyAccessExpression(expr.expression) &&
+		ts.isIdentifier(expr.expression.expression) &&
+		expr.expression.expression.text === 'Object' &&
+		expr.expression.name.text === 'assign' &&
+		expr.arguments.length > 0
+	) {
+		const first = expr.arguments[0];
+		return ts.isIdentifier(first) ? first.text : null;
 	}
-	// `const X = Object.assign(Base, { … })` → the Base component
-	const assign = source.match(new RegExp(`\\b${name}\\s*=\\s*Object\\.assign\\(\\s*([A-Za-z_$][\\w$]*)`));
-	if (assign) return resolveInModule(assign[1], source, modulePath, depth - 1);
-	// `const X = Y` alias
-	const alias = source.match(new RegExp(`\\b${name}\\s*=\\s*([A-Za-z_$][\\w$]*)\\s*[;\\n]`));
-	if (alias) return resolveInModule(alias[1], source, modulePath, depth - 1);
+	return null;
+}
+
+/** What a module exports as `default`: the identifier it ultimately names. */
+function defaultExportTarget(file: ts.SourceFile): string | null {
+	for (const stmt of file.statements) {
+		if (ts.isExportAssignment(stmt) && !stmt.isExportEquals) {
+			return initializerTarget(stmt.expression);
+		}
+		// `export { X as default }`
+		if (ts.isExportDeclaration(stmt) && stmt.exportClause && ts.isNamedExports(stmt.exportClause)) {
+			for (const el of stmt.exportClause.elements) {
+				if (el.name.text === 'default') return (el.propertyName ?? el.name).text;
+			}
+		}
+	}
+	return null;
+}
+
+/**
+ * Trace a binding inside a JS/TS module to the `.svelte` file it refers to.
+ *
+ * Reads the real TypeScript AST rather than matching source text: a compound
+ * root is commonly annotated —
+ * `const X: typeof Root & { Y: typeof Y } = Object.assign(Root, { Y })` —
+ * and any pattern-matching over the raw text has to anticipate every shape the
+ * annotation can take. The AST just tells us.
+ */
+function resolveInModule(
+	name: string,
+	source: string,
+	modulePath: string,
+	depth: number,
+): string | null {
+	if (depth <= 0) return null;
+	const file = parseModule(source, modulePath);
+	const dir = dirname(modulePath);
+
+	for (const stmt of file.statements) {
+		// `import X from '…'` / `import { Y as X } from '…'`
+		if (ts.isImportDeclaration(stmt) && ts.isStringLiteral(stmt.moduleSpecifier)) {
+			const clause = stmt.importClause;
+			if (!clause) continue;
+			const from = resolve(dir, stmt.moduleSpecifier.text);
+			if (clause.name?.text === name) return followToSvelte(from, null, depth - 1);
+			if (clause.namedBindings && ts.isNamedImports(clause.namedBindings)) {
+				for (const el of clause.namedBindings.elements) {
+					if (el.name.text !== name) continue;
+					const sourceName = (el.propertyName ?? el.name).text;
+					return followToSvelte(from, sourceName === 'default' ? null : sourceName, depth - 1);
+				}
+			}
+			continue;
+		}
+
+		// `export { default as X } from '…'` — the barrel idiom, where the
+		// binding never exists locally.
+		if (
+			ts.isExportDeclaration(stmt) &&
+			stmt.exportClause &&
+			ts.isNamedExports(stmt.exportClause) &&
+			stmt.moduleSpecifier &&
+			ts.isStringLiteral(stmt.moduleSpecifier)
+		) {
+			const from = resolve(dir, stmt.moduleSpecifier.text);
+			for (const el of stmt.exportClause.elements) {
+				if (el.name.text !== name) continue;
+				const sourceName = (el.propertyName ?? el.name).text;
+				return followToSvelte(from, sourceName === 'default' ? null : sourceName, depth - 1);
+			}
+			continue;
+		}
+
+		// `const X[: SomeType] = Object.assign(Base, …)` or `= Base`. The type
+		// annotation is just another node here — nothing to pattern-match past.
+		if (ts.isVariableStatement(stmt)) {
+			for (const decl of stmt.declarationList.declarations) {
+				if (!ts.isIdentifier(decl.name) || decl.name.text !== name || !decl.initializer) continue;
+				const target = initializerTarget(decl.initializer);
+				if (target && target !== name) {
+					return resolveInModule(target, source, modulePath, depth - 1);
+				}
+			}
+		}
+	}
 	return null;
 }
 
@@ -226,16 +306,7 @@ function followToSvelte(path: string, member: string | null, depth: number): str
 	const mod = readModule(path);
 	if (!mod) return path.endsWith('.svelte') ? path : null;
 	if (member) return resolveInModule(member, mod.source, mod.path, depth);
-	// Bare identifier landing on a module → its default export. The compound
-	// idiom is often written inline (`export default Object.assign(Base, …)`),
-	// where the first identifier is `Object` — take the assign target instead.
-	const inlineAssign = mod.source.match(
-		/export\s+default\s+Object\.assign\(\s*([A-Za-z_$][\w$]*)/,
-	)?.[1];
-	const def =
-		inlineAssign ??
-		mod.source.match(/export\s+default\s+([A-Za-z_$][\w$]*)/)?.[1] ??
-		mod.source.match(/export\s*\{[^}]*\b([A-Za-z_$][\w$]*)\s+as\s+default\b/)?.[1];
+	const def = defaultExportTarget(parseModule(mod.source, mod.path));
 	return def ? resolveInModule(def, mod.source, mod.path, depth) : null;
 }
 

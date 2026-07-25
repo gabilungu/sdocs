@@ -81,7 +81,10 @@
 
 	Builds a static site to `dist/`. Site-structure errors — an unknown
 	`@section`, two entities on one route, an unresolvable `home` — fail the
-	build with a non-zero exit, so a broken structure can't deploy.
+	build with a non-zero exit, so a broken structure can't deploy. So does a
+	`component={…}` reference that resolves to no component file: the same
+	error [`sdocs check`](#sdocs-check) reports, on the same terms. The dev
+	server only warns about it, so a doc can be fixed while it runs.
 
 	Every route is **prerendered**: its `index.html` contains the page's real
 	HTML (sidebar, prose, a per-route `<title>`, the showcase description as
@@ -119,7 +122,7 @@
 	- **grammar diagnostics** from the parser,
 	- **`component={…}` references that resolve to no component file** — the
 	  preview still renders, but its API tables and controls silently don't, so
-	  `check` treats it as an error you can gate on (the build only warns).
+	  it's an error here and a [build](#sdocs-build) failure too.
 
 	Each problem prints its file (with a line where it maps back cleanly), the
 	entity, and the stage:

@@ -531,6 +531,23 @@ export interface ParsedSnippetId {
 	snippetSlug: string;
 }
 
+/**
+ * Svelte `compilerOptions.warningFilter` for sdocs' generated modules.
+ *
+ * A file-level `<style>` is documented as CSS for the file's stages, and the
+ * same block is injected into every stage *and* into the DOC/PAGE component.
+ * In the stages it's a global `{@html}` block; in the page component it's a
+ * real scoped style, so Svelte correctly reports every stage-targeting
+ * selector as unused there — a warning about markup that lives in another
+ * compilation unit. Drop that one diagnostic for `/@sdocs/` modules only;
+ * the project's own components keep every warning they'd normally get.
+ */
+export function sdocsWarningFilter(warning: { code: string; filename?: string }): boolean {
+	return !(
+		warning.code === 'css_unused_selector' && (warning.filename ?? '').includes('/@sdocs/')
+	);
+}
+
 /** Build the virtual module ID for an iframe wrapper component */
 export function iframeVirtualId(docFilePath: string, entitySlug: string, snippetSlug: string): string {
 	return `/@sdocs/iframe/${encodeEntityId(docFilePath, entitySlug)}/${snippetSlug}.svelte`;

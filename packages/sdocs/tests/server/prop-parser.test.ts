@@ -148,6 +148,45 @@ describe('untyped JS components', () => {
 	});
 });
 
+describe('inherited attributes pulled out of ...rest', () => {
+	it('an explicitly destructured native attribute stays optional', () => {
+		const data = parseComponentSource(`<script lang="ts">
+	import type { HTMLAttributes } from 'svelte/elements';
+
+	interface Props extends HTMLAttributes<HTMLDivElement> {
+		text: string;
+	}
+
+	let { text, style, id, title, ...rest }: Props = $props();
+</script>
+
+<div {style} {id} {title} {...rest}>{text}</div>`);
+		// Declared and non-optional in the interface — genuinely required.
+		expect(byName(data.props, 'text').required).toBe(true);
+		// Inherited through the heritage: destructuring one out of ...rest must
+		// not turn it into a required prop.
+		for (const name of ['style', 'id', 'title']) {
+			expect(byName(data.props, name).required).toBe(false);
+		}
+	});
+
+	it('a destructured aria attribute stays optional too', () => {
+		const data = parseComponentSource(`<script lang="ts">
+	import type { HTMLButtonAttributes } from 'svelte/elements';
+
+	interface Props extends HTMLButtonAttributes {
+		label?: string;
+	}
+
+	let { label, 'aria-label': ariaLabel, ...rest }: Props = $props();
+</script>
+
+<button aria-label={ariaLabel} {...rest}>{label}</button>`);
+		const aria = data.props.find((p) => p.name.includes('aria-label'));
+		expect(aria?.required).toBe(false);
+	});
+});
+
 describe('class / ...rest forwarding (chips, not prop rows)', () => {
 	it('TS: extends HTMLAttributes + class alias + rest spread', () => {
 		const data = parseComponentSource(`<script lang="ts">

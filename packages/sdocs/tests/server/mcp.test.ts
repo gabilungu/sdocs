@@ -195,6 +195,8 @@ describe('MCP handler', () => {
 				entities: [{ kind: 'SHOWCASE', title: 'Forms / Button', components: ['Button'] }],
 			});
 			expect(result.docs[0].file).toBe('Button.sdoc');
+			// The route the site actually serves — folders and slug rules included.
+			expect(result.docs[0].entities[0].route).toBe('/docs/forms/button');
 		} finally {
 			process.chdir(prev);
 		}

@@ -108,8 +108,11 @@ Explorer uses:
 - `get_authoring_guide {}` — this guide. Also exposed as the
   `sdocs://authoring-guide` resource.
 - `list_docs {}` — map the project's documentation: every `.sdoc` file the
-  config's `include` globs match, each with its entities (kind, title) and the
-  components its previews document.
+  config's `include` globs match, each with its entities (kind, title), the
+  **route** each one serves at (plus a route per example), and the components
+  its previews document. The routes come from the Explorer's own router, so
+  they're exactly what the site serves — drive a browser over them to smoke
+  test every page.
 - `get_component_api { componentPath }` — a component's full extracted API:
   props (types, defaults, descriptions), events, snippets, methods, states,
   CSS custom properties, and class/rest forwarding.
@@ -260,6 +263,14 @@ hierarchy:
 
 Combine all three: `title="@components/:Layout / sdocs / Button"` → the
 `components` tab, the **LAYOUT** group, an `sdocs` folder, a Button page.
+
+**How a segment becomes a route slug**: lowercase → strip anything that isn't a
+word character, whitespace, or `-` → replace runs of whitespace and `_` with a
+single `-`. **CamelCase is not split**, so `IconButton` becomes `iconbutton`,
+not `icon-button`. Write the title with a space (`'Icon Button'`) or override
+the segment on the opener — `slug="icon-button"` (lowercase letters, digits,
+and hyphens only). `list_docs` returns the resolved route for every entity, so
+an agent never has to reimplement this.
 
 Two more structural facts:
 

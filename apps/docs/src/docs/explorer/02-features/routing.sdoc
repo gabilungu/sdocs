@@ -20,14 +20,34 @@
 
 	## Slugs
 
-	Each title segment is slugified the same way page headings are: lowercased,
-	punctuation stripped, spaces as hyphens.
+	Each title segment is slugified the same way page headings are, in exactly
+	these steps:
+
+	1. lowercase the segment,
+	2. strip everything that isn't a word character, whitespace, or `-`,
+	3. trim, then replace runs of whitespace and `_` with a single `-`.
 
 	| Title | Route |
 	|---|---|
 	| `'Components / Button'` | `/components/button` |
 	| `'Patterns / Login Form'` | `/patterns/login-form` |
 	| `'@guides/Getting Started'` | `/guides/getting-started` |
+	| `'Components / IconButton'` | `/components/iconbutton` |
+
+	> [!IMPORTANT]
+	> **CamelCase is not split.** Only whitespace and underscores become
+	> hyphens, so `IconButton` slugifies to `iconbutton`, not `icon-button`.
+	> Either write the title with a space (`'Icon Button'`) or set the segment
+	> explicitly with `slug="icon-button"` on the entity opener:
+	>
+	> ```sdoc
+	> [SHOWCASE title="@components/IconButton" slug="icon-button"]
+	> ```
+	>
+	> The `slug` value must be lowercase letters, digits, and hyphens — anything
+	> else is a build error. `list_docs` (see the
+	> [MCP server](/cli/commands#sdocs-mcp)) reports the resolved route for
+	> every entity, so you never have to guess.
 
 	Two entities that resolve to the same route are an **error** (shown
 	full-page in dev; `sdocs build` fails) — give one a `slug="…"`. URLs never

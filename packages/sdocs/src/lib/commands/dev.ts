@@ -7,6 +7,7 @@ import { loadConfig } from '../server/config.js';
 import { sdocsPlugin } from '../vite.js';
 import { mcpHttpHandler } from '../mcp/http.js';
 import { generateDevFiles, cleanBuildFiles } from '../server/app-gen.js';
+import { sdocsWarningFilter } from '../server/snippet-compiler.js';
 
 const require = createRequire(import.meta.url);
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -65,6 +66,7 @@ export async function devCommand(): Promise<void> {
 					// where vite-plugin-svelte doesn't serve virtual CSS modules for
 					// components; inject styles into the JS instead.
 					css: 'injected',
+					warningFilter: sdocsWarningFilter,
 				},
 			}),
 			sdocsPlugin({ ...config, include: absoluteIncludes }),

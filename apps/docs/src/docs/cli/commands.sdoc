@@ -116,8 +116,10 @@
 	  `sdocs://authoring-guide` resource, and on the web as
 	  [/llms.txt](/llms.txt)).
 	- **`list_docs`** — map the project's documentation: every `.sdoc` file the
-	  config's `include` globs match, each with its entities and the components
-	  its previews document.
+	  config's `include` globs match, each with its entities, the route each one
+	  serves at (plus a route per example), and the components its previews
+	  document. Routes come from the Explorer's own router, so they match the
+	  live site exactly.
 	- **`get_component_api`** — a component's full extracted API: props (types,
 	  defaults, descriptions), events, snippets, methods, states, CSS custom
 	  properties, and `class`/`…rest` forwarding — see

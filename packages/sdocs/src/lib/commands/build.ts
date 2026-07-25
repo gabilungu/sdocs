@@ -6,6 +6,7 @@ import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { loadConfig, normalizeBase } from '../server/config.js';
 import { sdocsPlugin } from '../vite.js';
 import { generateBuildFiles, cleanBuildFiles } from '../server/app-gen.js';
+import { sdocsWarningFilter } from '../server/snippet-compiler.js';
 import { discoverDocFiles } from '../server/discovery.js';
 import { parseSdoc } from '../language/index.js';
 import { planEntitySnippets } from '../server/doc-model.js';
@@ -53,7 +54,7 @@ export async function buildCommand(opts?: { base?: string }): Promise<void> {
 				dedupe: svelteDedupe(cwd),
 			},
 			plugins: [
-				svelte(),
+				svelte({ compilerOptions: { warningFilter: sdocsWarningFilter } }),
 				sdocsPlugin({ ...config, include: absoluteIncludes, _buildMode: true } as any),
 			],
 			// The site's public base path (config `base`, normalized) — asset
@@ -108,7 +109,7 @@ async function buildPrerenderer(
 			dedupe: svelteDedupe(cwd),
 		},
 		plugins: [
-			svelte(),
+			svelte({ compilerOptions: { warningFilter: sdocsWarningFilter } }),
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			sdocsPlugin({ ...config, include: absoluteIncludes, _buildMode: true } as any),
 		],

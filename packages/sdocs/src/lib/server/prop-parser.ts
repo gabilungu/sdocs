@@ -54,6 +54,7 @@ export function parseComponentSource(source: string): ComponentData {
 			typedProps.filter((p) => p.name !== 'class'),
 			destructured.props,
 			jsdocData,
+			typedProps.length > 0,
 		);
 		methods = parseExportedFunctions(tsAst);
 		state = parseExportedState(tsAst);
@@ -316,6 +317,8 @@ function mergeProps(
 	interfaceProps: InterfaceProp[],
 	destructuredProps: DestructuredProp[],
 	jsdocData: JsdocPropData[],
+	/** The component declares a typed Props shape (interface or JSDoc). */
+	typed = false,
 ): ParsedProp[] {
 	const propMap = new Map<string, ParsedProp>();
 
@@ -338,12 +341,17 @@ function mergeProps(
 			existing.default = dp.default;
 			if (dp.default !== null) existing.required = false;
 		} else {
+			// Destructured but not declared: an attribute inherited through the
+			// Props heritage (`extends HTMLAttributes<…>`) — explicitly pulled
+			// out of `...rest` — or an undeclared extra. Either way its
+			// requiredness isn't ours to assert, so only an *untyped* component
+			// falls back to "no default means required".
 			propMap.set(dp.name, {
 				name: dp.name,
 				type: null,
 				default: dp.default,
 				description: null,
-				required: dp.default === null,
+				required: !typed && dp.default === null,
 				category: 'prop',
 			});
 		}

@@ -7,7 +7,8 @@ import { offsetToPosition } from '../language/scanner.js';
 import { parseComponentSource } from '../server/prop-parser.js';
 import { loadConfig } from '../server/config.js';
 import { discoverDocFiles } from '../server/discovery.js';
-import type { ParsedProp } from '../types.js';
+import { buildSections } from '../explorer/tree-builder.js';
+import type { DocEntry, ParsedProp } from '../types.js';
 
 /**
  * The sdocs MCP server: authoring tools for agent clients, built directly on
@@ -122,8 +123,9 @@ const TOOLS = [
 		description:
 			"Map the current project's documentation: every .sdoc file the config's " +
 			'include globs match, each with its entities (kind, title) and the ' +
-			'components its previews document. Use it to see what exists — and what ' +
-			'is still undocumented — before writing docs.',
+			'components its previews document, plus the site route each entity ' +
+			'serves at (and one per example) — open those with a browser to smoke ' +
+			'test. Use it to see what exists before writing docs.',
 		inputSchema: { type: 'object', properties: {} },
 	},
 	{
@@ -234,6 +236,13 @@ async function scaffoldComponentDoc(params: Record<string, unknown>) {
 	});
 }
 
+const ENTITY_KIND_TO_DOC_KIND = {
+	SHOWCASE: 'component',
+	DOC: 'doc',
+	PAGE: 'page',
+	LAYOUT: 'layout',
+} as const;
+
 async function listDocs() {
 	const cwd = process.cwd();
 	const config = await loadConfig(cwd);
@@ -241,15 +250,57 @@ async function listDocs() {
 		config.include.map((p) => resolve(cwd, p)),
 		cwd,
 	);
-	const docs = [];
+
+	// Parse every file, then hand the entities to the Explorer's own section
+	// builder so the reported routes are the routes the site serves — slug
+	// rules, folders, sections, and `slug=` overrides included.
+	const parsed: { file: string; doc: ReturnType<typeof parseSdoc> }[] = [];
+	const entries: DocEntry[] = [];
+	const entryOf = new Map<DocEntry, { file: string; title: string }>();
+
 	for (const file of files) {
 		const doc = parseSdoc(await readFile(file, 'utf-8'));
-		docs.push({
-			file: relative(cwd, file),
-			valid: doc.diagnostics.length === 0,
-			entities: doc.entities.map((e) => ({
+		parsed.push({ file, doc });
+		for (const e of doc.entities) {
+			const entry = {
+				kind: ENTITY_KIND_TO_DOC_KIND[e.kind],
+				filePath: file,
+				routeSlug: e.routeSlug,
+				hide: e.hide,
+				meta: { title: e.title },
+				examples: e.kind === 'SHOWCASE' ? e.examples.map((x) => ({ name: x.title })) : [],
+			} as unknown as DocEntry;
+			entries.push(entry);
+			entryOf.set(entry, { file, title: e.title });
+		}
+	}
+
+	const map = buildSections(entries, { sections: config.sections, home: config.home });
+
+	// Invert the route table: entity route (no snippet) and one per example.
+	const routeOf = new Map<DocEntry, string>();
+	const exampleRoutes = new Map<DocEntry, { name: string; route: string }[]>();
+	for (const [route, target] of map.routes) {
+		if (target.snippetName) {
+			const list = exampleRoutes.get(target.doc) ?? [];
+			list.push({ name: target.snippetName, route: `/${route}` });
+			exampleRoutes.set(target.doc, list);
+		} else if (!routeOf.has(target.doc)) {
+			routeOf.set(target.doc, `/${route}`);
+		}
+	}
+
+	let cursor = 0;
+	const docs = parsed.map(({ file, doc }) => ({
+		file: relative(cwd, file),
+		valid: doc.diagnostics.length === 0,
+		entities: doc.entities.map((e) => {
+			const entry = entries[cursor++];
+			const examples = exampleRoutes.get(entry) ?? [];
+			return {
 				kind: e.kind,
 				title: e.title,
+				route: routeOf.get(entry) ?? null,
 				...(e.kind === 'SHOWCASE'
 					? {
 							components: e.previews
@@ -257,10 +308,18 @@ async function listDocs() {
 								.filter((n): n is string => n !== null),
 						}
 					: {}),
-			})),
-		});
-	}
-	return toolResult({ project: cwd, include: config.include, count: files.length, docs });
+				...(examples.length ? { examples } : {}),
+			};
+		}),
+	}));
+
+	return toolResult({
+		project: cwd,
+		include: config.include,
+		count: files.length,
+		docs,
+		...(map.errors.length ? { structureErrors: map.errors.map((e) => e.message) } : {}),
+	});
 }
 
 /** Resolve and read a .svelte component param, or answer with a tool error. */

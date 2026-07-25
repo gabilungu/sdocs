@@ -5,6 +5,7 @@ import {
 	generatePageComponent,
 	generatePreviewHtml,
 	resolveScriptImports,
+	sdocsWarningFilter,
 } from '../../src/lib/server/snippet-compiler.js';
 import { parseSdoc } from '../../src/lib/language/parser.js';
 
@@ -310,5 +311,39 @@ describe('preview page base', () => {
 	it('defaults to the root base in dev', () => {
 		const html = generatePreviewHtml('/@sdocs/iframe/x/y.svelte', null);
 		expect(html).toContain('<base href="/">');
+	});
+});
+
+describe('sdocsWarningFilter', () => {
+	// A file <style> targets the file's stages; the same block also lands in
+	// the generated page component, where those selectors match nothing —
+	// markup that lives in another compilation unit.
+	const page = generatePageComponent('', '<h2>Heading</h2>\n<p>Prose.</p>', '.stage-only { color: red; }');
+
+	it('the unused-selector warning is real without the filter', () => {
+		const { warnings } = compile(page, { filename: '/@sdocs/page/abc.svelte' });
+		expect(warnings.map((w) => w.code)).toContain('css_unused_selector');
+	});
+
+	it('drops it for generated modules', () => {
+		const { warnings } = compile(page, {
+			filename: '/@sdocs/page/abc.svelte',
+			warningFilter: sdocsWarningFilter,
+		});
+		expect(warnings.map((w) => w.code)).not.toContain('css_unused_selector');
+	});
+
+	it("keeps it for the project's own components", () => {
+		const { warnings } = compile(page, {
+			filename: '/src/lib/Button.svelte',
+			warningFilter: sdocsWarningFilter,
+		});
+		expect(warnings.map((w) => w.code)).toContain('css_unused_selector');
+	});
+
+	it('never suppresses other diagnostics', () => {
+		expect(
+			sdocsWarningFilter({ code: 'a11y_missing_attribute', filename: '/@sdocs/page/abc.svelte' }),
+		).toBe(true);
 	});
 });

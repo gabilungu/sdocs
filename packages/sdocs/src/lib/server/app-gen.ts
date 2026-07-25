@@ -263,9 +263,10 @@ export async function generateBuildFiles(
 	cwd: string,
 ): Promise<{ sdocsDir: string; inputs: Record<string, string> }> {
 	const sdocsDir = await createStagingDir(cwd);
-	// The staging dir becomes the Vite root; encode doc paths against it now so
-	// these inputs match the URLs the plugin generates later.
-	setDocPathRoot(sdocsDir);
+	// Encode doc paths against the project — the same root the plugin, the dev
+	// server, and both MCP transports use — so these inputs match the URLs
+	// generated later and the tokens any tool hands out.
+	setDocPathRoot(cwd);
 
 	// Copy Explorer components into the staging dir
 	await copyExplorerApp(sdocsDir);

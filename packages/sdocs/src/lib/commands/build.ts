@@ -55,7 +55,12 @@ export async function buildCommand(opts?: { base?: string }): Promise<void> {
 			},
 			plugins: [
 				svelte({ compilerOptions: { warningFilter: sdocsWarningFilter } }),
-				sdocsPlugin({ ...config, include: absoluteIncludes, _buildMode: true } as any),
+				sdocsPlugin({
+					...config,
+					include: absoluteIncludes,
+					_buildMode: true,
+					_projectRoot: cwd,
+				} as any),
 			],
 			// The site's public base path (config `base`, normalized) — asset
 			// URLs and the history-route prefix. '/' for a root deploy.

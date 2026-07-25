@@ -140,7 +140,8 @@ Explorer uses:
   no source, and documented components outside the globs. A compound family
   is measured per sub-component.
 - `resolve_visual_target { target, file? }` — resolve a stage ("Button /
-  Sizes", a route, or a stage id like "sdocs:k3f9a") to a preview-only route,
+  Sizes", a route from `list_docs` — an entity route resolves to that entity's
+  own stage, a stage route to that stage — or a stage id) to a preview-only route,
   the selectors to wait on, the `.svelte` file and `.sdoc` line behind it, its
   declared `args`, and its resolved stage layout. Ambiguity is reported, never
   guessed.

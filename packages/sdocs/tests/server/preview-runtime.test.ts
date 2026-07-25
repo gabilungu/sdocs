@@ -7,7 +7,12 @@ import {
 	PREVIEW_BOOTSTRAP_JS,
 	PREVIEW_RUNTIME_JS,
 } from '../../src/lib/server/preview-runtime.js';
-import { generatePreviewHtml } from '../../src/lib/server/snippet-compiler.js';
+import {
+	generatePreviewHtml,
+	lookupEntry,
+	previewUrl,
+	setDocPathRoot,
+} from '../../src/lib/server/snippet-compiler.js';
 
 describe('stage ids', () => {
 	it('is stable for the same stage', () => {
@@ -34,6 +39,44 @@ describe('stage ids', () => {
 		expect(stageIdentity('/p/src/Button.sdoc', 'button', 'x')).toBe(
 			'/p/src/Button.sdoc#button/x',
 		);
+	});
+});
+
+describe('one canonical doc-path root (report #13)', () => {
+	it('encodes a stage the same way whichever process asks', () => {
+		// The dev server, the build, and both MCP transports all encode
+		// against the project. Two roots meant stdio handed out a token the
+		// dev server served a shell for and then couldn't find the module
+		// behind — a page that loads and shows nothing.
+		setDocPathRoot('/proj');
+		const fromOneProcess = previewUrl('/proj/src/Button.sdoc', 'button', 'x-sizes');
+		setDocPathRoot('/proj');
+		const fromAnother = previewUrl('/proj/src/Button.sdoc', 'button', 'x-sizes');
+		expect(fromOneProcess).toBe(fromAnother);
+		expect(fromOneProcess).not.toContain('Li4v'); // no '../' climbing out of a staging dir
+	});
+
+	it('still finds an entry for a token encoded against a different root', () => {
+		const entries = new Map([['/proj/src/Button.sdoc#button', { name: 'entry' }]]);
+		// What a staging-dir-rooted token decodes to.
+		expect(
+			lookupEntry(entries, {
+				docFilePath: '/somewhere/else/src/Button.sdoc',
+				entitySlug: 'button',
+				relPath: 'src/Button.sdoc',
+			}),
+		).toEqual({ name: 'entry' });
+	});
+
+	it('does not match a different file that merely ends the same way', () => {
+		const entries = new Map([['/proj/src/ui/Button.sdoc#button', { name: 'ui' }]]);
+		expect(
+			lookupEntry(entries, {
+				docFilePath: '/x/Button.sdoc',
+				entitySlug: 'button',
+				relPath: 'other/Button.sdoc',
+			}),
+		).toBeUndefined();
 	});
 });
 

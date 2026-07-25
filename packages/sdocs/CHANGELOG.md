@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.113] - 2026-07-25
+
+### Fixed
+
+- **A stage now has one address, whoever is asked for it.** Doc paths were
+  encoded against the Vite root, which for `sdocs dev` and `sdocs build` is a
+  staging directory under `node_modules` — not the project. A standalone
+  `sdocs mcp` server, having no dev server to ask, encoded against the project
+  instead, so the two handed out different routes for the same stage. The
+  route from stdio served its preview shell but the stage module behind it
+  fell through, leaving a page that loaded and rendered nothing
+  (`data-sdocs-stage-error="script"`), its `builtPreviewPath` pointed at a
+  directory the build never emitted, and the same stage reported two different
+  stage ids depending on which URL opened it. Dev, build, and both MCP
+  transports now encode against the project, and a stage's id and module are
+  derived from the entry that was found rather than from the token that asked
+  for it. A token encoded against another root is still matched by path
+  suffix, and that fallback now applies to the stage and mount modules too —
+  serving the shell and then missing the module was worse than an honest miss.
+
+  This changes the preview paths a build emits (`dist/previews/<token>/…`).
+  Nothing links to them externally — the app loads them itself.
+
+- **`resolve_visual_target` really accepts routes now.** It claimed to, but
+  routes were only flattened into words and fuzzy-matched against stage names,
+  so `/atoms/button/sizes` appeared to work — its segments happen to spell the
+  stage — while the entity route `/atoms/button` matched nothing. Routes are
+  matched against the router's own table, the same one `list_docs` publishes:
+  an entity route resolves to that entity's own stage (a SHOWCASE's
+  `[component]`, a LAYOUT's body), a stage route to that stage, and a route
+  that addresses nothing resolves to nothing instead of finding a lookalike.
+- **A LAYOUT stage reports its source.** Its `source.line` and
+  `source.component` were always null, because the lookup was built only from
+  previews and examples and a layout body is neither. The `[LAYOUT]` line is
+  now always reported, and when the body is built around a single component
+  that component's `.svelte` is reported too — a body wrapping several names
+  none of them rather than guess.
+- A DOC or PAGE route now answers with why it has no stage — its prose renders
+  natively inside the Explorer — plus the routes of its examples, instead of a
+  bare "nothing matched" that reads like a bug.
+
 ## [0.0.112] - 2026-07-25
 
 ### Added

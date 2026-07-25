@@ -225,7 +225,9 @@
 	| The component | 42×36 | ~2 |
 
 	`resolve_visual_target` takes the name you'd say out loud — `"Button /
-	Sizes"`, a route, or the id shown under a stage — and returns the preview
+	Sizes"`, a route from `list_docs` (an entity route resolves to that
+	entity's own stage, a stage route to that stage), or the id shown under a
+	stage — and returns the preview
 	route, `source.component` (the `.svelte` file to edit), `source.doc` with a
 	line, the declared `args`, and the resolved stage layout. So what you *see*
 	leads straight to what you *change*, without reproducing any slug rules.

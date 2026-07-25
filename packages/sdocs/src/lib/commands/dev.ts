@@ -69,7 +69,7 @@ export async function devCommand(): Promise<void> {
 					warningFilter: sdocsWarningFilter,
 				},
 			}),
-			sdocsPlugin({ ...config, include: absoluteIncludes }),
+			sdocsPlugin({ ...config, include: absoluteIncludes, _projectRoot: cwd } as any),
 			...(config.mcp
 				? [
 						{

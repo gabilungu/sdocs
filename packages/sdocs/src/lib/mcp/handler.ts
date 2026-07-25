@@ -198,8 +198,10 @@ const TOOLS = [
 			'Resolve a stage — a [component] preview, an [example], or a [LAYOUT] — ' +
 			'to a preview-only route and stable selectors intended for browser ' +
 			'automation, plus the source files behind it. Accepts a name ' +
-			'("Button / Sizes"), a site route, or the id shown under a stage in the ' +
-			'dev Explorer ("sdocs:k3f9a"). Navigate directly to previewRoute: it ' +
+			'("Button / Sizes"), a site route from list_docs — an entity route ' +
+			"resolves to that entity's own stage, a stage route to that stage — or " +
+			'the id shown under a stage in the dev Explorer ("sdocs:k3f9a"). ' +
+			'Navigate directly to previewRoute: it ' +
 			'renders that one stage with no Explorer UI around it. Prefer element ' +
 			'screenshots over page or full-page screenshots — photographing the ' +
 			'Explorer to inspect one small component costs hundreds of times more ' +
@@ -451,6 +453,94 @@ async function getComponentApi(params: Record<string, unknown>) {
 }
 
 /**
+ * The single component a body is built around, or null when there isn't one.
+ *
+ * A layout that renders one component is answering "what is this a layout of?"
+ * unambiguously, and reporting that `.svelte` completes the source trail. A
+ * body wrapping several distinct components isn't answering it — naming one of
+ * them would send someone to edit the wrong file, so it names none.
+ */
+function soleComponentRoot(body: string): string | null {
+	const names = new Set<string>();
+	// Component tags are capitalised or dotted; plain HTML never is.
+	for (const m of body.matchAll(/<([A-Z][\w]*(?:\.[A-Z][\w]*)*)\b/g)) names.add(m[1]);
+	return names.size === 1 ? [...names][0] : null;
+}
+
+/** Where a site route points: the entity, and which of its stages is "the"
+ * stage for that route. An entity route has no snippet of its own, so a
+ * SHOWCASE resolves to its first [component] preview and a LAYOUT to its body;
+ * a DOC or PAGE has no preview page at all — its prose renders natively inside
+ * the Explorer — which is an answer, not a failure to match. */
+interface RouteTarget {
+	file: string;
+	entitySlug: string;
+	snippetName: string | null;
+	kind: string;
+	entityTitle: string;
+	/** Set when the route resolves to an entity that has no photographable
+	 * stage, so the caller is told why rather than handed a null. */
+	noStageReason?: string;
+	exampleRoutes?: string[];
+}
+
+async function routeToStage(
+	route: string,
+	cwd: string,
+	config: Awaited<ReturnType<typeof loadConfig>>,
+): Promise<RouteTarget | null> {
+	const files = await discoverDocFiles(
+		config.include.map((p) => resolve(cwd, p)),
+		cwd,
+	);
+	const entries: DocEntry[] = [];
+	const meta = new Map<DocEntry, { file: string; kind: string; title: string; slug: string }>();
+	for (const file of files) {
+		const doc = parseSdoc(await readFile(file, 'utf-8'));
+		for (const e of doc.entities) {
+			const entry = {
+				kind: ENTITY_KIND_TO_DOC_KIND[e.kind],
+				filePath: file,
+				routeSlug: e.routeSlug,
+				hide: e.hide,
+				meta: { title: e.title },
+				examples: e.kind === 'SHOWCASE' ? e.examples.map((x) => ({ name: x.title })) : [],
+			} as unknown as DocEntry;
+			entries.push(entry);
+			meta.set(entry, { file, kind: e.kind, title: e.title, slug: e.slug });
+		}
+	}
+	const map = buildSections(entries, { sections: config.sections, home: config.home });
+	const wanted = route.replace(/^\/+|\/+$/g, '');
+	const target = map.routes.get(wanted);
+	if (!target) return null;
+	const info = meta.get(target.doc);
+	if (!info) return null;
+
+	const base: RouteTarget = {
+		file: info.file,
+		entitySlug: info.slug,
+		snippetName: target.snippetName ?? null,
+		kind: info.kind,
+		entityTitle: info.title,
+	};
+	if (target.snippetName) return base;
+	// An entity route: pick the stage that *is* the entity.
+	if (info.kind === 'SHOWCASE' || info.kind === 'LAYOUT') return base;
+	const examples: string[] = [];
+	for (const [r, t] of map.routes) {
+		if (t.doc === target.doc && t.snippetName) examples.push(`/${r}`);
+	}
+	return {
+		...base,
+		noStageReason:
+			`${info.kind} bodies render natively inside the Explorer and have no ` +
+			'preview page of their own. Its examples do.',
+		exampleRoutes: examples,
+	};
+}
+
+/**
  * Resolve a human's way of naming a stage — "Button / Sizes", a route, or the
  * id printed under it — to the machine's: a preview-only URL, the files behind
  * it, and the room the author reserved around it.
@@ -473,6 +563,15 @@ async function resolveVisualTarget(params: Record<string, unknown>) {
 	const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 	const wanted = norm(needle);
 	const onlyFile = typeof params.file === 'string' && params.file ? params.file : null;
+
+	// Routes are matched against the router's own table, not guessed at by
+	// flattening a path into words. A route is an exact address — treating it
+	// as a fuzzy name made `/atoms/button/sizes` appear to work (its segments
+	// happen to spell the stage) while `/atoms/button` matched nothing, which
+	// reads as a broken tool rather than an unsupported input.
+	const routeTarget = needle.startsWith('/')
+		? await routeToStage(needle, cwd, config)
+		: null;
 
 	interface Candidate {
 		score: number;
@@ -503,6 +602,17 @@ async function resolveVisualTarget(params: Record<string, unknown>) {
 					});
 				}
 			}
+			// A LAYOUT's body is a stage too, and it had no entry here — so its
+			// result carried no line and no component, which is precisely the
+			// trail someone asked to "look at this layout" needs.
+			if (entity.kind === 'LAYOUT' || entity.kind === 'PAGE') {
+				blocks.set('content', {
+					sizing: entity.sizing,
+					script: entity.script,
+					line: offsetToPosition(source, entity.span.start).line + 1,
+					componentName: soleComponentRoot(entity.body ?? ''),
+				});
+			}
 			const entityExamples = 'examples' in entity ? entity.examples : [];
 			for (const ex of entityExamples) {
 				const slug = exampleSlug(ex.title);
@@ -523,12 +633,25 @@ async function resolveVisualTarget(params: Record<string, unknown>) {
 				const full = norm(`${entityName} ${stage.name}`);
 				const short = norm(stage.name);
 				let score = 0;
-				if (stage.id === needle) score = 100;
+				const routeHit =
+					routeTarget &&
+					routeTarget.file === file &&
+					routeTarget.entitySlug === entity.slug &&
+					(routeTarget.snippetName === null ||
+						routeTarget.snippetName === stage.name ||
+						routeTarget.snippetName === stage.slug);
+				if (routeHit) score = 110;
+				else if (routeTarget) score = 0;
+				else if (stage.id === needle) score = 100;
 				else if (full === wanted) score = 90;
 				else if (norm(entity.title + ' ' + stage.name) === wanted) score = 85;
 				else if (short === wanted) score = 70;
 				else if (full.includes(wanted) || wanted.includes(full)) score = 50;
 				else if (short.includes(wanted)) score = 30;
+				if (routeHit && routeTarget?.snippetName === null && plan?.role === 'example') {
+					// The entity route means the entity, not one of its examples.
+					score = 0;
+				}
 				if (!score) continue;
 
 				const componentPath = block?.componentName
@@ -578,6 +701,17 @@ async function resolveVisualTarget(params: Record<string, unknown>) {
 		}
 	}
 
+	if (candidates.length === 0 && routeTarget?.noStageReason) {
+		return toolResult({
+			target: raw,
+			resolved: null,
+			entity: routeTarget.entityTitle,
+			kind: routeTarget.kind,
+			doc: relative(cwd, routeTarget.file),
+			reason: routeTarget.noStageReason,
+			...(routeTarget.exampleRoutes?.length ? { exampleRoutes: routeTarget.exampleRoutes } : {}),
+		});
+	}
 	if (candidates.length === 0) {
 		return toolResult({
 			target: raw,

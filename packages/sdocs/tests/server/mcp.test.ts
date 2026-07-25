@@ -319,6 +319,85 @@ describe('MCP handler', () => {
 			});
 		});
 
+		it('resolves an entity route to the entity\'s own stage', async () => {
+			await inProject(async () => {
+				const listed = (await callTool('list_docs')).structuredContent as Record<string, any>;
+				const route = listed.docs[0].entities[0].route as string;
+				const r = (await callTool('resolve_visual_target', { target: route }))
+					.structuredContent as Record<string, any>;
+				// The entity route means the entity — its [component] preview —
+				// not one of its examples.
+				expect(r.resolved?.kind).toBe('component');
+				expect(r.resolved?.name).toBe('Button');
+			});
+		});
+
+		it('resolves a stage route to that stage', async () => {
+			await inProject(async () => {
+				const listed = (await callTool('list_docs')).structuredContent as Record<string, any>;
+				const exampleRoute = listed.docs[0].entities[0].examples[0].route as string;
+				const r = (await callTool('resolve_visual_target', { target: exampleRoute }))
+					.structuredContent as Record<string, any>;
+				expect(r.resolved?.name).toBe('Sizes');
+				expect(r.resolved?.kind).toBe('example');
+			});
+		});
+
+		it('does not fuzzy-match a route that addresses nothing', async () => {
+			// A route is an exact address. Flattening it into words made
+			// unrelated paths appear to resolve.
+			await inProject(async () => {
+				const r = (await callTool('resolve_visual_target', { target: '/no/such/route' }))
+					.structuredContent as Record<string, any>;
+				expect(r.resolved).toBe(null);
+			});
+		});
+
+		it('reports a LAYOUT\'s .sdoc line and its sole component root', async () => {
+			const dir = mkdtempSync(join(tmpdir(), 'sdocs-mcp-layout-'));
+			writeFileSync(
+				join(dir, 'sdocs.config.js'),
+				'export default {\n\tinclude: ["./**/*.sdoc"],\n};\n',
+			);
+			writeFileSync(join(dir, 'Inbox.svelte'), '<div>inbox</div>\n');
+			writeFileSync(
+				join(dir, 'Mail.sdoc'),
+				'<script lang="ts">\n\timport Inbox from "./Inbox.svelte";\n</script>\n\n' +
+					'[LAYOUT title="Mocks / Mail / Inbox"]\n\t<Inbox />\n[/LAYOUT]\n',
+			);
+			const prev = process.cwd();
+			process.chdir(dir);
+			try {
+				const r = (await callTool('resolve_visual_target', { target: 'Inbox / Content' }))
+					.structuredContent as Record<string, any>;
+				expect(r.resolved?.kind).toBe('layout');
+				expect(r.resolved?.source.line).toBe(5);
+				expect(r.resolved?.source.component).toBe('Inbox.svelte');
+			} finally {
+				process.chdir(prev);
+			}
+		});
+
+		it('explains that a DOC route has no stage instead of returning a bare null', async () => {
+			const dir = mkdtempSync(join(tmpdir(), 'sdocs-mcp-docroute-'));
+			writeFileSync(
+				join(dir, 'sdocs.config.js'),
+				'export default {\n\tinclude: ["./**/*.sdoc"],\n};\n',
+			);
+			writeFileSync(join(dir, 'Guide.sdoc'), '[DOC title="Guides / Intro"]\n\n\tProse.\n\n[/DOC]\n');
+			const prev = process.cwd();
+			process.chdir(dir);
+			try {
+				const r = (await callTool('resolve_visual_target', { target: '/docs/guides/intro' }))
+					.structuredContent as Record<string, any>;
+				expect(r.resolved).toBe(null);
+				expect(r.reason).toContain('no preview page');
+				expect(r.kind).toBe('DOC');
+			} finally {
+				process.chdir(prev);
+			}
+		});
+
 		it('returns nothing rather than a wrong guess', async () => {
 			await inProject(async () => {
 				const r = (await callTool('resolve_visual_target', { target: 'Nothing Like This' }))

@@ -61,6 +61,30 @@ export function entityKey(filePath: string, entitySlug: string): string {
 	return `${filePath}#${entitySlug}`;
 }
 
+/**
+ * Find the entry a parsed id refers to.
+ *
+ * Normally the key matches outright. The fallback exists for a token encoded
+ * against a different root — a standalone MCP server has no dev server to ask
+ * which one — and matching by path suffix beats telling a caller that a stage
+ * it can see plainly doesn't exist. It has to apply everywhere an id is
+ * resolved, not just at the first hop: serving the preview shell and then
+ * 404-ing the module it imports produces a page that loads and shows nothing,
+ * which is worse than an honest miss.
+ */
+export function lookupEntry<T>(
+	entries: Map<string, T>,
+	parsed: { docFilePath: string; entitySlug: string; relPath?: string },
+): T | undefined {
+	const direct = entries.get(entityKey(parsed.docFilePath, parsed.entitySlug));
+	if (direct || !parsed.relPath) return direct;
+	const suffix = `/${parsed.relPath}#${parsed.entitySlug}`;
+	for (const [key, value] of entries) {
+		if (key.endsWith(suffix)) return value;
+	}
+	return undefined;
+}
+
 /** Resolve relative imports to absolute paths for use in virtual components */
 export function resolveImportsToAbsolute(
 	imports: string[],
@@ -670,16 +694,16 @@ export function mountVirtualId(docFilePath: string, entitySlug: string, snippetS
 export function parseMountId(id: string): ParsedSnippetId | null {
 	const match = id.match(/^\/@sdocs\/mount\/([^/]+)\/([\w-]+)\.js$/);
 	if (!match) return null;
-	const { docFilePath, entitySlug } = decodeEntityId(match[1]);
-	return { docFilePath, entitySlug, snippetSlug: match[2] };
+	const { docFilePath, entitySlug, relPath } = decodeEntityId(match[1]);
+	return { docFilePath, entitySlug, relPath, snippetSlug: match[2] };
 }
 
 /** Parse an iframe virtual ID back into its parts */
 export function parseIframeId(id: string): ParsedSnippetId | null {
 	const match = id.match(/^\/@sdocs\/iframe\/([^/]+)\/([\w-]+)\.svelte$/);
 	if (!match) return null;
-	const { docFilePath, entitySlug } = decodeEntityId(match[1]);
-	return { docFilePath, entitySlug, snippetSlug: match[2] };
+	const { docFilePath, entitySlug, relPath } = decodeEntityId(match[1]);
+	return { docFilePath, entitySlug, relPath, snippetSlug: match[2] };
 }
 
 /** Parse a preview URL back into its parts */

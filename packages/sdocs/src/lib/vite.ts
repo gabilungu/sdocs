@@ -33,6 +33,7 @@ import {
 	buildPreviewUrl,
 	encodeEntityId,
 	entityKey,
+	lookupEntry,
 	setDocPathRoot,
 	type StaticCssLink,
 } from './server/snippet-compiler.js';
@@ -67,10 +68,19 @@ function allSnippets(entry: DocEntry): ExtractedSnippet[] {
 }
 
 export function sdocsPlugin(
-	userConfig?: (SdocsConfig | ResolvedSdocsConfig) & { _buildMode?: boolean },
+	userConfig?: (SdocsConfig | ResolvedSdocsConfig) & {
+		_buildMode?: boolean;
+		/** The project directory. Standalone dev/build run Vite from a staging
+		 * dir under node_modules, so the Vite root is NOT the project — and doc
+		 * paths encoded against it disagree with every other process that talks
+		 * about the same stage. Embedded, the two are the same. */
+		_projectRoot?: string;
+	},
 ): Plugin {
 	let config: ResolvedSdocsConfig;
 	let root: string;
+	/** The project directory doc paths encode against (see _projectRoot). */
+	let projectRoot: string;
 	let server: ViteDevServer;
 	let docEntries: Map<string, DocEntry> = new Map();
 	let docScriptCache: Map<string, string> = new Map();
@@ -94,7 +104,13 @@ export function sdocsPlugin(
 
 		async configResolved(resolvedConfig) {
 			root = resolvedConfig.root;
-			setDocPathRoot(root);
+			// One canonical root for doc paths: the project, never the staging
+			// dir. Dev, build, the HTTP MCP server (same process) and a
+			// standalone stdio MCP server (its cwd) then all encode the same
+			// stage to the same token, so a route or a stage id means one thing
+			// wherever it was produced.
+			projectRoot = (userConfig as { _projectRoot?: string } | undefined)?._projectRoot ?? root;
+			setDocPathRoot(projectRoot);
 			isBuild = resolvedConfig.command === 'build';
 			isSsrBuild = !!resolvedConfig.build?.ssr;
 			base = resolvedConfig.base || '/';
@@ -113,20 +129,7 @@ export function sdocsPlugin(
 				const parsed = parsePreviewUrl(req.url);
 				if (!parsed) return next();
 
-				let entry = docEntries.get(entityKey(parsed.docFilePath, parsed.entitySlug));
-				if (!entry && parsed.relPath) {
-					// The token was encoded against a different root — the MCP server
-					// over stdio has no dev server to ask which one. The doc path is
-					// still in there, so match it by suffix rather than 404 a stage
-					// that plainly exists.
-					const suffix = `/${parsed.relPath}#${parsed.entitySlug}`;
-					for (const [key, value] of docEntries) {
-						if (key.endsWith(suffix)) {
-							entry = value;
-							break;
-						}
-					}
-				}
+				const entry = lookupEntry(docEntries, parsed);
 				if (!entry) {
 					res.statusCode = 404;
 					res.end('Doc not found');
@@ -140,11 +143,9 @@ export function sdocsPlugin(
 					return;
 				}
 
-				const iframeId = iframeVirtualId(parsed.docFilePath, parsed.entitySlug, snippet.slug);
+				const iframeId = iframeVirtualId(entry.filePath, entry.entitySlug, snippet.slug);
 				const html = generatePreviewHtml(iframeId, config.css, base, {
-					id: stageId(
-						stageIdentity(parsed.docFilePath, parsed.entitySlug, snippet.slug),
-					),
+					id: stageId(stageIdentity(entry.filePath, entry.entitySlug, snippet.slug)),
 					kind: snippet.role === 'preview' ? 'component' : snippet.role,
 					name: snippet.name,
 					component: snippet.componentName ?? null,
@@ -328,7 +329,7 @@ export function sdocsPlugin(
 				const parsed = parseIframeId(realId);
 				if (!parsed) return null;
 
-				const entry = docEntries.get(entityKey(parsed.docFilePath, parsed.entitySlug));
+				const entry = lookupEntry(docEntries, parsed);
 				if (!entry) return null;
 
 				const snippet = allSnippets(entry).find((s) => s.slug === parsed.snippetSlug);
@@ -374,7 +375,7 @@ export function sdocsPlugin(
 			if (id.startsWith('\0' + PAGE_PREFIX)) {
 				const parsed = parsePageId(id.slice(1));
 				if (!parsed) return null;
-				const entry = docEntries.get(entityKey(parsed.docFilePath, parsed.entitySlug));
+				const entry = lookupEntry(docEntries, parsed);
 				if (!entry?.content) return null;
 				const filePrelude = docScriptCache.get(parsed.docFilePath) ?? '';
 				const entityPrelude = entry.entityScript
@@ -394,8 +395,13 @@ export function sdocsPlugin(
 			if (id.startsWith('\0' + MOUNT_PREFIX)) {
 				const parsed = parseMountId(id.slice(1));
 				if (!parsed) return null;
+				const mountEntry = lookupEntry(docEntries, parsed);
 				return generateMountScript(
-					iframeVirtualId(parsed.docFilePath, parsed.entitySlug, parsed.snippetSlug),
+					iframeVirtualId(
+						mountEntry?.filePath ?? parsed.docFilePath,
+						mountEntry?.entitySlug ?? parsed.entitySlug,
+						parsed.snippetSlug,
+					),
 				);
 			}
 		},

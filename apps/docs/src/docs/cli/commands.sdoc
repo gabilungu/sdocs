@@ -12,6 +12,7 @@
 	| `npx sdocs run` | Same as `dev` — works without installing sdocs (see below) |
 	| `npx sdocs build` | Build a static documentation site to `dist/` |
 	| `npx sdocs preview` | Preview the built site locally |
+	| `npx sdocs check` | Compile every doc stage and report what breaks |
 	| `npx sdocs mcp` | Serve the sdocs MCP server on stdio — authoring tools for agents |
 
 	All commands read `sdocs.config.js` (or `sdocs.config.ts` / `sdocs.config.mjs`) from the current directory.
@@ -100,6 +101,38 @@
 
 	Serves the contents of `dist/` locally. Requires `sdocs build` to have run first.
 
+	## `sdocs check`
+
+	Compiles every documentation stage — each `[component]` preview, each
+	`[example]`, and every `[PAGE]`/`[LAYOUT]`/`[DOC]` body — exactly the way
+	the dev server does, and reports what breaks:
+
+	- **Svelte compile errors** inside a stage (an unclosed tag, a malformed
+	  block) that the grammar check can't see,
+	- **relative imports that resolve to no file** on disk (the specifier is
+	  read the same way the import rewriter reads it, so an import-shaped
+	  string inside a code sample is never mistaken for one),
+	- **grammar diagnostics** from the parser.
+
+	Each problem prints its file (with a line where it maps back cleanly), the
+	entity, and the stage:
+
+	```bash
+	npx sdocs check
+	```
+
+	```
+	error  src/lib/Button.sdoc › Forms / Button › Disabled
+	  Unexpected block closing tag
+
+	[sdocs] 1 error(s), 0 warning(s) — checked 166 stage(s) in 35 file(s).
+	```
+
+	It exits **1** when anything errors, so CI can gate on it — no server, no
+	build output. It doesn't type-check, and it can't see failures that only
+	happen at runtime. The [MCP server](#sdocs-mcp)'s `check_docs` tool runs
+	the same check.
+
 	## `sdocs mcp`
 
 	Serves the sdocs [MCP](https://modelcontextprotocol.io) server on stdio, so
@@ -120,6 +153,10 @@
 	  serves at (plus a route per example), and the components its previews
 	  document. Routes come from the Explorer's own router, so they match the
 	  live site exactly.
+	- **`check_docs`** — compile every stage and report Svelte errors, missing
+	  relative imports, and grammar diagnostics; the same check as
+	  [`sdocs check`](#sdocs-check). Takes an optional `file` to check one
+	  document.
 	- **`get_component_api`** — a component's full extracted API: props (types,
 	  defaults, descriptions), events, snippets, methods, states, CSS custom
 	  properties, and `class`/`…rest` forwarding — see

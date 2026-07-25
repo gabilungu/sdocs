@@ -67,7 +67,7 @@ describe('MCP handler', () => {
 		expect((await rpc('nope/nope')).error?.code).toBe(-32601);
 	});
 
-	it('lists the five tools', async () => {
+	it('lists the six tools', async () => {
 		const { result } = await rpc('tools/list');
 		const names = (result as { tools: { name: string }[] }).tools.map((t) => t.name);
 		expect(names).toEqual([
@@ -75,6 +75,7 @@ describe('MCP handler', () => {
 			'scaffold_component_doc',
 			'get_authoring_guide',
 			'list_docs',
+			'check_docs',
 			'get_component_api',
 		]);
 	});
@@ -197,6 +198,32 @@ describe('MCP handler', () => {
 			expect(result.docs[0].file).toBe('Button.sdoc');
 			// The route the site actually serves — folders and slug rules included.
 			expect(result.docs[0].entities[0].route).toBe('/docs/forms/button');
+		} finally {
+			process.chdir(prev);
+		}
+	});
+
+	it('compiles every stage with check_docs and reports what breaks', async () => {
+		const dir = mkdtempSync(join(tmpdir(), 'sdocs-mcp-check-'));
+		writeFileSync(join(dir, 'sdocs.config.js'), 'export default {\n\tinclude: ["./**/*.sdoc"],\n};\n');
+		writeFileSync(
+			join(dir, 'Thing.svelte'),
+			'<script lang="ts">\n\tlet { label = "hi" } = $props();\n</script>\n\n<span>{label}</span>\n',
+		);
+		writeFileSync(
+			join(dir, 'Broken.sdoc'),
+			'<script lang="ts">\n\timport Thing from "./Thing.svelte";\n</script>\n\n' +
+				'[SHOWCASE title="Broken"]\n\t[component component={Thing}]\n\t\t<Thing />\n\t[/component]\n\n' +
+				'\t[example title="Unclosed"]\n\t\t<div>\n\t\t\t<Thing />\n\t[/example]\n[/SHOWCASE]\n',
+		);
+		const prev = process.cwd();
+		process.chdir(dir);
+		try {
+			const result = (await callTool('check_docs')).structuredContent as Record<string, any>;
+			expect(result.ok).toBe(false);
+			expect(result.errorCount).toBeGreaterThan(0);
+			expect(result.checked.stages).toBe(2);
+			expect(result.problems.some((p: any) => p.stage === 'Unclosed')).toBe(true);
 		} finally {
 			process.chdir(prev);
 		}

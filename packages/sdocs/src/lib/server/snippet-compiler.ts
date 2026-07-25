@@ -75,23 +75,44 @@ export function resolveImportsToAbsolute(
 const IMPORT_STMT_RE =
 	/^(?:[ \t]*import\b(?:[^;'"`]|(['"`])[^'"`\n]*\1)*?\bfrom\s*|[ \t]*import\s+)(['"])([^'"\n]*)\2/gm;
 
-export function resolveScriptImports(script: string, docFilePath: string): string {
-	const docDir = dirname(docFilePath);
-	// Match against the scrubbed text (comments and string/template contents
-	// blanked, offsets preserved) so an import-shaped substring inside a
-	// string literal — a code sample, say — is never rewritten; then read the
-	// real specifier back from the original at the same offsets.
+/** One relative import: its specifier and where it sits in the script. */
+export interface ScannedImport {
+	spec: string;
+	start: number;
+	end: number;
+}
+
+/**
+ * The script's *relative* import specifiers, with their offsets.
+ *
+ * Matches against the scrubbed text (comments and string/template contents
+ * blanked, offsets preserved) so an import-shaped substring inside a string
+ * literal — a code sample, say — is never treated as an import; the real
+ * specifier is then read back from the original at the same offsets. Bare
+ * specifiers (npm packages) are skipped: only relative paths are ours to
+ * resolve. Single source of truth for both rewriting and existence checks.
+ */
+export function scanRelativeImports(script: string): ScannedImport[] {
+	const found: ScannedImport[] = [];
 	const scrubbed = scrubScriptText(script);
-	let out = '';
-	let last = 0;
 	for (const match of scrubbed.matchAll(IMPORT_STMT_RE)) {
 		// The match ends with `<quote><specifier><quote>`.
-		const specEnd = match.index! + match[0].length - 1;
-		const specStart = specEnd - match[3].length;
-		const spec = script.slice(specStart, specEnd);
+		const end = match.index! + match[0].length - 1;
+		const start = end - match[3].length;
+		const spec = script.slice(start, end);
 		if (!/^\.\.?\//.test(spec)) continue;
-		out += script.slice(last, specStart) + resolve(docDir, spec);
-		last = specEnd;
+		found.push({ spec, start, end });
+	}
+	return found;
+}
+
+export function resolveScriptImports(script: string, docFilePath: string): string {
+	const docDir = dirname(docFilePath);
+	let out = '';
+	let last = 0;
+	for (const { spec, start, end } of scanRelativeImports(script)) {
+		out += script.slice(last, start) + resolve(docDir, spec);
+		last = end;
 	}
 	return out + script.slice(last);
 }

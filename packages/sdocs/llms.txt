@@ -64,6 +64,7 @@ npx sdocs dev      # dev server at http://localhost:3000
 | `npx sdocs run` | Same as `dev`, but works without installing sdocs |
 | `npx sdocs build` | Build a static site to `dist/` |
 | `npx sdocs preview` | Serve the built `dist/` locally |
+| `npx sdocs check` | Compile every doc stage and report what breaks (exits 1 on error) |
 | `npx sdocs mcp` | Serve the sdocs MCP server on stdio (authoring tools for agents) |
 
 Global flags: `--version`/`-v`, `--help`/`-h`. All commands read
@@ -83,6 +84,11 @@ serving under a sub-path (a GitHub *project* Pages site lives at `/<repo>/`):
 ```bash
 npx sdocs build --base "/my-repo/"
 ```
+
+`sdocs check` compiles every stage without starting a server or writing a
+build, printing each problem with its file, entity, and stage, and exiting 1
+when anything errors — the CI gate for "do all the docs still work?". The MCP
+`check_docs` tool runs the same check.
 
 Because `run`/`build` need no local install, CI can build a docs site from a
 project that doesn't even depend on sdocs: `npx --yes sdocs build` then publish
@@ -113,6 +119,13 @@ Explorer uses:
   its previews document. The routes come from the Explorer's own router, so
   they're exactly what the site serves — drive a browser over them to smoke
   test every page.
+- `check_docs { file? }` — **compile** every stage (previews, examples, page
+  and layout bodies) the way the dev server does and report what breaks:
+  Svelte compile errors, relative imports that resolve to no file, and grammar
+  diagnostics — with the file, entity, stage, and a `.sdoc` line where it maps
+  cleanly. `validate_sdoc` only checks the grammar; this catches what
+  otherwise appears only when the route is opened. Omit `file` to check the
+  whole project. It does not type-check and cannot see runtime-only failures.
 - `get_component_api { componentPath }` — a component's full extracted API:
   props (types, defaults, descriptions), events, snippets, methods, states,
   CSS custom properties, and class/rest forwarding.

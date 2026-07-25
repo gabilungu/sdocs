@@ -25,6 +25,7 @@ Commands:
   run             Same as dev — works with npx and no local install
   build           Build the Explorer as a static site
   preview         Serve built site locally
+  check           Compile every doc stage and report what breaks (exits 1 on error)
   init            Scaffold sdocs.config.js
   mcp             Serve the sdocs MCP server on stdio (authoring tools for agents)
 
@@ -71,6 +72,11 @@ async function main() {
 		case 'preview': {
 			const { previewCommand } = await import('../commands/preview.js');
 			await previewCommand();
+			break;
+		}
+		case 'check': {
+			const { checkCommand } = await import('../commands/check.js');
+			await checkCommand();
 			break;
 		}
 		case 'init': {

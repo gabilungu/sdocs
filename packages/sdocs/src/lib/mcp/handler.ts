@@ -8,6 +8,7 @@ import { parseComponentSource } from '../server/prop-parser.js';
 import { loadConfig } from '../server/config.js';
 import { discoverDocFiles } from '../server/discovery.js';
 import { buildSections } from '../explorer/tree-builder.js';
+import { checkDocFiles } from '../server/check.js';
 import type { DocEntry, ParsedProp } from '../types.js';
 
 /**
@@ -71,7 +72,10 @@ const INSTRUCTIONS =
 	"component's extracted props. To learn the current project, list_docs maps " +
 	'its .sdoc files and the components they document, and get_component_api ' +
 	"returns a component's full extracted API (props, events, snippets, methods, " +
-	'states, CSS custom properties).';
+	'states, CSS custom properties). validate_sdoc checks the grammar only — ' +
+	'run check_docs to compile every stage and catch what the grammar cannot ' +
+	'see: Svelte errors inside examples, imports that resolve nowhere, and ' +
+	'broken page or layout bodies.';
 
 const TOOLS = [
 	{
@@ -127,6 +131,27 @@ const TOOLS = [
 			'serves at (and one per example) — open those with a browser to smoke ' +
 			'test. Use it to see what exists before writing docs.',
 		inputSchema: { type: 'object', properties: {} },
+	},
+	{
+		name: 'check_docs',
+		description:
+			'Compile every documentation stage the way the dev server does — every ' +
+			'preview, example, page, and layout body — and report what breaks: ' +
+			'Svelte compile errors, relative imports that resolve to no file, and ' +
+			'grammar diagnostics. This is the check `validate_sdoc` cannot do: it ' +
+			'catches problems that otherwise appear only when the route is opened. ' +
+			'Run it over the whole project (no arguments) or one file. It does not ' +
+			'type-check, and cannot see runtime-only failures.',
+		inputSchema: {
+			type: 'object',
+			properties: {
+				file: {
+					type: 'string',
+					description:
+						'Optional single .sdoc file to check (absolute, or relative to the project root). Omit to check every file the config matches.',
+				},
+			},
+		},
 	},
 	{
 		name: 'get_component_api',
@@ -357,6 +382,33 @@ async function getComponentApi(params: Record<string, unknown>) {
 	});
 }
 
+async function checkDocs(params: Record<string, unknown>) {
+	const cwd = process.cwd();
+	const config = await loadConfig(cwd);
+	const file = params.file;
+	let files: string[];
+	if (typeof file === 'string' && file) {
+		files = [isAbsolute(file) ? file : resolve(cwd, file)];
+	} else {
+		files = await discoverDocFiles(
+			config.include.map((p) => resolve(cwd, p)),
+			cwd,
+		);
+	}
+	const result = await checkDocFiles(files, cwd);
+	const errors = result.problems.filter((p) => p.severity === 'error');
+	return toolResult({
+		ok: result.ok,
+		checked: result.checked,
+		errorCount: errors.length,
+		warningCount: result.problems.length - errors.length,
+		problems: result.problems,
+		note: result.ok
+			? 'Every stage compiles. This does not type-check, and cannot see runtime-only failures.'
+			: 'Fix the errors and run check_docs again.',
+	});
+}
+
 // --- Result helpers ----------------------------------------------------------
 
 function toolResult(structured: Record<string, unknown>) {
@@ -444,6 +496,8 @@ async function dispatch(method: string, params: Record<string, unknown>): Promis
 					return listDocs();
 				case 'get_component_api':
 					return getComponentApi(args);
+				case 'check_docs':
+					return checkDocs(args);
 				default:
 					throw new RpcError(-32602, `Unknown tool "${String(params.name)}"`);
 			}

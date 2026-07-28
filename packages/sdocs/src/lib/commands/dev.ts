@@ -1,15 +1,13 @@
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createRequire } from 'node:module';
 import { createServer } from 'vite';
-import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { loadConfig } from '../server/config.js';
 import { sdocsPlugin } from '../vite.js';
 import { mcpHttpHandler } from '../mcp/http.js';
 import { generateDevFiles, cleanBuildFiles } from '../server/app-gen.js';
 import { sdocsWarningFilter } from '../server/snippet-compiler.js';
+import { loadSveltePlugin, svelteDedupe } from '../server/svelte-toolchain.js';
 
-const require = createRequire(import.meta.url);
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /** sdocs' own install location — under npx this is the npx cache, not the project */
@@ -17,25 +15,17 @@ export function sdocsPackageRoot(): string {
 	return resolve(__dirname, '../..');
 }
 
-/**
- * Prefer the project's own svelte over the copy next to sdocs when both exist
- * (e.g. running via npx): previews import the project's components, and two
- * svelte runtimes in one page don't mix.
- */
-export function svelteDedupe(cwd: string): string[] {
-	try {
-		require.resolve('svelte/package.json', { paths: [cwd] });
-		return ['svelte'];
-	} catch {
-		return [];
-	}
-}
+export { svelteDedupe } from '../server/svelte-toolchain.js';
 
 export async function devCommand(): Promise<void> {
 	const cwd = process.cwd();
 	const config = await loadConfig(cwd);
 
 	console.log('[sdocs] Starting dev server...');
+
+	// One toolchain, the project's: the plugin carries the compiler, dedupe pins the
+	// runtime, and both must be the same copy (see svelte-toolchain.ts).
+	const svelte = await loadSveltePlugin(cwd);
 
 	// Generate the staging directory (in the OS temp dir) with entry files
 	const sdocsDir = await generateDevFiles(config, cwd);

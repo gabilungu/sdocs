@@ -1,7 +1,6 @@
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { dirname, relative, resolve } from 'node:path';
-import { compile } from 'svelte/compiler';
 import { parseSdoc, normalizeBody } from '../language/parser.js';
 import { offsetToPosition } from '../language/scanner.js';
 import {
@@ -12,6 +11,7 @@ import {
 	sdocsWarningFilter,
 } from './snippet-compiler.js';
 import { renderPageMarkdown } from './page-markdown.js';
+import { loadSvelteCompiler } from './svelte-toolchain.js';
 import { extractImports, resolveComponentImport } from './doc-model.js';
 
 /**
@@ -115,8 +115,13 @@ function missingImports(script: string, docFilePath: string): string[] {
 	return missing;
 }
 
-/** Compile one generated component, collecting errors and warnings. */
+/**
+ * Compile one generated component, collecting errors and warnings. The compiler is
+ * passed in rather than imported: it must be the PROJECT's, the same one that will
+ * compile these components for real (see svelte-toolchain.ts).
+ */
 function compileStage(
+	compile: typeof import('svelte/compiler').compile,
 	generated: string,
 	filename: string,
 	locate: (line: number) => number | undefined,
@@ -153,6 +158,7 @@ function compileStage(
 
 /** Check one `.sdoc` file: grammar, imports, and every stage's compilation. */
 export async function checkDocFile(filePath: string, cwd: string): Promise<CheckResult> {
+	const { compile } = await loadSvelteCompiler(cwd);
 	const file = relative(cwd, filePath) || filePath;
 	const problems: CheckProblem[] = [];
 	let stages = 0;
@@ -239,6 +245,7 @@ export async function checkDocFile(filePath: string, cwd: string): Promise<Check
 			const locate = (line: number) =>
 				mapLine(generated, markup, line, source, bodySpan.start, bodySpan.end);
 			const { problems: stageProblems } = compileStage(
+				compile,
 				generated,
 				`/@sdocs/check/${entity.slug}.svelte`,
 				locate,
@@ -295,6 +302,7 @@ export async function checkDocFile(filePath: string, cwd: string): Promise<Check
 			// A page-module filename, so the shared warning filter treats this
 			// exactly as the dev server and the build do.
 			const { problems: bodyProblems } = compileStage(
+				compile,
 				generated,
 				`/@sdocs/page/${entity.slug}.svelte`,
 				() => undefined,

@@ -65,6 +65,15 @@ export function svelteDedupe(cwd: string): string[] {
 type SveltePlugin = typeof import('@sveltejs/vite-plugin-svelte').svelte;
 
 /**
+ * Importing a resolved FILE PATH skips the package's export conditions, so a CJS entry
+ * (svelte/compiler is one) arrives as `{ default: exports }` with no named exports, while
+ * an ESM entry arrives with its names. Take whichever shape actually carries the API.
+ */
+function interop<T>(mod: Record<string, unknown>, probe: keyof T): T {
+	return (typeof mod[probe as string] === 'function' ? mod : (mod.default ?? mod)) as T;
+}
+
+/**
  * vite-plugin-svelte from the PROJECT when it has one — which is what makes the
  * compiler match the runtime, since the plugin binds `svelte/compiler` from beside
  * itself. Falls back to sdocs' own copy (standalone use, or a project without the
@@ -73,8 +82,8 @@ type SveltePlugin = typeof import('@sveltejs/vite-plugin-svelte').svelte;
 export async function loadSveltePlugin(cwd: string): Promise<SveltePlugin> {
 	try {
 		const entry = projectRequire(cwd).resolve('@sveltejs/vite-plugin-svelte');
-		const mod = await import(pathToFileURL(entry).href);
-		return mod.svelte as SveltePlugin;
+		const mod = interop<{ svelte: SveltePlugin }>(await import(pathToFileURL(entry).href), 'svelte');
+		return mod.svelte;
 	} catch {
 		warnIfToolchainSplit(cwd);
 		const mod = await import('@sveltejs/vite-plugin-svelte');
@@ -86,7 +95,10 @@ export async function loadSveltePlugin(cwd: string): Promise<SveltePlugin> {
 export async function loadSvelteCompiler(cwd: string): Promise<typeof import('svelte/compiler')> {
 	try {
 		const entry = projectRequire(cwd).resolve('svelte/compiler');
-		return (await import(pathToFileURL(entry).href)) as typeof import('svelte/compiler');
+		return interop<typeof import('svelte/compiler')>(
+			await import(pathToFileURL(entry).href),
+			'compile'
+		);
 	} catch {
 		return await import('svelte/compiler');
 	}

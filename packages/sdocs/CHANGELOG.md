@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.115] - 2026-07-28
+
+### Fixed
+
+- **`sdocs check` compiles again.** 0.0.114 resolved `svelte/compiler` from the
+  project and imported the resolved FILE PATH — which skips the package's
+  export conditions, so the CJS entry arrived as `{ default: exports }` with no
+  named exports and every stage failed with `compile is not a function`. Both
+  loaders now take whichever shape actually carries the API. `dev` and `build`
+  were unaffected (vite-plugin-svelte is ESM), so the 0.0.114 toolchain fix
+  stands. The test calls the loaded compiler instead of type-checking it.
+
 ## [0.0.114] - 2026-07-28
 
 ### Fixed

@@ -75,8 +75,12 @@ describe('svelte toolchain resolution', () => {
 		expect(names.join(' ')).toContain('vite-plugin-svelte');
 	});
 
-	it('takes svelte/compiler from the project too', async () => {
-		// Symlink the real svelte in: the compiler must be importable, not a stub.
+	it('takes svelte/compiler from the project, and it actually COMPILES', async () => {
+		// Symlink the real svelte in: the compiler must be usable, not merely imported.
+		// `svelte/compiler` resolves to a CJS entry, and importing a resolved FILE PATH
+		// skips export conditions — so the named exports arrive under `default` and a
+		// naive `{ compile }` destructure yields undefined. That shipped once; this is
+		// the test that would have caught it, so it calls compile rather than typeof-ing it.
 		const project = fakeProject({});
 		const realSvelte = dirname(require.resolve('svelte/package.json'));
 		mkdirSync(join(project, 'node_modules'), { recursive: true });
@@ -84,7 +88,13 @@ describe('svelte toolchain resolution', () => {
 
 		const compiler = await loadSvelteCompiler(project);
 		expect(typeof compiler.compile).toBe('function');
-		expect(resolve(project, 'node_modules', 'svelte')).toBeTruthy();
+		const { js } = compiler.compile('<p>{name}</p>', { name: 'Probe', generate: 'client' });
+		expect(js.code).toContain('Probe');
+	});
+
+	it('falls back to its own compiler, equally callable', async () => {
+		const compiler = await loadSvelteCompiler(fakeProject({}));
+		expect(compiler.compile('<p>hi</p>', { name: 'Fallback', generate: 'client' }).js.code).toBeTruthy();
 	});
 });
 

@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.114] - 2026-07-28
+
+### Fixed
+
+- **One svelte toolchain — the project's — for compiling AND running.**
+  Component pages went blank in any project whose svelte was newer than the
+  copy npx installs beside sdocs. `resolve.dedupe` already pinned the BROWSER
+  to the project's svelte, but sdocs imported `@sveltejs/vite-plugin-svelte`
+  from its own install, so its bundled compiler produced the code that
+  runtime then had to render. Svelte 5.56 changed `rest_props`' `exclude`
+  argument from an Array to a Set, so components compiled by 5.55 threw
+  `target.exclude.has is not a function` inside `TwoPaneSplit` the moment a
+  5.56 runtime rendered them. That killed `ComponentView`, which reads from
+  the outside as "the sidebar does nothing": routes change, nothing renders,
+  and no configuration explains it.
+
+  The peers are declared `"*"` precisely so the host project's copies win,
+  but npx installs peers beside the tool — so the intent is now enforced at
+  load time. `@sveltejs/vite-plugin-svelte` (which binds `svelte/compiler`
+  from beside itself, so the compiler follows) and `svelte/compiler` are
+  resolved from the project when it has them, with sdocs' own copies as the
+  fallback for standalone use. `dev`, `build`, the prerenderer and `check`
+  all go through it.
+
+  When only half can be aligned — a project with svelte but no
+  vite-plugin-svelte — sdocs now names both versions and the one-line fix
+  instead of failing obscurely later.
+
 ## [0.0.113] - 2026-07-25
 
 ### Fixed

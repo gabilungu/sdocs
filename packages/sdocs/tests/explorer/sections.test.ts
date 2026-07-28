@@ -249,3 +249,30 @@ describe('resolveRoute', () => {
 		expect(resolveRoute(map, ['nope'])).toBeNull();
 	});
 });
+
+describe('slugifySegment folds accents instead of dropping them', () => {
+	// `\w` is ASCII-only, so filtering before folding turned "Verificări" into
+	// "verificri" — a URL that reads like a typo in every language but English.
+	it('keeps the base letter of an accented one', () => {
+		expect(slugifySegment('Verificări')).toBe('verificari');
+		expect(slugifySegment('Setări')).toBe('setari');
+		expect(slugifySegment('Spații de lucru')).toBe('spatii-de-lucru');
+	});
+
+	it('folds across languages, not just Romanian', () => {
+		expect(slugifySegment('Zażółć gęślą')).toBe('zazolc-gesla');
+		expect(slugifySegment('Über uns')).toBe('uber-uns');
+		expect(slugifySegment('Café crème')).toBe('cafe-creme');
+		expect(slugifySegment('Đội ngũ')).toBe('doi-ngu');
+	});
+
+	it('leaves plain ASCII exactly as it was', () => {
+		expect(slugifySegment('Getting started')).toBe('getting-started');
+		expect(slugifySegment('NavTree')).toBe('navtree');
+	});
+
+	it('still falls back when a script has no ASCII base to fold to', () => {
+		expect(slugifySegment('Компоненты')).toBe('item');
+		expect(slugifySegment('コンポーネント')).toBe('item');
+	});
+});

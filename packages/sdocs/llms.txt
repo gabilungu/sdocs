@@ -12,6 +12,14 @@
 - Svelte 5
 - Vite with `@sveltejs/vite-plugin-svelte`
 
+Install `@sveltejs/vite-plugin-svelte` in the project even when running via
+`npx`. sdocs takes the compiler from the project's plugin and pins the browser
+runtime to the project's `svelte`, so both halves come from ONE copy. Without
+the plugin, sdocs must compile with its own bundled svelte while your components
+run against yours; mismatched versions then break generated-code contracts (blank
+pages, `is not a function` from svelte internals). sdocs warns when it detects
+that split.
+
 ## Setup
 
 Install into a Svelte 5 project:
@@ -315,6 +323,12 @@ hierarchy:
   segment. `title="@components/…"`. An undeclared slug is a full-page error;
   a title with no `@` goes to the `docs` section (implicit when no sections
   are declared). Use sections for the site's major areas: Guides vs Components.
+
+  Route segments are slugified from the title: lowercased, spaces to hyphens,
+  and accented letters folded to their base (`Verificări` → `verificari`,
+  `Zażółć` → `zazolc`). Scripts with no ASCII base (Greek, Cyrillic, CJK) have
+  nothing to fold to and need an explicit `slug="…"` on the entity — which is
+  also how you pin a route that must not move when the title is reworded.
 - **Group** (`:` prefix on the first segment after the section) — a **bold
   uppercase header** carving the sidebar into areas of similar things
   (`:Layout`, `:Form`, `:Display`). Expanded by default; only the first

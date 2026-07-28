@@ -35,15 +35,46 @@ async function linkStagedDeps(sdocsDir: string, cwd: string): Promise<void> {
 	const nodeModules = resolve(sdocsDir, 'node_modules');
 	await mkdir(nodeModules, { recursive: true });
 	const link = async (pkg: string) => {
-		const target = dirname(require.resolve(`${pkg}/package.json`));
+		const target = packageRoot(pkg);
+		if (!target) return;
 		await symlink(target, resolve(nodeModules, pkg), 'junction').catch(() => {});
 	};
 	await link('shiki');
+	await link('esm-env');
 	try {
 		require.resolve('svelte/package.json', { paths: [cwd] });
 	} catch {
 		await link('svelte');
 	}
+}
+
+/**
+ * Where a package physically lives, for symlinking into the staging tree.
+ *
+ * `require.resolve('pkg/package.json')` is the direct route, but a package may not
+ * EXPORT './package.json' — esm-env doesn't — and then it throws
+ * ERR_PACKAGE_PATH_NOT_EXPORTED. So fall back to resolving the entry point and walking
+ * up to the directory that owns a package.json. Returns null rather than throwing:
+ * failing to link one optional dependency must not stop the server booting.
+ */
+function packageRoot(pkg: string): string | null {
+	try {
+		return dirname(require.resolve(`${pkg}/package.json`));
+	} catch {
+		// Not exported — find the root from the entry instead.
+	}
+	try {
+		let dir = dirname(require.resolve(pkg));
+		for (let depth = 0; depth < 8; depth += 1) {
+			if (existsSync(join(dir, 'package.json'))) return dir;
+			const parent = dirname(dir);
+			if (parent === dir) break;
+			dir = parent;
+		}
+	} catch {
+		// Not installed at all.
+	}
+	return null;
 }
 
 /** Source Explorer directory in the installed package (dist/explorer, next to dist/server) */
@@ -82,12 +113,61 @@ function findNearestNodeModules(dir: string): string | null {
 async function createStagingDir(cwd: string): Promise<string> {
 	const nodeModules =
 		findNearestNodeModules(cwd) ?? findNearestNodeModules(resolve(__dirname, '..'));
-	if (nodeModules) {
-		const cacheDir = join(nodeModules, '.cache');
-		await mkdir(cacheDir, { recursive: true });
-		return mkdtemp(join(cacheDir, 'sdocs-'));
+	const parent = nodeModules ? join(nodeModules, '.cache') : tmpdir();
+	if (nodeModules) await mkdir(parent, { recursive: true });
+
+	await sweepAbandonedStagingDirs(parent);
+	const dir = await mkdtemp(join(parent, 'sdocs-'));
+	// The owner's pid, so a later run can tell an abandoned directory from a live one.
+	await writeFile(join(dir, OWNER_FILE), String(process.pid), 'utf-8');
+	return dir;
+}
+
+const OWNER_FILE = '.sdocs-owner';
+
+/**
+ * Remove staging directories whose owner is gone. A killed dev server (or a crash)
+ * never reaches cleanBuildFiles, so these otherwise accumulate one per run — four of
+ * them, ~3.5 MB, had piled up in one project before this existed.
+ *
+ * Liveness is decided by the recorded pid, NOT by age: two sdocs servers on different
+ * ports are a normal thing to run, and sweeping by mtime would delete the other one's
+ * directory out from under it. A directory with no pid file predates this and is
+ * treated as abandoned; anything unreadable is left alone, since deleting what we
+ * cannot explain is the worse failure.
+ */
+async function sweepAbandonedStagingDirs(parent: string): Promise<void> {
+	let entries: string[];
+	try {
+		entries = await readdir(parent);
+	} catch {
+		return;
 	}
-	return mkdtemp(join(tmpdir(), 'sdocs-'));
+	await Promise.all(
+		entries
+			.filter((name) => name.startsWith('sdocs-'))
+			.map(async (name) => {
+				const dir = join(parent, name);
+				try {
+					const pid = Number.parseInt(await readFile(join(dir, OWNER_FILE), 'utf-8'), 10);
+					if (Number.isFinite(pid) && isAlive(pid)) return;
+				} catch {
+					// No owner file: an older sdocs made it, so nothing is watching it now.
+				}
+				await rm(dir, { recursive: true, force: true }).catch(() => {});
+			})
+	);
+}
+
+/** Signal 0 tests for existence without delivering anything. */
+function isAlive(pid: number): boolean {
+	try {
+		process.kill(pid, 0);
+		return true;
+	} catch (err) {
+		// EPERM means it exists and belongs to someone else — still alive.
+		return (err as NodeJS.ErrnoException).code === 'EPERM';
+	}
 }
 
 /** Copy a directory recursively */
@@ -306,3 +386,6 @@ export async function generateBuildFiles(
 export async function cleanBuildFiles(stagingDir: string): Promise<void> {
 	await rm(stagingDir, { recursive: true, force: true });
 }
+
+/** Internals exposed for tests only. */
+export const __testing = { sweepAbandonedStagingDirs };

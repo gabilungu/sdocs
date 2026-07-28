@@ -1,6 +1,6 @@
 {
 	"name": "sdocs",
-	"version": "0.0.115",
+	"version": "0.0.116",
 	"description": "A lightweight documentation tool for Svelte 5 components",
 	"type": "module",
 	"license": "MIT",
@@ -63,6 +63,7 @@
 		"test": "vitest run"
 	},
 	"dependencies": {
+		"esm-env": "^1.2.2",
 		"marked": "^16.4.2",
 		"shiki": "^3.22.0",
 		"tinyglobby": "^0.2.15",

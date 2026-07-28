@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { getContext, onMount, untrack } from 'svelte';
 	import { navigateHref } from '../router.svelte.js';
+	import { DEV } from 'esm-env';
 
 	interface Props {
 		src: string;
@@ -36,9 +37,12 @@
 			: 'Component preview',
 	);
 
-	// Dev only: the id is a handle for the MCP server, which a built site
-	// never serves. Vite folds this to false, so the chip leaves no trace.
-	const showStageId = import.meta.env.DEV;
+	// Dev only: the id is a handle for the MCP server, which a built site never serves.
+	// DEV comes from esm-env rather than Vite's own env object, so the packaged library
+	// stays portable — bundlers fold it to false and the chip leaves no trace.
+	// (svelte-package greps for that env expression as a literal string, comments
+	// included, so naming it here would re-trigger the warning it is meant to prevent.)
+	const showStageId = DEV;
 	let copied = $state(false);
 	function copyStageId() {
 		if (!stage?.stageId) return;

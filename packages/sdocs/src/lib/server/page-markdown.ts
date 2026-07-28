@@ -13,6 +13,7 @@ import type { Token } from 'marked';
 import { highlight } from './highlighter.js';
 import { segmentPageBody } from '../language/page-islands.js';
 import type { TocHeading } from '../types.js';
+import { foldAccents } from '../explorer/tree-builder.js';
 
 export interface RenderedPage {
 	html: string;
@@ -24,7 +25,8 @@ export interface RenderedPage {
 
 function slugify(text: string): string {
 	return (
-		text
+		// Same folding as route segments, so an anchor to "Setări" is #setari.
+		foldAccents(text)
 			.toLowerCase()
 			.replace(/[^\w\s-]/g, '')
 			.trim()

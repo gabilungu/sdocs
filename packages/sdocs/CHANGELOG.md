@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.116] - 2026-07-28
+
+### Fixed
+
+- **Route slugs fold accents instead of deleting them.** `\w` is ASCII-only, so
+  filtering ran before any folding and ate the letter: `Verificări` became
+  `/verificri`, `Setări` became `/setri`, `Zażółć` became `/zac`. Titles now
+  normalize (NFD) and drop combining marks first, with an explicit map for
+  letters whose diacritic is part of the glyph and therefore has no
+  decomposition (ł, đ, ø, ß, æ, œ, þ, ð, ı). Heading anchors fold the same way,
+  as their comment always claimed. Scripts with no ASCII base (Greek, Cyrillic,
+  CJK) still fall back to `item` and want an explicit `slug=`.
+
+  **This changes existing routes** for any title with an accented letter. Pin
+  `slug="…"` on an entity whose URL must not move.
+
+- **Staging directories no longer accumulate.** A killed dev server never reaches
+  cleanup, so `node_modules/.cache/sdocs-*` grew by one directory (~870 KB) per
+  run — four had piled up in one project. Each staging directory now records its
+  owner's pid, and a new run sweeps the ones whose owner is gone. Liveness is
+  decided by pid, never by age: two sdocs servers on two ports are a normal thing
+  to run, and an age rule would delete the other one's directory mid-run.
+
+- **Linking a dependency into the staging tree no longer assumes it exports
+  `./package.json`.** esm-env does not, and the resulting
+  ERR_PACKAGE_PATH_NOT_EXPORTED escaped far enough to stop the server booting.
+  The package root is now found from the entry point when the direct route
+  fails, and a dependency that cannot be linked is skipped rather than fatal.
+
+- **The packaged library no longer reaches for Vite's env object**, so
+  `svelte-package` stops warning that it is unportable. `DEV` comes from esm-env
+  (already every Svelte project's transitive dependency), linked into the staging
+  tree like shiki.
+
+### Documentation
+
+- `llms.txt` now says to install `@sveltejs/vite-plugin-svelte` in the project
+  even under `npx` — that is what keeps the compiler and the runtime one copy —
+  and documents how route segments are slugified, including the escape hatch.
+
 ## [0.0.115] - 2026-07-28
 
 ### Fixed

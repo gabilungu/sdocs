@@ -60,16 +60,54 @@ export interface SectionMap {
 	errors: SiteError[];
 }
 
-/** Slug for one route segment — same rules as page heading anchors. */
+/**
+ * Slug for one route segment — same rules as page heading anchors.
+ *
+ * Accented letters are FOLDED to their base (ă → a, ș → s, ł → l), not dropped:
+ * `\w` is ASCII-only, so filtering first would turn "Verificări" into "verificri" and
+ * "Setări" into "setri" — URLs that read like typos in every language that isn't
+ * English. NFD splits a letter into base + combining mark, so removing the marks
+ * leaves the base behind. Scripts with no ASCII base (Greek, Cyrillic, CJK) still
+ * have nothing to fold to and fall back to 'item'; those need an explicit `slug=`.
+ */
 export function slugifySegment(text: string): string {
 	return (
-		text
+		foldAccents(text)
 			.toLowerCase()
 			.replace(/[^\w\s-]/g, '')
 			.trim()
 			.replace(/[\s_]+/g, '-') || 'item'
 	);
 }
+
+/**
+ * Decompose, then drop the combining marks — "ă" becomes "a".
+ *
+ * NFD only helps where the mark is a SEPARATE combining character. Letters whose
+ * diacritic is part of the glyph have no canonical decomposition — a stroke is not a
+ * combining mark — so ł, đ, ø and friends survive NFD untouched and would then be
+ * filtered away. They get an explicit map; the list is the Latin-script letters a
+ * European or Vietnamese title realistically contains.
+ */
+export function foldAccents(text: string): string {
+	return text
+		.normalize('NFD')
+		.replace(/\p{Diacritic}/gu, '')
+		.replace(/[łŁđĐøØßæÆœŒþÞðÐıŋ]/g, (ch) => STROKED[ch] ?? ch);
+}
+
+const STROKED: Record<string, string> = {
+	ł: 'l', Ł: 'L',
+	đ: 'd', Đ: 'D',
+	ø: 'o', Ø: 'O',
+	ß: 'ss',
+	æ: 'ae', Æ: 'AE',
+	œ: 'oe', Œ: 'OE',
+	þ: 'th', Þ: 'TH',
+	ð: 'd', Ð: 'D',
+	ı: 'i',
+	ŋ: 'n',
+};
 
 /** Sections with defaults filled in; the implicit `docs` section when none
  * are declared. */

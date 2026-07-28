@@ -101,3 +101,4 @@ describe('svelte toolchain resolution', () => {
 process.on('exit', () => {
 	for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
 });
+

@@ -51,8 +51,8 @@
 	@media (max-width: 860px) {
 		/* The swatch is the whole control — it has to be tappable. */
 		.sdocs-control-color {
-			width: 44px;
-			height: 34px;
+			width: 40px;
+			height: 28px;
 		}
 	}
 </style>

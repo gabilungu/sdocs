@@ -41,8 +41,8 @@
 	@media (max-width: 860px) {
 		/* A 16px box is half the width of a fingertip. */
 		.sdocs-control-checkbox {
-			width: 22px;
-			height: 22px;
+			width: 20px;
+			height: 20px;
 		}
 	}
 </style>

@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.120] - 2026-08-04
+
+### Fixed
+
+- **Touch-sized form controls no longer overshoot on a phone.** The text fields
+  are `content-box`, so the 40px minimum height added in 0.0.117 sat *outside*
+  their padding and border and measured 50px — taller than the select beside
+  them, which is `border-box` and obeyed the rule exactly. Fields are now sized
+  border-box, and the whole touch pass is dialled back to 36px: text inputs,
+  selects, and the collapsible code panels all match, with the unset button at
+  32px and the colour swatch trimmed to fit beside them. Text stays 16px, which
+  is what stops Safari zooming the page when a field takes focus.
+
 ## [0.0.119] - 2026-08-04
 
 ### Fixed

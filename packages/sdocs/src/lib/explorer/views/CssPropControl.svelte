@@ -86,9 +86,9 @@
 
 	@media (max-width: 860px) {
 		.sdocs-unset-btn {
-			width: 40px;
-			height: 40px;
-			font-size: 18px;
+			width: 32px;
+			height: 32px;
+			font-size: 16px;
 		}
 	}
 </style>

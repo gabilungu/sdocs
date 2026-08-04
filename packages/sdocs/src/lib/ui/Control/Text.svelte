@@ -48,10 +48,13 @@
 	}
 
 	@media (max-width: 860px) {
-		/* Safari zooms the page when it focuses an input under 16px, and 26px
-		   is a thin target for a thumb. */
+		/* Safari zooms the page when it focuses a field under 16px, so the text
+		   stays 16px. The height is border-box: as content-box the padding and
+		   border sat OUTSIDE it and a 40px rule measured 50 — taller than the
+		   select beside it, and heavier than this dense a table wants. */
 		.sdocs-control-input {
-			min-height: 40px;
+			box-sizing: border-box;
+			min-height: 36px;
 			font-size: 16px;
 		}
 	}

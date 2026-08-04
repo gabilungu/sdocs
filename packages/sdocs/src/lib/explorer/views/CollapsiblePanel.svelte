@@ -69,8 +69,10 @@
 	}
 
 	@media (max-width: 860px) {
+		/* Enough to hit with a thumb without turning a row of collapsed panels
+		   into a wall — these stack three deep under a component preview. */
 		.sdocs-panel-header {
-			min-height: 44px;
+			min-height: 36px;
 		}
 	}
 </style>

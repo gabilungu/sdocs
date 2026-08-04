@@ -176,8 +176,8 @@
 		.sdocs-api-row {
 			display: flex;
 			flex-direction: column;
-			gap: 6px;
-			padding: 14px 0;
+			gap: 5px;
+			padding: 12px 0;
 			/* The grid's `start` would shrink each cell to its content, leaving
 			   the controls at a fraction of the width they now have. */
 			align-items: stretch;

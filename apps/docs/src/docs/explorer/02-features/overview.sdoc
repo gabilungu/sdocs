@@ -8,6 +8,7 @@
 	- [Interactive controls](/explorer/features/interactive-controls) — auto-generated UI for each prop type
 	- [Theming & CSS switching](/explorer/features/theming) — named stylesheets and app theme
 	- [Sidebar](/explorer/features/sidebar) — structure, ordering, groups, search
+	- [Mobile](/explorer/features/mobile) — how the Explorer reshapes below 860px
 	- [Routing](/explorer/features/routing) — URL format and deep linking
 
 [/DOC]

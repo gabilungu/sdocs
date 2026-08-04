@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import type { DocEntry } from '../../types.js';
 	import { Icon } from '../../ui/Icon/index.js';
 	import { highlightSvelte } from '../highlighter.js';
@@ -17,6 +18,7 @@
 	import { renderInlineMarkdown } from './format.js';
 	import { displayTitle } from '../tree-builder.js';
 	import { getQueryParam, setQueryParam } from '../router.svelte.js';
+	import { isNarrow } from '../viewport.svelte.js';
 
 	interface Props {
 		doc: DocEntry;
@@ -261,7 +263,47 @@
 	const showResetInCss = $derived(
 		hasEditableControls && propsRows.length === 0 && cssPropsRows.length > 0,
 	);
+
+	// A phone has no room to drag a stage narrower and no pointer to grab the
+	// handle with, so the split collapses to the pane alone.
+	const narrow = $derived(isNarrow());
 </script>
+
+<!-- The stage: a preview pane that can be dragged narrower, with the hatched
+     canvas as the room to drag into. `get`/`set` are the width binding —
+     each caller owns where that width is stored. -->
+{#snippet stage(
+	content: Snippet,
+	get: () => number | string,
+	set: (v: number | string) => void,
+	reset: () => void,
+)}
+	<div class="sdocs-preview-split">
+		{#if narrow}
+			<div class="sdocs-preview-pane">{@render content()}</div>
+		{:else}
+			{@const w = get()}
+			<TwoPaneSplit bind:leftWidth={get, set} leftMinWidth={1} handleBarWidth={10} height="auto">
+				{#snippet left()}
+					<div class="sdocs-preview-pane">{@render content()}</div>
+				{/snippet}
+				{#snippet right()}
+					<div class="sdocs-resize-canvas" style:background-image={`url(${diagonalsUrl})`}></div>
+				{/snippet}
+			</TwoPaneSplit>
+			{#if typeof w === 'number'}
+				<button
+					class="sdocs-resize-readout"
+					style:left={`min(${w + 18}px, calc(100% - 64px))`}
+					title="Reset width"
+					onclick={reset}
+				>
+					{w}px
+				</button>
+			{/if}
+		{/if}
+	</div>
+{/snippet}
 
 <div class="sdocs-component-view" style:--sdocs-content-max={doc.maxWidth}>
 	{#if focusedSnippet}
@@ -270,30 +312,17 @@
 			<h1 class="sdocs-view-title">{displayTitle(meta.title)} / {snippetName}</h1>
 		</div>
 		<!-- The example IS the page — its stage rides the same resizable split. -->
-		<div class="sdocs-preview-split">
-			<TwoPaneSplit bind:leftWidth={focusedWidth} leftMinWidth={1} handleBarWidth={10} height="auto">
-				{#snippet left()}
-					<div class="sdocs-preview-pane">
-						<div class="sdocs-preview-wrapper">
-							<PreviewFrame src={focusedSnippet.previewUrl ?? ''} {activeStylesheet} stage={focusedSnippet} />
-						</div>
-					</div>
-				{/snippet}
-				{#snippet right()}
-					<div class="sdocs-resize-canvas" style:background-image={`url(${diagonalsUrl})`}></div>
-				{/snippet}
-			</TwoPaneSplit>
-			{#if typeof focusedWidth === 'number'}
-				<button
-					class="sdocs-resize-readout"
-					style:left={`min(${focusedWidth + 18}px, calc(100% - 64px))`}
-					title="Reset width"
-					onclick={() => (focusedWidth = defaultStageWidth)}
-				>
-					{focusedWidth}px
-				</button>
-			{/if}
-		</div>
+		{#snippet focusedContent()}
+			<div class="sdocs-preview-wrapper">
+				<PreviewFrame src={focusedSnippet.previewUrl ?? ''} {activeStylesheet} stage={focusedSnippet} />
+			</div>
+		{/snippet}
+		{@render stage(
+			focusedContent,
+			() => focusedWidth,
+			(v) => (focusedWidth = v),
+			() => (focusedWidth = defaultStageWidth),
+		)}
 		<div class="sdocs-panels">
 			<CollapsiblePanel title="Code" defaultExpanded={false} flush>
 				<div class="sdocs-code-block">{@html focusedSnippet.highlightedHtml ?? ''}</div>
@@ -333,41 +362,28 @@
 		{#if activePreview}
 			<!-- The stage rides in a resizable pane spanning the full view width:
 			     drag the handle to narrow the iframe and test responsive layouts. -->
-			<div class="sdocs-preview-split">
-				<TwoPaneSplit bind:leftWidth={previewWidth} leftMinWidth={1} handleBarWidth={10} height="auto">
-					{#snippet left()}
-						<div class="sdocs-preview-pane">
-							{#key activePreview.snippet.slug}
-								<div class="sdocs-preview-wrapper">
-									<PreviewFrame
-										bind:this={defaultPreview}
-										src={activePreview.snippet.previewUrl ?? ''}
-										stage={activePreview.snippet}
-										props={propValues}
-										cssVars={appliedCss}
-										{activeStylesheet}
-										onStateValues={(values) => (liveStateValues = values)}
-										onready={resolveVarColors}
-									/>
-								</div>
-							{/key}
-						</div>
-					{/snippet}
-					{#snippet right()}
-						<div class="sdocs-resize-canvas" style:background-image={`url(${diagonalsUrl})`}></div>
-					{/snippet}
-				</TwoPaneSplit>
-				{#if typeof previewWidth === 'number'}
-					<button
-						class="sdocs-resize-readout"
-						style:left={`min(${previewWidth + 18}px, calc(100% - 64px))`}
-						title="Reset width"
-						onclick={() => (previewWidth = defaultStageWidth)}
-					>
-						{previewWidth}px
-					</button>
-				{/if}
-			</div>
+			{#snippet previewContent()}
+				{#key activePreview.snippet.slug}
+					<div class="sdocs-preview-wrapper">
+						<PreviewFrame
+							bind:this={defaultPreview}
+							src={activePreview.snippet.previewUrl ?? ''}
+							stage={activePreview.snippet}
+							props={propValues}
+							cssVars={appliedCss}
+							{activeStylesheet}
+							onStateValues={(values) => (liveStateValues = values)}
+							onready={resolveVarColors}
+						/>
+					</div>
+				{/key}
+			{/snippet}
+			{@render stage(
+				previewContent,
+				() => previewWidth,
+				(v) => (previewWidth = v),
+				() => (previewWidth = defaultStageWidth),
+			)}
 
 			<div class="sdocs-panels">
 				<CollapsiblePanel title="Preview Code" defaultExpanded={false} flush>
@@ -507,7 +523,6 @@
 			<hr class="sdocs-divider" />
 			<h2 class="sdocs-section-title">Examples</h2>
 			{#each exampleSnippets as example (example.name)}
-				{@const w = exampleOverrides[example.slug] ?? defaultStageWidth}
 				<div class="sdocs-example">
 					<h3 class="sdocs-example-title">
 						<Icon name="bookmark" --w="14px" --h="14px" --fill="var(--color-example-500)" />
@@ -516,42 +531,21 @@
 					{#if example.description}
 						<p class="sdocs-block-description">{@html renderInlineMarkdown(example.description)}</p>
 					{/if}
-					<div class="sdocs-preview-split">
-						<TwoPaneSplit
-							bind:leftWidth={
-								() => exampleOverrides[example.slug] ?? defaultStageWidth,
-								(v) => (exampleOverrides[example.slug] = v)
-							}
-							leftMinWidth={1}
-							handleBarWidth={10}
-							height="auto"
-						>
-							{#snippet left()}
-								<div class="sdocs-preview-pane">
-									<div class="sdocs-preview-wrapper">
-										<PreviewFrame src={example.previewUrl ?? ''} {activeStylesheet} stage={example} />
-									</div>
-								</div>
-							{/snippet}
-							{#snippet right()}
-								<div class="sdocs-resize-canvas" style:background-image={`url(${diagonalsUrl})`}></div>
-							{/snippet}
-						</TwoPaneSplit>
-						{#if typeof w === 'number'}
-							<button
-								class="sdocs-resize-readout"
-								style:left={`min(${w + 18}px, calc(100% - 64px))`}
-								title="Reset width"
-								onclick={() => {
-									const next = { ...exampleOverrides };
-									delete next[example.slug];
-									exampleOverrides = next;
-								}}
-							>
-								{w}px
-							</button>
-						{/if}
-					</div>
+					{#snippet exampleContent()}
+						<div class="sdocs-preview-wrapper">
+							<PreviewFrame src={example.previewUrl ?? ''} {activeStylesheet} stage={example} />
+						</div>
+					{/snippet}
+					{@render stage(
+						exampleContent,
+						() => exampleOverrides[example.slug] ?? defaultStageWidth,
+						(v) => (exampleOverrides[example.slug] = v),
+						() => {
+							const next = { ...exampleOverrides };
+							delete next[example.slug];
+							exampleOverrides = next;
+						},
+					)}
 					<div class="sdocs-panels">
 						<CollapsiblePanel title="Code" defaultExpanded={false} flush>
 							<div class="sdocs-code-block">{@html example.highlightedHtml ?? ''}</div>
@@ -823,5 +817,34 @@
 	}
 	.sdocs-code-block :global(code) {
 		font-family: var(--mono);
+	}
+
+	@media (max-width: 860px) {
+		.sdocs-component-view {
+			/* The second track existed to give the stage room to be dragged
+			   into; without a handle it is just wasted width. */
+			display: block;
+			padding: 16px;
+		}
+		.sdocs-view-title {
+			font-size: 20px;
+		}
+		.sdocs-view-header {
+			margin-bottom: 16px;
+		}
+		/* Enough previews and the tabs stop fitting — let them scroll rather
+		   than wrap into a stack that pushes the stage off the screen. */
+		.sdocs-preview-tabs {
+			overflow-x: auto;
+			scrollbar-width: none;
+		}
+		.sdocs-preview-tab {
+			flex-shrink: 0;
+			padding: 10px 12px;
+		}
+		.sdocs-reset-btn,
+		.sdocs-run-btn {
+			min-height: 36px;
+		}
 	}
 </style>

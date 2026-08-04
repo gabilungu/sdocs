@@ -81,7 +81,9 @@
 		align-items: center;
 		gap: 6px;
 		width: 100%;
-		height: 28px;
+		/* Row height is settable so a touch context can ask for a bigger
+		   target than the 28px a pointer is happy with. */
+		height: var(--item-h, 28px);
 		padding: var(--p, 0 5px 0 8px);
 		margin: var(--m, 0);
 		border-radius: var(--r, 0);

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Component } from 'svelte';
 	import type { DocEntry } from '../../types.js';
+	import { capSidePadding, isNarrow } from '../viewport.svelte.js';
 
 	interface Props {
 		doc: DocEntry;
@@ -40,9 +41,12 @@
 	const containerMargin = $derived(
 		doc.contentX === 'center' ? '0 auto' : doc.contentX === 'right' ? '0 0 0 auto' : undefined,
 	);
+
+	// Desktop-authored side padding is too dear to keep on a phone.
+	const viewPadding = $derived(isNarrow() ? capSidePadding(doc.padding) : doc.padding);
 </script>
 
-<div class="sdocs-svelte-page" style:padding={doc.padding}>
+<div class="sdocs-svelte-page" style:padding={viewPadding}>
 	<div class="sdocs-svelte-page-inner" style:max-width={doc.maxWidth} style:margin={containerMargin}>
 		{#if PageComponent}
 			<PageComponent />

@@ -1,0 +1,92 @@
+[DOC title="@explorer/Features / Mobile"]
+
+
+	The Explorer reshapes itself below **860px**. Nothing is configured and
+	nothing is opted into — the same site serves a phone and a desktop.
+
+	## Navigation folds into a drawer
+
+	The top bar's section tabs and the sidebar tree are two halves of the same
+	navigation, and neither fits a phone beside the content. Below the
+	breakpoint they merge: a burger opens one off-canvas drawer holding the
+	sections as chips, then the tree below them.
+
+	The drawer closes where you *arrive*. A tap in the tree lands on the page it
+	opened, not on a page hidden behind a panel you still have to dismiss —
+	but a section chip only swaps which tree the drawer shows, so the drawer
+	stays open and you keep browsing. Expanding a folder keeps it open for the
+	same reason; only the tap that navigates ends the visit.
+
+	Tapping the scrim or pressing `Escape` closes it too, the content behind is
+	inert while it is open, and focus moves into the drawer and back to the
+	burger afterwards.
+
+	This is what keeps a [sectionless `[PAGE]`](/language/svelte-pages)
+	navigable: a landing page has no sidebar tree of its own, but the section
+	chips it replaces still need somewhere to live, so the drawer opens with
+	just those.
+
+	The [stylesheet picker](/explorer/configuration) moves to the foot of the
+	drawer when a project declares more than one — in the top bar it is the one
+	control wide enough to crowd out the rest.
+
+	## Stages stop being resizable
+
+	A component preview normally sits in a pane you can drag narrower, with a
+	hatched canvas beside it as the room to drag into. On a phone there is no
+	room to drag into and no pointer to grab the handle with, so the split
+	collapses to the pane alone and the preview takes the full width.
+
+	`[LAYOUT]` pages go further: their width is *remembered* across pages and
+	reloads, and a width dragged on a desktop is a desktop measurement. A phone
+	ignores the stored value rather than showing a sliver of the layout with no
+	handle to widen it again — the value is kept, and comes back when the
+	window does.
+
+	Fullscreen is hidden for the same reason. It trades chrome for stage, and a
+	phone has little chrome to trade; its exit is a hover-only hot corner that
+	touch cannot reach.
+
+	## API tables become cards
+
+	The `Name / Details / Default / Control` grid is 520px of fixed columns.
+	Below the breakpoint each row stops being a row and becomes a card: the
+	prop name, its type, the description, then the default and the control,
+	each cell labelled now that the column headers are gone. A row with no
+	default drops that block instead of printing a labelled em-dash.
+
+	Controls grow to the full width and to 40px tall, and their text fields to
+	16px — under that, Safari zooms the page the moment it focuses one.
+
+	## Prose and outlines
+
+	A page's `padding` is authored for a desktop column, where 32px a side
+	reads as a margin and on a 390px screen is a sixth of the readable width.
+	Each horizontal value is capped at 16px on a phone — capped, not replaced,
+	so a page that asked for *less* keeps less and a full-bleed page stays
+	full-bleed. Vertical padding is untouched.
+
+	The "On this page" outline has no column to sit sticky in, so it folds up
+	into a disclosure above the prose rather than pushing the first paragraph
+	off the screen.
+
+	## Writing docs that survive it
+
+	The Explorer's own chrome adapts on its own. What it cannot adapt is the
+	content you put on a stage:
+
+	- A `[component]` or `[example]` preview renders in an iframe at whatever
+	  width the phone leaves it — around 340px. A component with a hard
+	  `min-width` will overflow its stage there.
+	- Wide prose content — tables, long code samples — scrolls inside its own
+	  container. That is deliberate: the page itself never scrolls sideways.
+	- A `[LAYOUT]` is a full-page sketch, so it meets the viewport directly.
+	  It is the one place a phone shows your composition with no chrome
+	  around it at all.
+
+	## See also
+
+	- [Sidebar](/explorer/features/sidebar) — sections, groups, and the tree
+	- [Configuration reference](/explorer/configuration) — `padding`, `maxWidth`, `css`
+
+[/DOC]

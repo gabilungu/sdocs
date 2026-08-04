@@ -6,6 +6,7 @@
 	import CollapsiblePanel from './CollapsiblePanel.svelte';
 	import PreviewFrame from './PreviewFrame.svelte';
 	import { displayTitle } from '../tree-builder.js';
+	import { capSidePadding, isNarrow } from '../viewport.svelte.js';
 
 	interface Props {
 		doc: DocEntry;
@@ -120,6 +121,9 @@
 	const columnMargin = $derived(
 		doc.contentX === 'center' ? '0 auto' : doc.contentX === 'right' ? '0 0 0 auto' : undefined,
 	);
+
+	const narrow = $derived(isNarrow());
+	const viewPadding = $derived(narrow ? capSidePadding(doc.padding) : doc.padding);
 </script>
 
 {#snippet exampleFrame(index: number)}
@@ -147,7 +151,7 @@
 	{/if}
 {/snippet}
 
-<div class="sdocs-page-view" style:padding={doc.padding}>
+<div class="sdocs-page-view" style:padding={viewPadding}>
 	<!-- maxWidth constrains the whole column — content plus toc; contentX
 	     places it. Without a toc the content takes the toc's space. -->
 	<div class="sdocs-page-inner" style:max-width={doc.maxWidth} style:margin={columnMargin}>
@@ -172,8 +176,7 @@
 
 		<!-- Table of Contents -->
 		{#if toc.length > 0 && doc.showToc !== false}
-			<aside class="sdocs-toc">
-				<h3 class="sdocs-toc-title">On this page</h3>
+			{#snippet tocList()}
 				<nav>
 					<ul class="sdocs-toc-list">
 						{#each toc as heading (heading.id)}
@@ -190,7 +193,23 @@
 						{/each}
 					</ul>
 				</nav>
-			</aside>
+			{/snippet}
+			{#if narrow}
+				<!-- No column to sit sticky in: the outline folds up above the
+				     page rather than pushing the first paragraph off-screen. -->
+				<details class="sdocs-toc sdocs-toc-collapsed">
+					<summary class="sdocs-toc-summary">
+						<Icon name="chevron-right" --w="14px" --h="14px" />
+						On this page
+					</summary>
+					{@render tocList()}
+				</details>
+			{:else}
+				<aside class="sdocs-toc">
+					<h3 class="sdocs-toc-title">On this page</h3>
+					{@render tocList()}
+				</aside>
+			{/if}
 		{/if}
 	</div>
 </div>
@@ -463,5 +482,60 @@
 	.sdocs-toc-link:hover,
 	.sdocs-toc-link.is-active {
 		color: var(--color-action-500);
+	}
+
+	@media (max-width: 860px) {
+		/* One column: the outline stacks above the prose instead of beside it. */
+		.sdocs-page-inner {
+			flex-direction: column;
+			gap: 16px;
+		}
+		.sdocs-toc-collapsed {
+			order: -1;
+			width: auto;
+			position: static;
+			/* The sticky column's flex-start would shrink it to its own text,
+			   leaving a floating box that doesn't line up with the prose. */
+			align-self: stretch;
+			padding: 8px 12px;
+			border: 1px solid var(--color-base-200);
+			border-radius: 8px;
+		}
+		.sdocs-toc-summary {
+			min-height: 28px;
+			display: flex;
+			align-items: center;
+			gap: 6px;
+			font-size: 12px;
+			font-weight: 600;
+			letter-spacing: 0.05em;
+			text-transform: uppercase;
+			color: var(--color-base-500);
+			cursor: pointer;
+			/* `display: flex` drops the native marker — the chevron replaces it. */
+			list-style: none;
+		}
+		.sdocs-toc-summary::-webkit-details-marker {
+			display: none;
+		}
+		.sdocs-toc-summary :global(.Icon) {
+			transition: transform 0.15s ease;
+		}
+		.sdocs-toc-collapsed[open] .sdocs-toc-summary :global(.Icon) {
+			transform: rotate(90deg);
+		}
+		.sdocs-toc-collapsed[open] .sdocs-toc-summary {
+			margin-bottom: 4px;
+		}
+		.sdocs-toc-link {
+			padding: 8px 0;
+			font-size: 14px;
+		}
+		.sdocs-view-title {
+			font-size: 20px;
+		}
+		.sdocs-view-header {
+			margin-bottom: 16px;
+		}
 	}
 </style>

@@ -65,6 +65,8 @@
 		height: 100%;
 		min-height: 400px;
 		gap: 32px;
+		padding: 24px;
+		box-sizing: border-box;
 		font-family: var(--sans);
 	}
 	.sdocs-home-brand {
@@ -118,5 +120,31 @@
 		font-family: var(--mono);
 		font-size: 13px;
 		margin-left: 4px;
+	}
+
+	@media (max-width: 860px) {
+		.sdocs-home {
+			gap: 24px;
+			min-height: 0;
+		}
+		/* The 160px mascot and a 36px wordmark crowd out the stats below. The
+		   sizes arrive as --w/--h on a wrapper, so re-declaring them on the
+		   icon itself is what takes precedence. */
+		.sdocs-home :global(.Icon) {
+			--w: 108px;
+			--h: 108px;
+		}
+		.sdocs-home-logo-img {
+			width: 108px;
+			height: 108px;
+		}
+		.sdocs-home-logo {
+			font-size: 28px;
+		}
+		.sdocs-home-stats {
+			flex-wrap: wrap;
+			justify-content: center;
+			gap: 24px;
+		}
 	}
 </style>

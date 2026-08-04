@@ -13,11 +13,13 @@
 	import fileTextSvg from './icons/file-text.svg?raw';
 	import folderOpenSvg from './icons/folder-open.svg?raw';
 	import folderSvg from './icons/folder.svg?raw';
+	import menuSvg from './icons/menu.svg?raw';
 	import paletteSvg from './icons/palette.svg?raw';
 	import panelsTopLeftSvg from './icons/panels-top-left.svg?raw';
 	import sdocsSvg from './icons/sdocs.svg?raw';
 	import slidersHorizontalSvg from './icons/sliders-horizontal.svg?raw';
 	import squareFunctionSvg from './icons/square-function.svg?raw';
+	import xSvg from './icons/x.svg?raw';
 	import zapSvg from './icons/zap.svg?raw';
 
 	const icons: Record<string, string> = {
@@ -35,11 +37,13 @@
 		'file-text': fileTextSvg,
 		'folder-open': folderOpenSvg,
 		'folder': folderSvg,
+		'menu': menuSvg,
 		'palette': paletteSvg,
 		'panels-top-left': panelsTopLeftSvg,
 		'sdocs': sdocsSvg,
 		'sliders-horizontal': slidersHorizontalSvg,
 		'square-function': squareFunctionSvg,
+		'x': xSvg,
 		'zap': zapSvg,
 	};
 

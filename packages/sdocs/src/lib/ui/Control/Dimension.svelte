@@ -57,4 +57,13 @@
 		color: var(--color-base-400);
 		font-size: 12px;
 	}
+
+	@media (max-width: 860px) {
+		/* Safari zooms the page when it focuses an input under 16px, and 26px
+		   is a thin target for a thumb. */
+		.sdocs-control-input {
+			min-height: 40px;
+			font-size: 16px;
+		}
+	}
 </style>

@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.117] - 2026-08-04
+
+### Added
+
+- **The Explorer works on a phone.** Below 860px it reshapes itself; nothing
+  is configured and nothing is opted into.
+
+  Navigation folds into one off-canvas drawer behind a burger: the top bar's
+  section tabs as chips, the sidebar tree below them. The drawer closes where
+  the user arrives — a tree leaf, a top-bar link — while a section chip only
+  swaps which tree it shows and leaves it open to keep browsing, as does
+  expanding a folder. `Escape` and a tap outside close it as well; the content
+  behind it is inert while it is open, and focus moves into it and back to the
+  burger afterwards. A sectionless `[PAGE]` keeps the burger too — a landing
+  page has no tree of its own, but the section chips it replaces still need
+  somewhere to live. The stylesheet picker moves to the foot of the drawer.
+
+  Resizable stages give up their handles — there is no room to drag into and
+  no pointer to grab with — and the preview takes the full width. A `[LAYOUT]`
+  ignores its stored width there rather than showing a sliver of the layout
+  with no handle to widen it again; the value is kept and returns with the
+  window. Fullscreen is hidden, its only exit being a hover-only hot corner.
+
+  API tables stop being a 520px grid and become one card per row, each cell
+  labelled now that the headers are gone; rows with no default drop the
+  labelled em-dash. Controls take the full width at 40px tall, with 16px
+  fields so Safari does not zoom the page when focusing one.
+
+  A page's authored `padding` has its horizontal values *capped* at 16px
+  rather than replaced, so a page that asked for less keeps less. The "On this
+  page" outline folds into a disclosure above the prose instead of pushing it
+  down. The app measures itself in `dvh`, so a mobile browser's sliding
+  toolbars no longer cut off the last rows.
+
+### Changed
+
+- `NavTree.Item` takes an `--item-h` custom property for its row height
+  (default `28px`, as before) — a touch context can ask for a bigger target
+  than a pointer needs.
+- The `Control` components (text, number, dimension, select, checkbox, colour)
+  size up for touch below 860px.
+
 ## [0.0.116] - 2026-07-28
 
 ### Fixed

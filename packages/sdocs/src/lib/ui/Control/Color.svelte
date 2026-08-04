@@ -47,4 +47,12 @@
 		font-family: var(--mono);
 		font-size: 12px;
 	}
+
+	@media (max-width: 860px) {
+		/* The swatch is the whole control — it has to be tappable. */
+		.sdocs-control-color {
+			width: 44px;
+			height: 34px;
+		}
+	}
 </style>

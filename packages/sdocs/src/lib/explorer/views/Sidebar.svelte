@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { SvelteSet } from 'svelte/reactivity';
-	import type { TreeNode } from '../tree-builder.js';
+	import type { SectionTree, TreeNode } from '../tree-builder.js';
 	import { routeHref, navigate } from '../router.svelte.js';
 	import { Icon } from '../../ui/Icon/index.js';
 	import { NavTree } from '../../ui/index.js';
@@ -8,11 +8,42 @@
 	interface Props {
 		tree: TreeNode[];
 		currentRoute: string[];
+		/** Narrow viewport: this is an off-canvas drawer, not a fixed column. */
+		narrow?: boolean;
+		/** Drawer open state (ignored when not narrow). */
+		open?: boolean;
+		/** The site's sections — shown in the drawer, where the top bar's tabs
+		 * would otherwise have nowhere to go. */
+		sections?: SectionTree[];
+		activeSlug?: string;
+		cssNames?: string[];
+		activeStylesheet?: string;
+		onStylesheetChange?: (name: string) => void;
+		onClose?: () => void;
 	}
 
-	let { tree, currentRoute }: Props = $props();
+	let {
+		tree,
+		currentRoute,
+		narrow = false,
+		open = false,
+		sections = [],
+		activeSlug,
+		cssNames = [],
+		activeStylesheet,
+		onStylesheetChange,
+		onClose,
+	}: Props = $props();
 
 	let searchQuery = $state('');
+
+	// Opening the drawer moves focus into it — onto Close, not the search box,
+	// since focusing a text field on a phone throws the keyboard up over the
+	// nav the user just asked to see.
+	let closeEl = $state<HTMLButtonElement>();
+	$effect(() => {
+		if (narrow && open) closeEl?.focus();
+	});
 
 	// Track expanded state by path key (SvelteSet for reactivity)
 	let expandedSet = new SvelteSet<string>();
@@ -171,22 +202,76 @@
 	}
 </script>
 
-<aside class="sdocs-sidebar">
-	<div class="sdocs-sidebar-search">
-		<input
-			type="text"
-			placeholder="Search..."
-			bind:value={searchQuery}
-			class="sdocs-search-input"
-		/>
-	</div>
+<aside id="sdocs-nav" class="sdocs-sidebar" class:is-open={open}>
+	{#if narrow}
+		<div class="sdocs-drawer-head">
+			{#if sections.length > 0}
+				<nav class="sdocs-drawer-sections" aria-label="Sections">
+					{#each sections as section (section.slug)}
+						<a
+							class="sdocs-drawer-section"
+							class:is-active={section.slug === activeSlug}
+							aria-current={section.slug === activeSlug ? 'page' : undefined}
+							href={routeHref(section.firstRoute ?? [section.slug])}
+						>
+							{section.title}
+						</a>
+					{/each}
+				</nav>
+			{/if}
+			<button
+				bind:this={closeEl}
+				class="sdocs-drawer-close"
+				aria-label="Close navigation"
+				onclick={() => onClose?.()}
+			>
+				<Icon name="x" --w="18px" --h="18px" />
+			</button>
+		</div>
+	{/if}
+
+	{#if tree.length > 0}
+		<div class="sdocs-sidebar-search">
+			<input
+				type="text"
+				placeholder="Search..."
+				bind:value={searchQuery}
+				class="sdocs-search-input"
+			/>
+		</div>
+	{/if}
 
 	<nav class="sdocs-sidebar-tree">
 		{#each filteredTree as node (node.path.join('/'))}
 			{@render treeNode(node)}
 		{/each}
 	</nav>
+
+	{#if narrow && cssNames.length > 1}
+		<!-- The top bar's stylesheet picker, rehoused where there's room. -->
+		<div class="sdocs-drawer-foot">
+			<label class="sdocs-drawer-foot-label" for="sdocs-drawer-css">Stylesheet</label>
+			<select
+				id="sdocs-drawer-css"
+				class="sdocs-drawer-css"
+				value={activeStylesheet}
+				onchange={(e) => onStylesheetChange?.(e.currentTarget.value)}
+			>
+				{#each cssNames as name (name)}
+					<option value={name}>{name}</option>
+				{/each}
+			</select>
+		</div>
+	{/if}
 </aside>
+
+{#if narrow && open}
+	<!-- After the drawer in the DOM so the tab order runs through the nav
+	     first; a real button, so "tap outside to dismiss" is also a stop for
+	     keyboard and screen-reader users rather than pointer-only. -->
+	<button class="sdocs-nav-scrim" aria-label="Close navigation" onclick={() => onClose?.()}
+	></button>
+{/if}
 
 {#snippet treeNode(node: TreeNode)}
 	{@const pathKey = node.path.join('/')}
@@ -217,6 +302,9 @@
 				}
 				if (!expandedSet.has(pathKey)) toggleExpanded(pathKey);
 				navigate(node.route);
+				// Only the branch that navigates dismisses the drawer —
+				// expanding a folder is still browsing.
+				onClose?.();
 			}}
 			ontoggle={() => toggleExpanded(pathKey)}
 			--font-weight="500"
@@ -237,6 +325,7 @@
 			label={node.name}
 			href={routeHref(node.route)}
 			active={isExactActive(node.route)}
+			onclick={() => onClose?.()}
 			--font-weight={leafWeight(node)}
 			--bg-hover={hoverBg(node)}
 			--bg-active={activeBg(node)}
@@ -288,5 +377,143 @@
 		display: flex;
 		flex-direction: column;
 		gap: 1px;
+	}
+
+	/* ── Drawer head: sections + close ── */
+	.sdocs-drawer-head {
+		display: flex;
+		align-items: flex-start;
+		gap: 8px;
+		padding: 8px 8px 8px 10px;
+		border-bottom: 1px solid var(--color-base-200);
+	}
+	.sdocs-drawer-sections {
+		display: flex;
+		flex: 1;
+		flex-wrap: wrap;
+		gap: 4px;
+		min-width: 0;
+	}
+	.sdocs-drawer-section {
+		display: flex;
+		align-items: center;
+		min-height: 36px;
+		padding: 0 12px;
+		border-radius: 999px;
+		font-size: 13px;
+		font-weight: 500;
+		color: var(--color-base-600);
+		text-decoration: none;
+	}
+	.sdocs-drawer-section:hover {
+		background: var(--color-base-100);
+	}
+	.sdocs-drawer-section.is-active {
+		background: var(--color-action-100);
+		color: var(--color-action-500);
+	}
+	.sdocs-drawer-close {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		width: 36px;
+		height: 36px;
+		border: none;
+		border-radius: 8px;
+		background: none;
+		color: var(--color-base-500);
+		cursor: pointer;
+	}
+	.sdocs-drawer-close:hover {
+		background: var(--color-base-100);
+		color: var(--color-base-900);
+	}
+
+	/* ── Drawer foot: the top bar's stylesheet picker ── */
+	.sdocs-drawer-foot {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 10px;
+		border-top: 1px solid var(--color-base-200);
+	}
+	.sdocs-drawer-foot-label {
+		font-size: 11px;
+		font-weight: 600;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+		color: var(--color-base-400);
+	}
+	.sdocs-drawer-css {
+		flex: 1;
+		min-width: 0;
+		min-height: 36px;
+		padding: 4px 8px;
+		border: 1px solid var(--color-base-200);
+		border-radius: 6px;
+		background: var(--color-base-0);
+		color: var(--color-base-600);
+		font-size: 13px;
+	}
+
+	/* ── Off-canvas below the breakpoint ──
+	   Driven by the media query, not a class, so a prerendered page paints
+	   with the drawer already parked instead of flashing a 260px column while
+	   it waits for hydration. Only `is-open` comes from state. */
+	@media (max-width: 860px) {
+		.sdocs-sidebar {
+			position: fixed;
+			top: var(--sdocs-topbar-h, 48px);
+			left: 0;
+			bottom: 0;
+			z-index: 50;
+			width: min(320px, 86vw);
+			transform: translateX(-100%);
+			/* Parked off-screen it must also leave the tab order and the
+			   accessibility tree — a translated element is still both. The
+			   flip back to visible happens up front so the slide is watchable;
+			   on the way out it waits for the slide to finish. */
+			visibility: hidden;
+			overscroll-behavior: contain;
+			transition:
+				transform 0.22s ease,
+				visibility 0s linear 0.22s;
+		}
+		.sdocs-sidebar.is-open {
+			transform: translateX(0);
+			visibility: visible;
+			box-shadow: 0 8px 32px rgb(0 0 0 / 0.18);
+			transition:
+				transform 0.22s ease,
+				visibility 0s;
+		}
+		.sdocs-nav-scrim {
+			position: fixed;
+			top: var(--sdocs-topbar-h, 48px);
+			left: 0;
+			right: 0;
+			bottom: 0;
+			z-index: 40;
+			border: none;
+			padding: 0;
+			background: rgb(0 0 0 / 0.35);
+			cursor: pointer;
+		}
+		.sdocs-sidebar-tree {
+			font-size: 14px;
+			/* A 28px row is a comfortable pointer target and a poor thumb one. */
+			--item-h: 40px;
+		}
+		.sdocs-search-input {
+			/* iOS Safari zooms the page for any font under 16px it focuses. */
+			font-size: 16px;
+			min-height: 40px;
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.sdocs-sidebar {
+			transition: none;
+		}
 	}
 </style>

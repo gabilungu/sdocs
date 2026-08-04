@@ -15,6 +15,14 @@
 		theme?: ThemeMode;
 		/** This dev server serves the MCP endpoint — show the MCP button. */
 		mcp?: boolean;
+		/** Narrow viewport with somewhere to navigate: show the drawer toggle. */
+		showBurger?: boolean;
+		/** Whether the nav drawer is currently open. */
+		navOpen?: boolean;
+		onToggleNav?: () => void;
+		/** The bar stays above the scrim, so its own links have to dismiss the
+		 * drawer themselves or they'd load a page behind it. */
+		onCloseNav?: () => void;
 		onToggleFullscreen?: () => void;
 		onStylesheetChange?: (name: string) => void;
 		onThemeChange?: (theme: ThemeMode) => void;
@@ -29,10 +37,27 @@
 		activeStylesheet,
 		theme = 'light',
 		mcp = false,
+		showBurger = false,
+		navOpen = false,
+		onToggleNav,
+		onCloseNav,
 		onToggleFullscreen,
 		onStylesheetChange,
 		onThemeChange,
 	}: Props = $props();
+
+	// Closing the drawer hands focus back to the control that opened it, so a
+	// keyboard user isn't dropped at the top of the document.
+	let burgerEl = $state<HTMLButtonElement>();
+	let wasNavOpen = false;
+	$effect(() => {
+		if (navOpen) {
+			wasNavOpen = true;
+		} else if (wasNavOpen) {
+			wasNavOpen = false;
+			burgerEl?.focus();
+		}
+	});
 
 	const themeIcons: Record<ThemeMode, string> = { light: '☀', dark: '☽' };
 	const themeLabels: Record<ThemeMode, string> = { light: 'Light', dark: 'Dark' };
@@ -69,7 +94,22 @@
 </script>
 
 <header class="sdocs-topbar">
-	<a href={routeHref([])} class="sdocs-topbar-brand">
+	{#if showBurger}
+		<button
+			bind:this={burgerEl}
+			class="sdocs-burger"
+			aria-label={navOpen ? 'Close navigation' : 'Open navigation'}
+			aria-expanded={navOpen}
+			aria-controls="sdocs-nav"
+			onclick={() => onToggleNav?.()}
+		>
+			<!-- Stays a burger while open: the drawer carries its own close,
+			     and two X's a few pixels apart read as two different exits.
+			     aria-expanded is what announces the state. -->
+			<Icon name="menu" --w="20px" --h="20px" />
+		</button>
+	{/if}
+	<a href={routeHref([])} class="sdocs-topbar-brand" onclick={() => onCloseNav?.()}>
 		{#if logo === 'sdocs'}
 			<Icon name="sdocs" --w="22px" --h="22px" --fill="#FC1D29" />
 		{:else if logo}
@@ -109,12 +149,21 @@
 		<button class="sdocs-topbar-btn" onclick={() => onThemeChange?.(theme === 'light' ? 'dark' : 'light')} title="{themeLabels[theme]} theme">
 			{themeIcons[theme]}
 		</button>
-		<button class="sdocs-topbar-btn" onclick={() => onToggleFullscreen?.()} title="Fullscreen">
+		<button
+			class="sdocs-topbar-btn sdocs-fullscreen-btn"
+			onclick={() => onToggleFullscreen?.()}
+			title="Fullscreen"
+		>
 			&#x26F6;
 		</button>
 		<!-- A real link: middle-click and open-in-new-tab work, and history
 		     mode routes it client-side like any other internal anchor. -->
-		<a class="sdocs-topbar-btn sdocs-about-btn" href={routeHref(['about'])} title="About">
+		<a
+			class="sdocs-topbar-btn sdocs-about-btn"
+			href={routeHref(['about'])}
+			title="About"
+			onclick={() => onCloseNav?.()}
+		>
 			&#9432;
 		</a>
 	</div>
@@ -173,11 +222,29 @@
 		align-items: center;
 		gap: 24px;
 		padding: 0 16px;
-		height: 48px;
+		height: var(--sdocs-topbar-h, 48px);
 		flex-shrink: 0;
 		border-bottom: 1px solid var(--color-base-200);
 		background: var(--color-base-0);
 		font-family: var(--sans);
+	}
+	.sdocs-burger {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		width: 40px;
+		height: 40px;
+		margin-left: -8px;
+		border: none;
+		border-radius: 8px;
+		background: none;
+		color: var(--color-base-600);
+		cursor: pointer;
+	}
+	.sdocs-burger:hover {
+		background: var(--color-base-100);
+		color: var(--color-base-900);
 	}
 	.sdocs-topbar-brand {
 		display: flex;
@@ -256,6 +323,52 @@
 		font-size: 11px;
 		font-weight: 600;
 		letter-spacing: 0.04em;
+	}
+
+	@media (max-width: 860px) {
+		.sdocs-topbar {
+			gap: 8px;
+			padding: 0 12px;
+		}
+		/* The tabs move into the drawer, so the actions take the free space. */
+		.sdocs-topbar-sections {
+			display: none;
+		}
+		.sdocs-topbar-actions {
+			margin-left: auto;
+		}
+		/* A long site name gives way rather than pushing the actions off. */
+		.sdocs-topbar-brand {
+			min-width: 0;
+			font-size: 16px;
+			overflow: hidden;
+			white-space: nowrap;
+			text-overflow: ellipsis;
+		}
+		/* The stylesheet picker moves into the drawer: it's the one control
+		   here wide enough to crowd out everything else. */
+		.sdocs-css-picker {
+			display: none;
+		}
+		.sdocs-topbar-btn {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			min-width: 40px;
+			min-height: 40px;
+			border-color: transparent;
+			font-size: 16px;
+		}
+		.sdocs-mcp-btn {
+			font-size: 11px;
+			border-color: var(--color-base-200);
+		}
+		/* Fullscreen hides chrome to free the stage — on a phone there is no
+		   chrome worth the trade, and its exit is a hover-only hot corner.
+		   After the .sdocs-topbar-btn block, which also sets `display`. */
+		.sdocs-fullscreen-btn {
+			display: none;
+		}
 	}
 
 	/* MCP info modal */

@@ -15,7 +15,7 @@ export default {
 			order: [
 				'overview', 'getting-started', 'features',
 				'features/overview', 'features/prop-extraction', 'features/interactive-controls',
-				'features/theming', 'features/sidebar', 'features/routing',
+				'features/theming', 'features/sidebar', 'features/mobile', 'features/routing',
 				'embedded-vite', 'configuration', 'types',
 			],
 		},

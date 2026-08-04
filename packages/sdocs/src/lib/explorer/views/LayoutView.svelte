@@ -4,6 +4,7 @@
 	import diagonalsUrl from './diagonals.png';
 	import TwoPaneSplit from '../../ui/TwoPaneSplit/TwoPaneSplit.svelte';
 	import { layoutWidth, setLayoutWidth, clearLayoutWidth } from '../layout-width.svelte.js';
+	import { isNarrow } from '../viewport.svelte.js';
 
 	interface Props {
 		doc: DocEntry;
@@ -18,36 +19,48 @@
 	// the page, the handle bar riding against it. Dragging sets the width
 	// shared by every layout page, persisted across reloads.
 	const effectiveWidth = $derived(layoutWidth() ?? 'calc(100% - 10px)');
+
+	// The stored width is a desktop measurement — a remembered 1200px would
+	// leave a phone showing a sliver of the layout with no handle to widen it
+	// again. On a narrow screen the layout simply fills the view.
+	const narrow = $derived(isNarrow());
 </script>
 
 <div class="sdocs-layout-view">
 	{#if contentSnippet?.previewUrl}
 		{@const previewUrl = contentSnippet.previewUrl}
-		<TwoPaneSplit
-			bind:leftWidth={() => effectiveWidth, (v) => setLayoutWidth(v as number)}
-			leftMinWidth={1}
-			handleBarWidth={10}
-			height="fill"
-		>
-			{#snippet left()}
-				<div class="sdocs-layout-pane">
-					<PreviewFrame src={previewUrl} {activeStylesheet} fullHeight stage={contentSnippet} />
-				</div>
-			{/snippet}
-			{#snippet right()}
-				<div class="sdocs-resize-canvas" style:background-image={`url(${diagonalsUrl})`}></div>
-			{/snippet}
-		</TwoPaneSplit>
-		{@const w = layoutWidth()}
-		{#if w !== null}
-			<button
-				class="sdocs-resize-readout"
-				style:left={`min(${w + 18}px, calc(100% - 64px))`}
-				title="Reset width"
-				onclick={clearLayoutWidth}
+		{#snippet pane()}
+			<div class="sdocs-layout-pane">
+				<PreviewFrame src={previewUrl} {activeStylesheet} fullHeight stage={contentSnippet} />
+			</div>
+		{/snippet}
+		{#if narrow}
+			{@render pane()}
+		{:else}
+			<TwoPaneSplit
+				bind:leftWidth={() => effectiveWidth, (v) => setLayoutWidth(v as number)}
+				leftMinWidth={1}
+				handleBarWidth={10}
+				height="fill"
 			>
-				{w}px
-			</button>
+				{#snippet left()}
+					{@render pane()}
+				{/snippet}
+				{#snippet right()}
+					<div class="sdocs-resize-canvas" style:background-image={`url(${diagonalsUrl})`}></div>
+				{/snippet}
+			</TwoPaneSplit>
+			{@const w = layoutWidth()}
+			{#if w !== null}
+				<button
+					class="sdocs-resize-readout"
+					style:left={`min(${w + 18}px, calc(100% - 64px))`}
+					title="Reset width"
+					onclick={clearLayoutWidth}
+				>
+					{w}px
+				</button>
+			{/if}
 		{/if}
 	{/if}
 </div>
@@ -67,6 +80,11 @@
 		--hoverHandleColor: var(--color-base-0);
 	}
 	.sdocs-layout-view > :global(.TwoPaneSplit) {
+		flex: 1;
+		min-height: 0;
+	}
+	/* Without the split the pane is the direct child and takes its place. */
+	.sdocs-layout-view > .sdocs-layout-pane {
 		flex: 1;
 		min-height: 0;
 	}

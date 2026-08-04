@@ -12,6 +12,7 @@
 	import ErrorScreen from './views/ErrorScreen.svelte';
 	import { onMount, setContext, type Component } from 'svelte';
 	import { initLayoutWidth } from './layout-width.svelte.js';
+	import { initViewport, isNarrow } from './viewport.svelte.js';
 	import '../ui/styles/sdocs.css';
 
 	type ThemeMode = 'light' | 'dark';
@@ -90,6 +91,11 @@
 	let activeStylesheet = $state<string | undefined>(undefined);
 	let theme = $state<ThemeMode>('light');
 
+	// On a phone the sidebar is an off-canvas drawer holding the section tabs
+	// too — closed by default, and never open on a desktop-width window.
+	const narrow = $derived(isNarrow());
+	let navOpen = $state(false);
+
 	// Initialize active stylesheet to first named CSS (if any)
 	$effect(() => {
 		if (cssNames.length > 0 && !activeStylesheet) {
@@ -100,10 +106,12 @@
 	onMount(() => {
 		initRouter(routing, basePath);
 		initLayoutWidth();
+		const stopViewport = initViewport();
 		const saved = localStorage.getItem('sdocs-theme') as ThemeMode | null;
 		if (saved && (saved === 'light' || saved === 'dark')) {
 			theme = saved;
 		}
+		return stopViewport;
 	});
 
 	// Apply theme attribute and persist
@@ -115,6 +123,17 @@
 	});
 
 	const currentRoute = $derived(getRoute());
+
+	// The drawer closes where the user *arrives* — a tree leaf, a top-bar link
+	// — and each of those says so itself. Closing on any route change instead
+	// would also dismiss it on a section chip, whose whole job is to swap which
+	// tree the drawer shows so browsing can continue.
+
+	// Widening the window puts the sidebar back in the flow; a drawer left
+	// "open" would otherwise re-appear the next time it narrows.
+	$effect(() => {
+		if (!narrow) navOpen = false;
+	});
 
 	// When framed (the editor's docs tab), announce every route change to the
 	// parent, so a refresh or server restart can come back to the same page.
@@ -167,6 +186,11 @@
 		document.title = page ? `${page} – ${headerTitle}` : headerTitle;
 	});
 
+	// The drawer is worth opening when it holds something: this section's tree,
+	// or the section list itself (a sectionless page has no tree, but the tabs
+	// it replaces still need somewhere to live).
+	const hasDrawerNav = $derived(!!activeSection || sectionMap.sections.length > 0);
+
 	/** History mode: internal <a> clicks route client-side instead of reloading. */
 	function onLinkClick(e: MouseEvent) {
 		if (routing !== 'history') return;
@@ -188,7 +212,10 @@
 <svelte:window
 	onclick={onLinkClick}
 	onkeydown={(e) => {
-		if (e.key === 'Escape' && fullscreen) fullscreen = false;
+		if (e.key !== 'Escape') return;
+		// The drawer is the innermost layer — it goes first.
+		if (navOpen) navOpen = false;
+		else if (fullscreen) fullscreen = false;
 	}}
 />
 
@@ -206,6 +233,10 @@
 			{activeStylesheet}
 			{theme}
 			{mcp}
+			showBurger={narrow && hasDrawerNav}
+			{navOpen}
+			onToggleNav={() => (navOpen = !navOpen)}
+			onCloseNav={() => (navOpen = false)}
 			onToggleFullscreen={() => (fullscreen = true)}
 			onStylesheetChange={(name) => (activeStylesheet = name)}
 			onThemeChange={(t) => (theme = t)}
@@ -219,10 +250,27 @@
 		</div>
 	{/if}
 	<div class="sdocs-body">
-		{#if !fullscreen && activeSection}
-			<Sidebar tree={activeSection.tree} {currentRoute} />
+		{#if !fullscreen && (activeSection || (narrow && hasDrawerNav))}
+			<Sidebar
+				tree={activeSection?.tree ?? []}
+				{currentRoute}
+				{narrow}
+				open={navOpen}
+				sections={sectionMap.sections}
+				activeSlug={routeSection?.slug}
+				{cssNames}
+				{activeStylesheet}
+				onStylesheetChange={(name) => (activeStylesheet = name)}
+				onClose={() => (navOpen = false)}
+			/>
 		{/if}
-		<main class="sdocs-main" class:sdocs-main-fullscreen={fullscreen}>
+		<!-- With the drawer over it, the content behind is out of reach for the
+		     pointer (the scrim) and for the keyboard (inert) alike. -->
+		<main
+			class="sdocs-main"
+			class:sdocs-main-fullscreen={fullscreen}
+			inert={narrow && navOpen}
+		>
 			{#if resolved}
 				{#if resolved.doc.kind === 'doc'}
 					<DocView doc={resolved.doc} {activeStylesheet} {pageModules} {preloaded} />
@@ -243,11 +291,16 @@
 
 <style>
 	.sdocs-app {
+		/* The top bar's height, shared: the drawer hangs off the bottom of it. */
+		--sdocs-topbar-h: 48px;
 		margin: 0;
 		padding: 0;
 		display: flex;
 		flex-direction: column;
 		height: 100vh;
+		/* Mobile browsers shrink the visual viewport as their toolbars slide
+		   away — dvh tracks that, 100vh would leave the last rows cut off. */
+		height: 100dvh;
 		overflow: hidden;
 		position: relative;
 	}
@@ -299,5 +352,19 @@
 	}
 	.sdocs-exit-fullscreen:hover {
 		background: var(--color-base-100);
+	}
+
+	@media (max-width: 860px) {
+		.sdocs-app {
+			/* A taller bar so its controls can carry 40px touch targets. */
+			--sdocs-topbar-h: 52px;
+		}
+		/* Reveal-on-hover is a pointer affordance. Touch never hovers, so the
+		   way out of fullscreen has to be visible from the start. */
+		.sdocs-exit-fullscreen {
+			opacity: 1;
+			transform: none;
+			padding: 10px 14px;
+		}
 	}
 </style>

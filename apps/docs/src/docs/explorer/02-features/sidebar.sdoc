@@ -107,9 +107,15 @@
 	family) gets a distinct multi-part icon in place of the single-component
 	mark.
 
+	## On a phone
+
+	Below 860px the sidebar and the top bar's section tabs are one off-canvas
+	drawer behind a burger — see [Mobile](/explorer/features/mobile).
+
 	## See also
 
 	- [Configuration reference](/explorer/configuration) — full `sidebar` option
+	- [Mobile](/explorer/features/mobile) — the drawer, and what else narrows
 	- [Routing](/explorer/features/routing) — how sidebar selections map to URLs
 
 [/DOC]

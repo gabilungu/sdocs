@@ -59,6 +59,9 @@
 				</div>
 				{#if showDefault}
 					<div class="sdocs-api-default">
+						<!-- Stacked on a phone the column header is gone, so each
+						     cell carries its own label there. -->
+						<span class="sdocs-api-cell-label">{defaultLabel}</span>
 						{#if row.defaultUses?.length}
 							<span
 								class="sdocs-value sdocs-value-mixed"
@@ -73,6 +76,7 @@
 				{/if}
 				{#if control}
 					<div class="sdocs-api-control">
+						<span class="sdocs-api-cell-label">Control</span>
 						{@render control(row)}
 					</div>
 				{/if}
@@ -155,5 +159,63 @@
 		font-size: 13px;
 		font-style: italic;
 		margin: 0;
+	}
+	/* Only the stacked layout needs per-cell labels; the columns have headers. */
+	.sdocs-api-cell-label {
+		display: none;
+	}
+
+	/* Below the breakpoint the columns add up to 520px of fixed track in a
+	   ~350px viewport, so the row stops being a table row and becomes a card:
+	   one column, name first, the control last where a thumb expects it.
+	   `display: flex` also neutralises the inline grid-template-columns. */
+	@media (max-width: 860px) {
+		.sdocs-api-header {
+			display: none;
+		}
+		.sdocs-api-row {
+			display: flex;
+			flex-direction: column;
+			gap: 6px;
+			padding: 14px 0;
+			/* The grid's `start` would shrink each cell to its content, leaving
+			   the controls at a fraction of the width they now have. */
+			align-items: stretch;
+		}
+		.sdocs-api-name {
+			order: 1;
+		}
+		.sdocs-api-middle {
+			order: 2;
+		}
+		.sdocs-api-desc {
+			order: 3;
+		}
+		.sdocs-api-default {
+			order: 4;
+		}
+		.sdocs-api-control {
+			order: 5;
+		}
+		.sdocs-api-default,
+		.sdocs-api-control {
+			display: flex;
+			flex-direction: column;
+			gap: 4px;
+			align-items: stretch;
+		}
+		/* Stacked, a labelled "—" is a line of nothing. The em-dash only earns
+		   its place in the grid, where it holds the column open. */
+		.sdocs-api-default:has(.sdocs-api-empty) {
+			display: none;
+		}
+		.sdocs-api-cell-label {
+			display: block;
+			font-size: 11px;
+			font-weight: 600;
+			letter-spacing: 0.05em;
+			text-transform: uppercase;
+			color: var(--color-base-400);
+		}
 	}
 </style>

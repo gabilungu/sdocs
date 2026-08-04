@@ -125,4 +125,12 @@
 		background: var(--color-base-100);
 		color: var(--color-base-700);
 	}
+
+	@media (max-width: 860px) {
+		.sdocs-unset-btn {
+			width: 40px;
+			height: 40px;
+			font-size: 18px;
+		}
+	}
 </style>

@@ -67,4 +67,10 @@
 	.sdocs-panel-body.flush {
 		padding: 0;
 	}
+
+	@media (max-width: 860px) {
+		.sdocs-panel-header {
+			min-height: 44px;
+		}
+	}
 </style>

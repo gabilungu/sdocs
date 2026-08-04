@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.118] - 2026-08-04
+
+### Fixed
+
+- **A dependency that ships `.svelte` source no longer breaks the dev server.**
+  Vite prebundles bare imports with esbuild, which has no `.svelte` loader, so a
+  package re-exporting straight into source — `@lucide/svelte`'s
+  `export { default } from "./arrow-right.svelte"` — killed the optimize step.
+  The import then 504'd and the component rendered without its icons, with
+  nothing but an esbuild line in the server log to explain it. Such packages
+  announce themselves with a `svelte` export condition (or the legacy top-level
+  `svelte` field); those are now collected from the project's dependencies and
+  handed to `optimizeDeps.exclude`, so the svelte plugin gets them intact.
+
+  vite-plugin-svelte normally derives that list during its dependency scan,
+  which sdocs disables because Rolldown-based Vite can't crawl `.svelte` entry
+  graphs — so skipping the scan had quietly skipped the exclusion too. The
+  manifest lookup does not go through the export map, since a package can
+  decline to export `./package.json` and `.` alike.
+
 ## [0.0.117] - 2026-08-04
 
 ### Added

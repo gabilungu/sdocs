@@ -6,7 +6,7 @@ import { sdocsPlugin } from '../vite.js';
 import { mcpHttpHandler } from '../mcp/http.js';
 import { generateDevFiles, cleanBuildFiles } from '../server/app-gen.js';
 import { sdocsWarningFilter } from '../server/snippet-compiler.js';
-import { loadSveltePlugin, svelteDedupe } from '../server/svelte-toolchain.js';
+import { loadSveltePlugin, svelteDedupe, svelteSourceDeps } from '../server/svelte-toolchain.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -48,6 +48,10 @@ export async function devCommand(): Promise<void> {
 			// pre-bundle the one dependency the Explorer app always needs.
 			entries: [],
 			include: ['svelte'],
+			// Skipping the scan also skips the plugin's own detection of packages
+			// that ship .svelte source, which esbuild cannot prebundle. Runtime
+			// discovery would hand them to it anyway and fail, so name them here.
+			exclude: svelteSourceDeps(cwd),
 		},
 		plugins: [
 			svelte({

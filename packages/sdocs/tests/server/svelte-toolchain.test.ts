@@ -19,6 +19,7 @@ import {
 	loadSvelteCompiler,
 	projectSvelteVersion,
 	svelteDedupe,
+	svelteSourceDeps,
 } from '../../src/lib/server/svelte-toolchain.js';
 
 const require = createRequire(import.meta.url);
@@ -95,6 +96,71 @@ describe('svelte toolchain resolution', () => {
 	it('falls back to its own compiler, equally callable', async () => {
 		const compiler = await loadSvelteCompiler(fakeProject({}));
 		expect(compiler.compile('<p>hi</p>', { name: 'Fallback', generate: 'client' }).js.code).toBeTruthy();
+	});
+});
+
+/**
+ * A project declaring `deps` in its package.json, with each installed under
+ * node_modules exactly as `spec` describes it.
+ */
+function projectWithDeps(deps: Record<string, Record<string, unknown>>): string {
+	const dir = mkdtempSync(join(tmpdir(), 'sdocs-optimize-'));
+	dirs.push(dir);
+	writeFileSync(
+		join(dir, 'package.json'),
+		JSON.stringify({ name: 'host', version: '0.0.0', dependencies: Object.fromEntries(Object.keys(deps).map((n) => [n, '*'])) })
+	);
+	for (const [name, manifest] of Object.entries(deps)) {
+		if (manifest.__missing) continue; // declared, never installed
+		const target = join(dir, 'node_modules', ...name.split('/'));
+		mkdirSync(target, { recursive: true });
+		writeFileSync(join(target, 'package.json'), JSON.stringify({ name, version: '1.0.0', type: 'module', ...manifest }));
+		writeFileSync(join(target, 'index.js'), 'export default 1;\n');
+	}
+	return dir;
+}
+
+/**
+ * esbuild has no `.svelte` loader, so a dependency shipping components as source
+ * must never reach the dep optimizer — @lucide/svelte re-exports straight into
+ * `./arrow-right.svelte`, and prebundling it 504s the import and drops the icon.
+ * The `svelte` export condition is how such a package announces itself.
+ */
+describe('svelte-source dependencies (optimizeDeps.exclude)', () => {
+	it('finds a package whose exports carry a svelte condition', () => {
+		const project = projectWithDeps({
+			'@lucide/svelte': { exports: { './icons/*': { svelte: './dist/icons/*.js', default: './dist/icons/*.js' } } },
+			lodash: { main: 'index.js' },
+		});
+		expect(svelteSourceDeps(project)).toEqual(['@lucide/svelte']);
+	});
+
+	it('finds one declaring the legacy top-level svelte field', () => {
+		const project = projectWithDeps({ 'old-lib': { svelte: 'src/index.js', main: 'index.js' } });
+		expect(svelteSourceDeps(project)).toEqual(['old-lib']);
+	});
+
+	it('never excludes svelte itself — it ships compiled runtime and IS prebundled', () => {
+		const project = projectWithDeps({ svelte: { exports: { '.': { svelte: './index.js', default: './index.js' } } } });
+		expect(svelteSourceDeps(project)).toEqual([]);
+	});
+
+	it('reads a package that does not export ./package.json', () => {
+		// esm-env is the real case: resolving `<pkg>/package.json` throws
+		// ERR_PACKAGE_PATH_NOT_EXPORTED, so the manifest is found from the entry.
+		const project = projectWithDeps({
+			'sealed-lib': { exports: { '.': './index.js' }, svelte: 'src/index.js' },
+		});
+		expect(svelteSourceDeps(project)).toEqual(['sealed-lib']);
+	});
+
+	it('ignores a dependency that is declared but not installed', () => {
+		const project = projectWithDeps({ ghost: { __missing: true } });
+		expect(svelteSourceDeps(project)).toEqual([]);
+	});
+
+	it('returns nothing for a project with no package.json at all', () => {
+		expect(svelteSourceDeps(mkdtempSync(join(tmpdir(), 'sdocs-empty-')))).toEqual([]);
 	});
 });
 

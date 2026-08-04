@@ -20,7 +20,8 @@
  */
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
-import { resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
 
 /** A require anchored in the host project, so bare specifiers resolve from ITS tree. */
 function projectRequire(cwd: string) {
@@ -102,6 +103,97 @@ export async function loadSvelteCompiler(cwd: string): Promise<typeof import('sv
 	} catch {
 		return await import('svelte/compiler');
 	}
+}
+
+/** A package's own manifest, read from the project's tree. */
+function packageManifest(cwd: string, pkg: string): Record<string, unknown> | null {
+	const req = projectRequire(cwd);
+	try {
+		return JSON.parse(readFileSync(req.resolve(`${pkg}/package.json`), 'utf8'));
+	} catch {
+		// Not exported (see packageRoot in app-gen) — walk up from the entry.
+	}
+	try {
+		let dir = dirname(req.resolve(pkg));
+		for (let depth = 0; depth < 8; depth += 1) {
+			const manifest = join(dir, 'package.json');
+			if (existsSync(manifest)) return JSON.parse(readFileSync(manifest, 'utf8'));
+			const parent = dirname(dir);
+			if (parent === dir) break;
+			dir = parent;
+		}
+	} catch {
+		// No importable entry either — fall through to the directory walk.
+	}
+	// Both routes above go through the export map, and a package can decline to
+	// export `.` as readily as `./package.json`. The manifest is a file on disk
+	// regardless, so look for it directly.
+	let from = resolve(cwd);
+	for (let depth = 0; depth < 12; depth += 1) {
+		const manifest = join(from, 'node_modules', ...pkg.split('/'), 'package.json');
+		if (existsSync(manifest)) {
+			try {
+				return JSON.parse(readFileSync(manifest, 'utf8'));
+			} catch {
+				return null; // present but unreadable — treat as unknown, never throw
+			}
+		}
+		const parent = dirname(from);
+		if (parent === from) break;
+		from = parent;
+	}
+	return null;
+}
+
+/** Does this manifest advertise Svelte source — a `svelte` field or export condition? */
+function shipsSvelteSource(manifest: Record<string, unknown>): boolean {
+	if (typeof manifest.svelte === 'string') return true;
+	const seen = new Set<unknown>();
+	const walk = (node: unknown): boolean => {
+		if (!node || typeof node !== 'object' || seen.has(node)) return false;
+		seen.add(node);
+		return Object.entries(node as Record<string, unknown>).some(
+			([key, value]) => key === 'svelte' || walk(value),
+		);
+	};
+	return walk(manifest.exports);
+}
+
+/**
+ * Project dependencies that ship components as `.svelte` source, for
+ * `optimizeDeps.exclude`.
+ *
+ * Vite prebundles bare imports with esbuild, which has no `.svelte` loader. A package
+ * like @lucide/svelte re-exports straight into source (`export { default } from
+ * "./arrow-right.svelte"`), so the optimizer dies on it — the import 504s and the
+ * component silently renders without its icons. Such packages announce themselves with
+ * a `svelte` export condition; that's the signal to hand them to the svelte plugin
+ * intact instead of to esbuild.
+ *
+ * vite-plugin-svelte normally derives this during its dependency scan, which sdocs
+ * disables (`optimizeDeps.entries: []`) because Rolldown-based Vite can't crawl
+ * `.svelte` entry graphs — so the list is built here instead. `svelte` itself is never
+ * excluded: it ships compiled runtime code and is deliberately prebundled.
+ */
+export function svelteSourceDeps(cwd: string): string[] {
+	let pkg: Record<string, unknown>;
+	try {
+		pkg = JSON.parse(readFileSync(resolve(cwd, 'package.json'), 'utf8'));
+	} catch {
+		return [];
+	}
+	const declared = new Set<string>();
+	for (const field of ['dependencies', 'devDependencies', 'peerDependencies']) {
+		const deps = pkg[field];
+		if (deps && typeof deps === 'object') {
+			for (const name of Object.keys(deps)) declared.add(name);
+		}
+	}
+	declared.delete('svelte');
+	return [...declared].filter((name) => {
+		const manifest = packageManifest(cwd, name);
+		return !!manifest && shipsSvelteSource(manifest);
+	});
 }
 
 /**

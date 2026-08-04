@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.119] - 2026-08-04
+
+### Fixed
+
+- **Every preview stage on a built site 404'd.** `sdocs build` runs two Vite
+  passes — the client build that emits `dist/previews/<token>/…`, and the SSR
+  pass whose renderer produces the prerendered route pages. Only the client
+  pass was told the project root, so the prerenderer encoded doc paths against
+  the staging directory instead: pages shipped pointing at
+  `../../../src/Thing.sdoc#thing` while the files on disk were
+  `src/Thing.sdoc#thing`. Nothing failed during the build — the mismatch only
+  showed up in a browser, where every `[component]`, `[example]` and `[LAYOUT]`
+  iframe loaded the host's 404 page instead of the component. Dev servers were
+  never affected, so a site looked right locally and shipped broken.
+
+  The e2e build test checked that the emitted tokens were well-formed and that
+  routes prerendered, but never that the two agreed; it now resolves every
+  `previews/<token>` referenced by a built page against what was actually
+  emitted.
+
 ## [0.0.118] - 2026-08-04
 
 ### Fixed

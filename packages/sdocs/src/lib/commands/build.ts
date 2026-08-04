@@ -118,8 +118,12 @@ async function buildPrerenderer(
 		},
 		plugins: [
 			svelte({ compilerOptions: { warningFilter: sdocsWarningFilter } }),
+			// The SAME doc-path root as the client build. This pass renders the
+			// HTML that references the previews the client build emits, so a
+			// root of its own means it writes tokens for files nobody wrote:
+			// every stage on a built site 404s.
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			sdocsPlugin({ ...config, include: absoluteIncludes, _buildMode: true } as any),
+			sdocsPlugin({ ...config, include: absoluteIncludes, _buildMode: true, _projectRoot: cwd } as any),
 		],
 		base: config.base,
 		ssr: {

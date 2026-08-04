@@ -179,5 +179,34 @@ describe('sdocs build in the standalone test app', () => {
 		// The 404 fallback stays a bare shell (unknown routes boot the SPA).
 		const notFound = readFileSync(join(dir, 'dist/404.html'), 'utf8');
 		expect(notFound).toMatch(/<div id="app">\s*<\/div>/);
+
+		// The halves have to agree. Emitting well-formed tokens and prerendering
+		// real pages are each necessary and neither is sufficient: the build runs
+		// two Vite passes, and when only one knew the project root the prerendered
+		// pages pointed at `../../../src/…` tokens while the client wrote `src/…`
+		// ones — every stage on a built site loaded the host's 404 page instead of
+		// the component, with nothing failing anywhere in the build.
+		const htmlFiles: string[] = [];
+		const walk = (d: string) => {
+			for (const entry of readdirSync(d, { withFileTypes: true })) {
+				const full = join(d, entry.name);
+				if (entry.isDirectory()) walk(full);
+				else if (entry.name.endsWith('.html')) htmlFiles.push(full);
+			}
+		};
+		walk(join(dir, 'dist'));
+		const referenced = new Set<string>();
+		for (const file of htmlFiles) {
+			for (const [, token] of readFileSync(file, 'utf8').matchAll(/previews\/([A-Za-z0-9_-]+)/g)) {
+				referenced.add(token);
+			}
+		}
+		expect(referenced.size, 'prerendered pages reference previews').toBeGreaterThan(0);
+		const emitted = new Set(entityDirs);
+		const dangling = [...referenced].filter((token) => !emitted.has(token));
+		expect(
+			dangling.map((t) => Buffer.from(t, 'base64url').toString('utf8')),
+			'every preview a built page points at was emitted',
+		).toEqual([]);
 	});
 });

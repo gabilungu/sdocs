@@ -2,8 +2,12 @@
  * Which Svelte compiles, and which one runs.
  *
  * sdocs declares svelte, vite and vite-plugin-svelte as peers so it uses the host
- * project's copies — but `npx sdocs` installs peers beside sdocs itself, in the npx
- * cache. Two copies then exist, and the pieces used to come from different ones: the
+ * project's copies. Under `npx sdocs` what actually lands beside sdocs in the npx
+ * cache is npm's decision, and it goes both ways: in a bare project npm installs the
+ * peers there, so two copies exist at once; in a project that already satisfies them
+ * npm installs none, so there are zero. Code here must handle both.
+ *
+ * Two copies is the subtler failure. The pieces used to come from different ones: the
  * previews RAN the project's svelte (resolve.dedupe pins the browser to one runtime)
  * while sdocs' own UI was COMPILED by the copy next to sdocs.
  *
@@ -89,6 +93,31 @@ export async function loadSveltePlugin(cwd: string): Promise<SveltePlugin> {
 		warnIfToolchainSplit(cwd);
 		const mod = await import('@sveltejs/vite-plugin-svelte');
 		return mod.svelte;
+	}
+}
+
+/**
+ * Vite from the PROJECT when it has one.
+ *
+ * Alignment is the smaller half of why. The larger half is that `npx sdocs`
+ * cannot count on a vite beside itself at all: npm skips installing a peer into
+ * the npx cache when it decides the surrounding project already satisfies it.
+ * So in any project that has vite — which is every project likely to run this —
+ * the npx cache gets sdocs and its dependencies but no vite, and a static
+ * `import 'vite'` resolves from sdocs' own location under `~/.npm/_npx`, whose
+ * upward walk never reaches the host's `node_modules`. The command then dies
+ * before it starts, on the one dependency npm was sure it already had.
+ *
+ * Resolving from the project first inverts that: the copy npm counted on is the
+ * copy we load. The fallback covers a genuinely bare project, where npm does
+ * install a vite next to sdocs.
+ */
+export async function loadVite(cwd: string): Promise<typeof import('vite')> {
+	try {
+		const entry = projectRequire(cwd).resolve('vite');
+		return interop<typeof import('vite')>(await import(pathToFileURL(entry).href), 'createServer');
+	} catch {
+		return await import('vite');
 	}
 }
 

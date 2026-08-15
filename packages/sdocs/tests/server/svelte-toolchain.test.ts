@@ -17,6 +17,7 @@ import {
 	bundledSvelteVersion,
 	loadSveltePlugin,
 	loadSvelteCompiler,
+	loadVite,
 	projectSvelteVersion,
 	svelteDedupe,
 	svelteSourceDeps,
@@ -67,6 +68,35 @@ describe('svelte toolchain resolution', () => {
 
 		const plugin = await loadSveltePlugin(project);
 		expect((plugin as () => { name: string })().name).toBe('from-the-project');
+	});
+
+	it('loads vite FROM THE PROJECT when it has one', async () => {
+		// Not a preference — a requirement under npx. npm skips installing a peer
+		// into the npx cache when the surrounding project already satisfies it, so
+		// there is frequently no vite beside sdocs at all, and a bare import
+		// resolves from ~/.npm/_npx where the host's node_modules is unreachable.
+		const project = fakeProject({});
+		const target = join(project, 'node_modules', 'vite');
+		mkdirSync(target, { recursive: true });
+		writeFileSync(
+			join(target, 'package.json'),
+			JSON.stringify({ name: 'vite', version: '9.9.9', type: 'module', main: 'index.js' })
+		);
+		writeFileSync(
+			join(target, 'index.js'),
+			`export const createServer = () => 'from-the-project';\nexport const build = () => 'from-the-project';\nexport const preview = () => 'from-the-project';\n`
+		);
+
+		const vite = await loadVite(project);
+		expect((vite.createServer as unknown as () => string)()).toBe('from-the-project');
+	});
+
+	it('falls back to its own vite when the project has none', async () => {
+		// The genuinely bare project, where npm does install a vite next to sdocs.
+		const vite = await loadVite(fakeProject({}));
+		expect(typeof vite.createServer).toBe('function');
+		expect(typeof vite.build).toBe('function');
+		expect(typeof vite.preview).toBe('function');
 	});
 
 	it('falls back to its own plugin when the project has none', async () => {

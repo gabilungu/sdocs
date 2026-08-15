@@ -1,7 +1,6 @@
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { build } from 'vite';
 import { loadConfig, normalizeBase } from '../server/config.js';
 import { sdocsPlugin } from '../vite.js';
 import { generateBuildFiles, cleanBuildFiles } from '../server/app-gen.js';
@@ -11,7 +10,7 @@ import { parseSdoc } from '../language/index.js';
 import { planEntitySnippets } from '../server/doc-model.js';
 import { buildSections, displayTitle, type SectionMap } from '../explorer/tree-builder.js';
 import type { DocEntry, ResolvedSdocsConfig } from '../types.js';
-import { loadSveltePlugin, svelteDedupe } from '../server/svelte-toolchain.js';
+import { loadSveltePlugin, loadVite, svelteDedupe } from '../server/svelte-toolchain.js';
 
 type RenderRoute = (segments: string[]) => { head: string; body: string };
 
@@ -19,6 +18,7 @@ export async function buildCommand(opts?: { base?: string }): Promise<void> {
 	const cwd = process.cwd();
 	// Same rule as dev: the project's toolchain compiles and runs (svelte-toolchain.ts).
 	const svelte = await loadSveltePlugin(cwd);
+	const { build } = await loadVite(cwd);
 	const config = await loadConfig(cwd);
 	// A --base flag overrides the config (lets CI derive it from the repo name).
 	if (opts?.base !== undefined) config.base = normalizeBase(opts.base);
@@ -108,6 +108,7 @@ async function buildPrerenderer(
 ): Promise<RenderRoute> {
 	// Same toolchain as the main build; the dynamic import is cached, so this is free.
 	const svelte = await loadSveltePlugin(cwd);
+	const { build } = await loadVite(cwd);
 	await build({
 		configFile: false,
 		root: sdocsDir,

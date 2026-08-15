@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.122] - 2026-08-15
+
+### Fixed
+
+- **`npx sdocs run` died on a missing vite in any project that has vite.** The
+  commands imported vite statically, so Node resolved it from sdocs' own
+  location — under npx, the cache directory beneath `~/.npm/_npx`, whose upward
+  walk never reaches the project. That was survivable while npm installed the
+  peers there, but npm skips installing a peer into the npx cache when it
+  decides the surrounding project already satisfies it. In a project with vite
+  the cache therefore holds sdocs and its dependencies and no vite at all, and
+  `dev`, `build` and `preview` exited with `ERR_MODULE_NOT_FOUND` before doing
+  anything — failing precisely in the projects most likely to run them, and
+  working in bare ones.
+
+  Vite now resolves from the project first, the way svelte and
+  vite-plugin-svelte already did, falling back to sdocs' own copy for a
+  genuinely bare project. The copy npm counted on is the copy that loads.
+
 ## [0.0.121] - 2026-08-15
 
 ### Added

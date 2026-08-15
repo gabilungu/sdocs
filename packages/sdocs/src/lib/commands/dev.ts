@@ -1,12 +1,16 @@
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createServer } from 'vite';
 import { loadConfig } from '../server/config.js';
 import { sdocsPlugin } from '../vite.js';
 import { mcpHttpHandler } from '../mcp/http.js';
 import { generateDevFiles, cleanBuildFiles } from '../server/app-gen.js';
 import { sdocsWarningFilter } from '../server/snippet-compiler.js';
-import { loadSveltePlugin, svelteDedupe, svelteSourceDeps } from '../server/svelte-toolchain.js';
+import {
+	loadSveltePlugin,
+	loadVite,
+	svelteDedupe,
+	svelteSourceDeps,
+} from '../server/svelte-toolchain.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -26,6 +30,7 @@ export async function devCommand(): Promise<void> {
 	// One toolchain, the project's: the plugin carries the compiler, dedupe pins the
 	// runtime, and both must be the same copy (see svelte-toolchain.ts).
 	const svelte = await loadSveltePlugin(cwd);
+	const { createServer } = await loadVite(cwd);
 
 	// Generate the staging directory (in the OS temp dir) with entry files
 	const sdocsDir = await generateDevFiles(config, cwd);

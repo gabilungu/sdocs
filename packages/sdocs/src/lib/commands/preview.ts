@@ -1,10 +1,11 @@
 import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
-import { preview } from 'vite';
 import { loadConfig } from '../server/config.js';
+import { loadVite } from '../server/svelte-toolchain.js';
 
 export async function previewCommand(): Promise<void> {
 	const cwd = process.cwd();
+	const { preview } = await loadVite(cwd);
 	const config = await loadConfig(cwd);
 	const distDir = resolve(cwd, 'dist');
 

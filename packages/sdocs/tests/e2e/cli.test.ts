@@ -12,9 +12,9 @@
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { execFileSync, spawn, type ChildProcess } from 'node:child_process';
-import { cpSync, mkdirSync, mkdtempSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 
 const BIN = resolve(__dirname, '../../bin/sdocs.js');
 const REPO = resolve(__dirname, '../../../..');
@@ -53,9 +53,77 @@ function makeBareProject(): string {
 	return dir;
 }
 
-function spawnCli(args: string[], cwd: string): { child: ChildProcess; output: () => string } {
+/**
+ * The real `npx sdocs` layout: sdocs sitting in a cache directory of its own,
+ * from which vite is NOT reachable, run against a project where it is.
+ *
+ * That asymmetry is the whole bug. npm declines to install a peer into the npx
+ * cache when it decides the surrounding project already satisfies it, so in any
+ * project that has vite — every project likely to run this — the cache gets
+ * sdocs without one. Node then resolves a bare `import 'vite'` upward from the
+ * cache, never reaching the project, and the command dies on the one dependency
+ * npm was sure it already had.
+ *
+ * sdocs' dist is COPIED rather than symlinked on purpose: Node resolves through
+ * symlinks to the real path, so a linked package would walk up from the repo
+ * and find the repo's vite, quietly testing nothing.
+ */
+function makeNpxShape(): { projectDir: string; bin: string } {
+	const root = realpathSync(mkdtempSync(join(tmpdir(), 'sdocs-npx-')));
+	tempDirs.push(root);
+
+	const pkgRoot = resolve(__dirname, '../..');
+	const cached = join(root, 'cache', 'node_modules', 'sdocs');
+	mkdirSync(cached, { recursive: true });
+	cpSync(join(pkgRoot, 'dist'), join(cached, 'dist'), { recursive: true });
+	cpSync(join(pkgRoot, 'bin'), join(cached, 'bin'), { recursive: true });
+	cpSync(join(pkgRoot, 'package.json'), join(cached, 'package.json'));
+
+	// Its runtime dependencies, linked beside it the way npm would install them.
+	// Only these — vite, svelte and the plugin are peers, and their absence here
+	// is the condition under test.
+	//
+	// Located on disk rather than through require.resolve: a package is free to
+	// leave './package.json' out of its exports map (esm-env does), and this
+	// needs the directory, not an entry point.
+	const depDir = (name: string): string => {
+		for (const base of [pkgRoot, REPO]) {
+			const candidate = join(base, 'node_modules', ...name.split('/'));
+			if (existsSync(candidate)) return candidate;
+		}
+		throw new Error(`cannot locate ${name} to build the npx-shape fixture`);
+	};
+	for (const dep of Object.keys(
+		JSON.parse(readFileSync(join(pkgRoot, 'package.json'), 'utf8')).dependencies ?? {},
+	)) {
+		symlinkSync(depDir(dep), join(root, 'cache', 'node_modules', dep), 'dir');
+	}
+
+	// The project: has vite (and svelte), as any real Svelte project does.
+	const projectDir = join(root, 'project');
+	mkdirSync(join(projectDir, 'node_modules'), { recursive: true });
+	mkdirSync(join(projectDir, 'src'), { recursive: true });
+	writeFileSync(join(projectDir, 'package.json'), '{"name":"host","type":"module"}\n');
+	for (const dep of ['vite', 'svelte', '@sveltejs/vite-plugin-svelte']) {
+		const to = join(projectDir, 'node_modules', ...dep.split('/'));
+		mkdirSync(dirname(to), { recursive: true });
+		symlinkSync(depDir(dep), to, 'dir');
+	}
+	writeFileSync(
+		join(projectDir, 'src/Thing.svelte'),
+		'<script>\n\tlet { label = "hi" } = $props();\n</script>\n<button>{label}</button>\n',
+	);
+	writeFileSync(
+		join(projectDir, 'src/Thing.sdoc'),
+		'<script>\n\timport Thing from "./Thing.svelte";\n</script>\n\n[SHOWCASE title="Thing"]\n\n\t[component component={Thing} args={{ label: \'hi\' }}]\n\t\t<Thing {...args} />\n\t[/component]\n\n[/SHOWCASE]\n',
+	);
+
+	return { projectDir, bin: join(cached, 'bin/sdocs.js') };
+}
+
+function spawnCli(args: string[], cwd: string, bin = BIN): { child: ChildProcess; output: () => string } {
 	let buffer = '';
-	const child = spawn('node', [BIN, ...args], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+	const child = spawn('node', [bin, ...args], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
 	child.stdout!.on('data', (d) => (buffer += d));
 	child.stderr!.on('data', (d) => (buffer += d));
 	children.push(child);
@@ -115,6 +183,45 @@ describe('sdocs dev in a bare project (npx shape)', () => {
 		const res = await fetch(highlighterUrl);
 		expect(res.status, 'highlighter transform').toBe(200);
 		expect(output()).not.toContain('Failed to resolve');
+	});
+});
+
+describe('sdocs dev from an npx cache, against a project that has vite', () => {
+	it('finds the project’s vite instead of dying on a missing one', { timeout: 150_000 }, async () => {
+		const { projectDir, bin } = makeNpxShape();
+		const { output } = spawnCli(['dev'], projectDir, bin);
+
+		const url = await waitFor(
+			() => {
+				// The failure this pins — `Cannot find package 'vite' imported from
+				// <npx cache>/node_modules/sdocs/dist/commands/dev.js` — happens
+				// before the server starts, so waiting out the timeout for a URL
+				// that can never arrive just makes a regression slow to report.
+				const out = output();
+				if (out.includes('ERR_MODULE_NOT_FOUND')) {
+					throw new Error(`sdocs could not resolve a peer from the npx cache:\n${out.slice(-2000)}`);
+				}
+				return out.match(/http:\/\/localhost:\d+/)?.[0] ?? null;
+			},
+			120_000,
+			'dev server URL',
+		).catch((err) => {
+			throw new Error(`${err.message}\nCLI output:\n${output().slice(-3000)}`);
+		});
+
+		const page = await waitFor(
+			async () => {
+				try {
+					const res = await fetch(url);
+					return res.ok ? await res.text() : null;
+				} catch {
+					return null;
+				}
+			},
+			30_000,
+			'index page',
+		);
+		expect(page).toContain('entry.js');
 	});
 });
 

@@ -25,6 +25,7 @@ export function parseComponentSource(source: string): ComponentData {
 	let acceptsClass = false;
 	let forwardsRest = false;
 	let restType: string | null = null;
+	const warnings: string[] = [];
 
 	if (scriptContent) {
 		const tsAst = ts.createSourceFile(
@@ -35,9 +36,11 @@ export function parseComponentSource(source: string): ComponentData {
 			ts.ScriptKind.TS,
 		);
 
-		const interfaceProps = parseInterfaceProps(tsAst);
-		const jsdocTypeProps = parseJsdocTypeProps(tsAst);
+		// Destructuring first: it carries the name of the props type, which is
+		// what the interface reader should look for.
 		const destructured = parsePropsDestructuring(tsAst);
+		const interfaceProps = parseInterfaceProps(tsAst, destructured.typeName);
+		const jsdocTypeProps = parseJsdocTypeProps(tsAst);
 		const jsdocData = parseJsdocComments(tsAst);
 		// TS interface wins over JSDoc types when both exist (they shouldn't).
 		const interfaceNames = new Set(interfaceProps.map((p) => p.name));
@@ -49,7 +52,7 @@ export function parseComponentSource(source: string): ComponentData {
 		// (rendered as a chip), never as a prop row, wherever it's declared.
 		acceptsClass = destructured.acceptsClass || typedProps.some((p) => p.name === 'class');
 		forwardsRest = destructured.forwardsRest;
-		restType = forwardsRest ? parsePropsHeritage(tsAst) : null;
+		restType = forwardsRest ? parsePropsHeritage(tsAst, destructured.typeName) : null;
 		props = mergeProps(
 			typedProps.filter((p) => p.name !== 'class'),
 			destructured.props,
@@ -58,11 +61,38 @@ export function parseComponentSource(source: string): ComponentData {
 		);
 		methods = parseExportedFunctions(tsAst);
 		state = parseExportedState(tsAst);
+
+		// The expensive silence: extraction that comes back thinner than the
+		// source, with nothing to distinguish it from a component that really
+		// is that simple. Defaults live in the destructuring, so a $props()
+		// bound to a name has none to read — and if there's no props type to
+		// fall back on either, the whole API comes back empty.
+		if (destructured.boundWithoutDestructuring) {
+			warnings.push(
+				props.length === 0
+					? '$props() is bound to a name rather than destructured, and no props type was found ' +
+						'to read instead, so nothing was extracted. sdocs reads props from ' +
+						'`let { a, b = 1 }: Props = $props()`.'
+					: `Prop defaults were not read: they live in the \`$props()\` destructuring, and this ` +
+						`component binds \`$props()\` to a name. The ${props.length} prop(s) below come from ` +
+						`\`${destructured.typeName ?? 'the props type'}\`, so their types are right but every ` +
+						'default shows as none.',
+			);
+		}
 	}
 
 	const cssProps = styleContent ? parseCssProps(source, styleContent) : [];
 
-	return { props, methods, state, cssProps, acceptsClass, forwardsRest, restType };
+	return {
+		props,
+		methods,
+		state,
+		cssProps,
+		acceptsClass,
+		forwardsRest,
+		restType,
+		...(warnings.length ? { warnings } : {}),
+	};
 }
 
 // ─── Script extraction ───
@@ -90,11 +120,19 @@ interface InterfaceProp {
 	description: string | null;
 }
 
-function parseInterfaceProps(sourceFile: ts.SourceFile): InterfaceProp[] {
+function parseInterfaceProps(
+	sourceFile: ts.SourceFile,
+	/** The type the component's own `$props()` is annotated with, when it names
+	 * one. A component is free to call its props type `ButtonProps`; reading
+	 * only `Props` left those props typeless, undescribed, and — because
+	 * optionality lives on the interface — wrongly marked required. */
+	preferredName?: string | null,
+): InterfaceProp[] {
 	const props: InterfaceProp[] = [];
+	const wanted = preferredName || 'Props';
 
 	ts.forEachChild(sourceFile, (node) => {
-		if (ts.isInterfaceDeclaration(node) && node.name.text === 'Props') {
+		if (ts.isInterfaceDeclaration(node) && node.name.text === wanted) {
 			for (const member of node.members) {
 				if (ts.isPropertySignature(member) && member.name) {
 					const name = member.name.getText(sourceFile);
@@ -198,6 +236,15 @@ interface DestructuredProps {
 	props: DestructuredProp[];
 	acceptsClass: boolean;
 	forwardsRest: boolean;
+	/** A `$props()` call whose result was bound to a plain name rather than
+	 * destructured — `let props: Props = $props()`. Legal Svelte that this
+	 * reader cannot see into, and the reason extraction can come back empty
+	 * from a component with a full props interface. */
+	boundWithoutDestructuring: boolean;
+	/** The type annotation on the `$props()` declaration — `ButtonProps` in
+	 * `let { … }: ButtonProps = $props()`. The component names its own props
+	 * type here, so this is the one to read rather than assuming `Props`. */
+	typeName: string | null;
 }
 
 function parsePropsDestructuring(
@@ -206,8 +253,28 @@ function parsePropsDestructuring(
 	const props: DestructuredProp[] = [];
 	let acceptsClass = false;
 	let forwardsRest = false;
+	let boundWithoutDestructuring = false;
+	let typeName: string | null = null;
 
 	function visit(node: ts.Node) {
+		const isPropsCall =
+			ts.isVariableDeclaration(node) &&
+			node.initializer &&
+			ts.isCallExpression(node.initializer) &&
+			node.initializer.expression.getText(sourceFile) === '$props';
+
+		if (isPropsCall && node.type) {
+			// `Partial<X>` / `X & Y` aren't a single named interface; take the
+			// annotation only when it names one thing this reader can look up.
+			const annotation = node.type.getText(sourceFile).trim();
+			if (/^[A-Za-z_$][\w$]*$/.test(annotation)) typeName = annotation;
+		}
+		// A $props() call bound to a plain name: nothing to read here, but the
+		// component plainly has props. Noted so the caller can say so rather
+		// than report an empty API that looks authoritative.
+		if (isPropsCall && node.name && !ts.isObjectBindingPattern(node.name)) {
+			boundWithoutDestructuring = true;
+		}
 		// Match: let { ... } = $props()
 		if (
 			ts.isVariableDeclaration(node) &&
@@ -250,17 +317,21 @@ function parsePropsDestructuring(
 	}
 
 	visit(sourceFile);
-	return { props, acceptsClass, forwardsRest };
+	return { props, acceptsClass, forwardsRest, boundWithoutDestructuring, typeName };
 }
 
 /** The heritage type `interface Props` extends, when present — e.g.
  * `HTMLButtonAttributes` or `HTMLAttributes<HTMLDivElement>`. Labels what a
  * `...rest` spread forwards; JS/JSDoc components have no heritage (null). */
-function parsePropsHeritage(sourceFile: ts.SourceFile): string | null {
+function parsePropsHeritage(
+	sourceFile: ts.SourceFile,
+	preferredName?: string | null,
+): string | null {
 	let heritage: string | null = null;
+	const wanted = preferredName || 'Props';
 
 	ts.forEachChild(sourceFile, (node) => {
-		if (ts.isInterfaceDeclaration(node) && node.name.text === 'Props') {
+		if (ts.isInterfaceDeclaration(node) && node.name.text === wanted) {
 			const clause = node.heritageClauses?.find(
 				(c) => c.token === ts.SyntaxKind.ExtendsKeyword,
 			);

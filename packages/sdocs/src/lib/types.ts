@@ -234,6 +234,10 @@ export interface ComponentData {
 	/** What the rest props are typed as, when the Props interface extends a
 	 * type (e.g. `HTMLButtonAttributes`); null for untyped/JSDoc components. */
 	restType?: string | null;
+	/** Why extraction came back thinner than the source looks. An empty `props`
+	 * is otherwise indistinguishable from a component that genuinely has none,
+	 * and the difference is a published page with an empty API table. */
+	warnings?: string[];
 }
 
 /** A renderable snippet of an entity: a preview, an example, or the body */

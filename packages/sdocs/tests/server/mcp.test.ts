@@ -469,3 +469,33 @@ describe('MCP handler', () => {
 		expect(bad.error?.code).toBe(-32002);
 	});
 });
+
+describe('validate_sdoc reports where a title will be served', () => {
+	// Slug rules have a trap an author can only discover after publishing:
+	// segments are lowercased whole, so CamelCase does not split. Reporting the
+	// route at validate time is where the author is already looking.
+	const routesOf = async (source: string) =>
+		((await callTool('validate_sdoc', { source })).structuredContent as {
+			entities: { title: string; route: string }[];
+		}).entities;
+
+	it('does not split CamelCase — the trap, made visible', async () => {
+		const [entity] = await routesOf('[SHOWCASE title="IconButton"]\n[/SHOWCASE]');
+		expect(entity.route).toBe('/iconbutton');
+	});
+
+	it('slugifies each segment of a nested title', async () => {
+		const [entity] = await routesOf('[SHOWCASE title="Form Controls / Icon Button"]\n[/SHOWCASE]');
+		expect(entity.route).toBe('/form-controls/icon-button');
+	});
+
+	it('carries the section prefix', async () => {
+		const [entity] = await routesOf('[DOC title="@guides/Getting Started"]\n[/DOC]');
+		expect(entity.route).toBe('/guides/getting-started');
+	});
+
+	it('honours an explicit slug override on the leaf', async () => {
+		const [entity] = await routesOf('[SHOWCASE title="IconButton" slug="icon-button"]\n[/SHOWCASE]');
+		expect(entity.route).toBe('/icon-button');
+	});
+});

@@ -7,7 +7,7 @@ import { offsetToPosition } from '../language/scanner.js';
 import { parseComponentSource } from '../server/prop-parser.js';
 import { loadConfig } from '../server/config.js';
 import { discoverDocFiles } from '../server/discovery.js';
-import { buildSections } from '../explorer/tree-builder.js';
+import { buildSections, slugifySegment, splitSection } from '../explorer/tree-builder.js';
 import {
 	extractImports,
 	exampleSlug,
@@ -229,7 +229,10 @@ const TOOLS = [
 			"A Svelte component's full extracted API, exactly as sdocs documents it: " +
 			'props (with types, defaults, descriptions), events, snippets, methods, ' +
 			'states, CSS custom properties, and class/rest forwarding. Use it to ' +
-			'read a component in this project without parsing the source yourself.',
+			'read a component in this project without parsing the source yourself. ' +
+			'Call as get_component_api({ componentPath: "src/Button/Button.svelte" }). ' +
+			'A `warnings` array comes back when the source has props this reader ' +
+			"could not see — an empty `props` without one means the component has none.",
 		inputSchema: {
 			type: 'object',
 			properties: {
@@ -255,9 +258,34 @@ function validateSdoc(params: Record<string, unknown>) {
 			const pos = offsetToPosition(source, d.span.start);
 			return { code: d.code, message: d.message, line: pos.line + 1, column: pos.column + 1 };
 		}),
-		entities: doc.entities.map((e) => ({ kind: e.kind, title: e.title })),
+		// The route each title actually produces, derived the same way the site
+		// derives it. Slugs have a trap worth seeing before you commit to a
+		// title: segments are lowercased whole, so CamelCase does not split —
+		// "IconButton" becomes `iconbutton`, not `icon-button`.
+		entities: doc.entities.map((e) => ({
+			kind: e.kind,
+			title: e.title,
+			route: entityRoute(e.title, e.routeSlug),
+		})),
 	};
 	return toolResult(result);
+}
+
+/** Where a title will be served from: `@section/` prefix, slugified folder
+ * segments, then the `slug=` override or the slugified last segment. */
+function entityRoute(title: string | null | undefined, routeSlug: string | null): string {
+	const { section, rest } = splitSection(title);
+	const segments = (rest || 'Untitled')
+		.split('/')
+		.map((s) => s.trim())
+		.filter(Boolean);
+	// A leading ':' marks a sidebar group, which is presentational and never
+	// contributes a URL segment.
+	const parts = segments.map((s, i) =>
+		slugifySegment(i === 0 && s.startsWith(':') ? s.slice(1).trim() : s),
+	);
+	if (routeSlug && parts.length) parts[parts.length - 1] = routeSlug;
+	return '/' + [...(section ? [slugifySegment(section)] : []), ...parts].join('/');
 }
 
 /** Derive an args control default for a prop, or null to leave it out. */
@@ -325,6 +353,9 @@ async function scaffoldComponentDoc(params: Record<string, unknown>) {
 			snippets: data.props.filter((p) => p.category === 'snippet').length,
 			cssProps: data.cssProps.length,
 		},
+		// A scaffold built from zero props is a stub with no controls. Say why
+		// here rather than let a count of 0 pass for an answer.
+		...(data.warnings?.length ? { warnings: data.warnings } : {}),
 		note:
 			'Write the sdoc text to the suggested path (next to the component), fill in ' +
 			'the description, then validate with validate_sdoc.',
@@ -455,6 +486,9 @@ async function getComponentApi(params: Record<string, unknown>) {
 		acceptsClass: data.acceptsClass ?? false,
 		forwardsRest: data.forwardsRest ?? false,
 		restType: data.restType ?? null,
+		// Present only when the extraction is thinner than the source looks.
+		// An empty `props` with nothing beside it means the component has none.
+		...(data.warnings?.length ? { warnings: data.warnings } : {}),
 	});
 }
 

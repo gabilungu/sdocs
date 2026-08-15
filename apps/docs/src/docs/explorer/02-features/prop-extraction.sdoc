@@ -35,6 +35,23 @@
 
 	This extracts three props: `label` (string, no default), `size` (union with default `'md'`), `disabled` (boolean with default `false`).
 
+	### Naming the props type
+
+	The interface doesn't have to be called `Props` — sdocs reads whichever type the `$props()` declaration is annotated with, so `let { label }: ButtonProps = $props()` works the same way.
+
+	### Defaults come from the destructuring
+
+	Binding `$props()` to a name instead of destructuring is valid Svelte, but it puts the defaults somewhere static analysis can't follow:
+
+	```svelte
+	<script lang="ts">
+	  const defaults = { size: 'md' } as const satisfies Partial<ButtonProps>;
+	  let props: ButtonProps = $props();   // types still read; defaults do not
+	</script>
+	```
+
+	The props themselves still come through — names, types, descriptions, and optionality all live on the interface — but every default shows as none. `get_component_api` and `scaffold_component_doc` return a `warnings` array saying so, rather than letting a table of empty defaults pass for an answer. Destructure to document defaults.
+
 	JSDoc comments on interface members are picked up as descriptions — the whole comment, with hard-wrapped lines rejoined (list items keep their breaks), and inline markdown (`` `code` ``, `**bold**`, `*italics*`) rendered styled:
 
 	```ts

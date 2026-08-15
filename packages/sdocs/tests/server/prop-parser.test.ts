@@ -406,3 +406,74 @@ describe('multi-line JSDoc descriptions', () => {
 		expect(byName('simple').description).toBe('One line only.');
 	});
 });
+
+describe('extraction that cannot see everything says so', () => {
+	// The failure these pin: a props table that reads as authoritative while
+	// being thinner than the component. An empty table looks exactly like a
+	// component with no props, and a defaults column of dashes looks exactly
+	// like a component whose props have no defaults.
+
+	it('reads a props type under any name, not only `Props`', () => {
+		const source = `<script lang="ts">
+	interface ButtonProps {
+		/** The label */
+		label?: string;
+	}
+	let { label }: ButtonProps = $props();
+</script>
+<button>{label}</button>`;
+		const prop = byName(parseComponentSource(source).props, 'label');
+		expect(prop.type).toBe('string');
+		expect(prop.description).toBe('The label');
+		// Optionality lives on the interface: unreadable meant every prop
+		// showed as required, which is worse than showing no type at all.
+		expect(prop.required).toBe(false);
+	});
+
+	it('warns that defaults are unreadable when $props() is bound to a name', () => {
+		const source = `<script lang="ts">
+	interface ButtonProps {
+		/** The label */
+		label?: string;
+	}
+	const defaults = { label: 'hi' } as const satisfies Partial<ButtonProps>;
+	let props: ButtonProps = $props();
+</script>
+<button>{props.label}</button>`;
+		const data = parseComponentSource(source);
+		// The type still reads, so the props are not lost — only their defaults.
+		expect(byName(data.props, 'label').type).toBe('string');
+		expect(byName(data.props, 'label').default).toBeNull();
+		expect(data.warnings?.join(' ')).toMatch(/defaults were not read/i);
+	});
+
+	it('warns when nothing at all could be extracted', () => {
+		const source = `<script>
+	let props = $props();
+</script>
+<button>{props.label}</button>`;
+		const data = parseComponentSource(source);
+		expect(data.props).toEqual([]);
+		expect(data.warnings?.join(' ')).toMatch(/nothing was extracted/i);
+	});
+
+	it('stays silent for a component that genuinely has no props', () => {
+		// The whole point of the warnings is that their absence means something.
+		const data = parseComponentSource('<script></script>\n<button>hi</button>');
+		expect(data.props).toEqual([]);
+		expect(data.warnings).toBeUndefined();
+	});
+
+	it('stays silent for an ordinary destructured component', () => {
+		const source = `<script lang="ts">
+	interface Props {
+		label?: string;
+	}
+	let { label = 'hi' }: Props = $props();
+</script>
+<button>{label}</button>`;
+		const data = parseComponentSource(source);
+		expect(byName(data.props, 'label').default).toBe('hi');
+		expect(data.warnings).toBeUndefined();
+	});
+});

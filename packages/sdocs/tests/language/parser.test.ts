@@ -735,3 +735,49 @@ describe('[component] block', () => {
 		expect(doc.diagnostics.map((d) => d.message).join('\n')).toContain('[component] is only valid inside [SHOWCASE]');
 	});
 });
+
+describe('opener errors are reported all at once', () => {
+	// The same typo three times used to cost three fix-and-revalidate rounds:
+	// the scanner abandoned the file at the first bad character, so each pass
+	// revealed exactly one more. Openers close with ']', but the attributes are
+	// Svelte/HTML syntax and the hand finishes an HTML tag.
+	const threeSlips = `[SHOWCASE title="Button"]
+
+	[example title="Sizes" description="a">
+		<Button />
+	[/example]
+
+	[example title="Tones" description="b">
+		<Button />
+	[/example]
+
+	[example title="States" description="c">
+		<Button />
+	[/example]
+
+[/SHOWCASE]`;
+
+	it('reports every opener with the same mistake in one pass', () => {
+		const diagnostics = parseSdoc(threeSlips).diagnostics.filter(
+			(d) => d.code === 'attr-syntax',
+		);
+		expect(diagnostics).toHaveLength(3);
+	});
+
+	it('names the correction rather than only the symptom', () => {
+		const [first] = parseSdoc(threeSlips).diagnostics;
+		expect(first.message).toContain("']'");
+		expect(first.message).toContain("'>'");
+	});
+
+	it('recovers the document, so the diagnostics are the only loss', () => {
+		// Recovery that dropped the blocks would trade one problem for another:
+		// the author would fix three typos and find their examples missing.
+		const recovered = parseSdoc(threeSlips).entities[0] as ShowcaseEntity;
+		const correct = parseSdoc(threeSlips.replaceAll('">', '"]'))
+			.entities[0] as ShowcaseEntity;
+		expect(recovered.examples.map((e) => e.name)).toEqual(
+			correct.examples.map((e) => e.name),
+		);
+	});
+});

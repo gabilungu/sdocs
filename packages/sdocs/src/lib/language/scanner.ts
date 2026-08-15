@@ -136,9 +136,28 @@ function splitLines(source: string): Line[] {
 
 const NAME_RE = /^[A-Za-z_][A-Za-z0-9_-]*/;
 
+/**
+ * Where to resume after a stray character in an opener: past the closing `]`
+ * when one is still on this line, otherwise at the line's end.
+ *
+ * Treating the opener as finished there keeps the block's body and closer
+ * scannable, which is what lets the SAME mistake on a later opener be reported
+ * in the same pass. Abandoning the file instead turns one typo repeated three
+ * times into three fix-and-revalidate rounds.
+ */
+function recoverOpenerEnd(source: string, from: number): number {
+	for (let i = from; i < source.length; i++) {
+		if (source[i] === ']') return i + 1;
+		// The newline offset, not past it: the opener's line ends here, so
+		// nothing is left over to report as trailing text.
+		if (source[i] === '\n') return i;
+	}
+	return source.length;
+}
+
 /** Scan an opener's attributes starting right after `[KIND`. Handles
  * multi-line openers and quote/brace nesting. Returns the offset just past
- * the closing ']' or reports an error and returns -1. */
+ * the closing ']', or -1 when the opener cannot be recovered from. */
 function scanOpenerAttrs(
 	source: string,
 	from: number,
@@ -155,12 +174,19 @@ function scanOpenerAttrs(
 		}
 		const nameMatch = source.slice(i).match(NAME_RE);
 		if (!nameMatch) {
+			// `>` is the slip worth naming: the attributes are Svelte/HTML
+			// syntax, so the hand finishes an HTML tag. Saying which bracket
+			// closes an opener turns a lookup into a fix.
+			const hint =
+				ch === '>' ? " Block openers close with ']', not '>' — the attributes are HTML-like, the brackets are not." : '';
 			errors.push({
 				code: 'attr-syntax',
-				message: `Unexpected character '${ch}' in block opener.`,
+				message: `Unexpected character '${ch}' in block opener.${hint}`,
 				span: { start: i, end: i + 1 },
 			});
-			return -1;
+			// Recoverable: the attributes read so far are kept and scanning
+			// continues, so every opener with this mistake is reported at once.
+			return recoverOpenerEnd(source, i);
 		}
 		const name = nameMatch[0];
 		const nameStart = i;

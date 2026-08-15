@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.123] - 2026-08-15
+
+### Fixed
+
+- **A props type named anything but `Props` was ignored.** Extraction looked for
+  that exact interface name, so `let { label }: ButtonProps = $props()` fell
+  back to reading names out of the destructuring alone — every prop published
+  with no type, no description, and marked **required**, since optionality
+  lives on the interface. The props type is now read from whatever the
+  `$props()` declaration is annotated with, and the same applies to the
+  heritage that labels a `...rest` spread.
+
+- **Extraction that could not see everything now says so.** A `$props()` bound
+  to a name rather than destructured is valid Svelte that static analysis
+  cannot follow, and it produced a props table indistinguishable from a
+  component that genuinely has none. `get_component_api` and
+  `scaffold_component_doc` now return a `warnings` array — either that defaults
+  were unreadable (the interface still supplies types and optionality), or that
+  nothing could be extracted at all. Silence continues to mean the extraction
+  is complete.
+
+- **Every malformed block opener is reported in one pass.** The scanner
+  abandoned the file at the first stray character, so the same typo on three
+  openers cost three fix-and-revalidate rounds. It now resumes at the end of
+  the opener, keeping the attributes it already read and the block's body and
+  closer intact — a recovered document parses to the same entities as a correct
+  one. The diagnostic for `>` also names the correction: openers close with `]`.
+
+### Added
+
+- **`validate_sdoc` reports each entity's resolved `route`.** Slug rules have a
+  trap that only surfaces after publishing — segments are lowercased whole, so
+  `IconButton` serves at `/iconbutton`, not `/icon-button`. The route is now
+  visible where an author is already looking, before the title is committed to.
+
 ## [0.0.122] - 2026-08-15
 
 ### Fixed

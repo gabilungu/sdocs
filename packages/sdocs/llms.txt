@@ -122,7 +122,9 @@ scaffold `.sdoc` files against the real parser instead of guessing — and read
 the current project's components and docs through the same extraction the
 Explorer uses:
 
-- `validate_sdoc { source }` — parse `.sdoc` text, return diagnostics
+- `validate_sdoc { source }` — parse `.sdoc` text, return diagnostics, and report
+  each entity's resolved `route`. Check the route before committing to a title:
+  slugs lowercase each segment whole, so `IconButton` serves at `/iconbutton`
   (message, code, 1-based line/column) and the entities found.
 - `scaffold_component_doc { componentPath, title? }` — extract a `.svelte`
   component's props and return a starter `.sdoc` (control defaults derived
@@ -516,7 +518,7 @@ public API. What's extracted, and from where:
 
 | Category | Source |
 |---|---|
-| Props | `interface Props { … }` + `let { … } = $props()` (defaults come from the destructuring) |
+| Props | a props interface + `let { … } = $props()`. The interface may carry any name — sdocs reads whichever type the `$props()` declaration is annotated with. **Defaults come from the destructuring**: binding `$props()` to a name (`let props: P = $props()`) still yields types, descriptions and optionality from the interface, but no defaults, and `get_component_api`/`scaffold_component_doc` return a `warnings` array saying so |
 | Events | props named `on*` whose type contains `=>` (a non-callback `on*` prop stays a prop) |
 | Snippets | props typed `Snippet` or `Snippet<[…]>` (the parameter tuple is preserved) |
 | Methods | `export function foo() { … }` |

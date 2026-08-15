@@ -683,7 +683,7 @@ export function sdocsPlugin(
 			)
 			.join('\n');
 
-		return `export const docs = ${JSON.stringify(data)};\nexport const cssNames = ${JSON.stringify(cssNames)};\nexport const pageModules = {\n${pageImports}\n};\nexport default docs;`;
+		return `export const docs = ${JSON.stringify(data)};\nexport const cssNames = ${JSON.stringify(cssNames)};\nexport const axes = ${JSON.stringify(config.axes)};\nexport const pageModules = {\n${pageImports}\n};\nexport default docs;`;
 	}
 
 	// ─── HMR helpers ───

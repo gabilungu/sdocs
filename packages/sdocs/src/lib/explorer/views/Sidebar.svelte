@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { SvelteSet } from 'svelte/reactivity';
 	import type { SectionTree, TreeNode } from '../tree-builder.js';
+	import type { AxisConfig } from '../../types.js';
 	import { routeHref, navigate } from '../router.svelte.js';
 	import { Icon } from '../../ui/Icon/index.js';
 	import { NavTree } from '../../ui/index.js';
@@ -18,7 +19,11 @@
 		activeSlug?: string;
 		cssNames?: string[];
 		activeStylesheet?: string;
+		/** Design-system dimensions — rehoused here on narrow viewports. */
+		axes?: Required<AxisConfig>[];
+		axisValues?: Record<string, string>;
 		onStylesheetChange?: (name: string) => void;
+		onAxisChange?: (id: string, value: string) => void;
 		onClose?: () => void;
 	}
 
@@ -31,7 +36,10 @@
 		activeSlug,
 		cssNames = [],
 		activeStylesheet,
+		axes = [],
+		axisValues = {},
 		onStylesheetChange,
+		onAxisChange,
 		onClose,
 	}: Props = $props();
 
@@ -247,21 +255,41 @@
 		{/each}
 	</nav>
 
-	{#if narrow && cssNames.length > 1}
-		<!-- The top bar's stylesheet picker, rehoused where there's room. -->
-		<div class="sdocs-drawer-foot">
-			<label class="sdocs-drawer-foot-label" for="sdocs-drawer-css">Stylesheet</label>
-			<select
-				id="sdocs-drawer-css"
-				class="sdocs-drawer-css"
-				value={activeStylesheet}
-				onchange={(e) => onStylesheetChange?.(e.currentTarget.value)}
-			>
-				{#each cssNames as name (name)}
-					<option value={name}>{name}</option>
-				{/each}
-			</select>
-		</div>
+	{#if narrow}
+		<!-- The top bar's pickers, rehoused where there's room. Here they can
+		     afford the visible labels the bar has no width for. -->
+		{#each axes as axis (axis.id)}
+			<div class="sdocs-drawer-foot">
+				<label class="sdocs-drawer-foot-label" for="sdocs-drawer-axis-{axis.id}">
+					{axis.label}
+				</label>
+				<select
+					id="sdocs-drawer-axis-{axis.id}"
+					class="sdocs-drawer-css"
+					value={axisValues[axis.id] ?? axis.values[0]}
+					onchange={(e) => onAxisChange?.(axis.id, e.currentTarget.value)}
+				>
+					{#each axis.values as value (value)}
+						<option {value}>{value}</option>
+					{/each}
+				</select>
+			</div>
+		{/each}
+		{#if cssNames.length > 1}
+			<div class="sdocs-drawer-foot">
+				<label class="sdocs-drawer-foot-label" for="sdocs-drawer-css">Stylesheet</label>
+				<select
+					id="sdocs-drawer-css"
+					class="sdocs-drawer-css"
+					value={activeStylesheet}
+					onchange={(e) => onStylesheetChange?.(e.currentTarget.value)}
+				>
+					{#each cssNames as name (name)}
+						<option value={name}>{name}</option>
+					{/each}
+				</select>
+			</div>
+		{/if}
 	{/if}
 </aside>
 

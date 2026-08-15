@@ -43,6 +43,10 @@ export interface SdocsConfig {
 	 * the `include` globs with `.sdoc` swapped for `.svelte` — right when docs
 	 * sit next to their components; set it when they don't. */
 	components?: string | string[];
+	/** Design-system dimensions the reader can switch between — theme, density,
+	 * palette, whatever the project's css keys off. Each becomes a top-bar
+	 * dropdown, and the selection lands on every preview as `data-<id>`. */
+	axes?: AxisConfig[];
 
 	/** Content presentation per entity kind; entity/block attributes override these. */
 	content?: {
@@ -87,6 +91,23 @@ export interface SdocsConfig {
 			minHeight?: string;
 		};
 	};
+}
+
+/** One axis of design-system customization.
+ *
+ * sdocs stays ignorant of what an axis *means*: it renders the control and
+ * writes `data-<id>="<value>"` onto each preview's `<html>`. The project's own
+ * css supplies the meaning — `[data-density="compact"] { --space-md: 8px }`.
+ * That's what lets a project declare any axes it likes without sdocs knowing
+ * the vocabulary. */
+export interface AxisConfig {
+	/** Attribute name (minus the `data-` prefix) and storage key. Lowercase,
+	 * dash-separated; `sdocs-` is reserved for the stage's own attributes. */
+	id: string;
+	/** Control label. Default: the capitalized id. */
+	label?: string;
+	/** Selectable values, in control order. The first is the default. */
+	values: string[];
 }
 
 /** One top-bar section. */
@@ -145,6 +166,8 @@ export interface ResolvedSdocsConfig {
 	mcp: boolean;
 	/** Globs locating component sources, for documentation coverage. */
 	components: string[];
+	/** Customization axes, normalized: valid ids, labels filled, 2+ values. */
+	axes: Required<AxisConfig>[];
 	content: {
 		doc: Required<ContentSizing> & { toc: boolean; contentX: string };
 		page: Required<ContentSizing> & { contentX: string };

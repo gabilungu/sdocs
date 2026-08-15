@@ -82,6 +82,13 @@
 	// Preview URLs are root-absolute; hosts serving under a sub-path pass the
 	// prefix via the Explorer's previewBase prop (see Explorer.svelte).
 	const previewBase = (getContext('sdocs-preview-base') as string | undefined) ?? '';
+
+	// The reader's customization picks, from context rather than props: every
+	// view that shows a stage would otherwise have to thread them through, and
+	// they're one shared value for the whole app. A getter, so reassignment in
+	// the Explorer stays visible here.
+	const axisCtx = getContext('sdocs-axes') as { values: Record<string, string> } | undefined;
+	const axisValues = $derived(axisCtx?.values ?? {});
 	const resolvedSrc = $derived(previewBase.replace(/\/$/, '') + src);
 	let iframe: HTMLIFrameElement;
 	let ready = $state(false);
@@ -102,6 +109,7 @@
 				sendProps();
 				sendCss();
 				sendStylesheet();
+				sendAxes();
 				onready?.();
 			}
 			if (e.data?.type === 'sdocs:resize' && e.source === iframe?.contentWindow) {
@@ -141,6 +149,16 @@
 		}
 	}
 
+	// A frame already on screen when the reader switches an axis. One that
+	// mounts later reads the same values off the parent window as it boots,
+	// so it never paints the defaults first (see PREVIEW_BOOTSTRAP_JS).
+	function sendAxes() {
+		if (ready && iframe?.contentWindow) {
+			const data = $state.snapshot(axisValues);
+			iframe.contentWindow.postMessage({ type: 'sdocs:update-axes', axes: data }, '*');
+		}
+	}
+
 	$effect(() => {
 		// Track props changes, send without re-tracking inside send
 		JSON.stringify(props);
@@ -157,6 +175,12 @@
 		// Track stylesheet changes
 		activeStylesheet;
 		untrack(() => sendStylesheet());
+	});
+
+	$effect(() => {
+		// Track axis changes
+		JSON.stringify(axisValues);
+		untrack(() => sendAxes());
 	});
 </script>
 

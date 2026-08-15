@@ -116,11 +116,18 @@ before trusting what you see.
 
 ## Variants
 
-\`?theme=dark\` sets \`data-sdocs-theme\` on the stage document, for CSS keyed off
-that attribute. Themes driven by \`prefers-color-scheme\` are the browser's to
-emulate (\`page.emulateMedia({ colorScheme: 'dark' })\`) — sdocs does not fake the
-media query. \`?css=<name>\` picks between the stylesheets a project configures
-under \`css\`, which is how sdocs models real theme variants.
+\`?axis-<id>=<value>\` sets \`data-<id>\` on the stage document — one parameter per
+customization axis the project declares under \`axes\` (theme, density, palette,
+whatever it defines). Combine them freely:
+\`?axis-scheme=dark&axis-density=compact\` photographs one component in one exact
+combination, no Explorer involved. \`list_docs\` reports the project's axes and
+their values; a value the config doesn't list simply has no CSS behind it.
+
+\`?theme=dark\` sets \`data-sdocs-theme\`, for CSS keyed off that attribute. Themes
+driven by \`prefers-color-scheme\` are the browser's to emulate
+(\`page.emulateMedia({ colorScheme: 'dark' })\`) — sdocs does not fake the media
+query. \`?css=<name>\` picks between the stylesheets a project configures under
+\`css\`, which is a whole-file swap rather than a composable dimension.
 
 ## Editing
 

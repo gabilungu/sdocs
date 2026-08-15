@@ -25,6 +25,14 @@ export default {
 	// Header logo: 'sdocs' for the mascot, an image URL, or false to hide (default: 'sdocs')
 	// logo: 'sdocs',
 
+	// Design-system dimensions the reader can switch. Each gets a top-bar
+	// control; the pick lands on every stage as data-<id>="<value>", which
+	// your own css keys off: [data-density="compact"] { --space-md: 8px }
+	// axes: [
+	// 	{ id: 'scheme', label: 'Theme', values: ['light', 'dark'] },
+	// 	{ id: 'density', label: 'Density', values: ['airy', 'compact'] },
+	// ],
+
 	// Top-bar section order — sections come from @Section/ title prefixes
 	// sections: ['Guides', 'Components'],
 

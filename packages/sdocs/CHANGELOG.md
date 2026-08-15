@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.121] - 2026-08-15
+
+### Added
+
+- **Customization axes.** A design system varies along more than one dimension
+  at once — light and dark, compact and airy, one palette or another — and
+  named stylesheets could only ever swap one whole file. Declare each dimension
+  in `sdocs.config.js` and the top bar offers it:
+
+  ```js
+  axes: [
+    { id: 'scheme',  label: 'Theme',   values: ['light', 'dark'] },
+    { id: 'density', label: 'Density', values: ['airy', 'compact'] },
+  ]
+  ```
+
+  The reader's pick lands on every preview, example and layout as
+  `data-<id>="<value>"` on the stage document's root; the project's own css
+  supplies the meaning. sdocs never interprets an axis, so a project can
+  declare any dimensions it likes without the tool knowing the vocabulary.
+
+  Each axis renders as a compact segmented control while the bar has room, and
+  they all collapse to dropdowns together before they'd crowd out the section
+  tabs; on a narrow viewport they move into the navigation drawer. Picks
+  persist across sessions and are validated against the config on load, so
+  renaming a value doesn't leave returning readers with an attribute no
+  stylesheet matches. A stage page also accepts them as URL parameters
+  (`?axis-density=compact`), which addresses one component in one exact
+  combination without an Explorer to click through.
+
+  Embedded hosts read the configured axes from `virtual:sdocs` and pass them
+  to `<Explorer {axes} />`.
+
 ## [0.0.120] - 2026-08-04
 
 ### Fixed

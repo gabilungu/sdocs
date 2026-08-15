@@ -6,6 +6,7 @@ import {
 	stageIdentity,
 	PREVIEW_BOOTSTRAP_JS,
 	PREVIEW_RUNTIME_JS,
+	PREVIEW_URL_PARAMS_JS,
 } from '../../src/lib/server/preview-runtime.js';
 import {
 	generatePreviewHtml,
@@ -174,5 +175,73 @@ describe('the injected runtime', () => {
 	it('always ends up ready, so a client never waits forever on a broken stage', () => {
 		expect(PREVIEW_BOOTSTRAP_JS).toContain("fail('timeout')");
 		expect(PREVIEW_BOOTSTRAP_JS).toContain("fail('script')");
+	});
+});
+
+/** Run one of the injected stage scripts against fakes, and report the
+ * attributes it set on `<html>`. The scripts are plain ES5 strings, so
+ * shadowing the globals as parameters is enough to exercise them for real
+ * rather than asserting on their source text. */
+function runStageScript(
+	script: string,
+	env: { parentAxes?: Record<string, string>; crossOrigin?: boolean; search?: string },
+): Record<string, string> {
+	const attrs: Record<string, string> = {};
+	const root = {
+		setAttribute: (k: string, v: string) => void (attrs[k] = String(v)),
+		hasAttribute: (k: string) => k in attrs,
+		style: {} as Record<string, string>,
+	};
+	const document = { documentElement: root, querySelectorAll: () => [] };
+	const window: Record<string, unknown> = { addEventListener: () => {} };
+	Object.defineProperty(window, 'parent', {
+		get() {
+			if (env.crossOrigin) throw new Error('cross-origin');
+			return env.parentAxes ? { __sdocsAxes: env.parentAxes } : window;
+		},
+	});
+	const location = { search: env.search ?? '' };
+	new Function('window', 'document', 'location', 'setTimeout', script)(
+		window,
+		document,
+		location,
+		() => 0,
+	);
+	return attrs;
+}
+
+describe('axis picks reaching a stage', () => {
+	it('applies the parent frame’s picks before the stage paints', () => {
+		const attrs = runStageScript(PREVIEW_BOOTSTRAP_JS, {
+			parentAxes: { scheme: 'dark', density: 'compact' },
+		});
+		expect(attrs['data-scheme']).toBe('dark');
+		expect(attrs['data-density']).toBe('compact');
+	});
+
+	it('sets nothing when the stage is opened directly, with no parent to ask', () => {
+		expect(runStageScript(PREVIEW_BOOTSTRAP_JS, {})).toEqual({});
+	});
+
+	it('survives a cross-origin parent instead of failing the whole stage', () => {
+		// The throw happens on the very first statement of the try block, so a
+		// missing catch would take the ready/error markers down with it.
+		expect(() => runStageScript(PREVIEW_BOOTSTRAP_JS, { crossOrigin: true })).not.toThrow();
+	});
+
+	it('reads axes off the stage URL, so one link addresses one exact variant', () => {
+		const attrs = runStageScript(PREVIEW_URL_PARAMS_JS, {
+			search: '?axis-scheme=dark&axis-density=compact',
+		});
+		expect(attrs['data-scheme']).toBe('dark');
+		expect(attrs['data-density']).toBe('compact');
+	});
+
+	it('ignores an axis id that could not be a safe attribute name', () => {
+		const attrs = runStageScript(PREVIEW_URL_PARAMS_JS, {
+			search: '?axis-' + encodeURIComponent('x" onload="alert(1)') + '=dark&axis-ok=v',
+		});
+		expect(attrs['data-ok']).toBe('v');
+		expect(Object.keys(attrs)).toEqual(['data-ok']);
 	});
 });

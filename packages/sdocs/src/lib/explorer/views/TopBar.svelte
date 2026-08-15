@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { SectionTree } from '../tree-builder.js';
+	import type { AxisConfig } from '../../types.js';
 	import { routeHref } from '../router.svelte.js';
 	import { Icon } from '../../ui/Icon/index.js';
 
@@ -13,6 +14,10 @@
 		cssNames?: string[];
 		activeStylesheet?: string;
 		theme?: ThemeMode;
+		/** Design-system dimensions to offer, one dropdown each. */
+		axes?: Required<AxisConfig>[];
+		/** Current pick per axis id. */
+		axisValues?: Record<string, string>;
 		/** This dev server serves the MCP endpoint — show the MCP button. */
 		mcp?: boolean;
 		/** Narrow viewport with somewhere to navigate: show the drawer toggle. */
@@ -26,6 +31,7 @@
 		onToggleFullscreen?: () => void;
 		onStylesheetChange?: (name: string) => void;
 		onThemeChange?: (theme: ThemeMode) => void;
+		onAxisChange?: (id: string, value: string) => void;
 	}
 
 	let {
@@ -36,6 +42,8 @@
 		cssNames = [],
 		activeStylesheet,
 		theme = 'light',
+		axes = [],
+		axisValues = {},
 		mcp = false,
 		showBurger = false,
 		navOpen = false,
@@ -44,7 +52,54 @@
 		onToggleFullscreen,
 		onStylesheetChange,
 		onThemeChange,
+		onAxisChange,
 	}: Props = $props();
+
+	// ─── Axis controls: segmented while they fit, dropdowns when they don't ───
+
+	let barEl = $state<HTMLElement>();
+	let sectionsEl = $state<HTMLElement>();
+	/** Dropdowns instead of segmented controls. All axes switch together —
+	 * a row where some are segmented and some aren't reads as a mistake. */
+	let axesCompact = $state(false);
+	/** The bar width at which the segmented controls last stopped fitting.
+	 * Re-trying only above it is what keeps this from oscillating: expanding
+	 * frees no space, so a plain "does it fit now?" would collapse, expand,
+	 * collapse, forever. `collapsedAt` only ever grows, so it settles. */
+	let collapsedAt = 0;
+	/** Enough slack that re-expanding is worth a try, not a coin flip. */
+	const RETRY_MARGIN = 48;
+
+	function fitAxisControls() {
+		if (!barEl || axes.length === 0) return;
+		const width = barEl.clientWidth;
+		// The tabs are the thing being crowded out, so they're the signal —
+		// they scroll rather than wrap, so a clipped nav means the actions have
+		// taken more than their share. The bar's own overflow covers the case
+		// of a site with no sections at all.
+		const crowded =
+			(!!sectionsEl && sectionsEl.scrollWidth > sectionsEl.clientWidth + 1) ||
+			barEl.scrollWidth > barEl.clientWidth + 1;
+		if (!axesCompact) {
+			if (crowded) {
+				collapsedAt = width;
+				axesCompact = true;
+			}
+		} else if (width > collapsedAt + RETRY_MARGIN) {
+			axesCompact = false;
+			// The observer won't fire again — the bar didn't resize, its
+			// contents did — so check the wider controls ourselves once painted.
+			requestAnimationFrame(fitAxisControls);
+		}
+	}
+
+	$effect(() => {
+		if (!barEl || axes.length === 0) return;
+		const observer = new ResizeObserver(() => fitAxisControls());
+		observer.observe(barEl);
+		fitAxisControls();
+		return () => observer.disconnect();
+	});
 
 	// Closing the drawer hands focus back to the control that opened it, so a
 	// keyboard user isn't dropped at the top of the document.
@@ -93,7 +148,7 @@
 	}
 </script>
 
-<header class="sdocs-topbar">
+<header class="sdocs-topbar" bind:this={barEl}>
 	{#if showBurger}
 		<button
 			bind:this={burgerEl}
@@ -117,7 +172,7 @@
 		{/if}
 		{title}
 	</a>
-	<nav class="sdocs-topbar-sections">
+	<nav class="sdocs-topbar-sections" bind:this={sectionsEl}>
 		{#each sections as section (section.slug)}
 			<a
 				class="sdocs-topbar-tab"
@@ -130,6 +185,45 @@
 		{/each}
 	</nav>
 	<div class="sdocs-topbar-actions">
+		{#each axes as axis (axis.id)}
+			<!-- The label is the accessible name rather than visible text: a few
+			     of these plus the css picker is already most of the bar's free
+			     width, and the values ("compact", "olive") mostly say which axis
+			     they belong to. -->
+			{#if axesCompact}
+				<select
+					class="sdocs-axis-picker"
+					aria-label={axis.label}
+					title={axis.label}
+					value={axisValues[axis.id] ?? axis.values[0]}
+					onchange={(e) => onAxisChange?.(axis.id, e.currentTarget.value)}
+				>
+					{#each axis.values as value (value)}
+						<option {value}>{value}</option>
+					{/each}
+				</select>
+			{:else}
+				<!-- Real radios: one name per axis gives grouping, arrow-key
+				     navigation and "only one at a time" for free, none of which
+				     a row of buttons would have without writing it. -->
+				<fieldset class="sdocs-axis-seg" title={axis.label}>
+					<legend class="sdocs-axis-seg-legend">{axis.label}</legend>
+					{#each axis.values as value (value)}
+						{@const active = (axisValues[axis.id] ?? axis.values[0]) === value}
+						<label class="sdocs-axis-seg-item" class:is-active={active}>
+							<input
+								type="radio"
+								name="sdocs-axis-{axis.id}"
+								{value}
+								checked={active}
+								onchange={() => onAxisChange?.(axis.id, value)}
+							/>
+							{value}
+						</label>
+					{/each}
+				</fieldset>
+			{/if}
+		{/each}
 		{#if cssNames.length > 1}
 			<select
 				class="sdocs-css-picker"
@@ -292,7 +386,8 @@
 		align-items: center;
 		gap: 6px;
 	}
-	.sdocs-css-picker {
+	.sdocs-css-picker,
+	.sdocs-axis-picker {
 		font-size: 12px;
 		padding: 2px 4px;
 		border: 1px solid var(--color-base-200);
@@ -300,6 +395,67 @@
 		background: var(--color-base-0);
 		color: var(--color-base-600);
 	}
+	/* Segmented control: a track holding one pill per value. Deliberately
+	   smaller than the buttons beside it — it carries words, not glyphs, and
+	   at button size three of them would dominate the bar. */
+	.sdocs-axis-seg {
+		display: inline-flex;
+		align-items: center;
+		gap: 1px;
+		/* fieldset defaults would blow the flex line out and re-add spacing. */
+		min-inline-size: 0;
+		margin: 0;
+		padding: 1px;
+		border: 1px solid var(--color-base-200);
+		border-radius: 5px;
+		background: var(--color-base-100);
+	}
+	.sdocs-axis-seg-legend {
+		/* The group's accessible name; the values alone don't say what they
+		   vary. Hidden rather than absent — a floated legend would break the
+		   track's box. */
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+	.sdocs-axis-seg-item {
+		position: relative;
+		display: inline-flex;
+		align-items: center;
+		padding: 1px 7px;
+		border-radius: 4px;
+		font-size: 11px;
+		line-height: 1.7;
+		color: var(--color-base-500);
+		white-space: nowrap;
+		cursor: pointer;
+	}
+	.sdocs-axis-seg-item input {
+		/* Invisible but still focusable, so the radio keeps its keyboard
+		   behaviour — display:none would take it out of the tab order. */
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		opacity: 0;
+		pointer-events: none;
+	}
+	.sdocs-axis-seg-item:hover {
+		color: var(--color-base-900);
+	}
+	.sdocs-axis-seg-item.is-active {
+		background: var(--color-base-0);
+		color: var(--color-base-900);
+		box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+	}
+	.sdocs-axis-seg-item:has(input:focus-visible) {
+		outline: 2px solid var(--color-action-500);
+		outline-offset: 1px;
+	}
+
 	.sdocs-topbar-btn {
 		padding: 2px 6px;
 		border: 1px solid var(--color-base-200);
@@ -345,9 +501,11 @@
 			white-space: nowrap;
 			text-overflow: ellipsis;
 		}
-		/* The stylesheet picker moves into the drawer: it's the one control
-		   here wide enough to crowd out everything else. */
-		.sdocs-css-picker {
+		/* The pickers move into the drawer: they're the controls here wide
+		   enough to crowd out everything else. */
+		.sdocs-css-picker,
+		.sdocs-axis-picker,
+		.sdocs-axis-seg {
 			display: none;
 		}
 		.sdocs-topbar-btn {

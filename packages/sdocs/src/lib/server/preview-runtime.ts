@@ -101,6 +101,19 @@ export function stageAttrs(stage: StageIdentityAttrs | null): string {
 export const PREVIEW_BOOTSTRAP_JS = `
 (function () {
 	var root = document.documentElement;
+
+	// The reader's customization picks, applied before the first paint.
+	// Waiting for the parent to message them would show one frame of the
+	// default theme on every stage that mounts after a switch — a route
+	// change, a lazy stage, a fullscreen remount. Same-origin holds for dev
+	// and built previews alike; a direct visit has no parent to ask.
+	try {
+		var picks = window.parent !== window && window.parent.__sdocsAxes;
+		if (picks) for (var id in picks) root.setAttribute('data-' + id, picks[id]);
+	} catch (e) {
+		// Cross-origin embed — the parent posts the picks once we're ready.
+	}
+
 	var fail = function (why) {
 		if (root.hasAttribute('data-sdocs-stage-ready')) return;
 		root.setAttribute('data-sdocs-stage-error', why);
@@ -270,8 +283,8 @@ export const PREVIEW_RUNTIME_JS = `
 })();
 `.trim();
 
-/** Apply `?theme=` / `?css=` from the stage URL, so a direct visit can ask for
- * a variant without an Explorer to click in. */
+/** Apply `?theme=` / `?css=` / `?axis-<id>=` from the stage URL, so a direct
+ * visit can ask for a variant without an Explorer to click in. */
 export const PREVIEW_URL_PARAMS_JS = `
 (function () {
 	var params = new URLSearchParams(location.search);
@@ -288,5 +301,14 @@ export const PREVIEW_URL_PARAMS_JS = `
 			link.disabled = link.dataset.sdocsStylesheet !== css;
 		});
 	}
+	// A configured stage in one URL: '?axis-density=compact&axis-palette=olive'.
+	// This is what lets an agent photograph one component in one combination
+	// without an Explorer to click through. Explicit, so it beats the picks
+	// inherited from a parent frame at boot.
+	params.forEach(function (value, key) {
+		if (key.indexOf('axis-') !== 0) return;
+		var id = key.slice(5);
+		if (/^[a-z][a-z0-9-]*$/.test(id)) document.documentElement.setAttribute('data-' + id, value);
+	});
 })();
 `.trim();

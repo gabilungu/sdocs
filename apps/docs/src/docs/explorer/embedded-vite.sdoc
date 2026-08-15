@@ -36,12 +36,13 @@
 	<!-- src/routes/docs/+page.svelte -->
 	<script>
 	  import Explorer from 'sdocs/explorer';
-	  import { docs, cssNames } from 'virtual:sdocs';
+	  import { docs, cssNames, axes } from 'virtual:sdocs';
 	</script>
 
 	<Explorer
 	  {docs}
 	  {cssNames}
+	  {axes}
 	  title="My Design System"
 	  sidebarConfig={{
 	    order: { root: ['Components', '*'] },
@@ -57,9 +58,10 @@
 	```ts
 	// src/app.d.ts
 	declare module 'virtual:sdocs' {
-	  import type { DocEntry } from 'sdocs';
+	  import type { AxisConfig, DocEntry } from 'sdocs';
 	  export const docs: DocEntry[];
 	  export const cssNames: string[];
+	  export const axes: Required<AxisConfig>[];
 	  export default docs;
 	}
 	```
@@ -72,6 +74,7 @@
 	|---|---|---|
 	| `docs` | `DocEntry[]` | All discovered doc entries. Comes from `virtual:sdocs`. |
 	| `cssNames` | `string[]` | Stylesheet names if using named CSS. Comes from `virtual:sdocs`. |
+	| `axes` | `AxisConfig[]` | [Customization axes](/explorer/features/theming#customization-axes) — the top bar's dropdowns. Comes from `virtual:sdocs`. |
 	| `title` | `string` | Header title text. Default: `'sdocs'`. |
 	| `logo` | `string \| false` | Header logo: `'sdocs'` for the built-in mascot (default), an image URL, or `false` to hide. |
 	| `previewBase` | `string` | URL prefix for preview pages when the app deploys under a sub-path. In SvelteKit, pass `base` from `$app/paths`. Default: `''`. |
@@ -113,11 +116,12 @@
 	The plugin exposes a virtual module containing all discovered docs. Import from it anywhere in your app:
 
 	```ts
-	import { docs, cssNames } from 'virtual:sdocs';
+	import { docs, cssNames, axes } from 'virtual:sdocs';
 	```
 
 	- `docs: DocEntry[]` — flat array of all discovered doc entries
 	- `cssNames: string[]` — names of available stylesheets (empty if using single or no CSS)
+	- `axes: AxisConfig[]` — the configured [customization axes](/explorer/features/theming#customization-axes), normalized (empty if none)
 
 	## See also
 

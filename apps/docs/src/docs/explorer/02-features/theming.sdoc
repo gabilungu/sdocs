@@ -1,20 +1,79 @@
 [DOC title="@explorer/Features / Theming"]
 
 
-	sdocs has two independent theming systems:
+	sdocs has three independent theming systems:
 
 	1. **Explorer theme** (light/dark) — controls the Explorer UI itself
-	2. **Preview stylesheets** — CSS loaded into the component preview iframe
+	2. **Customization axes** — dimensions of *your* design system the reader can switch: theme, density, palette
+	3. **Preview stylesheets** — which CSS file is loaded into the preview iframe
 
 	## Explorer theme (light/dark)
 
-	The sdocs UI has a light/dark toggle in the sidebar header. The choice is persisted to `localStorage` under `sdocs-theme` and applied by setting `data-sdocs-theme="light"` or `"dark"` on the app's own root element (the `.sdocs-app` container, not `<html>`).
+	The sdocs UI has a light/dark toggle in the top bar. The choice is persisted to `localStorage` under `sdocs-theme` and applied by setting `data-sdocs-theme="light"` or `"dark"` on the app's own root element (the `.sdocs-app` container, not `<html>`).
 
 	If you're styling the app shell, target these attributes:
 
 	```css
 	[data-sdocs-theme="light"] { /* … */ }
 	[data-sdocs-theme="dark"]  { /* … */ }
+	```
+
+	## Customization axes
+
+	A design system usually varies along more than one dimension at once — light and dark, compact and airy, one brand palette or another. Declare each as an **axis** and sdocs puts a control in the top bar for it:
+
+	```js
+	// sdocs.config.js
+	axes: [
+	  { id: 'scheme',  label: 'Theme',   values: ['light', 'dark'] },
+	  { id: 'density', label: 'Density', values: ['airy', 'compact'] },
+	  { id: 'palette', label: 'Color',   values: ['blue', 'red', 'olive'] },
+	]
+	```
+
+	The reader's pick lands on every preview, example, and layout as a `data-` attribute on the stage document's `<html>`:
+
+	```html
+	<html data-scheme="dark" data-density="compact" data-palette="olive">
+	```
+
+	**sdocs never interprets an axis.** It renders the control and writes the attribute; your CSS supplies the meaning. That's what lets a project declare any axes it likes without sdocs knowing the vocabulary:
+
+	```css
+	[data-density="compact"] { --space-md: 8px; --control-h: 32px; }
+	[data-palette="olive"]   { --color-accent: oklch(0.62 0.11 125); }
+	```
+
+	The first value listed is the default. `label` is optional and falls back to the capitalized id. Ids are lowercase letters, digits and dashes; the `sdocs-` prefix is reserved for the attributes that carry a stage's own identity.
+
+	### How the controls render
+
+	Each axis is a compact segmented control while the bar has room for it, and every axis collapses to a dropdown together once they'd start pushing the section tabs out of view. On a narrow viewport they move into the navigation drawer, where there's space for visible labels.
+
+	Nothing to configure — it's measured. Declaring more axes, or axes with longer values, just means the switch happens at a wider window.
+
+	### Dark mode needs the attribute
+
+	A dark theme written only as a media query can't be switched — `prefers-color-scheme` is the browser's setting, not something a dropdown can override. Make the attribute the source of truth, and set `color-scheme` alongside it so native controls, scrollbars and form widgets follow:
+
+	```css
+	[data-scheme="dark"] {
+	  color-scheme: dark;
+	  --color-bg: #0f1115;
+	  --color-text: #e8eaed;
+	}
+	```
+
+	### Where the picks are kept
+
+	Selections persist to `localStorage` under `sdocs-axes` and are validated against the config on load: if you rename a value, a reader carrying the old one falls back to the default rather than getting an attribute no stylesheet matches.
+
+	### Addressing one combination
+
+	A stage page accepts its axes as URL parameters, so a single preview can be opened — or screenshotted — in an exact combination without clicking through the Explorer:
+
+	```
+	/preview/button/sizes?axis-scheme=dark&axis-density=compact
 	```
 
 	## Preview stylesheets
@@ -39,7 +98,9 @@
 	}
 	```
 
-	With more than one named stylesheet, sdocs shows a dropdown in the sidebar letting users switch between them. Only one is active at a time — switching disables the others.
+	With more than one named stylesheet, sdocs shows a dropdown in the top bar letting users switch between them. Only one is active at a time — switching disables the others.
+
+	Reach for **axes** instead when the variants multiply: three palettes × two densities is six stylesheets to maintain but two axes to declare, and axes compose where whole-file swaps can't.
 
 	This is useful for:
 
@@ -49,7 +110,7 @@
 
 	### Explorer theme vs. preview theme
 
-	These are **separate** — the sdocs UI being in dark mode doesn't automatically switch the preview to a dark stylesheet. Users control each independently.
+	These are **separate** — the sdocs UI being in dark mode doesn't automatically switch the preview to a dark stylesheet, or flip a `scheme` axis. Users control each independently, and the Explorer's own chrome keeps its appearance no matter what your design system is doing. That's deliberate: a design system mid-refactor shouldn't be able to make the docs unreadable.
 
 	If you want them to track each other, name your stylesheets `light` and `dark` — the sdocs app theme names match, so mentally they'll line up even though the switching is manual.
 
@@ -62,6 +123,6 @@
 	## See also
 
 	- [Configuration reference](/explorer/configuration)
-	- [Sidebar](/explorer/features/sidebar) — where the theme toggle and stylesheet picker live
+	- [Sidebar](/explorer/features/sidebar) — where the pickers move on a narrow viewport
 
 [/DOC]

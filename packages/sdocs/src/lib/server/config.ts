@@ -1,7 +1,7 @@
 import { pathToFileURL } from 'node:url';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import type { SdocsConfig, ResolvedSdocsConfig, SectionConfig } from '../types.js';
+import type { SdocsConfig, ResolvedSdocsConfig, SectionConfig, AxisConfig } from '../types.js';
 
 const CONFIG_NAMES = ['sdocs.config.ts', 'sdocs.config.mjs', 'sdocs.config.js'];
 
@@ -21,6 +21,7 @@ const DEFAULTS: ResolvedSdocsConfig = {
 	base: '/',
 	mcp: true,
 	components: [],
+	axes: [],
 	content: {
 		doc: { maxWidth: '1200px', padding: '32px', toc: true, contentX: 'left' },
 		page: { maxWidth: '1200px', padding: '32px', contentX: 'left' },
@@ -127,6 +128,46 @@ function capitalize(s: string): string {
 	return s ? s[0].toUpperCase() + s.slice(1) : s;
 }
 
+/** Customization axes with labels filled in, invalid ones dropped.
+ *
+ * Every rejection warns. An axis that silently vanished would show up as a
+ * missing dropdown — or worse, as previews rendering unstyled because the
+ * attribute the project's css keys off never arrives — and neither points back
+ * at the line of config that caused it. */
+function normalizeAxes(axes: AxisConfig[] | undefined): Required<AxisConfig>[] {
+	if (!axes?.length) return [];
+	const out: Required<AxisConfig>[] = [];
+	const seen = new Set<string>();
+	for (const axis of axes) {
+		const id = String(axis?.id ?? '');
+		const where = id ? `axis '${id}'` : 'an axis';
+		if (!/^[a-z][a-z0-9-]*$/.test(id)) {
+			console.warn(
+				`[sdocs] ignoring ${where}: 'id' must be lowercase letters, digits and dashes, starting with a letter.`,
+			);
+			continue;
+		}
+		// data-sdocs-* carries the stage's own identity into the preview
+		// document; an axis writing there would overwrite it.
+		if (id.startsWith('sdocs-')) {
+			console.warn(`[sdocs] ignoring ${where}: the 'sdocs-' prefix is reserved.`);
+			continue;
+		}
+		if (seen.has(id)) {
+			console.warn(`[sdocs] ignoring duplicate ${where}.`);
+			continue;
+		}
+		const values = (axis.values ?? []).map(String).filter(Boolean);
+		if (values.length < 2) {
+			console.warn(`[sdocs] ignoring ${where}: it needs at least two values to switch between.`);
+			continue;
+		}
+		seen.add(id);
+		out.push({ id, label: axis.label ?? capitalize(id.replace(/-/g, ' ')), values });
+	}
+	return out;
+}
+
 /** The home route as bare segments ('guides/introduction'), or null. */
 function normalizeHome(home: string | null | undefined): string | null {
 	if (!home) return null;
@@ -178,6 +219,7 @@ export function resolveConfig(userConfig: SdocsConfig | ResolvedSdocsConfig): Re
 		// Coverage measures docs against these; without an explicit setting,
 		// look for components wherever the docs live.
 		components: normalizeComponents(userConfig.components, include),
+		axes: normalizeAxes(userConfig.axes),
 		content: {
 			doc: { ...DEFAULTS.content.doc, ...userConfig.content?.doc },
 			page: { ...DEFAULTS.content.page, ...userConfig.content?.page },

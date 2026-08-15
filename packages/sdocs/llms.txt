@@ -180,6 +180,9 @@ The page carries what automation needs:
   instead. Reports `bleeds` (paints outside its box) and `clipped` (the halo
   runs past the viewport).
 - `window.__sdocs.inkBleed(selector?)` — the per-side overflow on its own.
+- `?axis-<id>=<value>` sets `data-<id>` on the document — one per configured
+  axis, combinable (`?axis-scheme=dark&axis-density=compact`) to open a stage in
+  one exact variant. `list_docs` reports the project's axes and their values.
 - `?theme=<name>` sets `data-sdocs-theme` on the document; `?css=<name>` picks
   a configured stylesheet. Media-query themes are the browser's to emulate.
 
@@ -221,6 +224,7 @@ interface SdocsConfig {
 	base?: string;                       // public base path for build. Default '/'
 	mcp?: boolean;                       // serve /mcp + the top-bar MCP button in dev. Default true
 	components?: string | string[];      // component globs for coverage. Default: include with .sdoc → .svelte
+	axes?: { id: string; label?: string; values: string[] }[]; // design-system dimensions the reader can switch. Default []
 	static?: string;                     // static assets folder, served at site root
 	content?: {                          // per-entity-kind sizing/stage defaults (see below)
 		doc?:      { maxWidth?: string; padding?: string; toc?: boolean; contentX?: string };
@@ -249,6 +253,18 @@ Key options:
   `slug` is the first route segment and what titles reference via `@slug/…`;
   `order` is an array of route paths that sort first. Default: a single implicit
   `docs` section. Referencing an undeclared section is a build error.
+- **`axes`** — dimensions of the design system the reader can switch between,
+  each `{ id, label?, values }`. Every axis gets a top-bar control (segmented
+  while there's room, a dropdown once there isn't), and the reader's pick lands
+  on every stage's `<html>` as `data-<id>="<value>"`. **sdocs never interprets
+  an axis** — the project's own css supplies the meaning
+  (`[data-density="compact"] { --space-md: 8px }`), which is why a project can
+  declare any dimensions it likes. The first value is the default; `label`
+  defaults to the capitalized `id`; ids are lowercase letters/digits/dashes and
+  `sdocs-` is reserved. Prefer this over named `css` stylesheets when variants
+  multiply: three palettes × two densities is six files but two axes. A dark
+  theme must be reachable by attribute — a `prefers-color-scheme`-only theme
+  can't be switched — and should set `color-scheme` so native controls follow.
 - **`home`** — route path of the landing page (root URL + logo target). Default:
   the built-in About page. Must resolve to an entity.
 - **`base`** — set to `/<repo>/` for a GitHub project Pages deploy (or pass
@@ -612,7 +628,11 @@ export default {
 		{ slug: 'components', order: ['button', 'input', 'select'] },
 	],
 	home: 'guides/getting-started',
-	css: { light: './src/styles/light.css', dark: './src/styles/dark.css' },
+	css: './src/styles/global.css',
+	axes: [
+		{ id: 'scheme', label: 'Theme', values: ['light', 'dark'] },
+		{ id: 'density', label: 'Density', values: ['airy', 'compact'] },
+	],
 	base: '/acme/', // for a GitHub project Pages deploy
 };
 ```

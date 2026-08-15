@@ -34,6 +34,7 @@
 	  base?: string;
 	  mcp?: boolean;
 	  components?: string | string[];
+	  axes?: { id: string; label?: string; values: string[] }[];
 	  static?: string;
 	  content?: {
 	    doc?: { maxWidth?: string; padding?: string; toc?: boolean; contentX?: string };
@@ -280,6 +281,38 @@
 	```js
 	components: './src/lib/components/**/*.svelte'
 	```
+
+	### `axes`
+
+	Dimensions of your design system the reader can switch between — theme,
+	density, palette. Each becomes a control in the top bar: a segmented
+	control while there's room, a dropdown once there isn't.
+
+	- **Type:** `{ id: string; label?: string; values: string[] }[]`
+	- **Default:** `[]` (no controls)
+
+	```js
+	axes: [
+	  { id: 'scheme',  label: 'Theme',   values: ['light', 'dark'] },
+	  { id: 'density', label: 'Density', values: ['airy', 'compact'] },
+	]
+	```
+
+	The selection lands on every preview, example and layout as a `data-`
+	attribute on the stage document's root — `<html data-scheme="dark">` — and
+	your own CSS gives it meaning:
+
+	```css
+	[data-scheme="dark"] { color-scheme: dark; --color-bg: #0f1115; }
+	```
+
+	The first value listed is the default, and `label` falls back to the
+	capitalized `id`. An `id` is lowercase letters, digits and dashes; `sdocs-`
+	is reserved. Picks persist to `localStorage` and are validated against this
+	config on load, so renaming a value doesn't strand returning readers.
+
+	See [Theming](/explorer/features/theming#customization-axes) for the full
+	picture, including how axes compare to named stylesheets.
 
 	### `content`
 

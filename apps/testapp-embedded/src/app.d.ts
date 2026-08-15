@@ -11,9 +11,10 @@ declare global {
 }
 
 declare module 'virtual:sdocs' {
-	import type { DocEntry } from 'sdocs';
+	import type { AxisConfig, DocEntry } from 'sdocs';
 	export const docs: DocEntry[];
 	export const cssNames: string[];
+	export const axes: Required<AxisConfig>[];
 	export const pageModules: Record<string, () => Promise<{ default: unknown }>>;
 	export default docs;
 }

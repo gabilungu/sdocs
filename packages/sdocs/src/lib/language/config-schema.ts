@@ -141,6 +141,11 @@ export const configSchema: ConfigSchema = {
 		insert: ': ${0:false}',
 		values: ['true', 'false'],
 	},
+	axes: {
+		detail: '{ id, label?, values }[]',
+		doc: "Design-system dimensions the reader can switch between — theme, density, palette. Each becomes a top-bar dropdown, and the selection lands on every preview's `<html>` as `data-<id>=\"<value>\"`, which the project's own css keys off: `[data-density='compact'] { --space-md: 8px }`. The first value is the default; `label` defaults to the capitalized id.",
+		insert: ": [\n\t{ id: '$1', values: ['$2', '$3'] },$0\n]",
+	},
 	routing: {
 		detail: "'history' | 'hash'",
 		doc: "URL style: `'history'` for real paths (standalone CLI default), `'hash'` for `#/` URLs (embedded default).",

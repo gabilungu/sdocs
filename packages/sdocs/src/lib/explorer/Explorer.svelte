@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { DocEntry, SectionConfig } from '../types.js';
+	import type { AxisConfig, DocEntry, SectionConfig } from '../types.js';
 	import { initRouter, getRoute, navigate, type RoutingMode } from './router.svelte.js';
 	import { buildSections, resolveRoute, displayTitle } from './tree-builder.js';
 	import Sidebar from './views/Sidebar.svelte';
@@ -46,6 +46,9 @@
 		/** The dev server serves the MCP endpoint — shows the top-bar MCP
 		 * button. Only ever true in `sdocs dev` (config `mcp`, default on). */
 		mcp?: boolean;
+		/** Design-system dimensions the reader can switch between. Each renders
+		 * a dropdown and lands on every preview as `data-<id>`. */
+		axes?: Required<AxisConfig>[];
 	}
 
 	let {
@@ -62,7 +65,8 @@
 		routing = 'hash',
 		basePath = '',
 		sdocsVersion,
-		mcp = false
+		mcp = false,
+		axes = []
 	}: Props = $props();
 
 	// svelte-ignore state_referenced_locally -- static config for this app
@@ -91,6 +95,31 @@
 	let activeStylesheet = $state<string | undefined>(undefined);
 	let theme = $state<ThemeMode>('light');
 
+	// Customization axes: the reader's current pick per axis, defaulting to
+	// each axis's first value. Read from storage in onMount rather than here,
+	// so the first client render still matches the prerendered HTML.
+	// svelte-ignore state_referenced_locally -- static config for this app instance
+	let axisValues = $state<Record<string, string>>(
+		Object.fromEntries(axes.map((a) => [a.id, a.values[0]])),
+	);
+	// A getter, not the object: `axisValues` is reassigned when storage loads,
+	// and a context holding the original object would keep serving stale picks.
+	setContext('sdocs-axes', {
+		get values() {
+			return axisValues;
+		},
+	});
+
+	/** Mirror onto the window so a preview iframe can read the current picks at
+	 * boot — before it has mounted enough to be messaged, which is what keeps a
+	 * late-mounting stage from painting the defaults and then correcting. */
+	function publishAxes(values: Record<string, string>) {
+		if (typeof window === 'undefined') return;
+		(window as Window & { __sdocsAxes?: Record<string, string> }).__sdocsAxes = values;
+	}
+	// svelte-ignore state_referenced_locally -- seeds the defaults; the effect below keeps it current
+	publishAxes({ ...axisValues });
+
 	// On a phone the sidebar is an off-canvas drawer holding the section tabs
 	// too — closed by default, and never open on a desktop-width window.
 	const narrow = $derived(isNarrow());
@@ -111,8 +140,31 @@
 		if (saved && (saved === 'light' || saved === 'dark')) {
 			theme = saved;
 		}
+		restoreAxes();
 		return stopViewport;
 	});
+
+	/** Restore the stored picks, validated against the axes this site actually
+	 * declares. A value the config no longer lists — an axis renamed, a palette
+	 * dropped — falls back to the default instead of writing an attribute no
+	 * stylesheet matches, which would render every preview unstyled and look
+	 * like a sdocs bug rather than a stale entry. Validating also makes the key
+	 * safe to share across projects on the same dev-server origin. */
+	function restoreAxes() {
+		if (axes.length === 0) return;
+		let saved: Record<string, unknown> = {};
+		try {
+			saved = JSON.parse(localStorage.getItem('sdocs-axes') ?? '{}') ?? {};
+		} catch {
+			// Corrupt entry — the defaults are already in place.
+		}
+		axisValues = Object.fromEntries(
+			axes.map((a) => [
+				a.id,
+				a.values.includes(saved[a.id] as string) ? (saved[a.id] as string) : a.values[0],
+			]),
+		);
+	}
 
 	// Apply theme attribute and persist
 	$effect(() => {
@@ -120,6 +172,15 @@
 		if (!root) return;
 		root.setAttribute('data-sdocs-theme', theme);
 		localStorage.setItem('sdocs-theme', theme);
+	});
+
+	// Publish and persist the axis picks. Frames already on screen are updated
+	// by PreviewFrame; the window mirror is for the ones that mount later.
+	$effect(() => {
+		if (axes.length === 0) return;
+		const values = { ...axisValues };
+		publishAxes(values);
+		localStorage.setItem('sdocs-axes', JSON.stringify(values));
 	});
 
 	const currentRoute = $derived(getRoute());
@@ -233,6 +294,8 @@
 			{activeStylesheet}
 			{theme}
 			{mcp}
+			{axes}
+			{axisValues}
 			showBurger={narrow && hasDrawerNav}
 			{navOpen}
 			onToggleNav={() => (navOpen = !navOpen)}
@@ -240,6 +303,7 @@
 			onToggleFullscreen={() => (fullscreen = true)}
 			onStylesheetChange={(name) => (activeStylesheet = name)}
 			onThemeChange={(t) => (theme = t)}
+			onAxisChange={(id, value) => (axisValues = { ...axisValues, [id]: value })}
 		/>
 	{:else}
 		<!-- A hot corner: invisible until the pointer (or focus) reaches it. -->
@@ -260,7 +324,10 @@
 				activeSlug={routeSection?.slug}
 				{cssNames}
 				{activeStylesheet}
+				{axes}
+				{axisValues}
 				onStylesheetChange={(name) => (activeStylesheet = name)}
+				onAxisChange={(id, value) => (axisValues = { ...axisValues, [id]: value })}
 				onClose={() => (navOpen = false)}
 			/>
 		{/if}

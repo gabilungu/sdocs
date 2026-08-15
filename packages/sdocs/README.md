@@ -265,9 +265,30 @@ export default {
 };
 ```
 
+### Customization Axes
+
+Declare the dimensions your design system varies along, and each gets a control in the top bar:
+
+```js
+axes: [
+  { id: 'scheme',  label: 'Theme',   values: ['light', 'dark'] },
+  { id: 'density', label: 'Density', values: ['airy', 'compact'] },
+  { id: 'palette', label: 'Color',   values: ['blue', 'red', 'olive'] },
+]
+```
+
+The reader's pick lands on every preview, example and layout as a `data-` attribute — `<html data-scheme="dark" data-density="compact">` — and your own CSS gives it meaning:
+
+```css
+[data-scheme="dark"]     { color-scheme: dark; --color-bg: #0f1115; }
+[data-density="compact"] { --space-md: 8px; }
+```
+
+sdocs never interprets an axis, so you can declare any dimensions you like. The first value is the default, and picks persist across sessions.
+
 ### CSS Stylesheet Switching
 
-Provide named stylesheets to let users switch between them (e.g. light/dark themes):
+Provide named stylesheets to let users switch between whole files:
 
 ```js
 css: {
@@ -275,6 +296,8 @@ css: {
   dark: './src/styles/dark.css',
 }
 ```
+
+Reach for **axes** instead when variants multiply — three palettes × two densities is six stylesheets to maintain but two axes to declare, and axes compose where file swaps can't.
 
 ### Sidebar Ordering
 

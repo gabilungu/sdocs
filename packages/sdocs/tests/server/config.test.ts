@@ -226,6 +226,49 @@ describe('sections config', () => {
 	});
 });
 
+describe('customization axes', () => {
+	it('defaults to none', () => {
+		expect(resolveConfig({}).axes).toEqual([]);
+	});
+
+	it('fills the label from the id and keeps value order', () => {
+		expect(resolveConfig({ axes: [{ id: 'density', values: ['airy', 'compact'] }] }).axes).toEqual([
+			{ id: 'density', label: 'Density', values: ['airy', 'compact'] },
+		]);
+		// A dashed id reads as words, not as a slug.
+		expect(resolveConfig({ axes: [{ id: 'brand-palette', values: ['a', 'b'] }] }).axes[0].label).toBe(
+			'Brand palette',
+		);
+		expect(
+			resolveConfig({ axes: [{ id: 'scheme', label: 'Theme', values: ['light', 'dark'] }] }).axes[0]
+				.label,
+		).toBe('Theme');
+	});
+
+	it('drops axes that could not work', () => {
+		const axes = resolveConfig({
+			axes: [
+				{ id: 'ok', values: ['a', 'b'] },
+				// Nothing to switch between — the control would be inert.
+				{ id: 'lonely', values: ['only'] },
+				// Would collide with the stage identity attributes.
+				{ id: 'sdocs-theme', values: ['a', 'b'] },
+				// Not usable as an attribute name.
+				{ id: 'Has Spaces', values: ['a', 'b'] },
+				{ id: '', values: ['a', 'b'] },
+				// Second one wins nothing; the first is kept.
+				{ id: 'ok', values: ['c', 'd'] },
+			],
+		}).axes;
+		expect(axes).toEqual([{ id: 'ok', label: 'Ok', values: ['a', 'b'] }]);
+	});
+
+	it('is idempotent — resolving an already-resolved config changes nothing', () => {
+		const once = resolveConfig({ axes: [{ id: 'scheme', values: ['light', 'dark'] }] });
+		expect(resolveConfig(once).axes).toEqual(once.axes);
+	});
+});
+
 describe('base path', () => {
 	it('defaults to /', () => {
 		expect(resolveConfig({}).base).toBe('/');

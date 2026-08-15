@@ -412,6 +412,12 @@ async function listDocs() {
 		project: cwd,
 		include: config.include,
 		count: files.length,
+		// The vocabulary for a stage page's ?axis-<id>= parameters. Without it a
+		// client can't know this project has a 'density' axis, let alone that
+		// 'compact' is one of its values.
+		...(config.axes.length
+			? { axes: config.axes.map((a) => ({ id: a.id, values: a.values })) }
+			: {}),
 		docs,
 		...(map.errors.length ? { structureErrors: map.errors.map((e) => e.message) } : {}),
 	});

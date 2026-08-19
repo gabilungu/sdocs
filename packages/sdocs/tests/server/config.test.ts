@@ -282,3 +282,36 @@ describe('base path', () => {
 		expect(resolveConfig({ base: '/' }).base).toBe('/');
 	});
 });
+
+describe('config values that cannot work are refused loudly', () => {
+	// Each of these used to be accepted and then quietly do nothing, which is
+	// the worst shape a config mistake can take: the symptom (unstyled stages,
+	// a server on the wrong port) points anywhere but at the config line.
+
+	it('drops a css array rather than rendering every stage unstyled', () => {
+		expect(resolveConfig({ css: ['./a.css'] as never }).css).toBeNull();
+	});
+
+	it('drops css entries whose path is not a string, keeping the rest', () => {
+		expect(resolveConfig({ css: { light: './l.css', dark: 42 } as never }).css).toEqual({
+			light: './l.css',
+		});
+	});
+
+	it('still accepts the two documented shapes', () => {
+		expect(resolveConfig({ css: './app.css' }).css).toBe('./app.css');
+		expect(resolveConfig({ css: { light: './l.css', dark: './d.css' } }).css).toEqual({
+			light: './l.css',
+			dark: './d.css',
+		});
+	});
+
+	it('records whether the port was asked for, so dev can hold it', () => {
+		// An explicit port is an instruction: sliding to the next free one hides
+		// a stale server behind one that answers with the old config.
+		expect(resolveConfig({}).portDeclared).toBe(false);
+		expect(resolveConfig({}).port).toBe(3000);
+		expect(resolveConfig({ port: 3021 }).portDeclared).toBe(true);
+		expect(resolveConfig({ port: 3021 }).port).toBe(3021);
+	});
+});

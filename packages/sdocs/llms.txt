@@ -245,7 +245,12 @@ Key options:
   "your product" and "the documentation" visually separate. A single path, or a
   `{ name: path }` map the reader switches between via a dropdown (e.g. light /
   dark). Keep build stylesheets self-contained (inline `@import`/`url()`; fonts
-  can be data URIs).
+  can be data URIs). Stage css is processed by Vite, so an `@import` resolves
+  against the **importing file**, not the site root: pulling in a stylesheet
+  that lives in the `static` folder must be root-absolute
+  (`@import url('/fonts/faces.css')`), because postcss leaves absolute URLs to
+  the browser and would otherwise fail with ENOENT. This is the one place the
+  base-relative rule used for stage *assets* does not apply.
 - **`static`** — a folder served at the site root in dev and copied into
   `dist/`. In **prose** reference assets root-absolute (`![hero](/hero.png)`);
   inside **stages** reference them **base-relative, no leading slash**

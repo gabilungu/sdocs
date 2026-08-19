@@ -33,14 +33,16 @@ export default {
 	// 	{ id: 'density', label: 'Density', values: ['airy', 'compact'] },
 	// ],
 
-	// Top-bar section order — sections come from @Section/ title prefixes
-	// sections: ['Guides', 'Components'],
+	// The site's sections, in top-bar order. \`slug\` is the first route segment
+	// and what titles reference as @slug/… ; \`order\` pins routes first in the
+	// sidebar, everything else follows alphabetically.
+	// sections: [
+	// 	{ slug: 'guides', title: 'Guides', order: ['getting-started'] },
+	// 	{ slug: 'components' },
+	// ],
 
-	// Sidebar configuration
-	// sidebar: {
-	// 	order: { root: ['Components', '*', 'Documentation'] },
-	// 	open: ['Components'],
-	// },
+	// Route path of the landing page (must resolve to an entity)
+	// home: 'guides/getting-started',
 };
 `;
 

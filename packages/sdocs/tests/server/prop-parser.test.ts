@@ -477,3 +477,38 @@ describe('extraction that cannot see everything says so', () => {
 		expect(data.warnings).toBeUndefined();
 	});
 });
+
+describe('type aliases resolve to the values they name', () => {
+	// A package that exports its vocabulary by name lost the props panel's
+	// dropdown and the visible set of allowed values, because the control is
+	// derived from the type text and the text was just the alias name.
+	it('inlines a literal union declared as a type alias', () => {
+		const source = `<script module lang="ts">
+	export type ButtonVariant = 'primary' | 'secondary' | 'ghost';
+</script>
+<script lang="ts">
+	interface ButtonProps {
+		/** Visual style */
+		variant?: ButtonVariant;
+	}
+	let { variant = 'primary' }: ButtonProps = $props();
+</script>
+<button>{variant}</button>`;
+		const prop = byName(parseComponentSource(source).props, 'variant');
+		expect(prop.type).toBe("'primary' | 'secondary' | 'ghost'");
+		expect(prop.description).toBe('Visual style');
+		expect(prop.default).toBe('primary');
+	});
+
+	it('leaves a non-literal alias as its name', () => {
+		// Expanding these would trade a readable name for a wall of text and
+		// buy nothing — they never produce a control.
+		const source = `<script lang="ts">
+	type ClickHandler = (e: MouseEvent) => void;
+	interface Props { onclick?: ClickHandler }
+	let { onclick }: Props = $props();
+</script>
+<button {onclick}>x</button>`;
+		expect(byName(parseComponentSource(source).props, 'onclick').type).toBe('ClickHandler');
+	});
+});

@@ -39,7 +39,8 @@ export function parseComponentSource(source: string): ComponentData {
 		// Destructuring first: it carries the name of the props type, which is
 		// what the interface reader should look for.
 		const destructured = parsePropsDestructuring(tsAst);
-		const interfaceProps = parseInterfaceProps(tsAst, destructured.typeName);
+		const aliases = literalUnionAliases(tsAst);
+		const interfaceProps = parseInterfaceProps(tsAst, destructured.typeName, aliases);
 		const jsdocTypeProps = parseJsdocTypeProps(tsAst);
 		const jsdocData = parseJsdocComments(tsAst);
 		// TS interface wins over JSDoc types when both exist (they shouldn't).
@@ -113,6 +114,48 @@ function extractStyleContent(source: string): string | null {
 
 // ─── Interface Props parsing ───
 
+/**
+ * Same-file type aliases that name a union of literals.
+ *
+ * A package that exports its vocabulary by name — `export type ButtonVariant =
+ * 'primary' | 'secondary'` — used to document `variant` as the bare word
+ * `ButtonVariant`: no visible set of allowed values, and no select control,
+ * because the control is derived from the type text. Inlining the union in the
+ * interface brought both back at the cost of duplicating a type the package
+ * still wants to export, so authors had to choose. Resolving the alias lets
+ * both coexist.
+ *
+ * Only literal unions are inlined. Expanding an object or function alias would
+ * replace a name that reads well with a wall of text, and buys nothing: those
+ * never produce a control.
+ */
+function literalUnionAliases(sourceFile: ts.SourceFile): Map<string, string> {
+	const aliases = new Map<string, string>();
+	ts.forEachChild(sourceFile, (node) => {
+		if (!ts.isTypeAliasDeclaration(node)) return;
+		if (!ts.isUnionTypeNode(node.type)) return;
+		const members = node.type.types;
+		if (members.length < 2) return;
+		const allLiteral = members.every(
+			(m) =>
+				ts.isLiteralTypeNode(m) &&
+				(ts.isStringLiteral(m.literal) ||
+					ts.isNumericLiteral(m.literal) ||
+					m.literal.kind === ts.SyntaxKind.NullKeyword),
+		);
+		if (allLiteral) aliases.set(node.name.text, node.type.getText(sourceFile).trim());
+	});
+	return aliases;
+}
+
+/** A prop's type as documented: the alias resolved when it names a literal
+ * union, the written text otherwise. Optional `| undefined` tails and array
+ * suffixes are left alone — only a bare alias reference is substituted. */
+function resolveTypeText(text: string, aliases: Map<string, string>): string {
+	return aliases.get(text.trim()) ?? text;
+}
+
+
 interface InterfaceProp {
 	name: string;
 	type: string;
@@ -127,6 +170,7 @@ function parseInterfaceProps(
 	 * only `Props` left those props typeless, undescribed, and — because
 	 * optionality lives on the interface — wrongly marked required. */
 	preferredName?: string | null,
+	aliases: Map<string, string> = new Map(),
 ): InterfaceProp[] {
 	const props: InterfaceProp[] = [];
 	const wanted = preferredName || 'Props';
@@ -137,7 +181,7 @@ function parseInterfaceProps(
 				if (ts.isPropertySignature(member) && member.name) {
 					const name = member.name.getText(sourceFile);
 					const type = member.type
-						? member.type.getText(sourceFile)
+						? resolveTypeText(member.type.getText(sourceFile), aliases)
 						: 'unknown';
 					const optional = !!member.questionToken;
 					const description = getJsdocComment(member, sourceFile);

@@ -147,6 +147,10 @@ export interface StageLayout {
 export interface ResolvedSdocsConfig {
 	include: string[];
 	port: number;
+	/** The config named a port. Dev then holds it rather than sliding to the
+	 * next free one, so a stale server on that port is an error you can see
+	 * instead of a second server you don't know you're talking to. */
+	portDeclared: boolean;
 	open: boolean;
 	css: string | Record<string, string> | null;
 	static: string | null;

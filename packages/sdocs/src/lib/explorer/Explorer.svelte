@@ -132,6 +132,25 @@
 		}
 	});
 
+	/** Restore the stored stylesheet, validated against what this site offers.
+	 * Kept like the axes rather than as page state: comparing two themes across
+	 * several component pages is the whole point of naming them, and losing the
+	 * pick on every reload makes that a chore. */
+	function restoreStylesheet() {
+		if (cssNames.length < 2) return;
+		const saved = localStorage.getItem('sdocs-stylesheet');
+		if (saved && cssNames.includes(saved)) activeStylesheet = saved;
+	}
+
+	/** Written when the reader picks, never from an effect watching the value.
+	 * An effect also fires for the startup default, which lands before the
+	 * stored pick is read and overwrites it — the saved choice would be
+	 * destroyed by the very load that was meant to restore it. */
+	function chooseStylesheet(name: string) {
+		activeStylesheet = name;
+		if (cssNames.length > 1) localStorage.setItem('sdocs-stylesheet', name);
+	}
+
 	onMount(() => {
 		initRouter(routing, basePath);
 		initLayoutWidth();
@@ -141,6 +160,7 @@
 			theme = saved;
 		}
 		restoreAxes();
+		restoreStylesheet();
 		return stopViewport;
 	});
 
@@ -301,7 +321,7 @@
 			onToggleNav={() => (navOpen = !navOpen)}
 			onCloseNav={() => (navOpen = false)}
 			onToggleFullscreen={() => (fullscreen = true)}
-			onStylesheetChange={(name) => (activeStylesheet = name)}
+			onStylesheetChange={(name) => chooseStylesheet(name)}
 			onThemeChange={(t) => (theme = t)}
 			onAxisChange={(id, value) => (axisValues = { ...axisValues, [id]: value })}
 		/>
@@ -326,7 +346,7 @@
 				{activeStylesheet}
 				{axes}
 				{axisValues}
-				onStylesheetChange={(name) => (activeStylesheet = name)}
+				onStylesheetChange={(name) => chooseStylesheet(name)}
 				onAxisChange={(id, value) => (axisValues = { ...axisValues, [id]: value })}
 				onClose={() => (navOpen = false)}
 			/>

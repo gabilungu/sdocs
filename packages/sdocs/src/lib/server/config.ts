@@ -8,6 +8,7 @@ const CONFIG_NAMES = ['sdocs.config.ts', 'sdocs.config.mjs', 'sdocs.config.js'];
 const DEFAULTS: ResolvedSdocsConfig = {
 	include: ['./src/**/*.sdoc'],
 	port: 3000,
+	portDeclared: false,
 	open: false,
 	css: null,
 	static: null,
@@ -61,6 +62,44 @@ function normalizeComponents(
 
 function resolveIncludePatterns(patterns: string[], root: string): string[] {
 	return patterns.map((p) => (p.startsWith('/') ? p : resolve(root, p)));
+}
+
+/**
+ * The `css` value, or null when it is not a shape sdocs can use.
+ *
+ * An array is the tempting wrong answer (`css: ['./a.css']`), and taking it
+ * silently means every stage renders unstyled with nothing to explain why —
+ * a failure that looks like a path problem, or like sdocs ignoring the config.
+ */
+function normalizeCss(css: unknown): string | Record<string, string> | null {
+	if (css == null) return null;
+	if (typeof css === 'string') return css;
+	if (Array.isArray(css)) {
+		console.warn(
+			"[sdocs] ignoring `css`: an array is not a supported shape. Use a single path " +
+				"('./src/app.css') or a name→path map ({ light: './light.css', dark: './dark.css' }).",
+		);
+		return null;
+	}
+	if (typeof css === 'object') {
+		const entries = Object.entries(css as Record<string, unknown>);
+		const bad = entries.filter(([, v]) => typeof v !== 'string').map(([k]) => k);
+		if (bad.length) {
+			console.warn(
+				`[sdocs] ignoring \`css\` entries with a non-string path: ${bad.join(', ')}.`,
+			);
+		}
+		const good = entries.filter(([, v]) => typeof v === 'string') as [string, string][];
+		if (!good.length) {
+			console.warn('[sdocs] ignoring `css`: no entry gave a path.');
+			return null;
+		}
+		return Object.fromEntries(good);
+	}
+	console.warn(
+		`[sdocs] ignoring \`css\`: expected a path or a name→path map, got ${typeof css}.`,
+	);
+	return null;
 }
 
 /** Resolve CSS paths to absolute filesystem paths */
@@ -204,8 +243,10 @@ export function resolveConfig(userConfig: SdocsConfig | ResolvedSdocsConfig): Re
 	return {
 		include,
 		port: userConfig.port ?? DEFAULTS.port,
+		// An explicit port is an instruction, not a preference — see `portDeclared`.
+		portDeclared: typeof userConfig.port === 'number',
 		open: userConfig.open ?? DEFAULTS.open,
-		css: userConfig.css ?? DEFAULTS.css,
+		css: normalizeCss(userConfig.css),
 		static: userConfig.static ?? DEFAULTS.static,
 		title: title ?? DEFAULTS.title,
 		logo: logo ?? DEFAULTS.logo,

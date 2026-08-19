@@ -7,6 +7,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.127] - 2026-08-19
+
+### Fixed
+
+- **A props type named by an alias lost its values and its control.** A
+  component whose interface said `variant?: ButtonVariant` documented the bare
+  word `ButtonVariant` — no visible set of allowed values, and no select in the
+  props panel, since the control is derived from the type text. Inlining the
+  union restored both but duplicated a type the package wanted to export by
+  name, so authors had to choose. Aliases naming a union of literals are now
+  resolved during extraction; object and function aliases keep their name,
+  which reads better and never produced a control anyway.
+
+- **A missing static asset answered with the app shell.** Vite's history
+  fallback rewrites any unmatched path to `index.html`, which is right for a
+  route and wrong for a file: a font that wasn't there arrived as `200
+  text/html`, so the browser reported a decode failure with no hint the path
+  was simply wrong, and a status-code smoke test passed over a broken page.
+  Bare paths with a static-asset extension now 404 when the file isn't on
+  disk. Deliberately narrow — no query string, nothing under a Vite-owned
+  prefix, code extensions excluded — so the module graph is untouched.
+
+- **A configured port is now held rather than quietly swapped.** With `port`
+  set and that port busy, the dev server moved to the next free one; when the
+  thing holding it was a stale sdocs for the same project, every request and
+  every MCP client kept reaching the old config, so edits looked ignored.
+  An explicit port is an instruction and now fails loudly. An unset port keeps
+  searching, as before.
+
+- **A `css` value of the wrong shape is refused out loud.** `css: ['./a.css']`
+  was accepted and then did nothing, leaving every stage unstyled with no
+  explanation. Arrays, non-string paths, and other wrong shapes now warn and
+  name the two forms that work.
+
+- **The named-stylesheet pick survives a reload.** It was page state, so it
+  reset to the first entry whenever the page fully loaded, while the axes
+  beside it persisted — comparing two themes across several component pages
+  meant re-picking constantly. Stored on the reader's choice rather than from
+  an effect watching the value: an effect also fires for the startup default,
+  which lands before the stored pick is read and would destroy it.
+
+- **`sdocs init` scaffolded a config that did not match the schema.** The
+  `sections` comment showed a string array (`['Guides', 'Components']`) where
+  the type is `{ slug, title?, order? }[]`, and it offered a `sidebar` key that
+  has never existed in `SdocsConfig`. Both replaced with the real shapes, plus
+  `home`.
+
+### Changed
+
+- **The dev server says when the config file changes.** It is read once at
+  startup, and every failure after an edit looks like something else. It now
+  prints a line naming what happened; it does not restart, which would drop the
+  page you were on and any live MCP session.
+
+- **The guide covers `@import` of a static-served stylesheet.** Stage css is
+  Vite-processed, so an `@import` resolves against the importing file: pulling
+  in a stylesheet from the `static` folder must be root-absolute, the one place
+  the base-relative rule for stage assets does not apply.
+
+
 ## [0.0.126] - 2026-08-19
 
 ### Changed

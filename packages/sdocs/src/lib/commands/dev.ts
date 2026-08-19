@@ -1,6 +1,7 @@
-import { dirname, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { loadConfig } from '../server/config.js';
+import { findConfigFile, loadConfig } from '../server/config.js';
 import { sdocsPlugin } from '../vite.js';
 import { mcpHttpHandler } from '../mcp/http.js';
 import { generateDevFiles, cleanBuildFiles } from '../server/app-gen.js';
@@ -69,6 +70,7 @@ export async function devCommand(): Promise<void> {
 				},
 			}),
 			sdocsPlugin({ ...config, include: absoluteIncludes, _projectRoot: cwd } as any),
+			missingAssetGuard(config.static),
 			...(config.mcp
 				? [
 						{
@@ -83,6 +85,11 @@ export async function devCommand(): Promise<void> {
 		],
 		server: {
 			port: config.port,
+			// A configured port is an instruction. Sliding to the next free one
+			// hides the usual cause — a stale sdocs for this same project still
+			// holding it — behind a server that answers every request with the
+			// old config, so edits look ignored and nothing reports an error.
+			strictPort: config.portDeclared,
 			open: config.open,
 			fs: {
 				// The staging dir (an explicit allow list replaces Vite's implicit
@@ -92,6 +99,8 @@ export async function devCommand(): Promise<void> {
 			},
 		},
 	});
+
+	watchConfig(server, cwd);
 
 	await server.listen();
 	server.printUrls();
@@ -107,4 +116,66 @@ export async function devCommand(): Promise<void> {
 
 	process.on('SIGINT', cleanup);
 	process.on('SIGTERM', cleanup);
+}
+
+/** Static-asset extensions: files served verbatim, never compiled. Code
+ * extensions are deliberately absent — those belong to Vite's module graph,
+ * which this must not reach into. */
+const ASSET_EXT =
+	/\.(?:woff2?|ttf|otf|eot|png|jpe?g|gif|webp|avif|ico|bmp|mp4|webm|ogg|mp3|wav|pdf)$/i;
+
+/**
+ * A missing static asset must 404, not answer with the app shell.
+ *
+ * Vite's history fallback rewrites any unmatched path to `index.html`, which is
+ * right for routes and wrong for files: a font that isn't there arrives as 200
+ * `text/html`, so the browser reports a decode failure with no hint that the
+ * path was simply wrong, and a status-code smoke test passes while the page is
+ * broken.
+ *
+ * Deliberately narrow. It runs before Vite's own middlewares, so it only ever
+ * answers for a bare path with a static-asset extension that is genuinely not
+ * on disk — no query string (an import carries `?raw`/`?url`), nothing under a
+ * Vite-owned prefix, and a real file always falls through to be served.
+ */
+function missingAssetGuard(publicDir: string | null): import('vite').Plugin {
+	return {
+		name: 'sdocs:missing-asset-404',
+		configureServer(server) {
+			server.middlewares.use((req, res, next) => {
+				const url = req.url ?? '';
+				if (url.includes('?')) return next();
+				if (/^\/(?:@|node_modules\/|\.vite\/)/.test(url)) return next();
+				if (!ASSET_EXT.test(url)) return next();
+				if (publicDir && existsSync(join(publicDir, decodeURIComponent(url)))) return next();
+				res.statusCode = 404;
+				res.setHeader('Content-Type', 'text/plain');
+				res.end(`Not found: ${url}\n`);
+			});
+		},
+	};
+}
+
+/**
+ * Say so when the config changes.
+ *
+ * It is read once at startup, and every failure that follows an edit looks
+ * like something else: the new `css` never loads, a new section 404s, the port
+ * setting appears ignored. Restarting automatically would drop the page you
+ * were on and any running MCP session, so this only names what happened.
+ */
+function watchConfig(server: import('vite').ViteDevServer, cwd: string): void {
+	const configPath = findConfigFile(cwd);
+	if (!configPath) return;
+	server.watcher.add(configPath);
+	let announced = false;
+	server.watcher.on('change', (file) => {
+		if (resolve(file) !== resolve(configPath) || announced) return;
+		// Once per run: editors write repeatedly, and a line per keystroke-save
+		// would bury the message it is trying to deliver.
+		announced = true;
+		console.log(
+			`\n[sdocs] ${basename(configPath)} changed — restart the dev server to apply it.\n`,
+		);
+	});
 }

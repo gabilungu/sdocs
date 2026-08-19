@@ -391,6 +391,10 @@ Attributes: `title` (required), `description` (inline markdown), `slug`, `hide`
 (routable but unlisted), plus stage defaults its blocks inherit: `maxWidth`,
 `padding`, `direction`, `gap`, `contentX`, `contentY`, `background`.
 
+These attributes are how a stage is laid out. The stage element is itself the
+flex container, so content goes straight into the block — see "the stage is
+already the container" below before reaching for a wrapper `<div>`.
+
 ### `[component]` — a live, interactive preview
 
 ```sdoc
@@ -588,9 +592,36 @@ behaviour.
 - **Pass CSS custom properties with Svelte's `--prop="value"` attribute syntax**,
   not a `style` string:
   `<Placeholder text="hi" --bg="var(--info-100)" --fg="var(--info-600)" />`.
-- **Stages are flex** — lay content out with the stage attributes (`direction`,
-  `gap`, `contentX`, `contentY`, `padding`) rather than wrapping content in your
-  own flex `<div>`.
+- **The stage is already the container — do not wrap its content.** A
+  preview/example stage renders as
+  `display: flex; flex-wrap: wrap` with `flex-direction`, `gap`,
+  `justify-content` and `align-items` driven by its attributes, so a wrapper
+  `<div>` only fights it. Lay content out with `direction`, `gap`, `contentX`,
+  `contentY` and `padding` on the block instead.
+
+  A wrapper for **height or scrolling** is redundant for a second reason: the
+  frame measures its content and grows to fit, scrolling on its own past
+  800px. Nothing needs a fixed height to become scrollable.
+
+  ```sdoc
+  <!-- Wrong: a wrapper that re-does what the stage and frame already do -->
+  [example title="Sizes"]
+  	<div style="display: flex; gap: 8px; height: 500px; overflow-y: auto;">
+  		<Badge text="sm" />
+  		<Badge text="md" />
+  	</div>
+  [/example]
+
+  <!-- Right: the stage is the flex container, the frame handles height -->
+  [example title="Sizes" direction="row" gap="8px"]
+  	<Badge text="sm" />
+  	<Badge text="md" />
+  [/example]
+  ```
+
+  The one height knob worth reaching for is `minHeight`, and it does the
+  opposite of a scroll box: it **reserves** room so content that overflows the
+  stage — an open dropdown, a popover — is visible instead of clipped.
 
 ## Full example — a component doc
 

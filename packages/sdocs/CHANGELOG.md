@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.126] - 2026-08-19
+
+### Changed
+
+- **The authoring guide states that a stage needs no wrapper.** A preview or
+  example stage is itself a flex container — `display: flex; flex-wrap: wrap`
+  with direction, gap and alignment from its attributes — and the frame
+  measures its content, grows to fit, and scrolls past 800px on its own. So a
+  `<div style="display: flex; gap: 8px; height: 500px; overflow-y: auto">`
+  duplicates two things that already exist. The guide had a one-line note
+  covering the layout half; it now spells out the height and scrolling half
+  too, with the anti-pattern written out beside the correct form, and names
+  `minHeight` as the one height knob worth reaching for — it *reserves* room so
+  an open dropdown or popover shows rather than being clipped, the opposite of
+  a scroll box. Reaches agents through `get_authoring_guide` and the
+  `sdocs://authoring-guide` resource; the same rule is now in the `[example]`
+  language docs.
+
+
 ## [0.0.125] - 2026-08-19
 
 ### Fixed

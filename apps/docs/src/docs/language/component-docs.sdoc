@@ -125,6 +125,37 @@
 	inside a [`[DOC]`](/language/doc-pages) — there it renders in place,
 	mid-prose.
 
+	### The stage is the container — don't wrap its content
+
+	A preview or example stage is itself a flex container: `display: flex` with
+	`flex-wrap: wrap`, and `flex-direction`, `gap`, `justify-content` and
+	`align-items` set from its attributes. Content goes straight into the
+	block, and a wrapper `<div>` only fights it.
+
+	```sdoc
+	[example title="Sizes"]
+		<div style="display: flex; gap: 8px; height: 500px; overflow-y: auto;">
+			<Badge text="sm" />
+			<Badge text="md" />
+		</div>
+	[/example]
+	```
+
+	Every part of that wrapper is already handled — the flex row and gap by the
+	stage, the height and scrolling by the frame, which measures its content,
+	grows to fit, and scrolls on its own past 800px:
+
+	```sdoc
+	[example title="Sizes" direction="row" gap="8px"]
+		<Badge text="sm" />
+		<Badge text="md" />
+	[/example]
+	```
+
+	The one height knob worth reaching for is `minHeight`, and it does the
+	opposite of a scroll box: it **reserves** room, so content that overflows
+	the stage — an open dropdown, a popover — shows instead of being clipped.
+
 	## Scoped `<script>` and `<style>` — the full ladder
 
 	One rule, every level: **any container can open with a `<script>` and

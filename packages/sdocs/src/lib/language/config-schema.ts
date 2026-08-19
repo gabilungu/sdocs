@@ -142,8 +142,8 @@ export const configSchema: ConfigSchema = {
 		values: ['true', 'false'],
 	},
 	scale: {
-		detail: '{ min?, max?, default?, step?, var?, label? }',
-		doc: "A continuous knob, rendered as a slider in the top bar. Its value lands on every preview's `<html>` as a CSS custom property — `--scale` unless `var` names another — so the project's css can multiply by it. Defaults: `min` 0.75, `max` 1.5, `default` 1, `step` 0.05, `label` 'Scale'. Double-click the slider to return to the default.",
+		detail: '{ min?, max?, default?, step?, var?, label?, presets? }',
+		doc: "A continuous knob, rendered as a slider in the top bar. Its value lands on every preview's `<html>` as a CSS custom property — `--scale` unless `var` names another — so the project's css can multiply by it. Defaults: `min` 0.75, `max` 1.5, `default` 1, `step` 0.05, `label` 'Scale'. Double-click the slider to return to the default. `presets` adds named stops — `[{ label: 'S', value: 0.875 }]` — rendered as a segmented control beside the slider; values outside `min`–`max` are refused.",
 		insert: ': { min: ${1:0.75}, max: ${2:1.5}, default: ${3:1}, step: ${4:0.05} }$0',
 	},
 	axes: {

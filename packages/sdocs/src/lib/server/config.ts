@@ -7,6 +7,7 @@ import type {
 	SectionConfig,
 	AxisConfig,
 	ScaleConfig,
+	ScalePreset,
 } from '../types.js';
 
 const CONFIG_NAMES = ['sdocs.config.ts', 'sdocs.config.mjs', 'sdocs.config.js'];
@@ -207,7 +208,45 @@ function normalizeScale(scale: ScaleConfig | null | undefined): Required<ScaleCo
 		console.warn(`[sdocs] ignoring \`scale\`: \`var\` must be a custom property, got "${cssVar}".`);
 		return null;
 	}
-	return { min, max, step, default: clamped, var: cssVar, label: scale.label ?? 'Scale' };
+	return {
+		min,
+		max,
+		step,
+		default: clamped,
+		var: cssVar,
+		label: scale.label ?? 'Scale',
+		presets: normalizePresets(scale.presets, min, max),
+	};
+}
+
+/** Scale presets, dropping any the slider could not actually reach.
+ *
+ * A preset outside the range is refused rather than clamped: a button labelled
+ * "L" that quietly lands somewhere other than its declared value is worse than
+ * one that isn't there, and the warning names the line to fix. */
+function normalizePresets(
+	presets: ScalePreset[] | undefined,
+	min: number,
+	max: number,
+): ScalePreset[] {
+	if (!presets?.length) return [];
+	const out: ScalePreset[] = [];
+	for (const preset of presets) {
+		const label = String(preset?.label ?? '').trim();
+		const value = preset?.value;
+		if (!label || typeof value !== 'number' || !isFinite(value)) {
+			console.warn('[sdocs] ignoring a scale preset: it needs a label and a numeric value.');
+			continue;
+		}
+		if (value < min || value > max) {
+			console.warn(
+				`[sdocs] ignoring scale preset "${label}": ${value} is outside ${min}–${max}.`,
+			);
+			continue;
+		}
+		out.push({ label, value });
+	}
+	return out;
 }
 
 /** Customization axes with labels filled in, invalid ones dropped.

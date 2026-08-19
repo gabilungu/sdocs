@@ -102,6 +102,23 @@
 
 	`var` renames the property (`--ui-scale`), `label` renames the control. Double-clicking the slider returns it to the default, the pick persists like the axes, and a stage page accepts `?scale=1.25` — plus `?scale-var=--ui-scale` when the project renamed it, since a stage opened on its own has no parent to ask.
 
+	### Named stops
+
+	Add `presets` and the common sizes get buttons, in the same segmented control the axes use:
+
+	```js
+	scale: {
+	  min: 0.75, max: 1.5, default: 1, step: 0.05,
+	  presets: [
+	    { label: 'S', value: 0.875 },
+	    { label: 'M', value: 1 },
+	    { label: 'L', value: 1.25 },
+	  ],
+	}
+	```
+
+	Picking one sets the slider, and the slider still reaches everything between — move it off a stop and no preset shows as active. A preset outside `min`–`max` is refused with a warning rather than clamped: a button labelled `XL` that quietly lands on something else is worse than one that isn't there.
+
 	Always give the `var()` a fallback. A stage is not the only place that css runs, and `calc(8px * var(--scale))` collapses to nothing wherever the property is unset.
 
 	## Preview stylesheets

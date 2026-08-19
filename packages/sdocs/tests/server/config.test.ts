@@ -323,7 +323,7 @@ describe('the scale slider', () => {
 
 	it('fills the documented defaults around whatever is given', () => {
 		expect(resolveConfig({ scale: {} }).scale).toEqual({
-			min: 0.75, max: 1.5, default: 1, step: 0.05, var: '--scale', label: 'Scale',
+			min: 0.75, max: 1.5, default: 1, step: 0.05, var: '--scale', label: 'Scale', presets: [],
 		});
 		expect(resolveConfig({ scale: { min: 1, max: 2, var: '--ui-scale' } }).scale).toMatchObject({
 			min: 1, max: 2, var: '--ui-scale',
@@ -346,6 +346,50 @@ describe('the scale slider', () => {
 
 	it('resolves idempotently, like the rest of the config', () => {
 		const once = resolveConfig({ scale: { min: 1, max: 2 } });
+		expect(resolveConfig(once).scale).toEqual(once.scale);
+	});
+});
+
+describe('scale presets', () => {
+	const base = { min: 0.75, max: 1.5 };
+
+	it('defaults to none', () => {
+		expect(resolveConfig({ scale: base }).scale?.presets).toEqual([]);
+	});
+
+	it('keeps presets inside the range, in order', () => {
+		const presets = [
+			{ label: 'S', value: 0.875 },
+			{ label: 'M', value: 1 },
+		];
+		expect(resolveConfig({ scale: { ...base, presets } }).scale?.presets).toEqual(presets);
+	});
+
+	it('refuses a preset the slider could not reach', () => {
+		// Clamping would give a button labelled "XL" that lands somewhere other
+		// than its declared value — worse than no button, and harder to notice.
+		const presets = [
+			{ label: 'M', value: 1 },
+			{ label: 'XL', value: 2 },
+		];
+		expect(resolveConfig({ scale: { ...base, presets } }).scale?.presets).toEqual([
+			{ label: 'M', value: 1 },
+		]);
+	});
+
+	it('refuses a preset missing a label or a numeric value', () => {
+		const presets = [
+			{ label: '', value: 1 },
+			{ label: 'X', value: 'big' },
+			{ label: 'M', value: 1 },
+		] as never;
+		expect(resolveConfig({ scale: { ...base, presets } }).scale?.presets).toEqual([
+			{ label: 'M', value: 1 },
+		]);
+	});
+
+	it('resolves idempotently', () => {
+		const once = resolveConfig({ scale: { ...base, presets: [{ label: 'M', value: 1 }] } });
 		expect(resolveConfig(once).scale).toEqual(once.scale);
 	});
 });

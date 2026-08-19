@@ -282,6 +282,21 @@
 				</select>
 			</div>
 		{/each}
+		{#if scale?.presets.length}
+			<div class="sdocs-drawer-foot">
+				<span class="sdocs-drawer-foot-label">{scale.label}</span>
+				{#each scale.presets as preset (preset.label)}
+					<button
+						type="button"
+						class="sdocs-drawer-preset"
+						class:is-active={Math.abs(scaleValue - preset.value) < scale.step / 2}
+						onclick={() => onScaleChange?.(preset.value)}
+					>
+						{preset.label}
+					</button>
+				{/each}
+			</div>
+		{/if}
 		{#if scale}
 			<div class="sdocs-drawer-foot">
 				<label class="sdocs-drawer-foot-label" for="sdocs-drawer-scale">{scale.label}</label>
@@ -496,6 +511,23 @@
 		text-transform: uppercase;
 		color: var(--color-base-400);
 	}
+	.sdocs-drawer-preset {
+		flex: 1;
+		min-height: 36px;
+		padding: 4px 8px;
+		border: 1px solid var(--color-base-200);
+		border-radius: 6px;
+		background: var(--color-base-0);
+		color: var(--color-base-600);
+		font-family: inherit;
+		font-size: 13px;
+		cursor: pointer;
+	}
+	.sdocs-drawer-preset.is-active {
+		border-color: var(--color-action-500);
+		color: var(--color-base-900);
+	}
+
 	.sdocs-drawer-css {
 		flex: 1;
 		min-width: 0;

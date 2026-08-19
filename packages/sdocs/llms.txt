@@ -229,7 +229,7 @@ interface SdocsConfig {
 	mcp?: boolean;                       // serve /mcp + the top-bar MCP button in dev. Default true
 	components?: string | string[];      // component globs for coverage. Default: include with .sdoc → .svelte
 	axes?: { id: string; label?: string; values: string[] }[]; // design-system dimensions the reader can switch. Default []
-	scale?: { min?: number; max?: number; default?: number; step?: number; var?: string; label?: string }; // a top-bar slider setting a CSS custom property on every stage
+	scale?: { min?: number; max?: number; default?: number; step?: number; var?: string; label?: string; presets?: { label: string; value: number }[] }; // a top-bar slider setting a CSS custom property on every stage
 	static?: string;                     // static assets folder, served at site root
 	content?: {                          // per-entity-kind sizing/stage defaults (see below)
 		doc?:      { maxWidth?: string; padding?: string; toc?: boolean; contentX?: string };
@@ -284,7 +284,12 @@ Key options:
   rather than an attribute, because a range has no set of names to key off:
   one rule reading a number beats a rule per step. The pick persists, and a
   stage page takes it as `?scale=1.25` (with `?scale-var=--ui-scale` when the
-  project renamed it).
+  project renamed it). `presets` adds named stops —
+  `[{ label: 'S', value: 0.875 }, { label: 'M', value: 1 }]` — rendered as a
+  segmented control beside the slider, in the same control the axes use; the
+  slider still reaches everything between, and a preset outside `min`–`max` is
+  refused rather than clamped, since a button that lands somewhere other than
+  its label says is worse than one that isn't there.
 - **`home`** — route path of the landing page (root URL + logo target). Default:
   the built-in About page. Must resolve to an entity.
 - **`base`** — set to `/<repo>/` for a GitHub project Pages deploy (or pass

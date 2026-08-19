@@ -135,6 +135,18 @@ export interface ScaleConfig {
 	var?: string;
 	/** Control label. Default: 'Scale' */
 	label?: string;
+	/** Named stops, rendered as a segmented control beside the slider. Each
+	 * sets the slider to its value; the slider still reaches everything
+	 * between. Values must fall inside `min`–`max`. */
+	presets?: ScalePreset[];
+}
+
+/** One named stop on the scale. */
+export interface ScalePreset {
+	/** Button text — short, since these sit in the top bar ('S', 'Compact'). */
+	label: string;
+	/** What the slider is set to. */
+	value: number;
 }
 
 /** One top-bar section. */

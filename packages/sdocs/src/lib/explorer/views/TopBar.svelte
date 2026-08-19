@@ -258,6 +258,27 @@
 				</fieldset>
 			{/if}
 		{/each}
+		{#if scale?.presets.length}
+			<!-- Named stops, in the same segmented control the axes use: they are
+			     the same gesture — pick one of these — and only the values behind
+			     them differ. The slider still reaches everything between. -->
+			<fieldset class="sdocs-axis-seg" title="{scale.label} presets">
+				<legend class="sdocs-axis-seg-legend">{scale.label} presets</legend>
+				{#each scale.presets as preset (preset.label)}
+					{@const active = Math.abs(scaleValue - preset.value) < scale.step / 2}
+					<label class="sdocs-axis-seg-item" class:is-active={active}>
+						<input
+							type="radio"
+							name="sdocs-scale-preset"
+							value={preset.value}
+							checked={active}
+							onchange={() => onScaleChange?.(preset.value)}
+						/>
+						{preset.label}
+					</label>
+				{/each}
+			</fieldset>
+		{/if}
 		{#if scale}
 			<!-- A range, not a set of names, so it stays a slider at every width:
 			     there is no dropdown form of "anything between 0.75 and 1.5", and

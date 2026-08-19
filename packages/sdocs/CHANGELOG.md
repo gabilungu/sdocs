@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.129] - 2026-08-19
+
+### Added
+
+- **Named stops on the scale slider.** `presets` gives the common sizes
+  buttons, in the same segmented control the axes use:
+
+  ```js
+  scale: {
+    min: 0.75, max: 1.5, default: 1, step: 0.05,
+    presets: [
+      { label: 'S', value: 0.875 },
+      { label: 'M', value: 1 },
+      { label: 'L', value: 1.25 },
+    ],
+  }
+  ```
+
+  Picking one sets the slider; the slider still reaches everything between, and
+  moving it off a stop leaves no preset showing as active. A preset outside
+  `min`–`max` is refused with a warning rather than clamped — a button labelled
+  `XL` that quietly lands somewhere other than its declared value is worse than
+  one that isn't there. On a narrow viewport the stops move into the drawer
+  with the rest of the controls.
+
+
 ## [0.0.128] - 2026-08-19
 
 ### Added

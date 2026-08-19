@@ -36,7 +36,10 @@ export default {
 	// A continuous knob: a top-bar slider whose value lands on every stage as a
 	// CSS custom property, for css that multiplies by it —
 	// padding: calc(8px * var(--scale, 1))
-	// scale: { min: 0.75, max: 1.5, default: 1, step: 0.05 },
+	// scale: {
+	// 	min: 0.75, max: 1.5, default: 1, step: 0.05,
+	// 	presets: [{ label: 'S', value: 0.875 }, { label: 'M', value: 1 }],
+	// },
 
 	// The site's sections, in top-bar order. \`slug\` is the first route segment
 	// and what titles reference as @slug/… ; \`order\` pins routes first in the

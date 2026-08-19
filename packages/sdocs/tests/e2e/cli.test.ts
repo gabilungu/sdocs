@@ -186,6 +186,40 @@ describe('sdocs dev in a bare project (npx shape)', () => {
 	});
 });
 
+describe('the missing-asset guard', () => {
+	it("404s a missing file but still serves the Explorer's own fonts", { timeout: 150_000 }, async () => {
+		// Both halves matter, and the second is why this test exists: the guard
+		// shipped checking only the public directory, so every font the Explorer
+		// serves from the Vite root 404'd and the whole UI fell back to a system
+		// face. A rule that answers "not found" has to know everywhere a file
+		// can legitimately be found.
+		const dir = makeBareProject();
+		const { output } = spawnCli(['dev'], dir);
+		const url = await waitFor(
+			() => output().match(/http:\/\/localhost:\d+/)?.[0] ?? null,
+			120_000,
+			'dev server URL',
+		);
+
+		const missing = await waitFor(
+			async () => {
+				try {
+					return await fetch(`${url}/fonts/nope.woff2`);
+				} catch {
+					return null;
+				}
+			},
+			30_000,
+			'missing asset response',
+		);
+		expect(missing.status, 'a missing asset must not answer with the app shell').toBe(404);
+		expect(missing.headers.get('content-type')).not.toContain('text/html');
+
+		const font = await fetch(`${url}/ui/styles/fonts/figtree-latin.woff2`);
+		expect(font.status, "the Explorer's own font must still serve").toBe(200);
+	});
+});
+
 describe('sdocs dev from an npx cache, against a project that has vite', () => {
 	it('finds the project’s vite instead of dying on a missing one', { timeout: 150_000 }, async () => {
 		const { projectDir, bin } = makeNpxShape();

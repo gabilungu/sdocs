@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.130] - 2026-08-19
+
+### Fixed
+
+- **The Explorer lost its own fonts in 0.0.127.** The missing-asset guard added
+  that release checked for a file only under the public directory, but Vite
+  serves root-absolute paths from its root as well — which is where the staged
+  Explorer keeps Figtree and JetBrains Mono. Every one of them 404'd and the
+  whole UI fell back to a system face. The guard now treats a file found in
+  either place as found, and an e2e test covers both halves at once: a missing
+  asset must 404, and the Explorer's own font must still serve. A rule that
+  answers "not found" has to know everywhere a file can legitimately be found.
+
+
 ## [0.0.129] - 2026-08-19
 
 ### Added

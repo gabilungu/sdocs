@@ -70,7 +70,7 @@ export async function devCommand(): Promise<void> {
 				},
 			}),
 			sdocsPlugin({ ...config, include: absoluteIncludes, _projectRoot: cwd } as any),
-			missingAssetGuard(config.static),
+			missingAssetGuard(),
 			...(config.mcp
 				? [
 						{
@@ -138,16 +138,21 @@ const ASSET_EXT =
  * on disk — no query string (an import carries `?raw`/`?url`), nothing under a
  * Vite-owned prefix, and a real file always falls through to be served.
  */
-function missingAssetGuard(publicDir: string | null): import('vite').Plugin {
+function missingAssetGuard(): import('vite').Plugin {
 	return {
 		name: 'sdocs:missing-asset-404',
 		configureServer(server) {
+			// Vite serves root-absolute files from BOTH the public directory and
+			// its own root — the staging dir, which holds the Explorer's own
+			// fonts. Checking only the former 404'd every one of them.
+			const roots = [server.config.publicDir, server.config.root].filter(Boolean) as string[];
 			server.middlewares.use((req, res, next) => {
 				const url = req.url ?? '';
 				if (url.includes('?')) return next();
 				if (/^\/(?:@|node_modules\/|\.vite\/)/.test(url)) return next();
 				if (!ASSET_EXT.test(url)) return next();
-				if (publicDir && existsSync(join(publicDir, decodeURIComponent(url)))) return next();
+				const rel = decodeURIComponent(url).replace(/^\/+/, '');
+				if (roots.some((dir) => existsSync(join(dir, rel)))) return next();
 				res.statusCode = 404;
 				res.setHeader('Content-Type', 'text/plain');
 				res.end(`Not found: ${url}\n`);

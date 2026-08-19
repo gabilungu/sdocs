@@ -57,6 +57,34 @@
 
 	// ─── Axis controls: segmented while they fit, dropdowns when they don't ───
 
+	/** The stylesheet picker is a switch like any other — one list of named
+	 * variants, one active at a time — so it renders and collapses with the
+	 * axes rather than keeping its own private control. Its id can't collide
+	 * with an axis: `sdocs-` is reserved and axis ids can't start with `_`. */
+	const STYLESHEET_CONTROL = '__stylesheet';
+
+	const controls = $derived([
+		...axes.map((axis) => ({
+			id: axis.id,
+			label: axis.label,
+			values: axis.values,
+			value: axisValues[axis.id] ?? axis.values[0],
+			change: (v: string) => onAxisChange?.(axis.id, v),
+		})),
+		// One stylesheet is not a choice.
+		...(cssNames.length > 1
+			? [
+					{
+						id: STYLESHEET_CONTROL,
+						label: 'Stylesheet',
+						values: cssNames,
+						value: activeStylesheet ?? cssNames[0],
+						change: (v: string) => onStylesheetChange?.(v),
+					},
+				]
+			: []),
+	]);
+
 	let barEl = $state<HTMLElement>();
 	let sectionsEl = $state<HTMLElement>();
 	/** Dropdowns instead of segmented controls. All axes switch together —
@@ -71,7 +99,7 @@
 	const RETRY_MARGIN = 48;
 
 	function fitAxisControls() {
-		if (!barEl || axes.length === 0) return;
+		if (!barEl || controls.length === 0) return;
 		const width = barEl.clientWidth;
 		// The tabs are the thing being crowded out, so they're the signal —
 		// they scroll rather than wrap, so a clipped nav means the actions have
@@ -94,7 +122,8 @@
 	}
 
 	$effect(() => {
-		if (!barEl || axes.length === 0) return;
+		if (!barEl || controls.length === 0) return;
+		void controls.length;
 		const observer = new ResizeObserver(() => fitAxisControls());
 		observer.observe(barEl);
 		fitAxisControls();
@@ -185,38 +214,36 @@
 		{/each}
 	</nav>
 	<div class="sdocs-topbar-actions">
-		{#each axes as axis (axis.id)}
-			<!-- The label is the accessible name rather than visible text: a few
-			     of these plus the css picker is already most of the bar's free
-			     width, and the values ("compact", "olive") mostly say which axis
-			     they belong to. -->
+		{#each controls as control (control.id)}
+			<!-- The label is the accessible name rather than visible text: a few of
+			     these is already most of the bar's free width, and the values
+			     ("compact", "olive") mostly say which switch they belong to. -->
 			{#if axesCompact}
 				<select
 					class="sdocs-axis-picker"
-					aria-label={axis.label}
-					title={axis.label}
-					value={axisValues[axis.id] ?? axis.values[0]}
-					onchange={(e) => onAxisChange?.(axis.id, e.currentTarget.value)}
+					aria-label={control.label}
+					title={control.label}
+					value={control.value}
+					onchange={(e) => control.change(e.currentTarget.value)}
 				>
-					{#each axis.values as value (value)}
+					{#each control.values as value (value)}
 						<option {value}>{value}</option>
 					{/each}
 				</select>
 			{:else}
-				<!-- Real radios: one name per axis gives grouping, arrow-key
-				     navigation and "only one at a time" for free, none of which
-				     a row of buttons would have without writing it. -->
-				<fieldset class="sdocs-axis-seg" title={axis.label}>
-					<legend class="sdocs-axis-seg-legend">{axis.label}</legend>
-					{#each axis.values as value (value)}
-						{@const active = (axisValues[axis.id] ?? axis.values[0]) === value}
-						<label class="sdocs-axis-seg-item" class:is-active={active}>
+				<!-- Real radios: one name per control gives grouping, arrow-key
+				     navigation and "only one at a time" for free, none of which a
+				     row of buttons would have without writing it. -->
+				<fieldset class="sdocs-axis-seg" title={control.label}>
+					<legend class="sdocs-axis-seg-legend">{control.label}</legend>
+					{#each control.values as value (value)}
+						<label class="sdocs-axis-seg-item" class:is-active={control.value === value}>
 							<input
 								type="radio"
-								name="sdocs-axis-{axis.id}"
+								name="sdocs-control-{control.id}"
 								{value}
-								checked={active}
-								onchange={() => onAxisChange?.(axis.id, value)}
+								checked={control.value === value}
+								onchange={() => control.change(value)}
 							/>
 							{value}
 						</label>
@@ -224,17 +251,6 @@
 				</fieldset>
 			{/if}
 		{/each}
-		{#if cssNames.length > 1}
-			<select
-				class="sdocs-css-picker"
-				value={activeStylesheet}
-				onchange={(e) => onStylesheetChange?.(e.currentTarget.value)}
-			>
-				{#each cssNames as name (name)}
-					<option value={name}>{name}</option>
-				{/each}
-			</select>
-		{/if}
 		{#if mcp}
 			<button class="sdocs-topbar-btn sdocs-mcp-btn" onclick={openMcp} title="MCP server">
 				MCP
@@ -312,6 +328,8 @@
 
 <style>
 	.sdocs-topbar {
+		/* Every control and button in the actions row is exactly this tall. */
+		--sdocs-control-h: 24px;
 		display: flex;
 		align-items: center;
 		gap: 24px;
@@ -386,10 +404,11 @@
 		align-items: center;
 		gap: 6px;
 	}
-	.sdocs-css-picker,
 	.sdocs-axis-picker {
+		box-sizing: border-box;
+		height: var(--sdocs-control-h);
 		font-size: 12px;
-		padding: 2px 4px;
+		padding: 0 4px;
 		border: 1px solid var(--color-base-200);
 		border-radius: 4px;
 		background: var(--color-base-0);
@@ -401,6 +420,11 @@
 	.sdocs-axis-seg {
 		display: inline-flex;
 		align-items: center;
+		box-sizing: border-box;
+		height: var(--sdocs-control-h);
+		/* A flex item's automatic minimum is its content, which silently wins
+		   over `height` — the track rendered taller than the buttons beside it. */
+		min-height: 0;
 		gap: 1px;
 		/* fieldset defaults would blow the flex line out and re-add spacing. */
 		min-inline-size: 0;
@@ -426,10 +450,11 @@
 		position: relative;
 		display: inline-flex;
 		align-items: center;
-		padding: 1px 7px;
+		align-self: stretch;
+		padding: 0 7px;
 		border-radius: 4px;
 		font-size: 11px;
-		line-height: 1.7;
+		line-height: 1;
 		color: var(--color-base-500);
 		white-space: nowrap;
 		cursor: pointer;
@@ -457,7 +482,16 @@
 	}
 
 	.sdocs-topbar-btn {
-		padding: 2px 6px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		/* The About "button" is an <a>, which is content-box by default —
+		   without this it stood two pixels taller than the real buttons. */
+		box-sizing: border-box;
+		flex: none;
+		height: var(--sdocs-control-h);
+		min-width: var(--sdocs-control-h);
+		padding: 0 6px;
 		border: 1px solid var(--color-base-200);
 		border-radius: 4px;
 		background: var(--color-base-0);
@@ -471,8 +505,6 @@
 	}
 	/* The About link wears the button's chrome. */
 	.sdocs-about-btn {
-		display: inline-flex;
-		align-items: center;
 		text-decoration: none;
 	}
 	.sdocs-mcp-btn {
@@ -503,17 +535,14 @@
 		}
 		/* The pickers move into the drawer: they're the controls here wide
 		   enough to crowd out everything else. */
-		.sdocs-css-picker,
 		.sdocs-axis-picker,
 		.sdocs-axis-seg {
 			display: none;
 		}
 		.sdocs-topbar-btn {
-			display: inline-flex;
-			align-items: center;
-			justify-content: center;
+			/* A finger needs more than the desktop row's height. */
+			height: 40px;
 			min-width: 40px;
-			min-height: 40px;
 			border-color: transparent;
 			font-size: 16px;
 		}

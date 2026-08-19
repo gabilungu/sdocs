@@ -27,7 +27,7 @@ const DEFAULTS: ResolvedSdocsConfig = {
 		page: { maxWidth: '1200px', padding: '32px', contentX: 'left' },
 		showcase: {
 			maxWidth: '1200px',
-			padding: '0px',
+			padding: '16px',
 			direction: 'row',
 			gap: '16px',
 			contentX: 'left',

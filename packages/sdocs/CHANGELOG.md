@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.124] - 2026-08-19
+
+### Changed
+
+- **Preview and example stages have 16px of padding by default**, up from
+  none — a component pressed against the edge of its stage was never what the
+  default should give you. `content.showcase.padding` overrides it as before,
+  as do `padding` on the entity or the block. `[LAYOUT]` stages are unchanged:
+  a full-page canvas wants its own edges.
+
+- **The stylesheet picker renders like the axes.** It is the same kind of
+  switch — named variants, one active — and it competes for the same bar
+  width, so it is now one of the controls rather than a private dropdown:
+  segmented while there is room, collapsing to dropdowns with the rest before
+  the section tabs get crowded.
+
+- **Every control and button in the top bar is the same height.** The row was
+  ragged: the segmented tracks stood taller than the buttons because a flex
+  item's automatic minimum silently beat their declared height, and the About
+  link stood two pixels taller again because an `<a>` is content-box where a
+  `<button>` is not.
+
+### Added
+
+- **A stage can be opened in its own tab** from a button beside the stage id,
+  in the corner of every preview and example. A real link rather than a
+  scripted `window.open`, so middle-click and "open in new window" behave the
+  way the browser promises.
+
+
 ## [0.0.123] - 2026-08-15
 
 ### Fixed

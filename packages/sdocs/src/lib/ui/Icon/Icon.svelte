@@ -9,6 +9,7 @@
 	import copySvg from './icons/copy.svg?raw';
 	import databaseSvg from './icons/database.svg?raw';
 	import diamondSvg from './icons/diamond.svg?raw';
+	import externalLinkSvg from './icons/external-link.svg?raw';
 	import fileCodeSvg from './icons/file-code.svg?raw';
 	import fileTextSvg from './icons/file-text.svg?raw';
 	import folderOpenSvg from './icons/folder-open.svg?raw';
@@ -33,6 +34,7 @@
 		'copy': copySvg,
 		'database': databaseSvg,
 		'diamond': diamondSvg,
+		'external-link': externalLinkSvg,
 		'file-code': fileCodeSvg,
 		'file-text': fileTextSvg,
 		'folder-open': folderOpenSvg,

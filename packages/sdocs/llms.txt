@@ -122,10 +122,10 @@ scaffold `.sdoc` files against the real parser instead of guessing — and read
 the current project's components and docs through the same extraction the
 Explorer uses:
 
-- `validate_sdoc { source }` — parse `.sdoc` text, return diagnostics, and report
-  each entity's resolved `route`. Check the route before committing to a title:
-  slugs lowercase each segment whole, so `IconButton` serves at `/iconbutton`
-  (message, code, 1-based line/column) and the entities found.
+- `validate_sdoc { source }` — parse `.sdoc` text and return diagnostics
+  (message, code, 1-based line/column), the entities found, and each entity's
+  resolved `route`. Check the route before committing to a title: slugs
+  lowercase each segment whole, so `IconButton` serves at `/iconbutton`.
 - `scaffold_component_doc { componentPath, title? }` — extract a `.svelte`
   component's props and return a starter `.sdoc` (control defaults derived
   from the props) plus the suggested file path; it never writes files.
@@ -279,7 +279,7 @@ Key options:
 |---|---|---|---|
 | `doc` | `1200px` | `32px` | `toc: true`, `contentX: left` |
 | `page` | `1200px` | `32px` | `contentX: left` |
-| `showcase` (stages) | `1200px` | `0px` | `direction: row`, `gap: 16px`, `contentX: left`, `contentY: top`, `background`/`minHeight`: none |
+| `showcase` (stages) | `1200px` | `16px` | `direction: row`, `gap: 16px`, `contentX: left`, `contentY: top`, `background`/`minHeight`: none |
 | `layout` | `100%` | `0px` | `background`/`minHeight`: none |
 
 `minHeight` reserves room for content that overflows the stage (an open dropdown

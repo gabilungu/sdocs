@@ -16,7 +16,7 @@ describe('content sizing config', () => {
 		expect(c.content.page).toEqual({ maxWidth: '1200px', padding: '32px', contentX: 'left' });
 		expect(c.content.showcase).toEqual({
 			maxWidth: '1200px',
-			padding: '0px',
+			padding: '16px',
 			direction: 'row',
 			gap: '16px',
 			contentX: 'left',
@@ -38,7 +38,7 @@ describe('content sizing config', () => {
 		expect(c.content.doc).toEqual({ maxWidth: '1200px', padding: '48px', toc: false, contentX: 'left' });
 		expect(c.content.showcase).toEqual({
 			maxWidth: '1200px',
-			padding: '0px',
+			padding: '16px',
 			direction: 'column',
 			gap: '16px',
 			contentX: 'center',

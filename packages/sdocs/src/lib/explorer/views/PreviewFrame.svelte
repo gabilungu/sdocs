@@ -2,6 +2,7 @@
 	import { getContext, onMount, untrack } from 'svelte';
 	import { navigateHref } from '../router.svelte.js';
 	import { DEV } from 'esm-env';
+	import { Icon } from '../../ui/Icon/index.js';
 
 	interface Props {
 		src: string;
@@ -195,20 +196,36 @@
 		data-sdocs-stage-id={stage?.stageId}
 		data-sdocs-stage-kind={stageKind}
 	></iframe>
-	{#if showStageId && stage?.stageId}
-		<!-- The handle you say out loud. Quiet until you go looking for it:
-		     every stage wearing a visible code all the time is noise for the
-		     humans reading the docs, and the id is only ever wanted for one
-		     stage at a time — the one under the cursor. -->
-		<button
-			type="button"
-			class="sdocs-stage-id"
-			title="Copy this stage's id — an agent can resolve it to this exact preview"
-			onclick={copyStageId}
+	<!-- Stage tools. Quiet until you go looking for them: every stage wearing
+	     its controls all the time is noise for the humans reading the docs,
+	     and they are only ever wanted for one stage at a time — the one under
+	     the cursor. -->
+	<div class="sdocs-stage-tools">
+		{#if showStageId && stage?.stageId}
+			<!-- The handle you say out loud. -->
+			<button
+				type="button"
+				class="sdocs-stage-tool sdocs-stage-id"
+				title="Copy this stage's id — an agent can resolve it to this exact preview"
+				onclick={copyStageId}
+			>
+				{copied ? 'copied' : `sdocs:${stage.stageId}`}
+			</button>
+		{/if}
+		<!-- A real link, not a button calling window.open: middle-click,
+		     cmd-click and "open in new window" are the browser's to offer, and
+		     the href is the stage's own address either way. -->
+		<a
+			class="sdocs-stage-tool sdocs-stage-open"
+			href={resolvedSrc}
+			target="_blank"
+			rel="noopener"
+			title="Open this stage in a new tab"
+			aria-label="Open this stage in a new tab"
 		>
-			{copied ? 'copied' : `sdocs:${stage.stageId}`}
-		</button>
-	{/if}
+			<Icon name="external-link" --w="11px" --h="11px" />
+		</a>
+	</div>
 </div>
 
 <style>
@@ -217,10 +234,25 @@
 		overflow: hidden;
 		background: var(--color-base-0);
 	}
-	.sdocs-stage-id {
+	.sdocs-stage-tools {
 		position: absolute;
 		right: 4px;
 		bottom: 4px;
+		display: flex;
+		align-items: stretch;
+		gap: 4px;
+		opacity: 0;
+		transition: opacity 0.12s ease;
+	}
+	/* Revealed together: they sit in one corner, and having the id fade in
+	   while the link stayed hidden would read as two separate affordances. */
+	.sdocs-preview-frame:hover .sdocs-stage-tools,
+	.sdocs-stage-tools:focus-within {
+		opacity: 1;
+	}
+	.sdocs-stage-tool {
+		display: inline-flex;
+		align-items: center;
 		padding: 1px 5px;
 		border: none;
 		border-radius: 4px;
@@ -229,15 +261,10 @@
 		font-family: var(--mono, ui-monospace, monospace);
 		font-size: 10px;
 		line-height: 1.5;
+		text-decoration: none;
 		cursor: pointer;
-		opacity: 0;
-		transition: opacity 0.12s ease;
 	}
-	.sdocs-preview-frame:hover .sdocs-stage-id,
-	.sdocs-stage-id:focus-visible {
-		opacity: 1;
-	}
-	.sdocs-stage-id:hover {
+	.sdocs-stage-tool:hover {
 		color: var(--color-base-600);
 	}
 	.sdocs-preview-frame.full-height {

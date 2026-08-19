@@ -77,6 +77,9 @@
 
 <style>
 	.NavTree-item {
+		/* Shared by the chevron and by the space a chevron-less row reserves
+		   in its place, so the two can't drift apart. */
+		--chevron-w: 20px;
 		display: flex;
 		align-items: center;
 		gap: 6px;
@@ -133,6 +136,17 @@
 		text-align: left;
 	}
 
+	/* A row with children spends its last 20px on the chevron. A row without
+	   one reserves the same, so every label column ends at the same x — and
+	   only expandable rows truncating early was never about the item, just
+	   about whether it happened to have something to expand. The row gap
+	   supplies the space before it, exactly as it does for the real chevron. */
+	.NavTree-item:not(.NavTree-row)::after {
+		content: '';
+		flex: none;
+		width: var(--chevron-w);
+	}
+
 	.NavTree-item-label {
 		flex: 1;
 		/* A long name trims to an ellipsis instead of wrapping or pushing the
@@ -161,7 +175,7 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		width: 20px;
+		width: var(--chevron-w);
 		height: 20px;
 		padding: 0;
 		border: none;

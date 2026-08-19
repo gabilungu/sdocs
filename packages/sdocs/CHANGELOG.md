@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.132] - 2026-08-20
+
+### Fixed
+
+- **Sidebar rows without a chevron now reserve its space**, so every label
+  column ends at the same x. A row with children spends its last 26px on the
+  expander — the 20px button plus the row gap — and a row without one used the
+  full width, so labels stopped at two different places and only the expandable
+  rows truncated early. Since a component with examples gets a chevron while a
+  `[LAYOUT]`, `[DOC]` or `[PAGE]` never does, the difference tracked the entity
+  kind and read as layouts and docs being sized differently from components.
+  The reserved width shares a variable with the chevron itself, so the two
+  can't drift apart.
+
+
 ## [0.0.131] - 2026-08-19
 
 ### Fixed

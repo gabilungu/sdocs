@@ -1,11 +1,12 @@
 [DOC title="@explorer/Features / Theming"]
 
 
-	sdocs has three independent theming systems:
+	sdocs has four independent theming systems:
 
 	1. **Explorer theme** (light/dark) — controls the Explorer UI itself
-	2. **Customization axes** — dimensions of *your* design system the reader can switch: theme, density, palette
-	3. **Preview stylesheets** — which CSS file is loaded into the preview iframe
+	2. **Customization axes** — named dimensions of *your* design system the reader can switch: theme, density, palette
+	3. **A scale slider** — the one dimension that is a range rather than a set of names
+	4. **Preview stylesheets** — which CSS file is loaded into the preview iframe
 
 	## Explorer theme (light/dark)
 
@@ -75,6 +76,33 @@
 	```
 	/preview/button/sizes?axis-scheme=dark&axis-density=compact
 	```
+
+	## A continuous knob
+
+	Some dimensions aren't a set of names. Declare a `scale` and the top bar gets a slider beside the axis controls:
+
+	```js
+	// sdocs.config.js
+	scale: { min: 0.75, max: 1.5, default: 1, step: 0.05 }
+	```
+
+	Its value lands on every stage's root as a **CSS custom property** rather than an attribute:
+
+	```html
+	<html style="--scale: 1.25">
+	```
+
+	which is what your css multiplies by:
+
+	```css
+	.card { padding: calc(8px * var(--scale, 1)); }
+	```
+
+	The property is the point of the difference. An axis names its values, so `[data-density="compact"]` can carry a whole block of rules; a range can't, and `data-scale="1.25"` would need a rule per step. One rule reading a number covers the whole range.
+
+	`var` renames the property (`--ui-scale`), `label` renames the control. Double-clicking the slider returns it to the default, the pick persists like the axes, and a stage page accepts `?scale=1.25` — plus `?scale-var=--ui-scale` when the project renamed it, since a stage opened on its own has no parent to ask.
+
+	Always give the `var()` a fallback. A stage is not the only place that css runs, and `calc(8px * var(--scale))` collapses to nothing wherever the property is unset.
 
 	## Preview stylesheets
 

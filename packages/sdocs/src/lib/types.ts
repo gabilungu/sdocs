@@ -47,6 +47,9 @@ export interface SdocsConfig {
 	 * palette, whatever the project's css keys off. Each becomes a top-bar
 	 * dropdown, and the selection lands on every preview as `data-<id>`. */
 	axes?: AxisConfig[];
+	/** A continuous knob — a top-bar slider whose value lands on every preview
+	 * as a CSS custom property. The one dimension that isn't a set of names. */
+	scale?: ScaleConfig;
 
 	/** Content presentation per entity kind; entity/block attributes override these. */
 	content?: {
@@ -108,6 +111,30 @@ export interface AxisConfig {
 	label?: string;
 	/** Selectable values, in control order. The first is the default. */
 	values: string[];
+}
+
+/**
+ * A continuous customization knob, rendered as a slider.
+ *
+ * Where an axis names its values, this one has a range, so it carries a CSS
+ * custom property rather than an attribute: `--scale: 1.25` is a number the
+ * project's css can multiply by, where `data-scale="1.25"` would need a rule
+ * per step. sdocs sets the property and nothing else — what it scales is the
+ * project's to define.
+ */
+export interface ScaleConfig {
+	/** Lowest value the slider reaches. Default: 0.75 */
+	min?: number;
+	/** Highest value the slider reaches. Default: 1.5 */
+	max?: number;
+	/** Where the slider starts, and what "reset" returns to. Default: 1 */
+	default?: number;
+	/** Slider increment. Default: 0.05 */
+	step?: number;
+	/** The custom property set on each preview root. Default: '--scale' */
+	var?: string;
+	/** Control label. Default: 'Scale' */
+	label?: string;
 }
 
 /** One top-bar section. */
@@ -172,6 +199,8 @@ export interface ResolvedSdocsConfig {
 	components: string[];
 	/** Customization axes, normalized: valid ids, labels filled, 2+ values. */
 	axes: Required<AxisConfig>[];
+	/** The scale slider, normalized; null when unconfigured or unusable. */
+	scale: Required<ScaleConfig> | null;
 	content: {
 		doc: Required<ContentSizing> & { toc: boolean; contentX: string };
 		page: Required<ContentSizing> & { contentX: string };

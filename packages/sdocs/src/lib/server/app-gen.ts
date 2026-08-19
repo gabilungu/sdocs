@@ -235,6 +235,7 @@ function explorerPropsJs(config: ResolvedSdocsConfig, basePath: string, mcp: boo
 	sdocsVersion: ${JSON.stringify(sdocsVersion())},
 	mcp: ${JSON.stringify(mcp)},
 	axes: ${JSON.stringify(config.axes)},
+	scale: ${JSON.stringify(config.scale)},
 }`;
 }
 

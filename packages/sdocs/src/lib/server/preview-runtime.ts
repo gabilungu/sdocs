@@ -110,6 +110,8 @@ export const PREVIEW_BOOTSTRAP_JS = `
 	try {
 		var picks = window.parent !== window && window.parent.__sdocsAxes;
 		if (picks) for (var id in picks) root.setAttribute('data-' + id, picks[id]);
+		var scale = window.parent !== window && window.parent.__sdocsScale;
+		if (scale && scale.var) root.style.setProperty(scale.var, String(scale.value));
 	} catch (e) {
 		// Cross-origin embed — the parent posts the picks once we're ready.
 	}
@@ -310,5 +312,14 @@ export const PREVIEW_URL_PARAMS_JS = `
 		var id = key.slice(5);
 		if (/^[a-z][a-z0-9-]*$/.test(id)) document.documentElement.setAttribute('data-' + id, value);
 	});
+	// '?scale=1.25&scale-var=--ui-scale' — the property name travels too, since
+	// a stage opened on its own has no parent to ask which one the project uses.
+	var scaleParam = params.get('scale');
+	if (scaleParam && isFinite(Number(scaleParam))) {
+		var scaleVar = params.get('scale-var') || '--scale';
+		if (/^--[A-Za-z0-9_-]+$/.test(scaleVar)) {
+			document.documentElement.style.setProperty(scaleVar, scaleParam);
+		}
+	}
 })();
 `.trim();

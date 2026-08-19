@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { AxisConfig, DocEntry, SectionConfig } from '../types.js';
+	import type { AxisConfig, DocEntry, ScaleConfig, SectionConfig } from '../types.js';
 	import { initRouter, getRoute, navigate, type RoutingMode } from './router.svelte.js';
 	import { buildSections, resolveRoute, displayTitle } from './tree-builder.js';
 	import Sidebar from './views/Sidebar.svelte';
@@ -49,6 +49,9 @@
 		/** Design-system dimensions the reader can switch between. Each renders
 		 * a dropdown and lands on every preview as `data-<id>`. */
 		axes?: Required<AxisConfig>[];
+		/** A continuous knob rendered as a slider; its value lands on every
+		 * preview as a CSS custom property. */
+		scale?: Required<ScaleConfig> | null;
 	}
 
 	let {
@@ -66,7 +69,8 @@
 		basePath = '',
 		sdocsVersion,
 		mcp = false,
-		axes = []
+		axes = [],
+		scale = null
 	}: Props = $props();
 
 	// svelte-ignore state_referenced_locally -- static config for this app
@@ -109,6 +113,14 @@
 			return axisValues;
 		},
 	});
+	setContext('sdocs-scale', {
+		get value() {
+			return scale ? { var: scale.var, value: scaleValue } : null;
+		},
+	});
+
+	// svelte-ignore state_referenced_locally -- static config for this app instance
+	let scaleValue = $state<number>(scale?.default ?? 1);
 
 	/** Mirror onto the window so a preview iframe can read the current picks at
 	 * boot — before it has mounted enough to be messaged, which is what keeps a
@@ -117,6 +129,19 @@
 		if (typeof window === 'undefined') return;
 		(window as Window & { __sdocsAxes?: Record<string, string> }).__sdocsAxes = values;
 	}
+
+	/** The scale travels the same way, as `{ var, value }` — a stage sets a
+	 * custom property rather than an attribute, so it cannot ride along in the
+	 * axis record. */
+	function publishScale(value: number) {
+		if (typeof window === 'undefined' || !scale) return;
+		(window as Window & { __sdocsScale?: { var: string; value: number } }).__sdocsScale = {
+			var: scale.var,
+			value,
+		};
+	}
+	// svelte-ignore state_referenced_locally -- seeds the default; the effect below keeps it current
+	publishScale(scaleValue);
 	// svelte-ignore state_referenced_locally -- seeds the defaults; the effect below keeps it current
 	publishAxes({ ...axisValues });
 
@@ -146,6 +171,20 @@
 	 * An effect also fires for the startup default, which lands before the
 	 * stored pick is read and overwrites it — the saved choice would be
 	 * destroyed by the very load that was meant to restore it. */
+	/** Restore the stored scale, clamped to the range the config now declares —
+	 * a project that narrows its range must not leave readers pinned outside it. */
+	function restoreScale() {
+		if (!scale) return;
+		const saved = Number(localStorage.getItem('sdocs-scale'));
+		if (!Number.isFinite(saved) || saved === 0) return;
+		scaleValue = Math.min(scale.max, Math.max(scale.min, saved));
+	}
+
+	function chooseScale(value: number) {
+		scaleValue = value;
+		localStorage.setItem('sdocs-scale', String(value));
+	}
+
 	function chooseStylesheet(name: string) {
 		activeStylesheet = name;
 		if (cssNames.length > 1) localStorage.setItem('sdocs-stylesheet', name);
@@ -161,6 +200,7 @@
 		}
 		restoreAxes();
 		restoreStylesheet();
+		restoreScale();
 		return stopViewport;
 	});
 
@@ -201,6 +241,10 @@
 		const values = { ...axisValues };
 		publishAxes(values);
 		localStorage.setItem('sdocs-axes', JSON.stringify(values));
+	});
+
+	$effect(() => {
+		publishScale(scaleValue);
 	});
 
 	const currentRoute = $derived(getRoute());
@@ -316,6 +360,9 @@
 			{mcp}
 			{axes}
 			{axisValues}
+			{scale}
+			{scaleValue}
+			onScaleChange={chooseScale}
 			showBurger={narrow && hasDrawerNav}
 			{navOpen}
 			onToggleNav={() => (navOpen = !navOpen)}
@@ -346,6 +393,9 @@
 				{activeStylesheet}
 				{axes}
 				{axisValues}
+				{scale}
+				{scaleValue}
+				onScaleChange={chooseScale}
 				onStylesheetChange={(name) => chooseStylesheet(name)}
 				onAxisChange={(id, value) => (axisValues = { ...axisValues, [id]: value })}
 				onClose={() => (navOpen = false)}

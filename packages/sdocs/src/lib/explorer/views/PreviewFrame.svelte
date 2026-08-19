@@ -112,6 +112,10 @@
 	// the Explorer stays visible here.
 	const axisCtx = getContext('sdocs-axes') as { values: Record<string, string> } | undefined;
 	const axisValues = $derived(axisCtx?.values ?? {});
+	const scaleCtx = getContext('sdocs-scale') as
+		| { value: { var: string; value: number } | null }
+		| undefined;
+	const scaleSetting = $derived(scaleCtx?.value ?? null);
 	const resolvedSrc = $derived(previewBase.replace(/\/$/, '') + src);
 	let iframe: HTMLIFrameElement;
 	let ready = $state(false);
@@ -133,6 +137,7 @@
 				sendCss();
 				sendStylesheet();
 				sendAxes();
+				sendScale();
 				onready?.();
 			}
 			if (e.data?.type === 'sdocs:resize' && e.source === iframe?.contentWindow) {
@@ -200,10 +205,25 @@
 		untrack(() => sendStylesheet());
 	});
 
+	function sendScale() {
+		if (ready && iframe?.contentWindow && scaleSetting) {
+			iframe.contentWindow.postMessage(
+				{ type: 'sdocs:update-scale', scale: $state.snapshot(scaleSetting) },
+				'*',
+			);
+		}
+	}
+
 	$effect(() => {
 		// Track axis changes
 		JSON.stringify(axisValues);
 		untrack(() => sendAxes());
+	});
+
+	$effect(() => {
+		// Track scale changes
+		JSON.stringify(scaleSetting);
+		untrack(() => sendScale());
 	});
 </script>
 

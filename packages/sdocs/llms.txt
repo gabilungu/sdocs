@@ -185,6 +185,8 @@ The page carries what automation needs:
 - `?axis-<id>=<value>` sets `data-<id>` on the document — one per configured
   axis, combinable (`?axis-scheme=dark&axis-density=compact`) to open a stage in
   one exact variant. `list_docs` reports the project's axes and their values.
+- `?scale=<number>` sets the scale custom property (add `?scale-var=--ui-scale`
+  when the project renamed it), so a stage can be photographed at a given size.
 - `?theme=<name>` sets `data-sdocs-theme` on the document; `?css=<name>` picks
   a configured stylesheet. Media-query themes are the browser's to emulate.
 
@@ -227,6 +229,7 @@ interface SdocsConfig {
 	mcp?: boolean;                       // serve /mcp + the top-bar MCP button in dev. Default true
 	components?: string | string[];      // component globs for coverage. Default: include with .sdoc → .svelte
 	axes?: { id: string; label?: string; values: string[] }[]; // design-system dimensions the reader can switch. Default []
+	scale?: { min?: number; max?: number; default?: number; step?: number; var?: string; label?: string }; // a top-bar slider setting a CSS custom property on every stage
 	static?: string;                     // static assets folder, served at site root
 	content?: {                          // per-entity-kind sizing/stage defaults (see below)
 		doc?:      { maxWidth?: string; padding?: string; toc?: boolean; contentX?: string };
@@ -272,6 +275,16 @@ Key options:
   multiply: three palettes × two densities is six files but two axes. A dark
   theme must be reachable by attribute — a `prefers-color-scheme`-only theme
   can't be switched — and should set `color-scheme` so native controls follow.
+- **`scale`** — a continuous knob, rendered as a slider in the top bar beside
+  the axis controls. Its value lands on every stage's `<html>` as a CSS custom
+  property — `--scale` unless `var` names another — so the project's css can
+  multiply by it (`padding: calc(8px * var(--scale, 1))`). Defaults: `min` 0.75,
+  `max` 1.5, `default` 1, `step` 0.05, `label` 'Scale'. Double-clicking the
+  slider returns it to the default. Unlike an axis it carries a *property*
+  rather than an attribute, because a range has no set of names to key off:
+  one rule reading a number beats a rule per step. The pick persists, and a
+  stage page takes it as `?scale=1.25` (with `?scale-var=--ui-scale` when the
+  project renamed it).
 - **`home`** — route path of the landing page (root URL + logo target). Default:
   the built-in About page. Must resolve to an entity.
 - **`base`** — set to `/<repo>/` for a GitHub project Pages deploy (or pass

@@ -3,6 +3,7 @@ export type {
 	SdocsConfig,
 	ResolvedSdocsConfig,
 	AxisConfig,
+	ScaleConfig,
 	SdocMeta,
 	DocEntry,
 	ParsedProp,

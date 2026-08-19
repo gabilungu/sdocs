@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { SvelteSet } from 'svelte/reactivity';
 	import type { SectionTree, TreeNode } from '../tree-builder.js';
-	import type { AxisConfig } from '../../types.js';
+	import type { AxisConfig, ScaleConfig } from '../../types.js';
 	import { routeHref, navigate } from '../router.svelte.js';
 	import { Icon } from '../../ui/Icon/index.js';
 	import { NavTree } from '../../ui/index.js';
@@ -22,8 +22,12 @@
 		/** Design-system dimensions — rehoused here on narrow viewports. */
 		axes?: Required<AxisConfig>[];
 		axisValues?: Record<string, string>;
+		/** The scale slider — rehoused here on narrow viewports like the pickers. */
+		scale?: Required<ScaleConfig> | null;
+		scaleValue?: number;
 		onStylesheetChange?: (name: string) => void;
 		onAxisChange?: (id: string, value: string) => void;
+		onScaleChange?: (value: number) => void;
 		onClose?: () => void;
 	}
 
@@ -38,8 +42,11 @@
 		activeStylesheet,
 		axes = [],
 		axisValues = {},
+		scale = null,
+		scaleValue = 1,
 		onStylesheetChange,
 		onAxisChange,
+		onScaleChange,
 		onClose,
 	}: Props = $props();
 
@@ -275,6 +282,22 @@
 				</select>
 			</div>
 		{/each}
+		{#if scale}
+			<div class="sdocs-drawer-foot">
+				<label class="sdocs-drawer-foot-label" for="sdocs-drawer-scale">{scale.label}</label>
+				<input
+					id="sdocs-drawer-scale"
+					class="sdocs-drawer-css"
+					type="range"
+					min={scale.min}
+					max={scale.max}
+					step={scale.step}
+					value={scaleValue}
+					oninput={(e) => onScaleChange?.(e.currentTarget.valueAsNumber)}
+				/>
+				<span class="sdocs-drawer-foot-label">{scaleValue}</span>
+			</div>
+		{/if}
 		{#if cssNames.length > 1}
 			<div class="sdocs-drawer-foot">
 				<label class="sdocs-drawer-foot-label" for="sdocs-drawer-css">Stylesheet</label>

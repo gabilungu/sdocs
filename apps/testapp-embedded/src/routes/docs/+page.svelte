@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Explorer from 'sdocs/explorer';
-	import { docs, cssNames, axes, pageModules } from 'virtual:sdocs';
+	import { docs, cssNames, axes, scale, pageModules } from 'virtual:sdocs';
 </script>
 
 <svelte:head>
@@ -11,6 +11,7 @@
 	{docs}
 	{cssNames}
 	{axes}
+	{scale}
 	{pageModules}
 	title="testapp"
 	sidebarConfig={{

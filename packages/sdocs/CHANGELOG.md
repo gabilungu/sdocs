@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.128] - 2026-08-19
+
+### Added
+
+- **A scale slider.** Some dimensions of a design system aren't a set of names,
+  and an axis can't express a range. Declare one in `sdocs.config.js`:
+
+  ```js
+  scale: { min: 0.75, max: 1.5, default: 1, step: 0.05 }
+  ```
+
+  and the top bar gets a slider beside the axis controls, at the same height.
+  Its value lands on every preview, example and layout as a **CSS custom
+  property** — `--scale` unless `var` names another — so the project's css
+  multiplies by it: `padding: calc(8px * var(--scale, 1))`.
+
+  A property rather than an attribute because that is the difference between a
+  range and a set of names: `[data-density="compact"]` can carry a block of
+  rules, while `data-scale="1.25"` would need one rule per step. One rule
+  reading a number covers the whole range.
+
+  It travels the way the axes do — applied at boot from the parent frame so a
+  late-mounting stage never paints unscaled first, posted to frames already on
+  screen, persisted across reloads, and readable on a stage page as
+  `?scale=1.25` (with `?scale-var=--ui-scale` when the project renamed the
+  property, since a stage opened alone has no parent to ask). Double-clicking
+  the slider returns it to the default. A range that cannot produce a usable
+  control — min at or above max, a step of zero, a `var` that isn't a custom
+  property — is refused with a warning rather than a missing slider; a default
+  outside the range is pulled into it.
+
+  Embedded hosts read it from `virtual:sdocs` and pass `<Explorer {scale} />`.
+
+
 ## [0.0.127] - 2026-08-19
 
 ### Fixed

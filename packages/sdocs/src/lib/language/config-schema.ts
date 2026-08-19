@@ -141,6 +141,11 @@ export const configSchema: ConfigSchema = {
 		insert: ': ${0:false}',
 		values: ['true', 'false'],
 	},
+	scale: {
+		detail: '{ min?, max?, default?, step?, var?, label? }',
+		doc: "A continuous knob, rendered as a slider in the top bar. Its value lands on every preview's `<html>` as a CSS custom property — `--scale` unless `var` names another — so the project's css can multiply by it. Defaults: `min` 0.75, `max` 1.5, `default` 1, `step` 0.05, `label` 'Scale'. Double-click the slider to return to the default.",
+		insert: ': { min: ${1:0.75}, max: ${2:1.5}, default: ${3:1}, step: ${4:0.05} }$0',
+	},
 	axes: {
 		detail: '{ id, label?, values }[]',
 		doc: "Design-system dimensions the reader can switch between — theme, density, palette. Each becomes a top-bar dropdown, and the selection lands on every preview's `<html>` as `data-<id>=\"<value>\"`, which the project's own css keys off: `[data-density='compact'] { --space-md: 8px }`. The first value is the default; `label` defaults to the capitalized id.",

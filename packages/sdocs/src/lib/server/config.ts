@@ -1,7 +1,13 @@
 import { pathToFileURL } from 'node:url';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import type { SdocsConfig, ResolvedSdocsConfig, SectionConfig, AxisConfig } from '../types.js';
+import type {
+	SdocsConfig,
+	ResolvedSdocsConfig,
+	SectionConfig,
+	AxisConfig,
+	ScaleConfig,
+} from '../types.js';
 
 const CONFIG_NAMES = ['sdocs.config.ts', 'sdocs.config.mjs', 'sdocs.config.js'];
 
@@ -23,6 +29,7 @@ const DEFAULTS: ResolvedSdocsConfig = {
 	mcp: true,
 	components: [],
 	axes: [],
+	scale: null,
 	content: {
 		doc: { maxWidth: '1200px', padding: '32px', toc: true, contentX: 'left' },
 		page: { maxWidth: '1200px', padding: '32px', contentX: 'left' },
@@ -167,6 +174,42 @@ function capitalize(s: string): string {
 	return s ? s[0].toUpperCase() + s.slice(1) : s;
 }
 
+/**
+ * The scale slider, or null when it cannot work.
+ *
+ * A range that doesn't contain its own default, or a step that can't move,
+ * yields a control the reader can't use — and a silently absent slider reads
+ * as sdocs ignoring the config rather than as the config being wrong.
+ */
+function normalizeScale(scale: ScaleConfig | null | undefined): Required<ScaleConfig> | null {
+	if (!scale) return null;
+	const num = (v: unknown, fallback: number) => (typeof v === 'number' && isFinite(v) ? v : fallback);
+	const min = num(scale.min, 0.75);
+	const max = num(scale.max, 1.5);
+	const step = num(scale.step, 0.05);
+	const value = num(scale.default, 1);
+	if (min >= max) {
+		console.warn(`[sdocs] ignoring \`scale\`: min (${min}) must be below max (${max}).`);
+		return null;
+	}
+	if (step <= 0) {
+		console.warn(`[sdocs] ignoring \`scale\`: step must be above zero, got ${step}.`);
+		return null;
+	}
+	const clamped = Math.min(max, Math.max(min, value));
+	if (clamped !== value) {
+		console.warn(
+			`[sdocs] scale default ${value} is outside ${min}–${max}; using ${clamped}.`,
+		);
+	}
+	const cssVar = typeof scale.var === 'string' && scale.var.trim() ? scale.var.trim() : '--scale';
+	if (!cssVar.startsWith('--')) {
+		console.warn(`[sdocs] ignoring \`scale\`: \`var\` must be a custom property, got "${cssVar}".`);
+		return null;
+	}
+	return { min, max, step, default: clamped, var: cssVar, label: scale.label ?? 'Scale' };
+}
+
 /** Customization axes with labels filled in, invalid ones dropped.
  *
  * Every rejection warns. An axis that silently vanished would show up as a
@@ -261,6 +304,7 @@ export function resolveConfig(userConfig: SdocsConfig | ResolvedSdocsConfig): Re
 		// look for components wherever the docs live.
 		components: normalizeComponents(userConfig.components, include),
 		axes: normalizeAxes(userConfig.axes),
+		scale: normalizeScale(userConfig.scale),
 		content: {
 			doc: { ...DEFAULTS.content.doc, ...userConfig.content?.doc },
 			page: { ...DEFAULTS.content.page, ...userConfig.content?.page },

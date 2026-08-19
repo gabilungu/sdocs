@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { SectionTree } from '../tree-builder.js';
-	import type { AxisConfig } from '../../types.js';
+	import type { AxisConfig, ScaleConfig } from '../../types.js';
 	import { routeHref } from '../router.svelte.js';
 	import { Icon } from '../../ui/Icon/index.js';
 
@@ -18,6 +18,9 @@
 		axes?: Required<AxisConfig>[];
 		/** Current pick per axis id. */
 		axisValues?: Record<string, string>;
+		/** The scale slider's range, or null when the project declares none. */
+		scale?: Required<ScaleConfig> | null;
+		scaleValue?: number;
 		/** This dev server serves the MCP endpoint — show the MCP button. */
 		mcp?: boolean;
 		/** Narrow viewport with somewhere to navigate: show the drawer toggle. */
@@ -32,6 +35,7 @@
 		onStylesheetChange?: (name: string) => void;
 		onThemeChange?: (theme: ThemeMode) => void;
 		onAxisChange?: (id: string, value: string) => void;
+		onScaleChange?: (value: number) => void;
 	}
 
 	let {
@@ -44,6 +48,8 @@
 		theme = 'light',
 		axes = [],
 		axisValues = {},
+		scale = null,
+		scaleValue = 1,
 		mcp = false,
 		showBurger = false,
 		navOpen = false,
@@ -53,6 +59,7 @@
 		onStylesheetChange,
 		onThemeChange,
 		onAxisChange,
+		onScaleChange,
 	}: Props = $props();
 
 	// ─── Axis controls: segmented while they fit, dropdowns when they don't ───
@@ -251,6 +258,24 @@
 				</fieldset>
 			{/if}
 		{/each}
+		{#if scale}
+			<!-- A range, not a set of names, so it stays a slider at every width:
+			     there is no dropdown form of "anything between 0.75 and 1.5", and
+			     it is already narrower than a segmented control. -->
+			<label class="sdocs-scale" title="{scale.label} — sets {scale.var} on every stage">
+				<span class="sdocs-scale-legend">{scale.label}</span>
+				<input
+					type="range"
+					min={scale.min}
+					max={scale.max}
+					step={scale.step}
+					value={scaleValue}
+					oninput={(e) => onScaleChange?.(e.currentTarget.valueAsNumber)}
+					ondblclick={() => onScaleChange?.(scale.default)}
+				/>
+				<output>{scaleValue}</output>
+			</label>
+		{/if}
 		{#if mcp}
 			<button class="sdocs-topbar-btn sdocs-mcp-btn" onclick={openMcp} title="MCP server">
 				MCP
@@ -481,6 +506,45 @@
 		outline-offset: 1px;
 	}
 
+	/* Sized to the row, and no wider than it needs: the bar's free width is
+	   already spoken for by the segmented controls. */
+	.sdocs-scale {
+		display: inline-flex;
+		align-items: center;
+		box-sizing: border-box;
+		height: var(--sdocs-control-h);
+		min-height: 0;
+		gap: 6px;
+		padding: 0 7px;
+		border: 1px solid var(--color-base-200);
+		border-radius: 5px;
+		background: var(--color-base-100);
+		font-size: 11px;
+		line-height: 1;
+		color: var(--color-base-500);
+		cursor: pointer;
+	}
+	.sdocs-scale:hover {
+		color: var(--color-base-900);
+	}
+	.sdocs-scale-legend {
+		white-space: nowrap;
+	}
+	.sdocs-scale input {
+		width: 72px;
+		height: 2px;
+		margin: 0;
+		accent-color: var(--color-action-500);
+		cursor: pointer;
+	}
+	.sdocs-scale output {
+		/* Fixed width so the row doesn't shuffle as the number changes. */
+		width: 2.4em;
+		text-align: right;
+		font-variant-numeric: tabular-nums;
+		color: var(--color-base-900);
+	}
+
 	.sdocs-topbar-btn {
 		display: inline-flex;
 		align-items: center;
@@ -536,7 +600,8 @@
 		/* The pickers move into the drawer: they're the controls here wide
 		   enough to crowd out everything else. */
 		.sdocs-axis-picker,
-		.sdocs-axis-seg {
+		.sdocs-axis-seg,
+		.sdocs-scale {
 			display: none;
 		}
 		.sdocs-topbar-btn {

@@ -315,3 +315,37 @@ describe('config values that cannot work are refused loudly', () => {
 		expect(resolveConfig({ port: 3021 }).port).toBe(3021);
 	});
 });
+
+describe('the scale slider', () => {
+	it('is absent unless configured', () => {
+		expect(resolveConfig({}).scale).toBeNull();
+	});
+
+	it('fills the documented defaults around whatever is given', () => {
+		expect(resolveConfig({ scale: {} }).scale).toEqual({
+			min: 0.75, max: 1.5, default: 1, step: 0.05, var: '--scale', label: 'Scale',
+		});
+		expect(resolveConfig({ scale: { min: 1, max: 2, var: '--ui-scale' } }).scale).toMatchObject({
+			min: 1, max: 2, var: '--ui-scale',
+		});
+	});
+
+	it('refuses a range that cannot produce a usable control', () => {
+		// Silently dropping these leaves a missing slider, which reads as sdocs
+		// ignoring the config rather than as the config being wrong.
+		expect(resolveConfig({ scale: { min: 2, max: 1 } }).scale).toBeNull();
+		expect(resolveConfig({ scale: { min: 1, max: 1 } }).scale).toBeNull();
+		expect(resolveConfig({ scale: { step: 0 } }).scale).toBeNull();
+		expect(resolveConfig({ scale: { var: 'scale' } }).scale).toBeNull();
+	});
+
+	it('pulls a default that sits outside the range back into it', () => {
+		expect(resolveConfig({ scale: { min: 1, max: 2, default: 5 } }).scale?.default).toBe(2);
+		expect(resolveConfig({ scale: { min: 1, max: 2, default: 0 } }).scale?.default).toBe(1);
+	});
+
+	it('resolves idempotently, like the rest of the config', () => {
+		const once = resolveConfig({ scale: { min: 1, max: 2 } });
+		expect(resolveConfig(once).scale).toEqual(once.scale);
+	});
+});

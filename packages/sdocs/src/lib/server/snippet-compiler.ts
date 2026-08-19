@@ -547,6 +547,10 @@ window.addEventListener('message', (e) => {
 		const root = document.documentElement;
 		for (const id in e.data.axes) root.setAttribute('data-' + id, e.data.axes[id]);
 	}
+	if (e.data?.type === 'sdocs:update-scale') {
+		const s = e.data.scale;
+		if (s && s.var) document.documentElement.style.setProperty(s.var, String(s.value));
+	}
 	if (e.data?.type === 'sdocs:scroll-to') {
 		const el = document.getElementById(e.data.id);
 		if (el) el.scrollIntoView({ behavior: 'smooth' });

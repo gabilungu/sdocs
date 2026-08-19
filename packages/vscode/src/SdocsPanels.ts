@@ -36,10 +36,15 @@ export class SdocsPanels implements vscode.Disposable {
 		panel.webview.html = iframeHtml(url);
 		// The Explorer announces route changes; remember them so refresh and
 		// restart return to the same page instead of the root.
-		panel.webview.onDidReceiveMessage((msg: { type?: string; href?: string }) => {
-			if (msg?.type !== 'route' || typeof msg.href !== 'string') return;
+		panel.webview.onDidReceiveMessage(async (msg: { type?: string; href?: string }) => {
+			if (typeof msg?.href !== 'string') return;
 			const entry = this.panels.get(scopeDir);
-			if (entry && sameOrigin(msg.href, entry.url)) entry.lastHref = msg.href;
+			// The href comes from a page the extension did not author, so it is
+			// only ever honoured when it points back at this project's own
+			// server — never at an arbitrary URL a doc could name.
+			if (!entry || !sameOrigin(msg.href, entry.url)) return;
+			if (msg.type === 'route') entry.lastHref = msg.href;
+			if (msg.type === 'openExternal') await openStageUrl(msg.href);
 		});
 		panel.onDidDispose(() => this.panels.delete(scopeDir));
 		this.panels.set(scopeDir, { panel, url });
@@ -90,6 +95,32 @@ export class SdocsPanels implements vscode.Disposable {
 
 /** True when href shares url's origin — a stale route from a previous server
  * (different port) must not survive into the new one. */
+/**
+ * Show a stage on its own: the editor's built-in Simple Browser when it is
+ * available, the machine's default browser when it isn't.
+ *
+ * Simple Browser ships with VS Code but is an ordinary extension, so it can be
+ * disabled or missing from a given build — asking the command registry is the
+ * honest check, and `executeCommand` on a command nobody registered throws
+ * rather than no-ops.
+ */
+async function openStageUrl(href: string): Promise<void> {
+	const uri = vscode.Uri.parse(href);
+	try {
+		const commands = await vscode.commands.getCommands(true);
+		if (commands.includes(SIMPLE_BROWSER_SHOW)) {
+			await vscode.commands.executeCommand(SIMPLE_BROWSER_SHOW, uri);
+			return;
+		}
+	} catch {
+		// Fall through — a stage that won't open is worse than one that opens
+		// in the wrong place.
+	}
+	await vscode.env.openExternal(uri);
+}
+
+const SIMPLE_BROWSER_SHOW = 'simpleBrowser.show';
+
 function sameOrigin(href: string, url: string): boolean {
 	try {
 		return new URL(href).origin === new URL(url).origin;
@@ -117,8 +148,14 @@ function iframeHtml(url: string, refresh = 0): string {
 		// The framed Explorer posts its location on every route change; hand it
 		// to the extension so refresh/restart return to the same page.
 		window.addEventListener('message', (e) => {
-			if (e.data && e.data.type === 'sdocs:route' && typeof e.data.href === 'string') {
+			if (!e.data) return;
+			if (e.data.type === 'sdocs:route' && typeof e.data.href === 'string') {
 				vscode.postMessage({ type: 'route', href: e.data.href });
+			}
+			// A stage asking to be opened on its own. This frame is sandboxed
+			// without allow-popups, so the Explorer cannot open it itself.
+			if (e.data.type === 'sdocs:open-external' && typeof e.data.href === 'string') {
+				vscode.postMessage({ type: 'openExternal', href: e.data.href });
 			}
 		});
 	</script>

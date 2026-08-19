@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.125] - 2026-08-19
+
+### Fixed
+
+- **"Open this stage in a new tab" did nothing in the editor's docs tab.** The
+  Explorer runs two frames deep there, inside a webview whose sandbox does not
+  grant `allow-popups`, so `target="_blank"` was silently swallowed — and VS
+  Code only rewrites links in its own webview document, never inside a
+  cross-origin child. The link now falls back to asking whoever frames it:
+  `window.open` first (a plain browser answers it directly, and modifier and
+  middle clicks are left to the browser as before), and only when the frame
+  refuses does it post `sdocs:open-external` to its parent for the host to act
+  on. Unframed use is unchanged.
+
+
 ## [0.0.124] - 2026-08-19
 
 ### Changed

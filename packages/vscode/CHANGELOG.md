@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.64] - 2026-08-19
+
+### Added
+
+- **A stage opens on its own from the docs tab.** The panel now honours the
+  Explorer's request to show one preview standalone, in the built-in Simple
+  Browser where it is available and the machine's default browser otherwise.
+  The URL is only ever honoured when it points back at that project's own dev
+  server — it arrives from a page the extension did not author.
+- `sdocs.config.js` completion now offers **`axes`**, the customization
+  dimensions added in sdocs 0.0.121. The config schema is single-sourced from
+  the `sdocs` package, so the key and its documentation arrive with it.
+
+
 ## [0.0.63] - 2026-07-16
 
 ### Added

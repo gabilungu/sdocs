@@ -56,6 +56,28 @@
 		);
 	}
 
+	/**
+	 * Open this stage on its own.
+	 *
+	 * The anchor's own default is the best behaviour and handles the modifier
+	 * clicks itself — but a sandboxed frame without `allow-popups` silently
+	 * swallows `target="_blank"`, which is what the editor's docs tab is: the
+	 * Explorer runs two frames deep there, and VS Code only rewrites links in
+	 * its own webview document, never inside a cross-origin child. So try the
+	 * normal route, and when the browser refuses, ask whoever is framing us to
+	 * open it instead.
+	 */
+	function openStage(e: MouseEvent) {
+		// Middle-click, cmd/ctrl-click, shift-click: the browser's to answer.
+		if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+		e.preventDefault();
+		const href = new URL(resolvedSrc, location.href).href;
+		if (window.open(href, '_blank', 'noopener')) return;
+		if (window.parent !== window) {
+			window.parent.postMessage({ type: 'sdocs:open-external', href }, '*');
+		}
+	}
+
 	/** Invoke a zero-argument method on the preview's root component */
 	export function callMethod(name: string): void {
 		iframe?.contentWindow?.postMessage({ type: 'sdocs:call-method', name }, '*');
@@ -222,6 +244,7 @@
 			rel="noopener"
 			title="Open this stage in a new tab"
 			aria-label="Open this stage in a new tab"
+			onclick={openStage}
 		>
 			<Icon name="external-link" --w="11px" --h="11px" />
 		</a>

@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.131] - 2026-08-19
+
+### Fixed
+
+- **The sidebar tree and the content column no longer resize when a scrollbar
+  appears.** Both reserve the gutter now (`scrollbar-gutter: stable`), so the
+  width is the same whether or not one is showing.
+
+  The sidebar lost ~15px the moment the tree outgrew its pane — 260 down to
+  245 — narrowing every row and pushing the longer labels into truncation, a
+  reflow caused by expanding a folder rather than by anything about the item.
+  The content column had the same jump between a long `[DOC]` that scrolls and
+  a short component page that doesn't, so the text width changed as you moved
+  between them.
+
+
 ## [0.0.130] - 2026-08-19
 
 ### Fixed

@@ -449,6 +449,10 @@
 	.sdocs-main {
 		flex: 1;
 		overflow-y: auto;
+		/* Same reservation as the sidebar tree: a long DOC scrolls and a short
+		   component page doesn't, so without this the content column changed
+		   width as you moved between them. */
+		scrollbar-gutter: stable;
 		background: var(--color-base-0);
 	}
 	.sdocs-main-fullscreen {

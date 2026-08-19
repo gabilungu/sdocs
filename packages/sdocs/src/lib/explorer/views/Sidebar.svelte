@@ -438,6 +438,11 @@
 		flex: 1;
 		overflow-y: auto;
 		overflow-x: hidden;
+		/* Reserve the scrollbar's width whether or not one is showing. Without
+		   this the pane loses ~15px the moment the tree outgrows it, so every
+		   row narrows and the longer labels start truncating — a reflow caused
+		   by expanding a folder, not by anything about the item itself. */
+		scrollbar-gutter: stable;
 		padding: 8px;
 		/* Root items stack with the same 1px gap group children get. */
 		display: flex;

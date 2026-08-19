@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.133] - 2026-08-20
+
+### Fixed
+
+- **Sidebar rows no longer squash when the tree outgrows its pane.** A tree is
+  a column flex container, and `height` on a flex item is a base size it is
+  free to shrink below — so rows compressed from 28px to 16 the moment there
+  was more tree than room, instead of the pane simply scrolling.
+
+  Only the rows sitting directly in the tree were affected: one inside a branch
+  wrapper was spared because the wrapper gave way on its behalf. `[DOC]`,
+  `[PAGE]` and `[LAYOUT]` entities are leaves at the top level, while examples
+  live nested under their component — which is why the squashing tracked the
+  entity kind and looked like docs and layouts being sized differently.
+  `NavTree` rows and branch wrappers now refuse to shrink.
+
+- **The sidebar column holds its width against wide content.** It was an
+  ordinary flex item, so a table, an unwrappable code line, or a layout stage
+  with a min-width could take space from it. The nav keeps its 260px and the
+  content column scrolls its own overflow instead.
+
+
 ## [0.0.132] - 2026-08-20
 
 ### Fixed

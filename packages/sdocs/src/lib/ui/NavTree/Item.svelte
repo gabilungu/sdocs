@@ -84,6 +84,14 @@
 		align-items: center;
 		gap: 6px;
 		width: 100%;
+		/* A tree is a column flex container, so an over-full one compresses its
+		   children rather than letting them overflow — `height` is a base size a
+		   flex item is free to shrink below. Rows were squashing from 28px to 16
+		   the moment the tree outgrew its pane, and only the ones sitting
+		   directly in it: a row inside a branch wrapper was protected by the
+		   wrapper absorbing the shrink instead. Hence docs and layouts, which sit
+		   at the top level, and not the examples nested under a component. */
+		flex-shrink: 0;
 		/* Row height is settable so a touch context can ask for a bigger
 		   target than the 28px a pointer is happy with. */
 		height: var(--item-h, 28px);
@@ -191,7 +199,10 @@
 		background: rgb(255 255 255 / 0.7);
 	}
 
+	/* Same reason: a whole branch must keep its natural height, or the rows
+	   inside it are compressed by the wrapper giving way on their behalf. */
 	.NavTree-item-wrapper {
+		flex-shrink: 0;
 		display: flex;
 		flex-direction: column;
 		gap: 1px;

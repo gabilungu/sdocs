@@ -406,6 +406,13 @@
 <style>
 	.sdocs-sidebar {
 		width: 260px;
+		/* A fixed-width nav column, not a share of the row. Without this the
+		   sidebar is an ordinary flex item that gives up width whenever the
+		   content beside it refuses to get narrower — a wide table, an
+		   unwrappable code line, a layout stage with a min-width. Those live on
+		   DOC and LAYOUT pages, so the tree appeared to shrink for exactly
+		   those kinds and not for component pages. */
+		flex-shrink: 0;
 		height: 100%;
 		overflow-y: auto;
 		border-right: 1px solid var(--color-base-200);

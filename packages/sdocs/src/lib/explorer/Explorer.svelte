@@ -448,6 +448,11 @@
 	}
 	.sdocs-main {
 		flex: 1;
+		/* The other half: a flex item's automatic minimum is its content, so
+		   without this the content column can't shrink below whatever its
+		   widest child demands and pushes on its sibling instead. It scrolls
+		   its own overflow now rather than taking width from the nav. */
+		min-width: 0;
 		overflow-y: auto;
 		/* Same reservation as the sidebar tree: a long DOC scrolls and a short
 		   component page doesn't, so without this the content column changed

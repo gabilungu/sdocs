@@ -1,6 +1,6 @@
 {
 	"name": "sdocs",
-	"version": "0.0.134",
+	"version": "0.0.135",
 	"description": "A lightweight documentation tool for Svelte 5 components",
 	"type": "module",
 	"license": "MIT",

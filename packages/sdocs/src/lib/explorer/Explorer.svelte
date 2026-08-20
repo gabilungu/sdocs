@@ -13,6 +13,7 @@
 	import { onMount, setContext, type Component } from 'svelte';
 	import { initLayoutWidth } from './layout-width.svelte.js';
 	import { initViewport, isNarrow } from './viewport.svelte.js';
+	import { initHostClipboard } from './host-clipboard.js';
 	import '../ui/styles/sdocs.css';
 
 	type ThemeMode = 'light' | 'dark';
@@ -194,6 +195,8 @@
 		initRouter(routing, basePath);
 		initLayoutWidth();
 		const stopViewport = initViewport();
+		// Framed by an editor, the clipboard shortcuts arrive here unanswered.
+		const stopClipboard = initHostClipboard();
 		const saved = localStorage.getItem('sdocs-theme') as ThemeMode | null;
 		if (saved && (saved === 'light' || saved === 'dark')) {
 			theme = saved;
@@ -201,7 +204,10 @@
 		restoreAxes();
 		restoreStylesheet();
 		restoreScale();
-		return stopViewport;
+		return () => {
+			stopViewport();
+			stopClipboard();
+		};
 	});
 
 	/** Restore the stored picks, validated against the axes this site actually

@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.135] - 2026-08-20
+
+### Fixed
+
+- **The clipboard shortcuts work in an editor's docs tab.** An editor built on
+  Electron answers `Cmd/Ctrl+C` from its application menu rather than leaving
+  it to the browser: for a webview it becomes an `execCommand('copy')` against
+  the webview's own document. The Explorer runs one level deeper, in a
+  cross-origin frame that document cannot reach, so the command found no
+  selection and copying, cutting, pasting and select-all all did nothing —
+  the page looked like it forbade them.
+
+  The key event does arrive in the frame — a key event doesn't cross origins,
+  which is also why the editor never sees it — so the Explorer now answers
+  those shortcuts itself, and only there: framed inside such a host, never in
+  an ordinary browser, which already does all of this natively.
+
+  A webview stays a sandboxed frame either way. `window.open`, `alert()` and
+  `confirm()` are not the host's to grant, so an example that calls one still
+  needs a real browser.
+
+
 ## [0.0.134] - 2026-08-20
 
 ### Fixed

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.65] - 2026-08-20
+
+### Added
+
+- **Open in Browser** — a globe in the docs tab's title bar (and the command
+  palette) hands the page you are reading to the machine's own browser, at the
+  same route rather than back at the docs home. A webview is a sandboxed
+  frame — no popups, no modals, and the editor answers the clipboard shortcuts
+  itself — so the way to a page with no restrictions at all is to leave the
+  editor. The project card's **Browser ↗** still opens the docs home.
+
+
 ## [0.0.64] - 2026-08-19
 
 ### Added

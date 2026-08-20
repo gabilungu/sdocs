@@ -36,7 +36,9 @@ false errors on the block syntax:
   to it, ready to fill in.
 - **sdocs view** — the activity-bar icon lists the sdocs projects in your
   workspace; click one to run its docs and browse them inside the editor.
-  Add extra folders with the `sdocs.scopes` setting.
+  Add extra folders with the `sdocs.scopes` setting. The docs tab's title bar
+  reloads the page, restarts the dev server, and hands the page you are
+  reading to your own browser for anything a webview won't do.
 - **MCP server** — the extension registers the sdocs MCP server with the
   editor, so agent features can validate `.sdoc` files with the real parser,
   scaffold starter docs from a component's extracted props, read the authoring

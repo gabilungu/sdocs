@@ -74,6 +74,7 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand('sdocs.newComponentDoc', newComponentDoc),
 		vscode.commands.registerCommand('sdocs.refreshScopes', () => scopesView.refresh()),
 		vscode.commands.registerCommand('sdocs.refreshPreview', () => panels.refreshActive()),
+		vscode.commands.registerCommand('sdocs.openInBrowser', () => panels.openActiveExternally()),
 		vscode.commands.registerCommand('sdocs.restartServer', async () => {
 			const dir = panels.activeScopeDir();
 			if (!dir) return;

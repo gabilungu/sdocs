@@ -25,10 +25,26 @@
 	if the dev server wedges. Refreshing only reloads the page; restarting relaunches
 	the underlying `sdocs` process.
 
+	## Opening in a browser
+
+	Click the **globe icon** in the tab's title bar to hand the page you are
+	reading to your own browser — the same route, not the docs home.
+
+	Reach for it when the tab's own limits get in the way. A docs tab is a
+	webview, and a webview is a sandboxed frame: `window.open`, `alert()` and
+	`confirm()` do nothing inside one, however the page asks. An example that
+	opens a window or raises an alert needs a real browser to show what it does.
+
+	Copying does work in the tab. The editor answers `Cmd+C` and friends by
+	looking for a selection in a document the Explorer isn't in, so the
+	Explorer answers those shortcuts itself — copy, cut, paste, select-all and
+	undo behave as they do anywhere else.
+
 	## Tips
 
-	- The tab embeds the same dev server you can open in the browser — use
-	  **Browser ↗** on the project card when you want browser devtools.
+	- The tab embeds the same dev server you can open in the browser — the
+	  globe icon lands on the page you are reading, **Browser ↗** on the
+	  project card at the docs home.
 	- To inspect the tab itself, run **Developer: Open Webview Developer Tools**
 	  from the command palette while the tab is focused.
 

@@ -65,6 +65,20 @@ export class SdocsPanels implements vscode.Disposable {
 		}
 	}
 
+	/** Hand the active panel's current page to the machine's own browser.
+	 * A webview is a sandboxed frame — no popups, no modals, and the editor
+	 * answers the clipboard shortcuts itself — so the way to a page with no
+	 * restrictions at all is to leave the editor, at the page being read
+	 * rather than back at the root. */
+	async openActiveExternally(): Promise<void> {
+		for (const entry of this.panels.values()) {
+			if (entry.panel.active) {
+				await vscode.env.openExternal(vscode.Uri.parse(entry.lastHref ?? entry.url));
+				return;
+			}
+		}
+	}
+
 	/** The scope directory of the currently active preview panel, if any. */
 	activeScopeDir(): string | undefined {
 		for (const [dir, { panel }] of this.panels) {

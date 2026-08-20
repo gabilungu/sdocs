@@ -2,7 +2,7 @@
 	"name": "sdocs",
 	"displayName": "sdocs",
 	"description": "Language support for sdocs — Svelte component documentation (.sdoc)",
-	"version": "0.0.64",
+	"version": "0.0.65",
 	"publisher": "gabilungu",
 	"license": "MIT",
 	"repository": {
@@ -106,6 +106,12 @@
 				"icon": "$(refresh)"
 			},
 			{
+				"command": "sdocs.openInBrowser",
+				"category": "sdocs",
+				"title": "Open in Browser",
+				"icon": "$(globe)"
+			},
+			{
 				"command": "sdocs.restartServer",
 				"category": "sdocs",
 				"title": "Restart sdocs Server",
@@ -172,6 +178,10 @@
 				{
 					"command": "sdocs.restartServer",
 					"when": "activeWebviewPanelId == sdocsPreview"
+				},
+				{
+					"command": "sdocs.openInBrowser",
+					"when": "activeWebviewPanelId == sdocsPreview"
 				}
 			],
 			"editor/title": [
@@ -184,6 +194,11 @@
 					"command": "sdocs.restartServer",
 					"when": "activeWebviewPanelId == sdocsPreview",
 					"group": "navigation@2"
+				},
+				{
+					"command": "sdocs.openInBrowser",
+					"when": "activeWebviewPanelId == sdocsPreview",
+					"group": "navigation@3"
 				}
 			],
 			"view/title": [

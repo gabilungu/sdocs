@@ -406,6 +406,7 @@
 		<main
 			class="sdocs-main"
 			class:sdocs-main-fullscreen={fullscreen}
+			class:sdocs-main-flush={resolved?.doc.kind === 'layout'}
 			inert={narrow && navOpen}
 		>
 			{#if resolved}
@@ -462,6 +463,13 @@
 	}
 	.sdocs-main-fullscreen {
 		overflow-y: auto;
+	}
+	/* A layout page is exactly the height of the view and never scrolls, so
+	   the reserved gutter is dead space at the right edge — and it holds the
+	   layout's resize handle that far off the edge of the window. */
+	.sdocs-main-flush {
+		scrollbar-gutter: auto;
+		overflow: hidden;
 	}
 	/* The hover target: big enough to find blind, small enough to not sit on
 	   content clicks (the content's top-left padding area). */

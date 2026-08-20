@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.134] - 2026-08-20
+
+### Fixed
+
+- **A layout now reaches the right edge of the window.** The content column
+  reserves the scrollbar gutter so its width doesn't change between a page
+  that scrolls and one that doesn't — but a layout is exactly the height of
+  the view and never scrolls, so the reservation was permanent dead space:
+  ~15px of background past the layout, with the resize handle held that far
+  off the edge and unable to drag the layout out to the full width. Layout
+  routes drop the gutter.
+
+
 ## [0.0.133] - 2026-08-20
 
 ### Fixed

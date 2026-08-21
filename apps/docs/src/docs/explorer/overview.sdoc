@@ -10,7 +10,7 @@
 
 	There are two ways to run it:
 
-	- **[Standalone](/cli)** — `npx sdocs run` starts the Explorer as its own dev
+	- **[Standalone](/cli/overview)** — `npx sdocs run` starts the Explorer as its own dev
 	  server, no host app (or even an sdocs install) required.
 	- **[Embedded](/explorer/embedded-vite)** — mount the Explorer as a route
 	  inside your existing Vite or SvelteKit app.
@@ -31,7 +31,7 @@
 	## The other entities
 
 	- [The sdoc language](/language/overview) — the `.sdoc` file format the Explorer renders
-	- [CLI](/cli) — run, build, and scaffold from the command line
-	- [VS Code extension](/extension) — `.sdoc` IntelliSense and one-click docs inside the editor
+	- [CLI](/cli/overview) — run, build, and scaffold from the command line
+	- [VS Code extension](/extension/overview) — `.sdoc` IntelliSense and one-click docs inside the editor
 
 [/DOC]

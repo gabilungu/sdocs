@@ -12,6 +12,24 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.150] - 2026-08-21
+
+### Fixed
+
+- **Three dead links** on the Explorer overview page (`/cli`, `/extension`).
+  A dead internal link does not 404 — the Explorer resolves an unknown route to
+  the About screen with HTTP 200 — so it reads as a working link that goes
+  somewhere odd. A test now walks every internal link on the docs site against
+  the routes the section builder actually produces.
+
+- **`[SHOWCASE]`'s `padding` default** was documented as `0px`; it is `16px`.
+  The attribute table also omitted `minHeight`.
+
+- **"What's New" stopped at 0.0.82**, sixty-seven releases back, which reads as
+  a project that stalled in July. It now covers the text blocks, `status`,
+  `[GLOSSARY]` and `@component` descriptions, and points at `/changelog` for
+  the full record.
+
 ## [0.0.149] - 2026-08-21
 
 A launch-readiness audit found the engine solid and the announcement surfaces

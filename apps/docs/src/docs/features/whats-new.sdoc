@@ -1,8 +1,37 @@
 [DOC title="@features/What's New"]
 
 
-	The latest sdocs releases, shown off with live examples — every page in
-	this section is itself a `.sdoc` file exercising the feature it presents.
+	Notable additions, shown off with live examples — every page in this section
+	is itself a `.sdoc` file exercising the feature it presents. For the full
+	record of every release, see the [changelog](/changelog).
+
+	## 0.0.148 — a component describes itself
+
+	A `.svelte` file's `<!-- @component -->` comment — Svelte's own convention,
+	the one your editor shows on hover — is read and rendered under the
+	component's tab. Write the description beside the code once instead of
+	repeating it in every `.sdoc` that previews it. See
+	[`[COMPONENT]`](/language/component-docs).
+
+	## 0.0.145 — `[GLOSSARY]`
+
+	A titled list of terms, rendered where it is written: in a `[SHOWCASE]` it
+	flows with the other blocks, in a `[DOC]` it sits mid-prose. `search` turns
+	on a filter box. [Language reference](/language/overview#text-blocks).
+
+	## 0.0.140 — component `status`
+
+	`draft`, `wip`, `review`, `experimental`, `ready`, `deprecated` — shown as a
+	glyph on the component's tab, so a strip of tabs says what is safe to use at
+	a glance. [See it live](/demo/everything).
+
+	## 0.0.139 — the text blocks
+
+	`[NOTES]`, `[TODO]` and `[PROSE]` — standing remarks with a status
+	vocabulary that rolls up into the sidebar, a nested checklist you can tick
+	from the browser, and markdown anywhere in a component's page. `[COMPONENTS]`
+	groups several component blocks into the one tab strip they share.
+	[Language reference](/language/overview#text-blocks).
 
 	## 0.0.81 — block-level `<script>` and `<style>`
 

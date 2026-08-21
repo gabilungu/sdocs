@@ -47,7 +47,7 @@ jobs:
       # release edits it. Compiling it here catches a broken stage before it
       # reaches the deploy, which has no gate of its own.
       - name: Check the docs site compiles
-        run: node packages/sdocs/bin/sdocs.js check
+        run: node ../../packages/sdocs/bin/sdocs.js check
         working-directory: apps/docs
 
   vscode:

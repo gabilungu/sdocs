@@ -50,7 +50,7 @@ jobs:
         run: npm test -w sdocs
 
       - name: Check the docs site compiles
-        run: node packages/sdocs/bin/sdocs.js check
+        run: node ../../packages/sdocs/bin/sdocs.js check
         working-directory: apps/docs
 
   build:

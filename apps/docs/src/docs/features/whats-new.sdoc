@@ -5,6 +5,22 @@
 	is itself a `.sdoc` file exercising the feature it presents. For the full
 	record of every release, see the [changelog](/changelog).
 
+	## 0.0.156 — a not-found page, and CLI options that are read
+
+	An address that resolves to nothing now says so and links back into each
+	section, instead of quietly rendering the About screen — a dead link used
+	to look like a working one. The CLI gained `--port`, `--open` / `--no-open`
+	and `--out-dir`, and it rejects anything it does not understand rather than
+	accepting a misspelled flag in silence. See
+	[the command reference](/cli/commands#flags).
+
+	## 0.0.155 — `outDir`, and a build that won't delete your bundle
+
+	`sdocs build` empties its output directory, and the default is `dist/` —
+	which in a component library is where the library's own build lives. It now
+	refuses a directory it did not write, names the files it found, and points
+	at [`outDir`](/explorer/configuration#outdir).
+
 	## 0.0.148 — a component describes itself
 
 	A `.svelte` file's `<!-- @component -->` comment — Svelte's own convention,

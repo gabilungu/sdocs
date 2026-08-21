@@ -3,10 +3,11 @@ import * as path from 'node:path';
 import { createRequire } from 'node:module';
 
 /**
- * Registers the sdocs MCP server (authoring tools: validate_sdoc,
- * scaffold_component_doc, get_authoring_guide) with the editor's MCP client,
- * so agent features can validate and scaffold `.sdoc` files against the real
- * parser. The editor manages the server's lifecycle — it starts on demand.
+ * Registers the sdocs MCP server with the editor's MCP client, so agent
+ * features work against the real parser and extractor rather than guessing at
+ * the format. The server owns the tool list — naming a few of them here only
+ * created a second list to keep in step, and it was four releases stale.
+ * The editor manages the server's lifecycle: it starts on demand.
  */
 export function registerMcpProvider(): vscode.Disposable {
 	return vscode.lm.registerMcpServerDefinitionProvider('sdocs.mcp', {

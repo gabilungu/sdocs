@@ -12,6 +12,25 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.162] - 2026-08-21
+
+### Fixed
+
+- **Eight attributes were missing from the language reference.** `status` and
+  `minHeight` on `[COMPONENT]`; `description`, `tags`, `code`, `background`
+  and `minHeight` on `[EXAMPLE]`. `status` even had a section of its own
+  further down the same page — just no row in the table, so the only way to
+  discover it was to read the parser.
+- **What's New stops at the current release** rather than thirteen behind it.
+
+### Added
+
+- **A test that every attribute the parser accepts appears in the reference.**
+  The tables are hand-written and the rules are code, so they drift one way:
+  an attribute ships and the table is not touched. The check is
+  one-directional — a table may explain more than the rules list, but it may
+  not document less.
+
 ## [0.0.161] - 2026-08-21
 
 ### Fixed

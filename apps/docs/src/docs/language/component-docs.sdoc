@@ -63,6 +63,7 @@
 	| `title` | no | Tab label — defaults to the component's name |
 	| `description` | no | Short text shown above the stage — inline markdown renders styled |
 	| `synonyms` | no | Other names this component answers to, comma-separated — see below |
+	| `status` | no | Lifecycle marker on the tab: `draft`, `wip`, `review`, `experimental`, `ready`, `deprecated` — [see below](#status-where-a-component-is-in-its-life) |
 	| `maxWidth` | no | Stage width (default `100%`; narrower stages center) |
 	| `padding` | no | Stage padding — overrides the entity and config defaults |
 	| `direction` | no | Stage `flex-direction` — overrides the entity and config defaults |
@@ -70,6 +71,7 @@
 	| `contentX` | no | Horizontal alignment: `left`/`center`/`right`/`justify` |
 	| `contentY` | no | Vertical alignment: `top`/`middle`/`bottom`/`justify` |
 	| `background` | no | Stage background — a CSS color or a `var()` from the project's css |
+	| `minHeight` | no | Minimum stage height, so a short preview still has room |
 
 	`args` values are **plain literals** — strings, numbers, booleans, and `null`.
 	They stay simple because the controls send them into the isolated preview at
@@ -227,9 +229,9 @@
 	Examples are frozen showcases: each renders **exactly what you wrote**,
 	always — the controls never touch them. Every example requires a `title`
 	(any text — spaces and punctuation welcome), unique within its `[SHOWCASE]`
-	block. `maxWidth`, `padding`, `direction`, `gap`, `contentX`, `contentY`, and
-	`background` tune its stage, like on `[COMPONENT]`; `description` adds a short
-	text under the heading. An example also takes its own `[NOTES]`, `[TODO]` and
+	block. `maxWidth`, `padding`, `direction`, `gap`, `contentX`, `contentY`,
+	`background` and `minHeight` tune its stage, like on `[COMPONENT]`;
+	`description` adds a short text under the heading. An example also takes its own `[NOTES]`, `[TODO]` and
 	`[PROSE]` blocks (see [text blocks](/language/overview#text-blocks)) — nested
 	inside its body, where the parser lifts them out before anything is staged.
 	They are the only things that follow the example to its own route: a sibling

@@ -95,9 +95,14 @@
 	| Attribute | Required | Meaning |
 	|---|---|---|
 	| `title` | yes | The example heading |
+	| `description` | no | Short text under the heading — inline markdown renders styled |
+	| `tags` | no | What this example shows, comma-separated — shown as chips and searchable through the [MCP server](/cli/commands#sdocs-mcp) |
+	| `code` | no | `code="false"` hides the source panel, leaving only the rendered stage |
 	| `maxWidth` / `padding` | no | Stage size (defaults from `content.showcase`) |
 	| `direction` / `gap` | no | Stage flex flow (defaults from `content.showcase`) |
 	| `contentX` / `contentY` | no | Stage alignment (defaults from `content.showcase`) |
+	| `background` | no | Stage background — a CSS color or a `var()` from the project's css |
+	| `minHeight` | no | Minimum stage height, so a short example still has room |
 
 	Each example is self-contained: it sees the file `<script>` (imports and
 	shared values), but not snippets declared in the prose — the two compile

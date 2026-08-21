@@ -45,9 +45,13 @@ false errors on the block syntax:
   reloads the page, restarts the dev server, and hands the page you are
   reading to your own browser for anything a webview won't do.
 - **MCP server** — the extension registers the sdocs MCP server with the
-  editor, so agent features can validate `.sdoc` files with the real parser,
-  scaffold starter docs from a component's extracted props, read the authoring
-  guide, and read the workspace's docs map and component APIs. It prefers the
+  editor, giving agent features fourteen tools against the real parser and
+  extractor. Ten read: validate a `.sdoc`, compile every stage and report what
+  breaks, scaffold a starter doc from a component's extracted props, read the
+  authoring guide and the changelog, map the workspace's docs, search them,
+  report preview coverage, resolve a stage's screenshot route, and return a
+  component's full API. Four write: a component's lifecycle status, a
+  `[NOTES]` block, a `[TODO]` checklist, and ticking one item. It prefers the
   workspace's own sdocs install (falling back to `npx`); the editor starts and
   stops it on demand.
 

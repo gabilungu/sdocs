@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.73] - 2026-08-21
+
+### Fixed
+
+- **The Marketplace page named three of the MCP server's fourteen tools.** It
+  now describes all of them — the ten that read and the four that write.
+
 ## [0.0.72] - 2026-08-21
 
 ### Changed

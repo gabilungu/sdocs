@@ -528,12 +528,50 @@ function generateCssLinks(css: string | Record<string, string> | null): string {
 		.join('\n\t');
 }
 
-/** The JS that boots a preview page: mount the wrapper + parent-frame messaging. */
-export function generateMountScript(iframeComponentId: string): string {
+/**
+ * The JS that boots a preview page: mount the wrapper + parent-frame messaging.
+ *
+ * The import is dynamic and guarded on purpose. A stage's `<script>` runs when
+ * its module is evaluated, so anything that throws there — a `JSON.parse` on a
+ * fixture, a missing export read at the top level — kills the preview page
+ * before `mount` is ever reached. With a static import there is nothing to
+ * catch, and the reader gets a documentation page with a silent empty frame
+ * while the build reports success. Now the frame says what threw.
+ */
+export function generateMountScript(iframeComponentId: string, label = ''): string {
 	return `import { mount } from 'svelte';
-import App from '${iframeComponentId}';
 ${PREVIEW_URL_PARAMS_JS}
-mount(App, { target: document.getElementById('app') });
+const target = document.getElementById('app');
+try {
+	const App = (await import('${iframeComponentId}')).default;
+	mount(App, { target });
+} catch (err) {
+	renderStageError(err);
+}
+
+function renderStageError(err) {
+	console.error('[sdocs] stage failed:', err);
+	// Inline styles throughout: this page carries the project's CSS, not
+	// sdocs', so nothing here can rely on a token or a class existing.
+	const box = document.createElement('div');
+	box.setAttribute('role', 'alert');
+	box.style.cssText =
+		'margin:16px;padding:14px 16px;border:1px solid #f0b3b3;border-radius:8px;' +
+		'background:#fff5f5;color:#7a1f1f;font:13px/1.55 ui-sans-serif,system-ui,sans-serif;';
+	const title = document.createElement('strong');
+	title.style.cssText = 'display:block;margin-bottom:6px;font-size:13px;';
+	title.textContent = 'This stage threw while loading';
+	const label = ${JSON.stringify(label)};
+	const where = document.createElement('div');
+	where.style.cssText = 'margin-bottom:8px;font-size:12px;opacity:0.75;';
+	where.textContent = label;
+	const msg = document.createElement('pre');
+	msg.style.cssText =
+		'margin:0;white-space:pre-wrap;word-break:break-word;font:12px/1.5 ui-monospace,monospace;';
+	msg.textContent = (err && (err.stack || err.message)) || String(err);
+	box.append(title, ...(label ? [where] : []), msg);
+	target.replaceChildren(box);
+}
 ${PREVIEW_RUNTIME_JS}
 
 // Listen for sdocs messages from the parent frame
@@ -597,7 +635,7 @@ export function generatePreviewHtml(
 	return previewHtmlShell(
 		generateCssLinks(css),
 		`<script type="module">
-${generateMountScript(iframeComponentId)}
+${generateMountScript(iframeComponentId, stage ? `${stage.kind} › ${stage.name}` : '')}
 	</script>`,
 		base,
 		stage,

@@ -79,3 +79,33 @@ describe('resolveArgsInCode', () => {
 		expect(out).toContain('const args = { label: "hi" };');
 	});
 });
+
+/**
+ * `String.replace` reads `$&`, `` $` ``, `$'` and `$$` in the *replacement*
+ * as substitution syntax. The replacement here is a prop value the reader
+ * typed, so a `$&` in a label used to come back as the matched text.
+ */
+describe('prop values containing substitution syntax', () => {
+	const patch = (value: string) =>
+		patchSnippetCode(
+			'<Button label="before" />',
+			'Button',
+			{ label: value },
+			{},
+			{ label: 'before' },
+			{},
+		);
+
+	it('keeps $& verbatim', () => {
+		expect(patch('a $& b')).toContain('label="a $& b"');
+	});
+
+	it('keeps $$ verbatim', () => {
+		expect(patch('costs $$5')).toContain('label="costs $$5"');
+	});
+
+	it("keeps $' and $` verbatim", () => {
+		expect(patch("a $' b")).toContain("label=\"a $' b\"");
+		expect(patch('a $` b')).toContain('label="a $` b"');
+	});
+});

@@ -164,7 +164,9 @@ export function patchSnippetCode(
 		let replaced = false;
 		for (const pattern of patternsFor(attrName)) {
 			if (pattern.test(attrs)) {
-				attrs = attrs.replace(pattern, `$1${formatted}`);
+				// A replacer function, so a prop value containing `$&` or `$'`
+				// lands verbatim instead of being read as substitution syntax.
+				attrs = attrs.replace(pattern, (_m, prefix: string) => `${prefix}${formatted}`);
 				replaced = true;
 				break;
 			}

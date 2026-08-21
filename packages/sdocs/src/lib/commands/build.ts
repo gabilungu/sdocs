@@ -275,8 +275,11 @@ async function emitRoutePages(
 		try {
 			const segments = key === null ? [] : key.split('/');
 			const { head, body } = renderRoute(segments);
-			html = html.replace(/<div id="app">\s*<\/div>/, `<div id="app">${body}</div>`);
-			if (head) html = html.replace('</head>', `${head}\n</head>`);
+			// Replacer functions, not replacement strings: `$&`, `$'` and `$$`
+			// are substitution syntax in a string, and this is prerendered page
+			// content — a doc that writes `$&` in prose would come out mangled.
+			html = html.replace(/<div id="app">\s*<\/div>/, () => `<div id="app">${body}</div>`);
+			if (head) html = html.replace('</head>', () => `${head}\n</head>`);
 		} catch (err) {
 			console.warn(
 				`[sdocs] Prerender failed for /${key ?? ''} — page falls back to client rendering:`,
@@ -286,7 +289,7 @@ async function emitRoutePages(
 		const headTags =
 			`<title>${escapeHtml(title)}</title>` +
 			(description ? `\n\t<meta name="description" content="${escapeHtml(description)}">` : '');
-		return html.replace(/<title>[^<]*<\/title>/, headTags);
+		return html.replace(/<title>[^<]*<\/title>/, () => headTags);
 	};
 
 	// The root route renders the home target (or the About screen).

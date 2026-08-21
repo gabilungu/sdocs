@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { compile } from 'svelte/compiler';
 import {
 	generateIframeComponent,
+	generateMountScript,
 	generatePageComponent,
 	generatePreviewHtml,
 	resolveScriptImports,
@@ -397,5 +398,41 @@ describe('sdocsWarningFilter', () => {
 				filename: '/src/lib/Button.svelte',
 			}),
 		).toBe(true);
+	});
+});
+
+/**
+ * A stage's `<script>` runs when its module is evaluated. Anything that throws
+ * there — a `JSON.parse` on a fixture, a top-level read of a missing export —
+ * used to kill the whole preview page before `mount` ran, and the reader got a
+ * documentation page with a silent empty frame while `build` reported success.
+ */
+describe('a stage that throws while loading', () => {
+	const script = generateMountScript('/@sdocs/iframe/boom/preview', 'component › Boom');
+
+	it('imports dynamically so the throw is catchable', () => {
+		// A static `import App from …` cannot be caught: the failure happens
+		// during module evaluation, before any statement in this file runs.
+		expect(script).not.toMatch(/^import App from/m);
+		expect(script).toContain("await import('/@sdocs/iframe/boom/preview')");
+		expect(script).toContain('catch');
+	});
+
+	it('names the stage in the message it renders', () => {
+		expect(script).toContain('component › Boom');
+		expect(script).toContain('This stage threw while loading');
+	});
+
+	it('omits the location line when there is no label to show', () => {
+		const bare = generateMountScript('/@sdocs/iframe/boom/preview');
+		expect(bare).toContain('const label = ""');
+		expect(bare).toContain('...(label ? [where] : [])');
+	});
+
+	it('still compiles as a module', () => {
+		// Top-level await is why this needs checking: the mount script is
+		// emitted as `<script type="module">`, which allows it.
+		expect(() => new Function(`return async () => {${script.replace(/^import .*$/gm, '')}}`))
+			.not.toThrow();
 	});
 });

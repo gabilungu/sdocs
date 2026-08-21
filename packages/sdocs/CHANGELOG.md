@@ -12,6 +12,23 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.157] - 2026-08-21
+
+### Fixed
+
+- **A stage whose `<script>` throws now says so.** A stage's script runs when
+  its module is evaluated, so anything that threw there — a `JSON.parse` on a
+  fixture, a top-level read of a missing export — killed the preview page
+  before it mounted. The reader got a documentation page with a silent empty
+  frame, and the build reported success. The frame now names the stage and
+  shows what threw.
+- **Content that looks like `String.replace` substitution syntax survives
+  prerendering.** `$&`, `` $` ``, `$'` and `$$` are substitution syntax in a
+  replacement string, and the prerenderer's replacements are page titles and
+  rendered bodies. A doc titled `Pricing $$ and $& rules` emitted three
+  `<title>` tags, each holding text the `$&` pulled in from the match. Prop
+  values shown in the usage-code panel had the same problem.
+
 ## [0.0.156] - 2026-08-21
 
 ### Added

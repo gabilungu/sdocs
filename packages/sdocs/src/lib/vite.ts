@@ -2,7 +2,7 @@ import type { Plugin, ViteDevServer } from 'vite';
 import { readFile, writeFile } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, resolve as resolvePath } from 'node:path';
+import { dirname, relative, resolve as resolvePath } from 'node:path';
 import { loadRawConfig, resolveAndFinalize } from './server/config.js';
 import { discoverDocFiles, globBase } from './server/discovery.js';
 import { parseComponent } from './server/prop-parser.js';
@@ -523,12 +523,16 @@ export function sdocsPlugin(
 				const parsed = parseMountId(id.slice(1));
 				if (!parsed) return null;
 				const mountEntry = lookupEntry(docEntries, parsed);
+				const stageFile = mountEntry?.filePath ?? parsed.docFilePath;
 				return generateMountScript(
 					iframeVirtualId(
-						mountEntry?.filePath ?? parsed.docFilePath,
+						stageFile,
 						mountEntry?.entitySlug ?? parsed.entitySlug,
 						parsed.snippetSlug,
 					),
+					// Named the way the author would look for it: the file they
+					// wrote, and which stage inside it.
+					[relative(projectRoot, stageFile), parsed.snippetSlug].filter(Boolean).join(' › '),
 				);
 			}
 		},

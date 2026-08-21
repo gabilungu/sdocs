@@ -545,3 +545,46 @@ describe('option handling', () => {
 		expect(out).toContain('--out-dir');
 	});
 });
+
+/**
+ * `String.replace` reads `$&`, `` $` ``, `$'` and `$$` in the *replacement* as
+ * substitution syntax, and the prerenderer's replacements are page titles and
+ * rendered page bodies — reader content. A doc titled "Pricing $$ and $&
+ * rules" used to emit three `<title>` tags, each holding the matched text the
+ * `$&` pulled in.
+ */
+describe('prerendering content that looks like substitution syntax', () => {
+	it('writes it through verbatim', () => {
+		const dir = realpathSync(mkdtempSync(join(tmpdir(), 'sdocs-dollar-')));
+		tempDirs.push(dir);
+		mkdirSync(join(dir, 'src'), { recursive: true });
+		writeFileSync(join(dir, 'package.json'), '{"name":"dollar","private":true,"type":"module"}\n');
+		writeFileSync(
+			join(dir, 'sdocs.config.js'),
+			"export default { include: ['./src/**/*.sdoc'], title: 'Money $& Co' };\n",
+		);
+		writeFileSync(
+			join(dir, 'src/Pricing.sdoc'),
+			[
+				'[DOC title="Pricing $$ and $& rules"]',
+				'',
+				'\t## Costs',
+				'',
+				"\tA plan costs $$5, and $& and $' are common in shell scripts.",
+				'',
+				'[/DOC]',
+				'',
+			].join('\n'),
+		);
+		mkdirSync(join(dir, 'node_modules'), { recursive: true });
+		symlinkSync(join(REPO, 'node_modules', 'svelte'), join(dir, 'node_modules', 'svelte'), 'junction');
+
+		execFileSync(process.execPath, [BIN, 'build'], { cwd: dir, stdio: 'pipe', timeout: 180_000 });
+
+		const page = readFileSync(join(dir, 'dist/pricing-and-rules/index.html'), 'utf-8');
+		// One title, holding the words that were written.
+		expect(page.match(/<title>/g)).toHaveLength(1);
+		expect(page).toContain('<title>Pricing $$ and $&amp; rules – Money $&amp; Co</title>');
+		expect(page).toContain("A plan costs $$5, and $&amp; and $' are common in shell scripts.");
+	});
+});

@@ -16,6 +16,7 @@ import {
 	type TagBlock,
 } from './scanner.js';
 import { declaredBindings, scrubScriptText } from './script-scan.js';
+import type { DocNote, NoteIntent } from '../types.js';
 
 export type ArgValue = string | number | boolean | null;
 
@@ -51,6 +52,9 @@ export interface PreviewBlock {
 	title: string | null;
 	/** Short text rendered with the preview, when present */
 	description: string | null;
+	/** Other names this component answers to, from synonyms="…". Shown with
+	 * the preview and searched by the MCP server; empty when absent. */
+	synonyms: string[];
 	/** Tab label: the title override or the component name */
 	label: string;
 	sizing: Sizing;
@@ -70,6 +74,12 @@ export interface ExampleBlock {
 	title: string;
 	/** Short text rendered under the example heading, when present */
 	description: string | null;
+	/** What this example shows, from tags="…" — the parts or contexts it
+	 * belongs to. Shown under the description and searched by the MCP
+	 * server; empty when absent. */
+	tags: string[];
+	/** Standing remarks from notes={[…]}; empty when the opener has none */
+	notes: DocNote[];
 	sizing: Sizing;
 	/** Normalized full body — block script/style included (display/formatting form) */
 	body: string;
@@ -91,6 +101,8 @@ export interface ShowcaseEntity {
 	routeSlug: string | null;
 	/** `hide` flag: routable but never listed in a sidebar */
 	hide: boolean;
+	/** Standing remarks from notes={[…]}; empty when the opener has none */
+	notes: DocNote[];
 	description: string | null;
 	sizing: Sizing;
 	/** Entity-level <script> — shared by every block of this entity */
@@ -111,6 +123,8 @@ export interface DocEntity {
 	routeSlug: string | null;
 	/** `hide` flag: routable but never listed in a sidebar */
 	hide: boolean;
+	/** Standing remarks from notes={[…]}; empty when the opener has none */
+	notes: DocNote[];
 	sizing: Sizing;
 	/** Entity-level <script> — shared by every block of this entity */
 	script: TagBlock | null;
@@ -136,6 +150,8 @@ export interface PageEntity {
 	routeSlug: string | null;
 	/** `hide` flag: routable but never listed in a sidebar */
 	hide: boolean;
+	/** Standing remarks from notes={[…]}; empty when the opener has none */
+	notes: DocNote[];
 	sizing: Sizing;
 	/** Entity-level <script> — shared by every block of this entity */
 	script: TagBlock | null;
@@ -155,6 +171,8 @@ export interface LayoutEntity {
 	routeSlug: string | null;
 	/** `hide` flag: routable but never listed in a sidebar */
 	hide: boolean;
+	/** Standing remarks from notes={[…]}; empty when the opener has none */
+	notes: DocNote[];
 	sizing: Sizing;
 	/** Entity-level <script> — shared by every block of this entity */
 	script: TagBlock | null;
@@ -409,6 +427,16 @@ function sizingOf(attrs: Attrs): Sizing {
 	};
 }
 
+/** Standing remarks, and how loudly each speaks. Every entity takes them, and
+ * so does an [example] — the places a reader lands on. */
+const NOTE_ATTR_RULES: Record<string, AttrRule> = {
+	notes: {
+		required: false,
+		kind: 'expression',
+		hint: "notes={[{ note: 'Deprecated in v3', intent: 'warning' }]}",
+	},
+};
+
 const ROUTE_ATTR_RULES: Record<string, AttrRule> = {
 	slug: { required: false, kind: 'string', hint: 'slug="url-segment"' },
 	hide: { required: false, kind: 'bare', hint: 'hide' },
@@ -417,6 +445,7 @@ const ROUTE_ATTR_RULES: Record<string, AttrRule> = {
 const ENTITY_ATTR_RULES: Record<string, Record<string, AttrRule>> = {
 	SHOWCASE: {
 		title: { required: true, kind: 'string', hint: 'title="Group / Name"' },
+		...NOTE_ATTR_RULES,
 		description: { required: false, kind: 'string', hint: 'description="…"' },
 		...ROUTE_ATTR_RULES,
 		...SIZING_ATTR_RULES,
@@ -424,6 +453,7 @@ const ENTITY_ATTR_RULES: Record<string, Record<string, AttrRule>> = {
 	},
 	DOC: {
 		title: { required: true, kind: 'string', hint: 'title="Group / Name"' },
+		...NOTE_ATTR_RULES,
 		...ROUTE_ATTR_RULES,
 		...SIZING_ATTR_RULES,
 		// On DOC, contentX aligns the content column (with its toc), not a stage.
@@ -432,6 +462,7 @@ const ENTITY_ATTR_RULES: Record<string, Record<string, AttrRule>> = {
 	},
 	PAGE: {
 		title: { required: true, kind: 'string', hint: 'title="Name"' },
+		...NOTE_ATTR_RULES,
 		...ROUTE_ATTR_RULES,
 		...SIZING_ATTR_RULES,
 		// On PAGE, contentX places the content container inside the view.
@@ -439,6 +470,7 @@ const ENTITY_ATTR_RULES: Record<string, Record<string, AttrRule>> = {
 	},
 	LAYOUT: {
 		title: { required: true, kind: 'string', hint: 'title="Group / Name"' },
+		...NOTE_ATTR_RULES,
 		...ROUTE_ATTR_RULES,
 		...SIZING_ATTR_RULES,
 		// The page-canvas subset of the stage attributes: paint and size the
@@ -455,12 +487,15 @@ const SUB_BLOCK_ATTR_RULES: Record<string, Record<string, AttrRule>> = {
 		args: { required: false, kind: 'expression', hint: 'args={{ label: "Hi" }}' },
 		title: { required: false, kind: 'string', hint: 'title="…"' },
 		description: { required: false, kind: 'string', hint: 'description="…"' },
+		synonyms: { required: false, kind: 'string', hint: 'synonyms="pill, chip"' },
 		...SIZING_ATTR_RULES,
 		...STAGE_LAYOUT_ATTR_RULES,
 	},
 	example: {
 		title: { required: true, kind: 'string', hint: 'title="…"', code: 'example-title-required' },
 		description: { required: false, kind: 'string', hint: 'description="…"' },
+		tags: { required: false, kind: 'string', hint: 'tags="user menu, badge"' },
+		...NOTE_ATTR_RULES,
 		...SIZING_ATTR_RULES,
 		...STAGE_LAYOUT_ATTR_RULES,
 	},
@@ -517,6 +552,121 @@ function checkAttrs(
 function stringAttr(attrs: Attrs, name: string): string | null {
 	const v = attrs[name];
 	return v && v.kind === 'string' ? v.raw : null;
+}
+
+const NOTE_INTENTS = ['danger', 'warning', 'success', 'info'] as const;
+const NOTE_KEYS = ['note', 'intent'];
+
+/**
+ * `notes={[{ note: '…', intent: 'warning' }]}` — the remarks on an opener, in
+ * the order they should be read.
+ *
+ * Hand-parsed like `args`, and for the same reason: this is attribute source
+ * text that is never evaluated, so only plain string literals are taken and
+ * anything richer is reported rather than run. An unknown intent is an error
+ * rather than a quiet fall back to grey — grey is a real intent of its own, so
+ * a typo would read as a choice.
+ */
+export function parseNotesLiteral(
+	raw: string,
+	span: Span,
+	diagnostics: ScanError[],
+): DocNote[] {
+	const fail = (message: string): DocNote[] => {
+		diagnostics.push({ code: 'notes-literal', message, span });
+		return [];
+	};
+	let i = 0;
+	const ws = () => {
+		while (i < raw.length && /\s/.test(raw[i])) i++;
+	};
+	const stringAt = (): string | null => {
+		const rest = raw.slice(i);
+		const m = rest.match(/^'((?:[^'\\]|\\.)*)'/) ?? rest.match(/^"((?:[^"\\]|\\.)*)"/);
+		if (!m) return null;
+		i += m[0].length;
+		return m[1].replace(/\\(.)/g, '$1');
+	};
+
+	ws();
+	if (raw[i] !== '[') {
+		return fail("notes must be an array: notes={[{ note: '…', intent: 'warning' }]}.");
+	}
+	i++;
+	const notes: DocNote[] = [];
+	ws();
+	while (i < raw.length && raw[i] !== ']') {
+		if (raw[i] !== '{') return fail('Every entry in notes must be an object literal.');
+		i++;
+		let text: string | null = null;
+		let intent: NoteIntent | null = null;
+		ws();
+		while (i < raw.length && raw[i] !== '}') {
+			const keyMatch = raw.slice(i).match(/^([A-Za-z_$][A-Za-z0-9_$]*|'[^']*'|"[^"]*")\s*:/);
+			if (!keyMatch) return fail('notes keys must be plain names: note and intent.');
+			const key = keyMatch[1].replace(/^['"]|['"]$/g, '');
+			if (!NOTE_KEYS.includes(key)) {
+				return fail(`Unknown key "${key}" in notes — expected ${NOTE_KEYS.join(' or ')}.`);
+			}
+			i += keyMatch[0].length;
+			ws();
+			const value = stringAt();
+			if (value === null) return fail(`notes ${key} must be a quoted string.`);
+			if (key === 'note') {
+				text = value;
+			} else if (value !== '') {
+				if (!(NOTE_INTENTS as readonly string[]).includes(value)) {
+					return fail(`notes intent "${value}" must be one of ${NOTE_INTENTS.join(', ')}.`);
+				}
+				intent = value as NoteIntent;
+			}
+			ws();
+			if (raw[i] === ',') {
+				i++;
+				ws();
+			} else if (raw[i] !== '}') {
+				return fail('notes entries must be separated by commas.');
+			}
+		}
+		if (raw[i] !== '}') return fail('A notes entry is missing its closing "}".');
+		i++;
+		if (text === null) return fail("Every note needs a note: notes={[{ note: '…' }]}.");
+		notes.push({ note: text, intent });
+		ws();
+		if (raw[i] === ',') {
+			i++;
+			ws();
+		} else if (raw[i] !== ']') {
+			return fail('notes entries must be separated by commas.');
+		}
+	}
+	if (raw[i] !== ']') return fail('notes array is missing its closing "]".');
+	i++;
+	ws();
+	if (i !== raw.length) return fail('Unexpected text after the notes array.');
+	return notes;
+}
+
+/** The `notes` attribute of an opener, or none. */
+function notesAttr(attrs: Attrs, diagnostics: ScanError[]): DocNote[] {
+	const attr = attrs['notes'];
+	if (!attr || attr.kind !== 'expression') return [];
+	return parseNotesLiteral(attr.raw, attr.valueSpan, diagnostics);
+}
+
+/** A comma-separated list attribute (`tags`, `synonyms`) — the words as
+ * written, minus the spacing around them. Blank entries are dropped, so a
+ * trailing comma costs nothing; duplicates are dropped too, since a name
+ * listed twice reads as a mistake rather than an emphasis. */
+function listAttr(attrs: Attrs, name: string): string[] {
+	const raw = stringAttr(attrs, name);
+	if (raw === null) return [];
+	const seen = new Set<string>();
+	for (const part of raw.split(',')) {
+		const word = part.trim();
+		if (word) seen.add(word);
+	}
+	return [...seen];
 }
 
 /** A bare flag attribute (`hide`) is true when present. */
@@ -641,6 +791,7 @@ function parsePreview(
 		argsRaw,
 		title,
 		description: stringAttr(block.attrs, 'description'),
+		synonyms: listAttr(block.attrs, 'synonyms'),
 		label: title ?? componentName ?? 'Preview',
 		sizing: sizingOf(block.attrs),
 		body: normalizeBody(block.body),
@@ -673,6 +824,8 @@ function parseExample(
 	return {
 		title,
 		description: stringAttr(block.attrs, 'description'),
+		tags: listAttr(block.attrs, 'tags'),
+		notes: notesAttr(block.attrs, diagnostics),
 		sizing: sizingOf(block.attrs),
 		body: normalizeBody(block.body),
 		bodySpan: block.bodySpan,
@@ -760,6 +913,7 @@ function parseShowcase(
 		slug: slugifyTitle(title),
 		routeSlug: routeSlugAttr(entity.attrs, diagnostics),
 		hide: bareAttr(entity.attrs, 'hide'),
+		notes: notesAttr(entity.attrs, diagnostics),
 		description: stringAttr(entity.attrs, 'description'),
 		sizing: sizingOf(entity.attrs),
 		script: entity.script,
@@ -817,6 +971,7 @@ function parseDoc(
 		slug: slugifyTitle(title),
 		routeSlug: routeSlugAttr(entity.attrs, diagnostics),
 		hide: bareAttr(entity.attrs, 'hide'),
+		notes: notesAttr(entity.attrs, diagnostics),
 		sizing: sizingOf(entity.attrs),
 		script: entity.script,
 		style: entity.style,
@@ -870,6 +1025,7 @@ export function parseSdoc(source: string): SdocDocument {
 				slug: slugifyTitle(title),
 				routeSlug: routeSlugAttr(entity.attrs, diagnostics),
 				hide: bareAttr(entity.attrs, 'hide'),
+				notes: notesAttr(entity.attrs, diagnostics),
 				sizing: sizingOf(entity.attrs),
 				script: entity.script,
 				style: entity.style,

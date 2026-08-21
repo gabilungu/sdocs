@@ -81,7 +81,8 @@
 	| `title` | `string` | Header title text. Default: `'sdocs'`. |
 	| `logo` | `string \| false` | Header logo: `'sdocs'` for the built-in mascot (default), an image URL, or `false` to hide. |
 	| `previewBase` | `string` | URL prefix for preview pages when the app deploys under a sub-path. In SvelteKit, pass `base` from `$app/paths`. Default: `''`. |
-	| `sections` | `SectionConfig[]` | Declared sections in top-bar order (`{ slug, title?, order? }`), same shape as the config key. See [sidebar](/explorer/features/sidebar#sections-top-bar). |
+	| `dev` | `boolean` | Turns on the in-page [note editor](/language/overview#notes) (dev only — Save posts to a route the dev server alone mounts). Pass `import.meta.env.DEV`. |
+	| `sections` | `SectionEntry[]` | Declared sections in top-bar order (`{ slug, title?, order? }`, or `{ type: 'divider' }` for a rule between tabs), same shape as the config key. See [sidebar](/explorer/features/sidebar#sections-top-bar). |
 	| `home` | `string` | Route path of the landing page, like the config `home`. |
 	| `routing` | `'history' \| 'hash'` | URL style. Embedded default: `'hash'` — it works under any host routing. Only switch to `'history'` if the host serves a fallback for doc routes. |
 	| `basePath` | `string` | Path prefix for history-mode routes (the host sub-path the Explorer is mounted on). Default: `''`. |

@@ -5,13 +5,17 @@
 	import TwoPaneSplit from '../../ui/TwoPaneSplit/TwoPaneSplit.svelte';
 	import { layoutWidth, setLayoutWidth, clearLayoutWidth } from '../layout-width.svelte.js';
 	import { isNarrow } from '../viewport.svelte.js';
+	import { Note } from '../../ui/Note/index.js';
+	import NoteControl from './NoteControl.svelte';
 
 	interface Props {
 		doc: DocEntry;
 		activeStylesheet?: string;
+		/** Dev only: the note editor writes to the project's source. */
+		dev?: boolean;
 	}
 
-	let { doc, activeStylesheet }: Props = $props();
+	let { doc, activeStylesheet, dev = false }: Props = $props();
 
 	const contentSnippet = $derived(doc.content);
 
@@ -24,9 +28,41 @@
 	// leave a phone showing a sliver of the layout with no handle to widen it
 	// again. On a narrow screen the layout simply fills the view.
 	const narrow = $derived(isNarrow());
+
+	// A layout fills the view and shows no title, so its note has nowhere of
+	// its own to sit — it rides over the top of the layout instead, and can be
+	// dismissed to uncover what it is about. Dismissal is per visit and per
+	// layout: moving to another layout brings its own note up.
+	let dismissed = $state<number[]>([]);
+	const notes = $derived(doc.meta?.notes ?? []);
+	$effect(() => {
+		void doc.entitySlug;
+		dismissed = [];
+	});
 </script>
 
 <div class="sdocs-layout-view">
+	<NoteControl
+		{dev}
+		variant="corner"
+		label={doc.meta.title}
+		file={doc.filePath}
+		entitySlug={doc.entitySlug}
+		notes={doc.meta?.notes ?? []}
+	/>
+	{#if notes.length > dismissed.length}
+		<div class="sdocs-layout-note">
+			{#each notes as entry, i (i)}
+				{#if !dismissed.includes(i)}
+					<Note
+						text={entry.note}
+						intent={entry.intent}
+						onclose={() => (dismissed = [...dismissed, i])}
+					/>
+				{/if}
+			{/each}
+		</div>
+	{/if}
 	{#if contentSnippet?.previewUrl}
 		{@const previewUrl = contentSnippet.previewUrl}
 		{#snippet pane()}
@@ -96,6 +132,24 @@
 		   flex context it had when it was a direct child of the view. */
 		display: flex;
 		flex-direction: column;
+	}
+	/* Over the layout, not in front of the handle: the note clears the strip
+	   the resize bar rides in, and never eats a click meant for it. */
+	.sdocs-layout-note {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		position: absolute;
+		top: 12px;
+		left: 12px;
+		right: 22px;
+		z-index: 4;
+	}
+	/* Each note casts its own shadow. On the stack instead, the shadow also
+	   falls across the gap between two notes, drawing a band where there is
+	   nothing — the wrapper itself has no surface of its own. */
+	.sdocs-layout-note :global(.Note) {
+		box-shadow: 0 2px 12px rgb(0 0 0 / 0.12);
 	}
 	.sdocs-resize-canvas {
 		height: 100%;

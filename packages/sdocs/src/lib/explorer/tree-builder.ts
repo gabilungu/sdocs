@@ -1,4 +1,11 @@
-import type { DocEntry, SectionConfig } from '../types.js';
+import type {
+	DocEntry,
+	DocNote,
+	NormalizedSection,
+	NoteIntent,
+	SectionDivider,
+	SectionEntry,
+} from '../types.js';
 
 export type TreeNodeType = 'folder' | 'group' | 'component' | 'doc' | 'page' | 'layout';
 
@@ -21,6 +28,17 @@ export interface TreeNode {
 	examples?: string[];
 	/** Whether this node should be expanded by default */
 	defaultExpanded?: boolean;
+	/** The worst note in this row's subtree, itself included — what the
+	 * sidebar marks it with. Absent when nothing in it carries a note. */
+	mark?: NoteMark | null;
+}
+
+/** What a sidebar row says about the notes at and under it. */
+export interface NoteMark {
+	/** The worst intent found; `null` is a note written without one. */
+	intent: NoteIntent | null;
+	/** The worst one is this row's own note, rather than something inside it. */
+	own: boolean;
 }
 
 /** One top-bar section: a tab label and its own sidebar tree */
@@ -30,6 +48,9 @@ export interface SectionTree {
 	tree: TreeNode[];
 	/** Route of the section's first document (top-bar tab target) */
 	firstRoute: string[] | null;
+	/** A `{ type: 'divider' }` entry followed this section — the bar draws a
+	 * rule after its tab. */
+	dividerAfter: boolean;
 }
 
 /** What a URL route resolves to */
@@ -111,16 +132,38 @@ const STROKED: Record<string, string> = {
 
 /** Sections with defaults filled in; the implicit `docs` section when none
  * are declared. */
-export function normalizeSections(sections: SectionConfig[] | undefined): Required<SectionConfig>[] {
-	if (!sections || sections.length === 0) return [{ slug: 'docs', title: 'Docs', order: [] }];
-	return sections.map((s) => {
-		const slug = String(s.slug ?? '');
-		return {
+/** A divider entry rather than a section. Narrowing needs a predicate: the
+ * negative branch of an inline `'type' in entry && …` stays the whole union. */
+function isDivider(entry: SectionEntry): entry is SectionDivider {
+	return 'type' in entry && entry.type === 'divider';
+}
+
+export function normalizeSections(sections: SectionEntry[] | undefined): NormalizedSection[] {
+	if (!sections || sections.length === 0) {
+		return [{ slug: 'docs', title: 'Docs', order: [], dividerAfter: false }];
+	}
+	const resolved: NormalizedSection[] = [];
+	for (const entry of sections) {
+		// A divider marks the section before it rather than becoming one, so
+		// routing, titles and the sidebar never have to know it exists. A
+		// divider that opens the array has nothing to mark and falls away.
+		if (isDivider(entry)) {
+			const previous = resolved[resolved.length - 1];
+			if (previous) previous.dividerAfter = true;
+			continue;
+		}
+		const slug = String(entry.slug ?? '');
+		resolved.push({
 			slug,
-			title: s.title ?? (slug ? slug[0].toUpperCase() + slug.slice(1) : slug),
-			order: s.order ?? [],
-		};
-	});
+			title: entry.title ?? (slug ? slug[0].toUpperCase() + slug.slice(1) : slug),
+			order: entry.order ?? [],
+			// Already-resolved sections come back through here: the generated
+			// app hands the Explorer the config's resolved list, where the
+			// divider is this flag and no longer an entry of its own.
+			dividerAfter: entry.dividerAfter === true,
+		});
+	}
+	return resolved;
 }
 
 /** Split an optional `@section-slug` first segment off a title. */
@@ -142,7 +185,7 @@ const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 export interface BuildSectionsOptions {
 	/** Declared sections in top-bar order (raw config shape is accepted) */
-	sections?: SectionConfig[];
+	sections?: SectionEntry[];
 	/** Route path of the landing page, e.g. 'guides/introduction' */
 	home?: string | null;
 }
@@ -213,9 +256,13 @@ export function buildSections(docs: DocEntry[], opts?: BuildSectionsOptions): Se
 			title: section.title,
 			tree: pruneHidden(tree),
 			firstRoute: null,
+			dividerAfter: section.dividerAfter,
 		};
 	});
-	for (const s of sectionTrees) s.firstRoute = firstDocRoute(s.tree);
+	for (const s of sectionTrees) {
+		s.firstRoute = firstDocRoute(s.tree);
+		markNotes(s.tree);
+	}
 
 	// Sectionless pages: root-level routes with no sidebar entry anywhere.
 	// Their first segment must not shadow a section or the built-in /about.
@@ -424,6 +471,65 @@ function registerRoutes(
 
 /** Drop hidden entities (and their subtrees) from the sidebar; their routes
  * stay registered. Folders left empty disappear with them. */
+/**
+ * Severity, worst first. A note written without an intent sits above `success`
+ * and `info`: it says "read me" without saying what about, which is more than
+ * a note whose whole content is reassurance.
+ */
+const NOTE_ORDER: (NoteIntent | null)[] = ['danger', 'warning', null, 'success', 'info'];
+
+function noteRank(intent: NoteIntent | null): number {
+	const at = NOTE_ORDER.indexOf(intent);
+	// An intent the parser would have rejected: rank it last rather than
+	// letting `indexOf`'s -1 make it the worst thing in the tree.
+	return at === -1 ? NOTE_ORDER.length : at;
+}
+
+/** The notes a row carries itself: an entity's, or an example child's. */
+function ownNotes(node: TreeNode): DocNote[] {
+	if (node.snippetName) {
+		return node.doc?.examples?.find((e) => e.name === node.snippetName)?.notes ?? [];
+	}
+	return node.entity ? (node.doc?.meta?.notes ?? []) : [];
+}
+
+/** The worst of a row's own notes, or nothing when it has none. */
+function worstOwn(notes: DocNote[]): NoteMark | null {
+	let worst: NoteMark | null = null;
+	for (const note of notes) {
+		if (!worst || noteRank(note.intent) < noteRank(worst.intent)) {
+			worst = { intent: note.intent, own: true };
+		}
+	}
+	return worst;
+}
+
+/**
+ * Mark every row with the worst note at or under it, and return the worst of
+ * the lot for the row above. A row's own note wins ties, so an entity that
+ * carries the worst note in its subtree shows it as its own — filled — and
+ * only rows whose worst note lives further in show it hollow.
+ *
+ * Runs after `pruneHidden`, so a hidden entity's note doesn't surface on a
+ * parent as a mark pointing at a row the reader cannot open.
+ */
+function markNotes(nodes: TreeNode[]): NoteMark | null {
+	let worst: NoteMark | null = null;
+	for (const node of nodes) {
+		const inside = markNotes(node.children);
+		let mark = worstOwn(ownNotes(node));
+		if (inside && (!mark || noteRank(inside.intent) < noteRank(mark.intent))) {
+			mark = { intent: inside.intent, own: false };
+		}
+		node.mark = mark;
+		if (mark && (!worst || noteRank(mark.intent) < noteRank(worst.intent))) {
+			// Whatever it is to this row, to the row above it is something inside.
+			worst = { intent: mark.intent, own: false };
+		}
+	}
+	return worst;
+}
+
 function pruneHidden(nodes: TreeNode[]): TreeNode[] {
 	const out: TreeNode[] = [];
 	for (const node of nodes) {

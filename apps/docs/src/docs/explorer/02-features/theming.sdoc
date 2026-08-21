@@ -100,11 +100,13 @@
 
 	The property is the point of the difference. An axis names its values, so `[data-density="compact"]` can carry a whole block of rules; a range can't, and `data-scale="1.25"` would need a rule per step. One rule reading a number covers the whole range.
 
-	`var` renames the property (`--ui-scale`), `label` renames the control. Double-clicking the slider returns it to the default, the pick persists like the axes, and a stage page accepts `?scale=1.25` — plus `?scale-var=--ui-scale` when the project renamed it, since a stage opened on its own has no parent to ask.
+	`var` renames the property (`--ui-scale`), `label` renames the control. Clicking the control's label or its value — anything but the slider itself — returns it to the default, as does double-clicking the slider. The pick persists like the axes, and a stage page accepts `?scale=1.25` — plus `?scale-var=--ui-scale` when the project renamed it, since a stage opened on its own has no parent to ask.
+
+	The label drops away when the bar runs short of room, at the same width the axis switches give up their names for dropdowns: by then the row needs the space more than the reader needs the word, and the value stays either way.
 
 	### Named stops
 
-	Add `presets` and the common sizes get buttons, in the same segmented control the axes use:
+	Add `presets` and the common sizes get buttons, sitting with the slider in the same control — to the right of its value:
 
 	```js
 	scale: {

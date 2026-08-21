@@ -22,7 +22,7 @@ export interface SdocsConfig {
 	/** The site's sections, in top-bar order. Titles reference a section by
 	 * its slug (`title="@guides/…"`); an unknown slug is an error. When
 	 * absent, a single implicit `docs` section exists and no top bar renders. */
-	sections?: SectionConfig[];
+	sections?: SectionEntry[];
 	/** Route path of the landing page (e.g. 'guides/introduction'). Must
 	 * resolve to an entity; when absent the root shows the About page. */
 	home?: string;
@@ -158,6 +158,31 @@ export interface SectionConfig {
 	/** Sidebar ordering: route paths relative to the section. Listed items
 	 * sort first at their level; the rest follow alphabetically. */
 	order?: string[];
+	/** Resolved form only — a divider entry followed this section, so the bar
+	 * draws a rule after its tab. Authors write `{ type: 'divider' }` in the
+	 * array instead; it survives here because the resolved sections are what
+	 * the generated app hands back to the Explorer. */
+	dividerAfter?: boolean;
+}
+
+/** A rule between two groups of tabs, written in the `sections` array as
+ * `{ type: 'divider' }`. It has no routes, no sidebar and no title — it only
+ * separates the tabs around it. */
+export interface SectionDivider {
+	type: 'divider';
+}
+
+/** What the `sections` array holds: sections, and rules between them. */
+export type SectionEntry = SectionConfig | SectionDivider;
+
+/** A section with every default filled in, as both the config loader and the
+ * Explorer's section builder produce it. */
+export interface NormalizedSection {
+	slug: string;
+	title: string;
+	order: string[];
+	/** A divider follows this section in the bar. */
+	dividerAfter: boolean;
 }
 
 /** Content sizing knobs (any CSS length; padding takes CSS shorthand) */
@@ -197,7 +222,7 @@ export interface ResolvedSdocsConfig {
 	logo: string | false;
 	/** Favicon href for the built page; the built-in sdocs icon by default. */
 	favicon: string;
-	sections: Required<SectionConfig>[];
+	sections: NormalizedSection[];
 	/** True when the config declared sections (drives strict validation + top bar) */
 	sectionsDeclared: boolean;
 	home: string | null;
@@ -221,12 +246,27 @@ export interface ResolvedSdocsConfig {
 	};
 }
 
+/** How loudly a note speaks. Absent is a note with no intent — a plain
+ * remark, shown in grey. */
+export type NoteIntent = 'danger' | 'warning' | 'success' | 'info';
+
+/** One entry of a `notes={[…]}` array. */
+export interface DocNote {
+	/** What the note says. */
+	note: string;
+	/** How loudly; absent is a plain remark, shown in grey. */
+	intent: NoteIntent | null;
+}
+
 /** Entity metadata from a [SHOWCASE]/[DOC]/[PAGE]/[LAYOUT] opener */
 export interface SdocMeta {
 	/** Sidebar path (e.g. 'Demo / Button') */
 	title: string;
 	/** Short description */
 	description?: string;
+	/** Standing remarks about this entity, shown with it and marked in the
+	 * sidebar. */
+	notes?: DocNote[];
 }
 
 /** A parsed prop */
@@ -302,6 +342,14 @@ export interface ExtractedSnippet {
 	style?: string | null;
 	/** Short text rendered with the block (description="…" on the opener) */
 	description?: string | null;
+	/** An `[example]`'s tags="…": the parts or contexts it shows. Rendered
+	 * under the description, and searched by the MCP server. */
+	tags?: string[];
+	/** A `[component]`'s synonyms="…": other names the component answers to.
+	 * Rendered above its preview, and searched by the MCP server. */
+	synonyms?: string[];
+	/** An `[example]`'s notes={[…]}, shown under its title. */
+	notes?: DocNote[];
 	highlightedHtml?: string;
 	/** Preview URL for iframe (added by virtual module) */
 	previewUrl?: string;

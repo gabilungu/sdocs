@@ -7,6 +7,114 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.136] - 2026-08-21
+
+### Fixed
+
+- **The package's own bundled docs parse again.** Fourteen `.sdoc` files inside
+  the package kept the pre-0.0.67 `[preview]` tag, which the parser stopped
+  accepting when `[component]` replaced it — and they ship in `dist`, so the
+  package carried source its own parser rejected, and `sdocs dev` on the
+  package opened with a wall of diagnostics. Renamed, along with the three in
+  the test apps, and a test now reads every bundled document so they cannot
+  drift again.
+
+### Added
+
+- **`synonyms` on `[component]`, `tags` on `[example]`.** A component is rarely
+  known by one name, and an example rarely shows one thing. Both take a
+  comma-separated list — spacing, a trailing comma and a repeat all wash out —
+  and both render as quiet badges beside the block they belong to: the
+  component's other names above its preview, an example's tags under its
+  description. They are metadata, and they are styled to read as a footnote
+  rather than a heading.
+
+- **`search_docs`, a new MCP tool.** Finds documentation by any name it goes
+  under: the entity title, a component it previews, that component's synonyms,
+  an example title, an example's tags, or the text of any of its notes. An
+  `intent` sweeps by note severity instead of by text — `intent: 'danger'`
+  lists everything marked danger with no query at all, `'none'` finds the notes
+  written without an intent, and giving both means a result has to satisfy
+  both. Matching is a case-insensitive
+  **substring** — `butt` finds `Button`, `menu` finds every example tagged
+  "user menu" — because an agent looking for a component rarely knows what the
+  project calls it, and a search that only answers to whole words sends it back
+  to reading files. Every hit reports which name matched and the route it
+  serves at, ready to hand to `resolve_visual_target`. Hits carry their notes,
+  so finding a page is also reading what it warns about. `list_docs` reports
+  the tags, synonyms and notes too.
+
+- **`notes` on every entity and every `[example]`.** Standing remarks about a
+  page — deprecated, unfinished, known-broken — written where the page is
+  defined:
+
+  ```sdoc
+  [SHOWCASE
+  	title="Forms / Button"
+  	notes={[
+  		{ note: 'Being replaced by ActionButton in v4.', intent: 'warning' },
+  		{ note: 'Ships in the next release.' },
+  	]}
+  ]
+  ```
+
+  Each renders as an alert under the entity's title, in the order written. A
+  `[LAYOUT]` has no title to sit under, so its notes ride over the layout, each
+  with a dismiss button — the one place a note can cover what it is about, so
+  the one place it can be put away. An example opened on its own route carries
+  its notes with it.
+
+  In the sidebar they become one dot on the row: filled when the worst of them
+  is on that page, hollow when it belongs to something inside it. A row shows
+  the worst note at or under it, ranked `danger` > `warning` > *no intent* >
+  `success` > `info` — a note written without an intent says "read me" without
+  saying what about, which is more than one whose whole content is
+  reassurance. A `hide` entity stays out of the roll-up: the mark would point
+  at a row the reader cannot open.
+
+  `intent` is optional and unset is grey. Like `args`, the attribute is source
+  text that is never evaluated: values must be plain quoted strings, and an
+  unknown intent, an unknown key, or an entry with no `note` is a diagnostic
+  rather than something quietly dropped.
+
+- **Notes can be written from the Explorer, under `sdocs dev`.** A note button
+  sits at the end of every entity and example title — and in the top-right
+  corner, hidden until the pointer finds it, on a `[LAYOUT]` or `[PAGE]`, which
+  show no title to hang it off. It opens an editor for that opener's notes: add
+  one, reword one, change an intent, drop one. Save writes back into the
+  `.sdoc` and Vite reloads the page.
+
+  The edit is the smallest one that will do. Only the `notes` attribute's own
+  span is rewritten, so the rest of the document keeps its formatting to the
+  byte; emptying the list removes the attribute rather than leaving `notes={[]}`
+  behind, restoring the file exactly as it was.
+
+  It cannot leak into a build: the endpoint is mounted in `configureServer`,
+  which only the dev server runs, and it refuses any file the project does not
+  already document. An embedded Explorer opts in with `dev={import.meta.env.DEV}`.
+
+- **The scale control gathers up, and resets on a click.** Its named presets
+  move inside the slider's own control, to the right of the value, instead of
+  standing beside it as a second control — one knob, one box. Clicking the
+  control's label or its value resets the scale to the project's default;
+  clicking the slider still sets a value, and double-clicking it still resets.
+  Both are real buttons, so the reset is reachable by keyboard too.
+
+  The label also drops away when the bar runs short of room, at the same width
+  the axis switches give up their names for dropdowns — by then the row needs
+  the space more than the reader needs the word, and the value stays either
+  way.
+
+- **A divider between top-bar sections.** A `{ type: 'divider' }` entry in the
+  config's `sections` array draws a thin rule between the tabs on either side
+  of it, for setting one group of sections apart from another.
+
+  It is not a section: it resolves to a mark on the section before it, so
+  routing, titles, the sidebar and the slug checks never learn it exists. One
+  at either end of the array draws nothing, so reordering the sections can't
+  leave a rule dangling off the end of the bar.
+
+
 ## [0.0.135] - 2026-08-20
 
 ### Fixed

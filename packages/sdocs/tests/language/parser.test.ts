@@ -13,6 +13,179 @@ function diagnosticCodes(source: string): string[] {
 	return parseSdoc(source).diagnostics.map((d) => d.code);
 }
 
+describe('tags and synonyms', () => {
+	const parse = (opener: string, block = 'example') =>
+		parseSdoc(
+			[
+				'<script>',
+				"\timport Badge from './Badge.svelte';",
+				'</script>',
+				'',
+				'[SHOWCASE title="Display / Badge"]',
+				`\t[${opener}]`,
+				'\t\t<Badge />',
+				`\t[/${block}]`,
+				'[/SHOWCASE]',
+			].join('\n'),
+		);
+
+	it('reads an example\'s tags as a list', () => {
+		const doc = parse('example title="Menu" tags="user menu, badge"');
+		expect(doc.diagnostics).toEqual([]);
+		const entity = doc.entities[0] as ShowcaseEntity;
+		expect(entity.examples[0].tags).toEqual(['user menu', 'badge']);
+	});
+
+	it("reads a component's synonyms as a list", () => {
+		const doc = parse('component component={Badge} synonyms="pill, chip"', 'component');
+		expect(doc.diagnostics).toEqual([]);
+		const entity = doc.entities[0] as ShowcaseEntity;
+		expect(entity.previews[0].synonyms).toEqual(['pill', 'chip']);
+	});
+
+	it('is an empty list when the attribute is absent', () => {
+		const doc = parse('example title="Menu"');
+		const entity = doc.entities[0] as ShowcaseEntity;
+		expect(entity.examples[0].tags).toEqual([]);
+	});
+
+	it('forgives the spacing, a trailing comma, and a repeat', () => {
+		const doc = parse('example title="Menu" tags="  user menu ,badge,  , badge "');
+		expect(doc.diagnostics).toEqual([]);
+		const entity = doc.entities[0] as ShowcaseEntity;
+		expect(entity.examples[0].tags).toEqual(['user menu', 'badge']);
+	});
+
+	it('keeps each attribute to the block that owns it', () => {
+		// synonyms belongs to [component], tags to [example] — crossing them is
+		// an unknown attribute, not a silent no-op.
+		expect(parse('example title="Menu" synonyms="pill"').diagnostics.map((d) => d.code)).toEqual([
+			'unknown-attr',
+		]);
+		expect(
+			parse('component component={Badge} tags="pill"', 'component').diagnostics.map((d) => d.code),
+		).toEqual(['unknown-attr']);
+	});
+});
+
+describe('notes', () => {
+	const entity = (opener: string) =>
+		parseSdoc([`[DOC ${opener}]`, '\tHello.', '[/DOC]'].join('\n'));
+
+	it('reads a note and its intent', () => {
+		const doc = entity(`title="X" notes={[{ note: 'Deprecated in v3', intent: 'warning' }]}`);
+		expect(doc.diagnostics).toEqual([]);
+		expect(doc.entities[0].notes).toEqual([{ note: 'Deprecated in v3', intent: 'warning' }]);
+	});
+
+	it('reads several, in the order written', () => {
+		const doc = entity(
+			`title="X" notes={[{ note: 'One', intent: 'danger' }, { note: 'Two' }, { note: 'Three', intent: 'info' }]}`,
+		);
+		expect(doc.diagnostics).toEqual([]);
+		expect(doc.entities[0].notes).toEqual([
+			{ note: 'One', intent: 'danger' },
+			{ note: 'Two', intent: null },
+			{ note: 'Three', intent: 'info' },
+		]);
+	});
+
+	it('leaves the intent null when only a note is given', () => {
+		const doc = entity(`title="X" notes={[{ note: 'Just so you know' }]}`);
+		expect(doc.diagnostics).toEqual([]);
+		expect(doc.entities[0].notes).toEqual([{ note: 'Just so you know', intent: null }]);
+	});
+
+	it('is empty when there are no notes', () => {
+		expect(entity('title="X"').entities[0].notes).toEqual([]);
+	});
+
+	it('takes an empty array', () => {
+		const doc = entity('title="X" notes={[]}');
+		expect(doc.diagnostics).toEqual([]);
+		expect(doc.entities[0].notes).toEqual([]);
+	});
+
+	it('rejects an intent it does not know', () => {
+		// Silently ignoring it would render grey — a real intent of its own —
+		// so a typo would read as a deliberate choice.
+		const doc = entity(`title="X" notes={[{ note: 'Hi', intent: 'critical' }]}`);
+		expect(doc.diagnostics.map((d) => d.code)).toEqual(['notes-literal']);
+		expect(doc.entities[0].notes).toEqual([]);
+	});
+
+	it('rejects an entry with no note to show', () => {
+		const doc = entity(`title="X" notes={[{ intent: 'danger' }]}`);
+		expect(doc.diagnostics.map((d) => d.code)).toEqual(['notes-literal']);
+	});
+
+	it('rejects a key it does not know', () => {
+		const doc = entity(`title="X" notes={[{ note: 'Hi', tone: 'danger' }]}`);
+		expect(doc.diagnostics.map((d) => d.code)).toEqual(['notes-literal']);
+	});
+
+	it('rejects anything that is not a plain string', () => {
+		// The attribute source is never evaluated, so a value that would need
+		// running is reported rather than run.
+		const doc = entity('title="X" notes={[{ note: someVariable }]}');
+		expect(doc.diagnostics.map((d) => d.code)).toEqual(['notes-literal']);
+	});
+
+	it('rejects a bare object instead of an array', () => {
+		const doc = entity(`title="X" notes={{ note: 'Hi' }}`);
+		expect(doc.diagnostics.map((d) => d.code)).toEqual(['notes-literal']);
+	});
+
+	it('is taken on every entity, and on an example', () => {
+		const source = [
+			'<script>',
+			"\timport Badge from './Badge.svelte';",
+			'</script>',
+			'',
+			`[SHOWCASE title="Badge" notes={[{ note: 'Showcase note', intent: 'info' }]}]`,
+			'\t[component component={Badge}]',
+			'\t\t<Badge />',
+			'\t[/component]',
+			`\t[example title="One" notes={[{ note: 'Example note', intent: 'danger' }]}]`,
+			'\t\t<Badge />',
+			'\t[/example]',
+			'[/SHOWCASE]',
+			'',
+			`[PAGE title="P" notes={[{ note: 'Page note' }]}]`,
+			'\t<p>hi</p>',
+			'[/PAGE]',
+			'',
+			`[LAYOUT title="L" notes={[{ note: 'Layout note', intent: 'success' }]}]`,
+			'\t<main>hi</main>',
+			'[/LAYOUT]',
+		].join('\n');
+		const doc = parseSdoc(source);
+		expect(doc.diagnostics).toEqual([]);
+		const showcase = doc.entities[0] as ShowcaseEntity;
+		expect(showcase.notes).toEqual([{ note: 'Showcase note', intent: 'info' }]);
+		expect(showcase.examples[0].notes).toEqual([{ note: 'Example note', intent: 'danger' }]);
+		expect(doc.entities[1].notes).toEqual([{ note: 'Page note', intent: null }]);
+		expect(doc.entities[2].notes).toEqual([{ note: 'Layout note', intent: 'success' }]);
+	});
+
+	it('is not an attribute of [component]', () => {
+		const doc = parseSdoc(
+			[
+				'<script>',
+				"\timport Badge from './Badge.svelte';",
+				'</script>',
+				'',
+				'[SHOWCASE title="Badge"]',
+				`\t[component component={Badge} notes={[{ note: 'nope' }]}]`,
+				'\t\t<Badge />',
+				'\t[/component]',
+				'[/SHOWCASE]',
+			].join('\n'),
+		);
+		expect(doc.diagnostics.map((d) => d.code)).toEqual(['unknown-attr']);
+	});
+});
+
 describe('parseSdoc typed entities', () => {
 	const source = `<script>
 	import Tabs from './Tabs.svelte';

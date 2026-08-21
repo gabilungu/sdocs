@@ -137,6 +137,16 @@ Explorer uses:
   its previews document. The routes come from the Explorer's own router, so
   they're exactly what the site serves — drive a browser over them to smoke
   test every page.
+- `search_docs { query?, intent?, limit? }` — find documentation by any name it
+  goes under: the entity title, a component it previews, that component's
+  `synonyms`, an example title, an example's `tags`, or the text of any `notes`
+  on either. Matching is a case-insensitive **substring**, so `butt` finds
+  `Button` and `menu` finds every example tagged "user menu". `intent` sweeps
+  by note severity instead — `intent: 'danger'` lists everything marked danger
+  with no query at all, and `'none'` finds notes written without one; give both
+  and a result has to satisfy both. Each hit says which names matched, the
+  notes it carries, and the route it serves at — pass that route to
+  `resolve_visual_target` to screenshot it. Reach for it before reading files.
 - `check_docs { file? }` — **compile** every stage (previews, examples, page
   and layout bodies) the way the dev server does and report what breaks:
   Svelte compile errors, relative imports that resolve to no file, and grammar
@@ -222,7 +232,7 @@ interface SdocsConfig {
 	title?: string;                      // top-bar title. Default 'sdocs'
 	logo?: string | false;               // 'sdocs' mascot | image URL | false. Default 'sdocs'
 	favicon?: string;                    // tab icon path/URL
-	sections?: { slug: string; title?: string; order?: string[] }[];
+	sections?: ({ slug: string; title?: string; order?: string[] } | { type: 'divider' })[];
 	home?: string;                       // route path of the landing page
 	routing?: 'history' | 'hash';        // Default 'history' (CLI), 'hash' (embedded)
 	base?: string;                       // public base path for build. Default '/'
@@ -263,6 +273,9 @@ Key options:
   `slug` is the first route segment and what titles reference via `@slug/…`;
   `order` is an array of route paths that sort first. Default: a single implicit
   `docs` section. Referencing an undeclared section is a build error.
+  A `{ type: 'divider' }` entry draws a rule between the tabs on either side of
+  it — it has no slug, no routes and no sidebar, and one with no section before
+  it (or none after) draws nothing.
 - **`axes`** — dimensions of the design system the reader can switch between,
   each `{ id, label?, values }`. Every axis gets a top-bar control (segmented
   while there's room, a dropdown once there isn't), and the reader's pick lands
@@ -279,14 +292,16 @@ Key options:
   the axis controls. Its value lands on every stage's `<html>` as a CSS custom
   property — `--scale` unless `var` names another — so the project's css can
   multiply by it (`padding: calc(8px * var(--scale, 1))`). Defaults: `min` 0.75,
-  `max` 1.5, `default` 1, `step` 0.05, `label` 'Scale'. Double-clicking the
-  slider returns it to the default. Unlike an axis it carries a *property*
+  `max` 1.5, `default` 1, `step` 0.05, `label` 'Scale'. Clicking the control's
+  label or its value — anything but the slider itself — returns it to the
+  default, as does double-clicking the slider. The label drops away when the
+  bar runs short of room, at the width the axis switches turn into dropdowns. Unlike an axis it carries a *property*
   rather than an attribute, because a range has no set of names to key off:
   one rule reading a number beats a rule per step. The pick persists, and a
   stage page takes it as `?scale=1.25` (with `?scale-var=--ui-scale` when the
   project renamed it). `presets` adds named stops —
-  `[{ label: 'S', value: 0.875 }, { label: 'M', value: 1 }]` — rendered as a
-  segmented control beside the slider, in the same control the axes use; the
+  `[{ label: 'S', value: 0.875 }, { label: 'M', value: 1 }]` — rendered inside
+  the slider's own control, to the right of its value; the
   slider still reaches everything between, and a preset outside `min`–`max` is
   refused rather than clamped, since a button that lands somewhere other than
   its label says is worse than one that isn't there.
@@ -435,6 +450,11 @@ already the container" below before reaching for a wrapper `<div>`.
   A reference that resolves to nothing is an error in `check` and in a build.
 - `args={{ … }}` (optional) — this preview's control defaults. In scope in the
   body: spread it (`<X {...args} />`), pick from it, or ignore it.
+- `synonyms="pill, chip"` (optional) — the other names this component answers
+  to. A comma-separated list; spacing, a trailing comma and a repeat all wash
+  out. Rendered as quiet chips above the preview, and searched by
+  `search_docs`, so a reader (or an agent) looking for "chip" lands on the
+  Badge that is one.
 - `title` (tab label — defaults to the component name; set it to distinguish two
   previews of the same component), `description`, and the same stage attributes.
 
@@ -454,6 +474,48 @@ Renders **exactly what you wrote**; controls never touch it. Requires a `title`
 (unique within the block). Same stage attributes as `[component]` plus
 `description`. Examples render below the previews and stay visible on every tab;
 the same block also works inside a `[DOC]`, mid-prose.
+
+`tags="user menu, badge"` (optional) marks what an example shows — the parts it
+puts on screen, or the context it belongs to. Same comma-separated list as
+`synonyms`, rendered as quiet chips under the description, and searched by
+`search_docs`: tag every example that composes a user menu and one query
+collects them from across the project.
+
+## `notes` — standing remarks
+
+Every entity, and every `[example]`, takes a list of them:
+
+```sdoc
+[SHOWCASE
+	title="Forms / Button"
+	notes={[
+		{ note: 'Being replaced by ActionButton in v4.', intent: 'warning' },
+		{ note: 'Focus ring lands 1px off in Safari.', intent: 'danger' },
+		{ note: 'Ships in the next release.' },
+	]}
+]
+```
+
+- `note` — what it says. Each renders as an alert directly under the entity's
+  title, in the order written. A `[LAYOUT]` shows no title, so its notes ride
+  **over** the layout, each with a dismiss button.
+- `intent` — `danger`, `warning`, `success` or `info`. Leave it off and the
+  note is grey. An intent outside that set is an error, not a silent fallback:
+  grey is a real choice, and a typo would read as one. So is an entry with no
+  `note`, an unknown key, and a value that isn't a plain quoted string — the
+  attribute is source text that is never evaluated.
+
+Under `sdocs dev` the Explorer can write them: a note button at the end of
+every entity and example title (top-right corner on a `[LAYOUT]` or `[PAGE]`,
+which show no title) opens an editor, and Save rewrites the `notes` attribute
+in the `.sdoc` itself. Dev only — the endpoint behind it exists on no built
+site, and it refuses any file the project does not document.
+
+In the sidebar the notes become one dot on the row: **filled** when the worst
+of them is on that page, **hollow** when it is on something inside it. A row
+shows the worst note at or under it — `danger` > `warning` > *no intent* >
+`success` > `info` — so a folder carries the loudest thing anywhere inside. A
+`hide` entity's notes stay out of the roll-up.
 
 ## Scoped `<script>` / `<style>` — the ladder
 

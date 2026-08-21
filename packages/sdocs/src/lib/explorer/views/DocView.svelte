@@ -3,6 +3,8 @@
 	import type { Component } from 'svelte';
 	import type { DocEntry } from '../../types.js';
 	import { Icon } from '../../ui/Icon/index.js';
+	import { Note } from '../../ui/Note/index.js';
+	import NoteControl from './NoteControl.svelte';
 	import CollapsiblePanel from './CollapsiblePanel.svelte';
 	import PreviewFrame from './PreviewFrame.svelte';
 	import { displayTitle } from '../tree-builder.js';
@@ -17,9 +19,11 @@
 		 * them (effects never run server-side) and the built app's entry passes
 		 * the current route's, so hydration matches the static HTML. */
 		preloaded?: Record<string, Component>;
+		/** Dev only: the note editor writes to the project's source. */
+		dev?: boolean;
 	}
 
-	let { doc, activeStylesheet, pageModules = {}, preloaded = {} }: Props = $props();
+	let { doc, activeStylesheet, pageModules = {}, preloaded = {}, dev = false }: Props = $props();
 
 	const meta = $derived(doc.meta);
 	const toc = $derived(doc.toc ?? []);
@@ -159,10 +163,44 @@
 			<!-- Header: a body `#` heading takes over as the page title -->
 			{#if !doc.bodyTitle}
 				<div class="sdocs-view-header">
-					<h1 class="sdocs-view-title">{displayTitle(meta.title)}</h1>
+					<div class="sdocs-title-row">
+						<h1 class="sdocs-view-title">{displayTitle(meta.title)}</h1>
+						<NoteControl
+							{dev}
+							label={displayTitle(meta.title)}
+							file={doc.filePath}
+							entitySlug={doc.entitySlug}
+							notes={meta.notes ?? []}
+						/>
+					</div>
+					{#each meta.notes ?? [] as entry, i (i)}
+						<Note text={entry.note} intent={entry.intent} />
+					{/each}
 					{#if meta.description}
 						<p class="sdocs-view-description">{@html renderInlineMarkdown(meta.description)}</p>
 					{/if}
+				</div>
+			{:else}
+				<!-- The body's own heading is the title, and it is inside the
+				     rendered markdown — nothing here to hang a button off, so
+				     it takes the corner instead. -->
+				<NoteControl
+					{dev}
+					variant="corner"
+					label={displayTitle(meta.title)}
+					file={doc.filePath}
+					entitySlug={doc.entitySlug}
+					notes={meta.notes ?? []}
+				/>
+			{/if}
+			{#if doc.bodyTitle && meta.notes?.length}
+				<!-- The body's own `#` is the title here, and it lives inside the
+				     rendered markdown — so the notes take the place the header
+				     would have had, just above it. -->
+				<div class="sdocs-doc-note">
+					{#each meta.notes as entry, i (i)}
+						<Note text={entry.note} intent={entry.intent} />
+					{/each}
 				</div>
 			{/if}
 
@@ -236,6 +274,15 @@
 		font-weight: 700;
 		color: var(--color-base-900);
 		margin: 0;
+	}
+	.sdocs-view-header :global(.Note),
+	.sdocs-doc-note {
+		margin: 10px 0 14px;
+	}
+	.sdocs-title-row {
+		display: flex;
+		align-items: center;
+		gap: 8px;
 	}
 	.sdocs-view-description {
 		font-size: 14px;

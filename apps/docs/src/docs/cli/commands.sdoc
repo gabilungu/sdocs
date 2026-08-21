@@ -192,6 +192,15 @@
 	  serves at (plus a route per example), and the components its previews
 	  document. Routes come from the Explorer's own router, so they match the
 	  live site exactly.
+	- **`search_docs`** — find documentation by any name it goes under: the
+	  entity title, a component it previews, that component's
+	  [`synonyms`](/language/component-docs), an example title, an example's
+	  [`tags`](/language/component-docs), or the text of any
+	  [`notes`](/language/overview#notes). Matching is a case-insensitive
+	  **substring** — `butt` finds `Button`. An `intent` sweeps by note severity
+	  instead: `intent: 'danger'` lists everything marked danger with no query at
+	  all. Every hit says which names matched, the notes it carries, and the
+	  route it serves at, ready to hand to `resolve_visual_target`.
 	- **`check_docs`** — compile every stage and report Svelte errors, missing
 	  relative imports, and grammar diagnostics; the same check as
 	  [`sdocs check`](#sdocs-check). Takes an optional `file` to check one

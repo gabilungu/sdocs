@@ -31,6 +31,9 @@ export default {
 			title: 'Features',
 			order: ['whats-new', 'block-script-style', 'stage-backgrounds', 'api-extraction'],
 		},
+		// The demo section showcases this site's own components rather than
+		// documenting sdocs — the rule sets it apart from the product docs.
+		{ type: 'divider' },
 		{ slug: 'demo', title: 'Demo' },
 	],
 

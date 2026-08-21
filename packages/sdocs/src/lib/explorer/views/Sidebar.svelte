@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { SvelteSet } from 'svelte/reactivity';
-	import type { SectionTree, TreeNode } from '../tree-builder.js';
+	import type { NoteMark, SectionTree, TreeNode } from '../tree-builder.js';
 	import type { AxisConfig, ScaleConfig } from '../../types.js';
 	import { routeHref, navigate } from '../router.svelte.js';
 	import { Icon } from '../../ui/Icon/index.js';
@@ -222,7 +222,7 @@
 		<div class="sdocs-drawer-head">
 			{#if sections.length > 0}
 				<nav class="sdocs-drawer-sections" aria-label="Sections">
-					{#each sections as section (section.slug)}
+					{#each sections as section, i (section.slug)}
 						<a
 							class="sdocs-drawer-section"
 							class:is-active={section.slug === activeSlug}
@@ -231,6 +231,13 @@
 						>
 							{section.title}
 						</a>
+						{#if section.dividerAfter && i < sections.length - 1}
+							<span
+								class="sdocs-drawer-divider"
+								role="separator"
+								aria-orientation="vertical"
+							></span>
+						{/if}
 					{/each}
 				</nav>
 			{/if}
@@ -339,6 +346,19 @@
 	></button>
 {/if}
 
+<!-- The note mark: filled when the worst note in this row's subtree is the
+     row's own, hollow when it belongs to something inside it. It rides in the
+     slot before the chevron, which every row reserves whether it has a
+     chevron or not, so the marks line up down the tree. -->
+{#snippet noteDot(mark: NoteMark)}
+	<span
+		class="sdocs-note-dot"
+		class:is-own={mark.own}
+		data-intent={mark.intent ?? 'none'}
+		title={mark.own ? 'Has a note' : 'Something inside has a note'}
+	></span>
+{/snippet}
+
 {#snippet treeNode(node: TreeNode)}
 	{@const pathKey = node.path.join('/')}
 	{@const expanded = isExpanded(pathKey)}
@@ -382,6 +402,7 @@
 			--expander-color-hover={expanderHoverColor(node)}
 		>
 			{#snippet left()}<Icon name={iconName(node, expanded)} --w="14px" --h="14px" --fill={iconColor(node)} />{/snippet}
+			{#snippet right()}{#if node.mark}{@render noteDot(node.mark)}{/if}{/snippet}
 			{#each node.children as child (child.path.join('/'))}
 				{@render treeNode(child)}
 			{/each}
@@ -399,6 +420,7 @@
 			--r="6px"
 		>
 			{#snippet left()}<Icon name={iconName(node, false)} --w="14px" --h="14px" --fill={iconColor(node)} />{/snippet}
+			{#snippet right()}{#if node.mark}{@render noteDot(node.mark)}{/if}{/snippet}
 		</NavTree.Item>
 	{/if}
 {/snippet}
@@ -464,6 +486,43 @@
 		gap: 8px;
 		padding: 8px 8px 8px 10px;
 		border-bottom: 1px solid var(--color-base-200);
+	}
+	/* Filled says the note is on this page; hollow says it is on something
+	   under it. Small enough to sit beside a row's label without competing
+	   with it — it marks, it doesn't announce. */
+	.sdocs-note-dot {
+		display: block;
+		width: 7px;
+		height: 7px;
+		border-radius: 999px;
+		border: 1.5px solid var(--dot);
+		--dot: var(--color-base-400);
+	}
+	.sdocs-note-dot.is-own {
+		background: var(--dot);
+	}
+	.sdocs-note-dot[data-intent='danger'] {
+		--dot: var(--color-danger-500);
+	}
+	.sdocs-note-dot[data-intent='warning'] {
+		--dot: var(--color-warning-500);
+	}
+	.sdocs-note-dot[data-intent='success'] {
+		--dot: var(--color-success-500);
+	}
+	.sdocs-note-dot[data-intent='info'] {
+		--dot: var(--color-action-500);
+	}
+
+	/* The drawer wraps its sections into a row, so the rule stands the same way
+	   it does in the bar. */
+	.sdocs-drawer-divider {
+		flex: none;
+		align-self: center;
+		width: 1px;
+		height: 18px;
+		margin: 0 4px;
+		background: var(--color-base-200);
 	}
 	.sdocs-drawer-sections {
 		display: flex;

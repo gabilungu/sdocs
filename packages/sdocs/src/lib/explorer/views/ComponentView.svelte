@@ -1,7 +1,9 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import type { DocEntry } from '../../types.js';
+	import type { DocEntry, DocNote } from '../../types.js';
 	import { Icon } from '../../ui/Icon/index.js';
+	import { Note } from '../../ui/Note/index.js';
+	import NoteControl from './NoteControl.svelte';
 	import { highlightSvelte } from '../highlighter.js';
 	import CollapsiblePanel from './CollapsiblePanel.svelte';
 	import TwoPaneSplit from '../../ui/TwoPaneSplit/TwoPaneSplit.svelte';
@@ -24,10 +26,12 @@
 		doc: DocEntry;
 		/** If set, show only this example (full-page view) */
 		snippetName?: string;
+		/** Dev only: the note editor writes to the project's source. */
+		dev?: boolean;
 		activeStylesheet?: string;
 	}
 
-	let { doc, snippetName, activeStylesheet }: Props = $props();
+	let { doc, snippetName, activeStylesheet, dev = false }: Props = $props();
 
 	const meta = $derived(doc.meta);
 	const previews = $derived(doc.previews ?? []);
@@ -272,6 +276,24 @@
 <!-- The stage: a preview pane that can be dragged narrower, with the hatched
      canvas as the room to drag into. `get`/`set` are the width binding —
      each caller owns where that width is stored. -->
+<!-- Tags and synonyms: metadata, deliberately quiet. They sit between the
+     block's prose and its stage, and read as a footnote to the description
+     rather than a heading of their own. -->
+<!-- Every note an opener carries, in the order it was written. -->
+{#snippet notes(list: DocNote[], onclose?: (i: number) => void)}
+	{#each list as entry, i (i)}
+		<Note text={entry.note} intent={entry.intent} onclose={onclose && (() => onclose(i))} />
+	{/each}
+{/snippet}
+
+{#snippet metaChips(items: string[], label: string, size: 'sm' | 'md')}
+	<ul class="sdocs-meta-chips" aria-label={label}>
+		{#each items as item (item)}
+			<li class="sdocs-meta-chip" class:is-md={size === 'md'}>{item}</li>
+		{/each}
+	</ul>
+{/snippet}
+
 {#snippet stage(
 	content: Snippet,
 	get: () => number | string,
@@ -309,7 +331,22 @@
 	{#if focusedSnippet}
 		<!-- Example full-page view -->
 		<div class="sdocs-view-header">
-			<h1 class="sdocs-view-title">{displayTitle(meta.title)} / {snippetName}</h1>
+			<div class="sdocs-title-row">
+				<h1 class="sdocs-view-title">{displayTitle(meta.title)} / {snippetName}</h1>
+				<NoteControl
+					{dev}
+					label="{displayTitle(meta.title)} / {snippetName}"
+					file={doc.filePath}
+					entitySlug={doc.entitySlug}
+					exampleTitle={snippetName}
+					notes={focusedSnippet.notes ?? []}
+				/>
+			</div>
+			<!-- Opened on its own, an example is the whole page: its notes have
+			     to travel with it, or a warning only shows on the way in. -->
+			{#if focusedSnippet.notes?.length}
+				{@render notes(focusedSnippet.notes)}
+			{/if}
 		</div>
 		<!-- The example IS the page — its stage rides the same resizable split. -->
 		{#snippet focusedContent()}
@@ -331,7 +368,19 @@
 	{:else}
 		<!-- Full component view -->
 		<div class="sdocs-view-header">
-			<h1 class="sdocs-view-title">{displayTitle(meta.title)}</h1>
+			<div class="sdocs-title-row">
+				<h1 class="sdocs-view-title">{displayTitle(meta.title)}</h1>
+				<NoteControl
+					{dev}
+					label={displayTitle(meta.title)}
+					file={doc.filePath}
+					entitySlug={doc.entitySlug}
+					notes={meta.notes ?? []}
+				/>
+			</div>
+			{#if meta.notes?.length}
+				{@render notes(meta.notes)}
+			{/if}
 			{#if meta.description}
 				<p class="sdocs-view-description">{@html renderInlineMarkdown(meta.description)}</p>
 			{/if}
@@ -357,6 +406,10 @@
 			<!-- The preview's description: prose between the tabs and the stage,
 			     never part of the preview panel itself. -->
 			<p class="sdocs-preview-description">{@html renderInlineMarkdown(activePreview.snippet.description)}</p>
+		{/if}
+
+		{#if activePreview?.snippet.synonyms?.length}
+			{@render metaChips(activePreview.snippet.synonyms, 'Also known as', 'md')}
 		{/if}
 
 		{#if activePreview}
@@ -527,9 +580,23 @@
 					<h3 class="sdocs-example-title">
 						<Icon name="bookmark" --w="14px" --h="14px" --fill="var(--color-example-500)" />
 						{example.name || '⚠ title required'}
+						<NoteControl
+							{dev}
+							label="{displayTitle(meta.title)} / {example.name}"
+							file={doc.filePath}
+							entitySlug={doc.entitySlug}
+							exampleTitle={example.name}
+							notes={example.notes ?? []}
+						/>
 					</h3>
+					{#if example.notes?.length}
+						{@render notes(example.notes)}
+					{/if}
 					{#if example.description}
 						<p class="sdocs-block-description">{@html renderInlineMarkdown(example.description)}</p>
+					{/if}
+					{#if example.tags?.length}
+						{@render metaChips(example.tags, 'Tags', 'sm')}
 					{/if}
 					{#snippet exampleContent()}
 						<div class="sdocs-preview-wrapper">
@@ -579,6 +646,7 @@
 	}
 	.sdocs-example > .sdocs-example-title,
 	.sdocs-example > .sdocs-block-description,
+	.sdocs-example > .sdocs-meta-chips,
 	.sdocs-example > .sdocs-panels {
 		max-width: var(--sdocs-content-max, 1200px);
 	}
@@ -742,6 +810,20 @@
 		color: var(--color-base-900);
 		margin: 0;
 	}
+	.sdocs-view-header :global(.Note) {
+		margin: 10px 0;
+	}
+	/* An example's column already spaces its rows; the note only needs to be
+	   held to the content width like its siblings. */
+	.sdocs-example > :global(.Note) {
+		max-width: var(--sdocs-content-max, 1200px);
+	}
+	/* The title and whatever rides at the end of its line. */
+	.sdocs-title-row {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
 	.sdocs-view-description {
 		font-size: 14px;
 		line-height: 1.5;
@@ -793,6 +875,32 @@
 		font-size: 13px;
 		line-height: 1.5;
 		color: var(--color-base-500);
+	}
+	.sdocs-meta-chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+		/* Clear of the title or description above and the stage below. */
+		margin: 2px 0 12px;
+		padding: 0;
+		list-style: none;
+	}
+	/* Badges, not pills: the corner is rounded, not run all the way round, and
+	   the fill alone carries them — a stroke would ask for more attention than
+	   a footnote deserves. */
+	.sdocs-meta-chip {
+		padding: 0 5px;
+		border-radius: 3px;
+		background: var(--color-base-100);
+		font-size: 10px;
+		line-height: 1.8;
+		color: var(--color-base-500);
+	}
+	/* A component's other names carry more weight than one example's tags. */
+	.sdocs-meta-chip.is-md {
+		padding: 1px 6px;
+		border-radius: 4px;
+		font-size: 12px;
 	}
 	.sdocs-example-title {
 		display: flex;

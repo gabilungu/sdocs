@@ -29,8 +29,9 @@
 	  [sdocs MCP server](/cli/commands#sdocs-mcp) with the editor, so agent
 	  features can validate `.sdoc` files with the real parser, scaffold starter
 	  docs from a component's extracted props, read the authoring guide, and
-	  read the workspace itself — the docs map (`list_docs`) and any
-	  component's extracted API (`get_component_api`). It prefers the
+	  read the workspace itself — the docs map (`list_docs`), a search across
+	  every title, synonym and tag (`search_docs`), and any component's
+	  extracted API (`get_component_api`). It prefers the
 	  workspace's own sdocs install and falls back to `npx`; the editor starts
 	  and stops it on demand.
 

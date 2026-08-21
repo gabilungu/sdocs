@@ -1,10 +1,11 @@
 import type { Plugin, ViteDevServer } from 'vite';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { loadRawConfig, resolveAndFinalize } from './server/config.js';
 import { discoverDocFiles, globBase } from './server/discovery.js';
 import { parseComponent } from './server/prop-parser.js';
+import { writeNotes, NoteTargetError } from './server/note-editor.js';
 import { parseSdoc, offsetToPosition } from './language/index.js';
 import {
 	planEntitySnippets,
@@ -48,6 +49,9 @@ import type {
 const VIRTUAL_MODULE_ID = 'virtual:sdocs';
 const RESOLVED_VIRTUAL_ID = '\0virtual:sdocs';
 const IFRAME_PREFIX = '/@sdocs/iframe/';
+/** Where the Explorer posts a note edit. Dev server only. */
+const NOTES_ENDPOINT = '/__sdocs/notes';
+
 const PREVIEW_PREFIX = '/@sdocs/preview/';
 const MOUNT_PREFIX = '/@sdocs/mount/';
 const PAGE_PREFIX = '/@sdocs/page/';
@@ -121,6 +125,44 @@ export function sdocsPlugin(
 
 		configureServer(devServer) {
 			server = devServer;
+
+			// Middleware: edit an opener's notes from the Explorer.
+			//
+			// This writes to the project's source, so it lives here and only
+			// here: `configureServer` runs for the dev server alone, so no
+			// build can carry it. The file has to be one this project already
+			// documents — a path from the request never reaches the disk.
+			server.middlewares.use(async (req, res, next) => {
+				if (req.url?.split('?')[0] !== NOTES_ENDPOINT) return next();
+				const fail = (code: number, message: string) => {
+					res.statusCode = code;
+					res.setHeader('Content-Type', 'application/json');
+					res.end(JSON.stringify({ error: message }));
+				};
+				if (req.method !== 'POST') return fail(405, 'Use POST.');
+				try {
+					const chunks: Buffer[] = [];
+					for await (const chunk of req) chunks.push(chunk as Buffer);
+					const body = JSON.parse(Buffer.concat(chunks).toString('utf-8'));
+					const filePath = String(body.file ?? '');
+					const known = [...docEntries.values()].some((e) => e.filePath === filePath);
+					if (!known) return fail(400, 'That file is not part of this project.');
+
+					const source = await readFile(filePath, 'utf-8');
+					const next = writeNotes(
+						source,
+						{ entitySlug: String(body.entitySlug ?? ''), exampleTitle: body.exampleTitle ?? null },
+						Array.isArray(body.notes) ? body.notes : [],
+					);
+					if (next !== source) await writeFile(filePath, next, 'utf-8');
+					res.statusCode = 200;
+					res.setHeader('Content-Type', 'application/json');
+					res.end(JSON.stringify({ ok: true }));
+				} catch (err) {
+					const message = err instanceof Error ? err.message : String(err);
+					return fail(err instanceof NoteTargetError ? 404 : 400, message);
+				}
+			});
 
 			// Middleware: serve iframe preview HTML pages
 			server.middlewares.use((req, res, next) => {
@@ -478,6 +520,11 @@ export function sdocsPlugin(
 				script: p.script,
 				style: p.style,
 				description: p.description,
+				// Only when the author wrote some: an empty array on every
+				// stage is payload the page never reads.
+				...(p.tags?.length ? { tags: p.tags } : {}),
+				...(p.synonyms?.length ? { synonyms: p.synonyms } : {}),
+				...(p.notes?.length ? { notes: p.notes } : {}),
 				componentName: p.componentName ?? null,
 				stageId: stageId(stageIdentity(filePath, entity.slug, p.slug)),
 			}));
@@ -493,7 +540,7 @@ export function sdocsPlugin(
 								: 'layout',
 				filePath,
 				entitySlug: entity.slug,
-				meta: { title: entity.title },
+				meta: { title: entity.title, ...(entity.notes.length ? { notes: entity.notes } : {}) },
 				entityScript: entity.script?.content ?? null,
 				entityStyle: entity.style?.content ?? null,
 				previews: [],

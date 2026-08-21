@@ -2,16 +2,23 @@
 	import Notice from './Notice.svelte';
 </script>
 
-[SHOWCASE title="@demo/Notice" description="Kitchen sink: every documented feature in one component — text, number, boolean, and union props; events; plain and parameterized snippets; methods; exported state; and annotated CSS custom properties."]
+[SHOWCASE
+	title="@demo/Notice"
+	description="Kitchen sink: every documented feature in one component — text, number, boolean, and union props; events; plain and parameterized snippets; methods; exported state; and annotated CSS custom properties."
+	notes={[
+		{ note: 'The kitchen sink: this page exists to exercise every documented feature at once, not to model a real component doc.', intent: 'info' },
+		{ note: 'Also the corpus the language-server and formatter tests run against.' },
+	]}
+]
 
-	[component component={Notice} args={{ title: 'Build finished', tone: 'success', dismissible: true, count: 1 }}]
+	[component component={Notice} synonyms="callout, alert, admonition, banner" args={{ title: 'Build finished', tone: 'success', dismissible: true, count: 1 }}]
 		<Notice {...args}>
 			All 12 pages compiled in 1.2s — try dismissing me, or change my props
 			in the table below.
 		</Notice>
 	[/component]
 
-	[example title="WithIconSnippet"]
+	[example title="WithIconSnippet" tags="icon, snippet, warning"]
 		<Notice {...args} title="Deploy warning" tone="warning">
 			{#snippet icon(tone)}
 				<span>{tone === 'warning' ? '⚠️' : 'ℹ️'}</span>
@@ -20,7 +27,7 @@
 		</Notice>
 	[/example]
 
-	[example title="Repeated"]
+	[example title="Repeated" tags="count, badge" notes={[{ note: 'The count badge has no upper bound yet — past 99 it widens the title row.', intent: 'warning' }]}]
 		<Notice {...args} title="Connection retried" tone="danger" count={4}>
 			The count prop renders an occurrence badge next to the title.
 		</Notice>

@@ -67,7 +67,7 @@ describe('MCP handler', () => {
 		expect((await rpc('nope/nope')).error?.code).toBe(-32601);
 	});
 
-	it('lists the eight tools', async () => {
+	it('lists the nine tools', async () => {
 		const { result } = await rpc('tools/list');
 		const names = (result as { tools: { name: string }[] }).tools.map((t) => t.name);
 		expect(names).toEqual([
@@ -75,6 +75,7 @@ describe('MCP handler', () => {
 			'scaffold_component_doc',
 			'get_authoring_guide',
 			'list_docs',
+			'search_docs',
 			'check_docs',
 			'check_coverage',
 			'resolve_visual_target',
@@ -222,6 +223,157 @@ describe('MCP handler', () => {
 		} finally {
 			process.chdir(prev);
 		}
+	});
+
+	describe('search_docs', () => {
+		const PROJECT = [
+			'<script>',
+			'\timport Badge from "./Badge.svelte";',
+			'</script>',
+			'',
+			`[SHOWCASE title="Display / Badge" notes={[{ note: 'Being replaced by Chip in v4.', intent: 'warning' }]}]`,
+			'\t[component component={Badge} synonyms="pill, chip, tag"]',
+			'\t\t<Badge {...args} />',
+			'\t[/component]',
+			'',
+			'\t[example title="In a user menu" tags="user menu, avatar"]',
+			'\t\t<Badge />',
+			'\t[/example]',
+			'',
+			`\t[example title="Plain" notes={[{ note: 'Contrast is unverified here.', intent: 'danger' }, { note: 'A plain remark.' }]}]`,
+			'\t\t<Badge />',
+			'\t[/example]',
+			'[/SHOWCASE]',
+			'',
+		].join('\n');
+
+		async function inProject<T>(run: () => Promise<T>): Promise<T> {
+			const dir = mkdtempSync(join(tmpdir(), 'sdocs-mcp-search-'));
+			writeFileSync(join(dir, 'sdocs.config.js'), 'export default {\n\tinclude: ["./**/*.sdoc"],\n};\n');
+			writeFileSync(join(dir, 'Badge.sdoc'), PROJECT);
+			const prev = process.cwd();
+			process.chdir(dir);
+			try {
+				return await run();
+			} finally {
+				process.chdir(prev);
+			}
+		}
+
+		const search = async (query: string) =>
+			(await callTool('search_docs', { query })).structuredContent as Record<string, any>;
+
+		it('finds a component by a fragment of its name', async () => {
+			const found = await inProject(() => search('adg'));
+			expect(found.results).toMatchObject([
+				{ kind: 'SHOWCASE', title: 'Display / Badge', matched: ['title', 'component: Badge'] },
+			]);
+		});
+
+		it('finds a component by a synonym', async () => {
+			const found = await inProject(() => search('chip'));
+			// "Chip" is both a synonym and a word in the entity's note, and the
+			// hit says so — every name that matched, not just the first.
+			expect(found.results).toMatchObject([
+				{
+					title: 'Display / Badge',
+					matched: ['synonym: chip', 'note: Being replaced by Chip in v4.'],
+				},
+			]);
+		});
+
+		it('finds a synonym from a fragment, not just the whole word', async () => {
+			const found = await inProject(() => search('PIL'));
+			expect(found.results).toMatchObject([{ matched: ['synonym: pill'] }]);
+		});
+
+		it('finds an example by a tag, and reports its route', async () => {
+			const found = await inProject(() => search('avatar'));
+			expect(found.results).toHaveLength(1);
+			expect(found.results[0]).toMatchObject({
+				kind: 'example',
+				title: 'Display / Badge / In a user menu',
+				tags: ['user menu', 'avatar'],
+				matched: ['tag: avatar'],
+			});
+			expect(found.results[0].route).toBe('/docs/display/badge/in-a-user-menu');
+		});
+
+		it('reports every name a single query matched', async () => {
+			// "tag" is both a synonym of the component and part of a word in
+			// nothing else — the entity hit says which name did it.
+			const found = await inProject(() => search('tag'));
+			expect(found.results[0].matched).toEqual(['synonym: tag']);
+		});
+
+		it('finds a page by the text of its note', async () => {
+			const found = await inProject(() => search('replaced by chip'));
+			expect(found.results).toMatchObject([
+				{ title: 'Display / Badge', matched: ['note: Being replaced by Chip in v4.'] },
+			]);
+			// The notes come back with the hit — the point of finding it is to
+			// read what it says.
+			expect(found.results[0].notes).toEqual([
+				{ note: 'Being replaced by Chip in v4.', intent: 'warning' },
+			]);
+		});
+
+		it('sweeps by intent with no query at all', async () => {
+			const found = await inProject(async () =>
+				((await callTool('search_docs', { intent: 'danger' })).structuredContent) as Record<string, any>,
+			);
+			expect(found.results).toHaveLength(1);
+			expect(found.results[0]).toMatchObject({
+				kind: 'example',
+				title: 'Display / Badge / Plain',
+				matched: ['note intent: danger'],
+			});
+		});
+
+		it("finds a note written without an intent under 'none'", async () => {
+			const found = await inProject(async () =>
+				((await callTool('search_docs', { intent: 'none' })).structuredContent) as Record<string, any>,
+			);
+			expect(found.results).toHaveLength(1);
+			expect(found.results[0].title).toBe('Display / Badge / Plain');
+		});
+
+		it('requires both when both are given', async () => {
+			const both = async (query: string, intent: string) =>
+				((await callTool('search_docs', { query, intent })).structuredContent) as Record<string, any>;
+			// "Plain" is the example's title and a word in its own remark, and
+			// that example carries a danger note — so danger keeps it and
+			// warning (which only the entity has) does not.
+			const danger = await inProject(() => both('plain', 'danger'));
+			expect(danger.results.map((r: { title: string }) => r.title)).toEqual([
+				'Display / Badge / Plain',
+			]);
+			const warning = await inProject(() => both('plain', 'warning'));
+			expect(warning.results.map((r: { title: string }) => r.title)).toEqual([]);
+		});
+
+		it('needs a query or an intent', async () => {
+			const { error } = await rpc('tools/call', { name: 'search_docs', arguments: {} });
+			expect(error?.message).toContain('query, an intent, or both');
+		});
+
+		it('comes back empty rather than guessing', async () => {
+			const found = await inProject(() => search('nothing-here'));
+			expect(found).toMatchObject({ total: 0, results: [] });
+		});
+
+		it('refuses a blank query with nothing else to go on', async () => {
+			const { error } = await rpc('tools/call', { name: 'search_docs', arguments: { query: '  ' } });
+			expect(error?.message).toContain('query, an intent, or both');
+		});
+
+		it('refuses an intent it does not know', async () => {
+			const { error } = await rpc('tools/call', {
+				name: 'search_docs',
+				arguments: { intent: 'critical' },
+			});
+			expect(error?.message).toContain('intent must be one of');
+		});
 	});
 
 	describe('resolve_visual_target', () => {

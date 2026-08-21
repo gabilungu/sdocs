@@ -67,6 +67,12 @@
 	next to a `components` section of component docs, each with its own
 	sidebar.
 
+	A `{ type: 'divider' }` entry in the array draws a thin rule between the
+	tabs on either side of it, for setting one group of sections apart from
+	another. It is not a section — no slug, no routes, nothing to title into it
+	— and one sitting at either end of the array draws nothing. See
+	[`sections`](/explorer/configuration#sections).
+
 	## Ordering
 
 	Entries at every level sort alphabetically. To pin items first, list their

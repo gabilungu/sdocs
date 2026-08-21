@@ -4,7 +4,9 @@ import { resolve } from 'node:path';
 import type {
 	SdocsConfig,
 	ResolvedSdocsConfig,
-	SectionConfig,
+	SectionEntry,
+	SectionDivider,
+	NormalizedSection,
 	AxisConfig,
 	ScaleConfig,
 	ScalePreset,
@@ -22,7 +24,7 @@ const DEFAULTS: ResolvedSdocsConfig = {
 	title: 'sdocs',
 	logo: 'sdocs',
 	favicon: './explorer/favicon.png',
-	sections: [{ slug: 'docs', title: 'Docs', order: [] }],
+	sections: [{ slug: 'docs', title: 'Docs', order: [], dividerAfter: false }],
 	sectionsDeclared: false,
 	home: null,
 	routing: null,
@@ -162,13 +164,32 @@ async function importConfig(configPath: string): Promise<SdocsConfig> {
 
 /** Sections with defaults filled in; the implicit `docs` section when none
  * are declared. Slug validity and duplicates are checked at site validation. */
-function normalizeSections(sections: SectionConfig[] | undefined): Required<SectionConfig>[] {
+/** A divider entry rather than a section. Narrowing needs a predicate: the
+ * negative branch of an inline `'type' in entry && …` stays the whole union. */
+function isDivider(entry: SectionEntry): entry is SectionDivider {
+	return 'type' in entry && entry.type === 'divider';
+}
+
+function normalizeSections(sections: SectionEntry[] | undefined): NormalizedSection[] {
 	if (!sections || sections.length === 0) return DEFAULTS.sections;
-	return sections.map((s) => ({
-		slug: String(s.slug ?? ''),
-		title: s.title ?? capitalize(String(s.slug ?? '')),
-		order: s.order ?? [],
-	}));
+	const resolved: NormalizedSection[] = [];
+	for (const entry of sections) {
+		// A divider is a mark on the section before it, not a section of its
+		// own — so nothing downstream has to know it exists. One that opens the
+		// array has nothing to mark and falls away.
+		if (isDivider(entry)) {
+			const previous = resolved[resolved.length - 1];
+			if (previous) previous.dividerAfter = true;
+			continue;
+		}
+		resolved.push({
+			slug: String(entry.slug ?? ''),
+			title: entry.title ?? capitalize(String(entry.slug ?? '')),
+			order: entry.order ?? [],
+			dividerAfter: entry.dividerAfter === true,
+		});
+	}
+	return resolved;
 }
 
 function capitalize(s: string): string {

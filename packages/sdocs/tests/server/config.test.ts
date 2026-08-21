@@ -130,22 +130,22 @@ describe('sizing attributes', () => {
 describe('attributeRules (shared by diagnostics and completions)', () => {
 	it('exposes the full attribute set per block kind', () => {
 		expect(Object.keys(attributeRules('preview'))).toEqual([
-			'component', 'args', 'title', 'description', 'maxWidth', 'padding', 'direction', 'gap', 'contentX', 'contentY', 'background', 'minHeight',
+			'component', 'args', 'title', 'description', 'synonyms', 'maxWidth', 'padding', 'direction', 'gap', 'contentX', 'contentY', 'background', 'minHeight',
 		]);
 		// [component] is the canonical tag for the same block
 		expect(attributeRules('component')).toEqual(attributeRules('preview'));
 		expect(Object.keys(attributeRules('example'))).toEqual([
-			'title', 'description', 'maxWidth', 'padding', 'direction', 'gap', 'contentX', 'contentY', 'background', 'minHeight',
+			'title', 'description', 'tags', 'notes', 'maxWidth', 'padding', 'direction', 'gap', 'contentX', 'contentY', 'background', 'minHeight',
 		]);
 		expect(Object.keys(attributeRules('DOC'))).toEqual([
-			'title', 'slug', 'hide', 'maxWidth', 'padding', 'contentX', 'toc',
+			'title', 'notes', 'slug', 'hide', 'maxWidth', 'padding', 'contentX', 'toc',
 		]);
 		expect(Object.keys(attributeRules('PAGE'))).toEqual([
-			'title', 'slug', 'hide', 'maxWidth', 'padding', 'contentX',
+			'title', 'notes', 'slug', 'hide', 'maxWidth', 'padding', 'contentX',
 		]);
 		expect(Object.keys(attributeRules('SHOWCASE'))).toContain('gap');
 		expect(Object.keys(attributeRules('SHOWCASE'))).toContain('slug');
-		expect(Object.keys(attributeRules('LAYOUT'))).toEqual(['title', 'slug', 'hide', 'maxWidth', 'padding', 'background', 'minHeight']);
+		expect(Object.keys(attributeRules('LAYOUT'))).toEqual(['title', 'notes', 'slug', 'hide', 'maxWidth', 'padding', 'background', 'minHeight']);
 	});
 
 	it('carries value kind and required flag for each attribute', () => {
@@ -206,7 +206,7 @@ describe('header title/logo (renamed from logo/icon)', () => {
 describe('sections config', () => {
 	it('defaults to the implicit docs section', () => {
 		const c = resolveConfig({});
-		expect(c.sections).toEqual([{ slug: 'docs', title: 'Docs', order: [] }]);
+		expect(c.sections).toEqual([{ slug: 'docs', title: 'Docs', order: [], dividerAfter: false }]);
 		expect(c.sectionsDeclared).toBe(false);
 		expect(c.home).toBeNull();
 		expect(c.routing).toBeNull();
@@ -218,11 +218,39 @@ describe('sections config', () => {
 			home: '/guides/introduction/',
 		});
 		expect(c.sections).toEqual([
-			{ slug: 'guides', title: 'Guides', order: [] },
-			{ slug: 'api', title: 'API', order: ['intro'] },
+			{ slug: 'guides', title: 'Guides', order: [], dividerAfter: false },
+			{ slug: 'api', title: 'API', order: ['intro'], dividerAfter: false },
 		]);
 		expect(c.sectionsDeclared).toBe(true);
 		expect(c.home).toBe('guides/introduction');
+	});
+
+	it('turns a divider entry into a mark on the section before it', () => {
+		const c = resolveConfig({
+			sections: [{ slug: 'guides' }, { type: 'divider' }, { slug: 'api' }],
+		});
+		// The divider is never a section of its own — routing, titles and the
+		// sidebar go on seeing exactly two.
+		expect(c.sections).toEqual([
+			{ slug: 'guides', title: 'Guides', order: [], dividerAfter: true },
+			{ slug: 'api', title: 'Api', order: [], dividerAfter: false },
+		]);
+	});
+
+	it('drops a divider with no section before it', () => {
+		const c = resolveConfig({ sections: [{ type: 'divider' }, { slug: 'guides' }] });
+		expect(c.sections).toEqual([
+			{ slug: 'guides', title: 'Guides', order: [], dividerAfter: false },
+		]);
+	});
+
+	it('survives a second pass — the resolved list is what the app hands back', () => {
+		// app-gen serializes the resolved sections into the generated entry, and
+		// the Explorer normalizes them again; the rule has to outlive that.
+		const once = resolveConfig({
+			sections: [{ slug: 'guides' }, { type: 'divider' }, { slug: 'api' }],
+		}).sections;
+		expect(resolveConfig({ sections: once }).sections).toEqual(once);
 	});
 });
 

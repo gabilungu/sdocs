@@ -121,8 +121,8 @@ export const configSchema: ConfigSchema = {
 		insert: ": '${0:/logo.svg}'",
 	},
 	sections: {
-		detail: '{ slug, title?, order? }[]',
-		doc: "The site's sections, in top-bar order. Titles reference a section by slug: `title=\"@guides/…\"`. `title` defaults to the capitalized slug; `order` lists route paths to pin first in the sidebar. Without sections, a single implicit `docs` section exists (no top bar).",
+		detail: "({ slug, title?, order? } | { type: 'divider' })[]",
+		doc: "The site's sections, in top-bar order. Titles reference a section by slug: `title=\"@guides/…\"`. `title` defaults to the capitalized slug; `order` lists route paths to pin first in the sidebar. Without sections, a single implicit `docs` section exists (no top bar). A `{ type: 'divider' }` entry draws a rule between the tabs around it — it has no routes and no sidebar of its own.",
 		insert: ": [\n\t{ slug: '$1' },$0\n]",
 	},
 	home: {

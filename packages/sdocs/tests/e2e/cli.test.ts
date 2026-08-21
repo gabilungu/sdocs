@@ -186,6 +186,67 @@ describe('sdocs dev in a bare project (npx shape)', () => {
 	});
 });
 
+describe('the note endpoint', () => {
+	it(
+		'writes a note into the project source, and refuses a file it does not document',
+		{ timeout: 150_000 },
+		async () => {
+			// The one route in sdocs that writes to a user's files. It exists
+			// only on the dev server, and only for files this project already
+			// documents — a path off the wire must never reach the disk.
+			const dir = makeBareProject();
+			const { output } = spawnCli(['dev'], dir);
+			const url = await waitFor(
+				() => output().match(/http:\/\/localhost:\d+/)?.[0] ?? null,
+				120_000,
+				'dev server URL',
+			);
+			const post = (body: unknown) =>
+				fetch(`${url}/__sdocs/notes`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(body),
+				});
+
+			const doc = join(dir, 'src/Thing.sdoc');
+			const before = readFileSync(doc, 'utf-8');
+
+			const ok = await waitFor(
+				async () => {
+					try {
+						const res = await post({
+							file: doc,
+							entitySlug: 'thing',
+							notes: [{ note: 'Set from the Explorer.', intent: 'warning' }],
+						});
+						return res.status === 200 ? res : null;
+					} catch {
+						return null;
+					}
+				},
+				30_000,
+				'note write',
+			);
+			expect(ok.status).toBe(200);
+			const after = readFileSync(doc, 'utf-8');
+			expect(after).toContain("notes={[{ note: 'Set from the Explorer.', intent: 'warning' }]}");
+			// Only the opener moved.
+			expect(after.split('\n').slice(1).join('\n')).not.toBe(before);
+			expect(after.split('\n').length).toBe(before.split('\n').length);
+
+			// A file outside the project is refused before anything is read.
+			const outside = join(dir, 'src/Secret.sdoc');
+			writeFileSync(outside, '[DOC title="Secret"]\n\thi\n[/DOC]\n');
+			const refused = await post({ file: outside, entitySlug: 'secret', notes: [] });
+			expect(refused.status).toBe(400);
+			expect(readFileSync(outside, 'utf-8')).toContain('[DOC title="Secret"]');
+
+			// And a GET is not a way in.
+			expect((await fetch(`${url}/__sdocs/notes`)).status).toBe(405);
+		},
+	);
+});
+
 describe('the missing-asset guard', () => {
 	it("404s a missing file but still serves the Explorer's own fonts", { timeout: 150_000 }, async () => {
 		// Both halves matter, and the second is why this test exists: the guard

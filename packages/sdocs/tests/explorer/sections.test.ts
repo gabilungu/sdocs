@@ -66,6 +66,105 @@ describe('displayTitle', () => {
 	});
 });
 
+describe('note marks roll up the tree', () => {
+	const noted = (title: string, intent: string | null, kind: DocEntry['kind'] = 'doc') =>
+		doc(title, kind, { meta: { title, notes: [{ note: 'x', intent }] } } as Partial<DocEntry>);
+
+	/** The mark on the row reached by walking `names` from the root. */
+	function markAt(tree: ReturnType<typeof buildSections>, ...names: string[]) {
+		let nodes = tree.sections[0].tree;
+		let node;
+		for (const name of names) {
+			node = nodes.find((n) => n.name === name);
+			if (!node) throw new Error(`no node "${name}" among ${nodes.map((n) => n.name)}`);
+			nodes = node.children;
+		}
+		return node?.mark ?? null;
+	}
+
+	it('marks the row that carries the note as its own', () => {
+		const map = buildSections([noted('Alpha', 'danger')]);
+		expect(markAt(map, 'Alpha')).toEqual({ intent: 'danger', own: true });
+	});
+
+	it('takes the worst of several notes on one row', () => {
+		const map = buildSections([
+			doc('Alpha', 'doc', {
+				meta: {
+					title: 'Alpha',
+					notes: [
+						{ note: 'a', intent: 'info' },
+						{ note: 'b', intent: 'danger' },
+						{ note: 'c', intent: 'success' },
+					],
+				},
+			} as Partial<DocEntry>),
+		]);
+		expect(markAt(map, 'Alpha')).toEqual({ intent: 'danger', own: true });
+	});
+
+	it('leaves a row with nothing to say unmarked', () => {
+		expect(markAt(buildSections([doc('Alpha')]), 'Alpha')).toBeNull();
+	});
+
+	it('shows a parent the worst of what is inside it, hollow', () => {
+		const map = buildSections([
+			noted('Forms / Quiet', 'info'),
+			noted('Forms / Loud', 'danger'),
+		]);
+		expect(markAt(map, 'Forms')).toEqual({ intent: 'danger', own: false });
+	});
+
+	it('ranks an intentless note above success and info', () => {
+		const map = buildSections([noted('Forms / Plain', null), noted('Forms / Good', 'success')]);
+		expect(markAt(map, 'Forms')).toEqual({ intent: null, own: false });
+	});
+
+	it('ranks danger above warning', () => {
+		const map = buildSections([noted('Forms / A', 'warning'), noted('Forms / B', 'danger')]);
+		expect(markAt(map, 'Forms')).toEqual({ intent: 'danger', own: false });
+	});
+
+	it('takes the worst even when the row has a note of its own', () => {
+		// The row's own note is the milder one, so the mark reports the danger
+		// inside it — hollow, because the danger is not on this page.
+		const map = buildSections([
+			doc('Badge', 'component', {
+				meta: { title: 'Badge', notes: [{ note: 'x', intent: 'info' }] },
+				examples: [
+					{ name: 'Broken', slug: 'broken', role: 'example', body: '', notes: [{ note: 'y', intent: 'danger' }] },
+				],
+			} as Partial<DocEntry>),
+		]);
+		expect(markAt(map, 'Badge')).toEqual({ intent: 'danger', own: false });
+		expect(markAt(map, 'Badge', 'Broken')).toEqual({ intent: 'danger', own: true });
+	});
+
+	it("keeps the row's own note when nothing inside is worse", () => {
+		const map = buildSections([
+			doc('Badge', 'component', {
+				meta: { title: 'Badge', notes: [{ note: 'x', intent: 'danger' }] },
+				examples: [
+					{ name: 'Fine', slug: 'fine', role: 'example', body: '', notes: [{ note: 'y', intent: 'info' }] },
+				],
+			} as Partial<DocEntry>),
+		]);
+		expect(markAt(map, 'Badge')).toEqual({ intent: 'danger', own: true });
+	});
+
+	it("does not surface a hidden entity's note on its parent", () => {
+		// The mark would point at a row the reader has no way to open.
+		const map = buildSections([
+			doc('Forms / Secret', 'doc', {
+				hide: true,
+				meta: { title: 'Forms / Secret', notes: [{ note: 'x', intent: 'danger' }] },
+			} as Partial<DocEntry>),
+			doc('Forms / Shown'),
+		]);
+		expect(markAt(map, 'Forms')).toBeNull();
+	});
+});
+
 describe('buildSections without declared sections', () => {
 	it('everything lands in the implicit docs section, routes unprefixed', () => {
 		const map = buildSections([doc('Markdown'), doc(':Form / Button', 'component')]);
@@ -98,6 +197,19 @@ describe('buildSections with declared sections', () => {
 		expect(map.sections.map((s) => s.title)).toEqual(['Guides', 'Components']);
 		expect(map.routes.has('guides/installation')).toBe(true);
 		expect(map.routes.has('components/form/button')).toBe(true);
+	});
+
+	it('a divider marks the tab before it and stays out of everything else', () => {
+		const map = buildSections(
+			[doc('@guides/Installation'), doc('@components/:Form / Button', 'component')],
+			{ sections: [{ slug: 'guides', title: 'Guides' }, { type: 'divider' }, { slug: 'components' }] },
+		);
+		expect(map.errors).toEqual([]);
+		// Two sections, not three — a divider is not a section, so it never
+		// reaches routing, the sidebar, or the slug checks.
+		expect(map.sections.map((s) => s.title)).toEqual(['Guides', 'Components']);
+		expect(map.sections.map((s) => s.dividerAfter)).toEqual([true, false]);
+		expect(map.routes.has('guides/installation')).toBe(true);
 	});
 
 	it('unknown @section and missing docs section are errors', () => {

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import bookmarkSvg from './icons/bookmark.svg?raw';
 	import chevronDownSvg from './icons/chevron-down.svg?raw';
+	import circleAlertSvg from './icons/circle-alert.svg?raw';
+	import circleCheckSvg from './icons/circle-check.svg?raw';
 	import chevronLeftSvg from './icons/chevron-left.svg?raw';
 	import chevronRightSvg from './icons/chevron-right.svg?raw';
 	import chevronUpSvg from './icons/chevron-up.svg?raw';
@@ -11,6 +13,7 @@
 	import diamondSvg from './icons/diamond.svg?raw';
 	import externalLinkSvg from './icons/external-link.svg?raw';
 	import fileCodeSvg from './icons/file-code.svg?raw';
+	import infoSvg from './icons/info.svg?raw';
 	import fileTextSvg from './icons/file-text.svg?raw';
 	import folderOpenSvg from './icons/folder-open.svg?raw';
 	import folderSvg from './icons/folder.svg?raw';
@@ -20,12 +23,16 @@
 	import sdocsSvg from './icons/sdocs.svg?raw';
 	import slidersHorizontalSvg from './icons/sliders-horizontal.svg?raw';
 	import squareFunctionSvg from './icons/square-function.svg?raw';
+	import stickyNoteSvg from './icons/sticky-note.svg?raw';
+	import triangleAlertSvg from './icons/triangle-alert.svg?raw';
 	import xSvg from './icons/x.svg?raw';
 	import zapSvg from './icons/zap.svg?raw';
 
 	const icons: Record<string, string> = {
 		'bookmark': bookmarkSvg,
 		'chevron-down': chevronDownSvg,
+		'circle-alert': circleAlertSvg,
+		'circle-check': circleCheckSvg,
 		'chevron-left': chevronLeftSvg,
 		'chevron-right': chevronRightSvg,
 		'chevron-up': chevronUpSvg,
@@ -36,6 +43,7 @@
 		'diamond': diamondSvg,
 		'external-link': externalLinkSvg,
 		'file-code': fileCodeSvg,
+		'info': infoSvg,
 		'file-text': fileTextSvg,
 		'folder-open': folderOpenSvg,
 		'folder': folderSvg,
@@ -45,6 +53,8 @@
 		'sdocs': sdocsSvg,
 		'sliders-horizontal': slidersHorizontalSvg,
 		'square-function': squareFunctionSvg,
+		'sticky-note': stickyNoteSvg,
+		'triangle-alert': triangleAlertSvg,
 		'x': xSvg,
 		'zap': zapSvg,
 	};

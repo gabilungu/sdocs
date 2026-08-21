@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { basename, dirname, isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseSdoc } from '../language/parser.js';
+import type { DocNote } from '../types.js';
 import { offsetToPosition } from '../language/scanner.js';
 import { parseComponentSource } from '../server/prop-parser.js';
 import { loadConfig } from '../server/config.js';
@@ -103,6 +104,13 @@ const INSTRUCTIONS =
 	'diagnosing the documentation UI itself. sdocs://visual-testing-guide has ' +
 	'the full procedure and worked examples.';
 
+/** Results one search_docs call returns before it starts reporting a cut. */
+const SEARCH_LIMIT = 50;
+
+/** Note severities search_docs will filter on; 'none' is a note written
+ * without an intent. */
+const SEARCH_INTENTS = ['danger', 'warning', 'success', 'info', 'none'];
+
 const TOOLS = [
 	{
 		name: 'validate_sdoc',
@@ -157,6 +165,40 @@ const TOOLS = [
 			'serves at (and one per example) — open those with a browser to smoke ' +
 			'test. Use it to see what exists before writing docs.',
 		inputSchema: { type: 'object', properties: {} },
+	},
+	{
+		name: 'search_docs',
+		description:
+			'Find documentation by any name it goes under — the entity title, a ' +
+			'component it previews, that component\'s `synonyms`, an example ' +
+			'title, an example\'s `tags`, or the text of any `notes` on either. ' +
+			'Matching is a case-insensitive substring, so "butt" finds Button and ' +
+			'"menu" finds every example tagged "user menu". `intent` sweeps by ' +
+			'note severity instead — intent:"danger" lists everything marked ' +
+			'danger, with no query at all; give both and a result has to satisfy ' +
+			'both. Each hit reports which name matched, the notes it carries, and ' +
+			'the route it serves at; pass that route to resolve_visual_target to ' +
+			'screenshot it. Use it to find the right page before reading files.',
+		inputSchema: {
+			type: 'object',
+			properties: {
+				query: {
+					type: 'string',
+					description:
+						'Text to look for in titles, component names, synonyms, tags and note text',
+				},
+				intent: {
+					type: 'string',
+					enum: SEARCH_INTENTS,
+					description:
+						"Only pages carrying a note of this severity; 'none' is a note written without an intent",
+				},
+				limit: {
+					type: 'number',
+					description: `Maximum results to return (default ${SEARCH_LIMIT}); the reply says how many were cut`,
+				},
+			},
+		},
 	},
 	{
 		name: 'check_docs',
@@ -369,7 +411,31 @@ const ENTITY_KIND_TO_DOC_KIND = {
 	LAYOUT: 'layout',
 } as const;
 
-async function listDocs() {
+/** One entity as both tools see it: what it is, where it serves, and every
+ * name it can be found under. */
+interface IndexedEntity {
+	kind: string;
+	title: string;
+	route: string | null;
+	components: { name: string; synonyms: string[] }[];
+	examples: { name: string; route: string | null; tags: string[]; notes: DocNote[] }[];
+	notes: DocNote[];
+}
+
+interface IndexedFile {
+	file: string;
+	valid: boolean;
+	entities: IndexedEntity[];
+}
+
+/**
+ * Read the project's docs once, resolved the way the site resolves them.
+ *
+ * Both `list_docs` and `search_docs` answer from this, so a route reported by
+ * one is the route the other finds — the routes come from the Explorer's own
+ * section builder, slug rules and `slug=` overrides included.
+ */
+async function collectDocIndex() {
 	const cwd = process.cwd();
 	const config = await loadConfig(cwd);
 	const files = await discoverDocFiles(
@@ -377,27 +443,21 @@ async function listDocs() {
 		cwd,
 	);
 
-	// Parse every file, then hand the entities to the Explorer's own section
-	// builder so the reported routes are the routes the site serves — slug
-	// rules, folders, sections, and `slug=` overrides included.
 	const parsed: { file: string; doc: ReturnType<typeof parseSdoc> }[] = [];
 	const entries: DocEntry[] = [];
-	const entryOf = new Map<DocEntry, { file: string; title: string }>();
 
 	for (const file of files) {
 		const doc = parseSdoc(await readFile(file, 'utf-8'));
 		parsed.push({ file, doc });
 		for (const e of doc.entities) {
-			const entry = {
+			entries.push({
 				kind: ENTITY_KIND_TO_DOC_KIND[e.kind],
 				filePath: file,
 				routeSlug: e.routeSlug,
 				hide: e.hide,
 				meta: { title: e.title },
 				examples: e.kind === 'SHOWCASE' ? e.examples.map((x) => ({ name: x.title })) : [],
-			} as unknown as DocEntry;
-			entries.push(entry);
-			entryOf.set(entry, { file, title: e.title });
+			} as unknown as DocEntry);
 		}
 	}
 
@@ -405,36 +465,81 @@ async function listDocs() {
 
 	// Invert the route table: entity route (no snippet) and one per example.
 	const routeOf = new Map<DocEntry, string>();
-	const exampleRoutes = new Map<DocEntry, { name: string; route: string }[]>();
+	const exampleRoutes = new Map<DocEntry, Map<string, string>>();
 	for (const [route, target] of map.routes) {
 		if (target.snippetName) {
-			const list = exampleRoutes.get(target.doc) ?? [];
-			list.push({ name: target.snippetName, route: `/${route}` });
-			exampleRoutes.set(target.doc, list);
+			const byName = exampleRoutes.get(target.doc) ?? new Map<string, string>();
+			byName.set(target.snippetName, `/${route}`);
+			exampleRoutes.set(target.doc, byName);
 		} else if (!routeOf.has(target.doc)) {
 			routeOf.set(target.doc, `/${route}`);
 		}
 	}
 
 	let cursor = 0;
-	const docs = parsed.map(({ file, doc }) => ({
+	const indexed: IndexedFile[] = parsed.map(({ file, doc }) => ({
 		file: relative(cwd, file),
 		valid: doc.diagnostics.length === 0,
 		entities: doc.entities.map((e) => {
 			const entry = entries[cursor++];
-			const examples = exampleRoutes.get(entry) ?? [];
+			const routes = exampleRoutes.get(entry);
 			return {
 				kind: e.kind,
 				title: e.title,
 				route: routeOf.get(entry) ?? null,
-				...(e.kind === 'SHOWCASE'
+				notes: e.notes,
+				components:
+					e.kind === 'SHOWCASE'
+						? e.previews
+								.filter((p) => p.componentName !== null)
+								.map((p) => ({ name: p.componentName as string, synonyms: p.synonyms }))
+						: [],
+				examples:
+					e.kind === 'SHOWCASE' || e.kind === 'DOC'
+						? e.examples.map((x) => ({
+								name: x.title,
+								route: routes?.get(x.title) ?? null,
+								tags: x.tags,
+								notes: x.notes,
+							}))
+						: [],
+			};
+		}),
+	}));
+
+	return { cwd, config, files, indexed, structureErrors: map.errors.map((e) => e.message) };
+}
+
+async function listDocs() {
+	const { cwd, config, files, indexed, structureErrors } = await collectDocIndex();
+
+	const docs = indexed.map((f) => ({
+		file: f.file,
+		valid: f.valid,
+		entities: f.entities.map((e) => {
+			const synonyms = e.components.filter((c) => c.synonyms.length);
+			const examples = e.examples.filter((x) => x.route !== null);
+			return {
+				kind: e.kind,
+				title: e.title,
+				route: e.route,
+				...(e.components.length ? { components: e.components.map((c) => c.name) } : {}),
+				// Only what the author actually wrote — an empty list on every
+				// entity is noise in a map meant to be read at a glance.
+				...(synonyms.length
+					? { synonyms: synonyms.map((c) => ({ component: c.name, names: c.synonyms })) }
+					: {}),
+				...(e.notes.length ? { notes: e.notes } : {}),
+				...(examples.length
 					? {
-							components: e.previews
-								.map((p) => p.componentName)
-								.filter((n): n is string => n !== null),
+							examples: examples.map((x) => ({
+								name: x.name,
+								route: x.route as string,
+								...(x.tags.length ? { tags: x.tags } : {}),
+								...(x.notes.length ? { notes: x.notes } : {}),
+							})),
 						}
 					: {}),
-				...(examples.length ? { examples } : {}),
 			};
 		}),
 	}));
@@ -450,7 +555,122 @@ async function listDocs() {
 			? { axes: config.axes.map((a) => ({ id: a.id, values: a.values })) }
 			: {}),
 		docs,
-		...(map.errors.length ? { structureErrors: map.errors.map((e) => e.message) } : {}),
+		...(structureErrors.length ? { structureErrors } : {}),
+	});
+}
+
+/**
+ * Find documentation by any name it goes under: the entity's title, a
+ * component it previews, that component's `synonyms`, an example's title, or
+ * an example's `tags`.
+ *
+ * Matching is a case-insensitive substring, deliberately: an agent looking for
+ * a button rarely knows whether the project calls it Button, ButtonGroup or
+ * "btn", and a search that only answers to whole words sends it back to
+ * reading files. Every hit says which name matched, so a surprising result
+ * explains itself.
+ */
+/** The intent of a note as the filter names it — an unset one is 'none'. */
+function intentName(note: DocNote): string {
+	return note.intent ?? 'none';
+}
+
+/** Why an intent filter kept a result, reported alongside the query's hits. */
+function intentHits(notes: DocNote[], intent: string): string[] {
+	if (!intent) return [];
+	return notes
+		.filter((n) => intentName(n) === intent)
+		.map((n) => `note intent: ${intentName(n)}`);
+}
+
+async function searchDocs(params: Record<string, unknown>) {
+	const raw = typeof params.query === 'string' ? params.query.trim() : '';
+	const intent = typeof params.intent === 'string' ? params.intent.trim() : '';
+	// One or the other is enough: a text search, a sweep of everything marked
+	// danger, or both together.
+	if (!raw && !intent) {
+		return invalidParams('search_docs needs a query, an intent, or both');
+	}
+	if (intent && !SEARCH_INTENTS.includes(intent)) {
+		return invalidParams(`intent must be one of ${SEARCH_INTENTS.join(', ')}`);
+	}
+	const limit = typeof params.limit === 'number' && params.limit > 0 ? params.limit : SEARCH_LIMIT;
+	const needle = raw.toLowerCase();
+	const hits = (text: string) => !!needle && text.toLowerCase().includes(needle);
+	/** With both given, a result has to satisfy both. */
+	const keep = (matched: string[], notes: DocNote[]) => {
+		if (raw && !matched.length) return false;
+		if (intent && !notes.some((n) => intentName(n) === intent)) return false;
+		return true;
+	};
+
+	const { indexed } = await collectDocIndex();
+	const results: Record<string, unknown>[] = [];
+
+	for (const file of indexed) {
+		for (const entity of file.entities) {
+			const matched: string[] = [];
+			if (hits(entity.title)) matched.push('title');
+			for (const component of entity.components) {
+				if (hits(component.name)) matched.push(`component: ${component.name}`);
+				for (const synonym of component.synonyms) {
+					if (hits(synonym)) matched.push(`synonym: ${synonym}`);
+				}
+			}
+			for (const note of entity.notes) {
+				if (hits(note.note)) matched.push(`note: ${note.note}`);
+			}
+			// Kept apart from the query's hits until the decision is made: an
+			// intent match must not stand in for the text the caller asked for.
+			const byIntent = intentHits(entity.notes, intent);
+			if (keep(matched, entity.notes)) {
+				results.push({
+					kind: entity.kind,
+					title: entity.title,
+					file: file.file,
+					route: entity.route,
+					...(entity.components.length
+						? { components: entity.components.map((c) => c.name) }
+						: {}),
+					...(entity.notes.length ? { notes: entity.notes } : {}),
+					matched: [...matched, ...byIntent],
+				});
+			}
+
+			for (const example of entity.examples) {
+				const why: string[] = [];
+				if (hits(example.name)) why.push('title');
+				for (const tag of example.tags) {
+					if (hits(tag)) why.push(`tag: ${tag}`);
+				}
+				for (const note of example.notes) {
+					if (hits(note.note)) why.push(`note: ${note.note}`);
+				}
+				const whyIntent = intentHits(example.notes, intent);
+				if (!keep(why, example.notes)) continue;
+				results.push({
+					kind: 'example',
+					title: `${entity.title} / ${example.name}`,
+					file: file.file,
+					// A [DOC]'s examples have no route of their own; the doc's
+					// own route is where the reader goes to find them.
+					route: example.route ?? entity.route,
+					...(example.tags.length ? { tags: example.tags } : {}),
+					...(example.notes.length ? { notes: example.notes } : {}),
+					matched: [...why, ...whyIntent],
+				});
+			}
+		}
+	}
+
+	return toolResult({
+		...(raw ? { query: raw } : {}),
+		...(intent ? { intent } : {}),
+		total: results.length,
+		// Say so rather than quietly serving a slice — a caller that sees 50
+		// results and no note reads it as "that is all of them".
+		...(results.length > limit ? { truncated: results.length - limit, limit } : {}),
+		results: results.slice(0, limit),
 	});
 }
 
@@ -906,6 +1126,8 @@ async function dispatch(method: string, params: Record<string, unknown>): Promis
 					return { content: [{ type: 'text', text: authoringGuide() }] };
 				case 'list_docs':
 					return listDocs();
+				case 'search_docs':
+					return searchDocs(args);
 				case 'get_component_api':
 					return getComponentApi(args);
 				case 'check_docs':

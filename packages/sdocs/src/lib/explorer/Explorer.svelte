@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { AxisConfig, DocEntry, ScaleConfig, SectionConfig } from '../types.js';
+	import type { AxisConfig, DocEntry, ScaleConfig, SectionEntry } from '../types.js';
 	import { initRouter, getRoute, navigate, type RoutingMode } from './router.svelte.js';
 	import { buildSections, resolveRoute, displayTitle } from './tree-builder.js';
 	import Sidebar from './views/Sidebar.svelte';
@@ -34,7 +34,7 @@
 		/** Already-resolved content components (prerendering + hydration boot). */
 		preloaded?: Record<string, Component>;
 		/** The site's sections, in top-bar order (titles reference their slugs) */
-		sections?: SectionConfig[];
+		sections?: SectionEntry[];
 		/** Route path of the landing page (e.g. 'guides/introduction') */
 		home?: string | null;
 		/** 'history' for real paths (server must fall back to the shell),
@@ -47,6 +47,10 @@
 		/** The dev server serves the MCP endpoint — shows the top-bar MCP
 		 * button. Only ever true in `sdocs dev` (config `mcp`, default on). */
 		mcp?: boolean;
+		/** Running under `sdocs dev`, whatever the config says about `mcp`.
+		 * Turns on the note editor, which writes to project source through an
+		 * endpoint only the dev server mounts. */
+		dev?: boolean;
 		/** Design-system dimensions the reader can switch between. Each renders
 		 * a dropdown and lands on every preview as `data-<id>`. */
 		axes?: Required<AxisConfig>[];
@@ -70,6 +74,7 @@
 		basePath = '',
 		sdocsVersion,
 		mcp = false,
+		dev = false,
 		axes = [],
 		scale = null
 	}: Props = $props();
@@ -417,13 +422,13 @@
 		>
 			{#if resolved}
 				{#if resolved.doc.kind === 'doc'}
-					<DocView doc={resolved.doc} {activeStylesheet} {pageModules} {preloaded} />
+					<DocView doc={resolved.doc} {activeStylesheet} {pageModules} {preloaded} {dev} />
 				{:else if resolved.doc.kind === 'page'}
-					<PageView doc={resolved.doc} {pageModules} {preloaded} />
+					<PageView doc={resolved.doc} {pageModules} {preloaded} {dev} />
 				{:else if resolved.doc.kind === 'layout'}
-					<LayoutView doc={resolved.doc} {activeStylesheet} />
+					<LayoutView doc={resolved.doc} {activeStylesheet} {dev} />
 				{:else}
-					<ComponentView doc={resolved.doc} snippetName={resolved.snippetName} {activeStylesheet} />
+					<ComponentView doc={resolved.doc} snippetName={resolved.snippetName} {activeStylesheet} {dev} />
 				{/if}
 			{:else}
 				<AboutPage {docs} title={headerTitle} logo={headerLogo} {sdocsVersion} />

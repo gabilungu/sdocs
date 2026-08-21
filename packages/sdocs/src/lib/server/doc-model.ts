@@ -8,6 +8,7 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import ts from 'typescript';
 import type { SdocEntity } from '../language/index.js';
+import type { DocNote } from '../types.js';
 import { exampleSlug, previewSlug } from '../language/parser.js';
 import { scrubScriptText } from '../language/script-scan.js';
 
@@ -27,6 +28,13 @@ export interface PlannedSnippet {
 	style: string | null;
 	/** Short text rendered with the block, when present */
 	description: string | null;
+	/** An example's tags="…" — what it shows. Absent on other roles. */
+	tags?: string[];
+	/** An example's notes={[…]}. Absent on other roles. */
+	notes?: DocNote[];
+	/** A preview's synonyms="…" — the component's other names. Absent on
+	 * other roles. */
+	synonyms?: string[];
 	/** For a [component] preview: the component reference it demonstrates */
 	componentName?: string | null;
 }
@@ -71,6 +79,8 @@ export function planEntitySnippets(entity: SdocEntity): PlannedSnippet[] {
 			name: e.title,
 			slug,
 			role: 'example' as const,
+			tags: e.tags ?? [],
+			notes: e.notes ?? [],
 			...blockParts(e),
 		};
 	};
@@ -83,6 +93,7 @@ export function planEntitySnippets(entity: SdocEntity): PlannedSnippet[] {
 				slug,
 				role: 'preview' as const,
 				componentName: p.componentName ?? null,
+				synonyms: p.synonyms ?? [],
 				...blockParts(p),
 			};
 		});
@@ -107,6 +118,8 @@ export function planEntitySnippets(entity: SdocEntity): PlannedSnippet[] {
 
 interface ExampleLike {
 	title: string;
+	tags?: string[];
+	notes?: DocNote[];
 	body: string;
 	markup: string;
 	script: { content: string } | null;

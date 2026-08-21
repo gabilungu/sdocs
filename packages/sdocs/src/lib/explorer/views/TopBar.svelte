@@ -105,8 +105,13 @@
 	/** Enough slack that re-expanding is worth a try, not a coin flip. */
 	const RETRY_MARGIN = 48;
 
+	/** What the fit pass has to work with. The scale counts: it gives up its
+	 * label at the same width the switches give up their names, so a bar
+	 * carrying only a scale still needs measuring. */
+	const hasFittedControls = $derived(controls.length > 0 || !!scale);
+
 	function fitAxisControls() {
-		if (!barEl || controls.length === 0) return;
+		if (!barEl || !hasFittedControls) return;
 		const width = barEl.clientWidth;
 		// The tabs are the thing being crowded out, so they're the signal —
 		// they scroll rather than wrap, so a clipped nav means the actions have
@@ -129,8 +134,9 @@
 	}
 
 	$effect(() => {
-		if (!barEl || controls.length === 0) return;
+		if (!barEl || !hasFittedControls) return;
 		void controls.length;
+		void scale;
 		const observer = new ResizeObserver(() => fitAxisControls());
 		observer.observe(barEl);
 		fitAxisControls();
@@ -209,7 +215,7 @@
 		{title}
 	</a>
 	<nav class="sdocs-topbar-sections" bind:this={sectionsEl}>
-		{#each sections as section (section.slug)}
+		{#each sections as section, i (section.slug)}
 			<a
 				class="sdocs-topbar-tab"
 				class:is-active={section.slug === activeSlug}
@@ -218,6 +224,11 @@
 			>
 				{section.title}
 			</a>
+			<!-- Only between tabs: a rule with nothing after it separates the
+			     last group from the empty rest of the bar. -->
+			{#if section.dividerAfter && i < sections.length - 1}
+				<span class="sdocs-topbar-divider" role="separator" aria-orientation="vertical"></span>
+			{/if}
 		{/each}
 	</nav>
 	<div class="sdocs-topbar-actions">
@@ -258,35 +269,29 @@
 				</fieldset>
 			{/if}
 		{/each}
-		{#if scale?.presets.length}
-			<!-- Named stops, in the same segmented control the axes use: they are
-			     the same gesture — pick one of these — and only the values behind
-			     them differ. The slider still reaches everything between. -->
-			<fieldset class="sdocs-axis-seg" title="{scale.label} presets">
-				<legend class="sdocs-axis-seg-legend">{scale.label} presets</legend>
-				{#each scale.presets as preset (preset.label)}
-					{@const active = Math.abs(scaleValue - preset.value) < scale.step / 2}
-					<label class="sdocs-axis-seg-item" class:is-active={active}>
-						<input
-							type="radio"
-							name="sdocs-scale-preset"
-							value={preset.value}
-							checked={active}
-							onchange={() => onScaleChange?.(preset.value)}
-						/>
-						{preset.label}
-					</label>
-				{/each}
-			</fieldset>
-		{/if}
 		{#if scale}
 			<!-- A range, not a set of names, so it stays a slider at every width:
 			     there is no dropdown form of "anything between 0.75 and 1.5", and
 			     it is already narrower than a segmented control. -->
-			<label class="sdocs-scale" title="{scale.label} — sets {scale.var} on every stage">
-				<span class="sdocs-scale-legend">{scale.label}</span>
+			<!-- Everything around the slider resets it. Those are real buttons
+			     rather than a click handler on the surround: a reset the pointer
+			     can reach and the keyboard can't is half a control. The label
+			     goes when the switches give up their names — by then the bar
+			     needs the room more than the reader needs the word. -->
+			<div class="sdocs-scale" title="{scale.label} — sets {scale.var} on every stage">
+				{#if !axesCompact}
+					<button
+						type="button"
+						class="sdocs-scale-reset"
+						title="Reset {scale.label}"
+						onclick={() => onScaleChange?.(scale.default)}
+					>
+						{scale.label}
+					</button>
+				{/if}
 				<input
 					type="range"
+					aria-label={scale.label}
 					min={scale.min}
 					max={scale.max}
 					step={scale.step}
@@ -294,8 +299,37 @@
 					oninput={(e) => onScaleChange?.(e.currentTarget.valueAsNumber)}
 					ondblclick={() => onScaleChange?.(scale.default)}
 				/>
-				<output>{scaleValue}</output>
-			</label>
+				<button
+					type="button"
+					class="sdocs-scale-reset sdocs-scale-value"
+					title="Reset {scale.label}"
+					onclick={() => onScaleChange?.(scale.default)}
+				>
+					{scaleValue}
+				</button>
+				{#if scale.presets.length}
+					<!-- Named stops for the same knob, so they live with it rather
+					     than in a control of their own: the slider reaches
+					     everything between them. No border of their own — the
+					     group around them already draws one. -->
+					<fieldset class="sdocs-scale-presets" title="{scale.label} presets">
+						<legend class="sdocs-axis-seg-legend">{scale.label} presets</legend>
+						{#each scale.presets as preset (preset.label)}
+							{@const active = Math.abs(scaleValue - preset.value) < scale.step / 2}
+							<label class="sdocs-axis-seg-item" class:is-active={active}>
+								<input
+									type="radio"
+									name="sdocs-scale-preset"
+									value={preset.value}
+									checked={active}
+									onchange={() => onScaleChange?.(preset.value)}
+								/>
+								{preset.label}
+							</label>
+						{/each}
+					</fieldset>
+				{/if}
+			</div>
 		{/if}
 		{#if mcp}
 			<button class="sdocs-topbar-btn sdocs-mcp-btn" onclick={openMcp} title="MCP server">
@@ -427,6 +461,16 @@
 		min-width: 0;
 		overflow-x: auto;
 	}
+	.sdocs-topbar-divider {
+		flex: none;
+		align-self: center;
+		width: 1px;
+		/* Short of the bar's full height: a rule that reaches the edges reads
+		   as structure, and this only groups the tabs. */
+		height: 18px;
+		margin: 0 8px;
+		background: var(--color-base-200);
+	}
 	.sdocs-topbar-tab {
 		display: flex;
 		align-items: center;
@@ -479,6 +523,24 @@
 		border: 1px solid var(--color-base-200);
 		border-radius: 5px;
 		background: var(--color-base-100);
+	}
+	/* The presets inside the scale group: the same items as a segmented
+	   control, without the chrome — one bordered box inside another reads as
+	   two controls when it is one. */
+	.sdocs-scale-presets {
+		display: inline-flex;
+		align-items: center;
+		align-self: stretch;
+		box-sizing: border-box;
+		gap: 1px;
+		min-inline-size: 0;
+		/* Set off from the readout without a rule; the group's own padding
+		   already separates it from the edge. */
+		margin: 0 -3px 0 3px;
+		padding: 0;
+		border: 0;
+		border-left: 1px solid var(--color-base-200);
+		padding-left: 4px;
 	}
 	.sdocs-axis-seg-legend {
 		/* The group's accessible name; the values alone don't say what they
@@ -548,8 +610,21 @@
 	.sdocs-scale:hover {
 		color: var(--color-base-900);
 	}
-	.sdocs-scale-legend {
+	/* The label and the readout are buttons only so they can be clicked and
+	   tabbed to; they carry none of a button's chrome. */
+	.sdocs-scale-reset {
+		padding: 0;
+		border: 0;
+		background: none;
+		font: inherit;
+		color: inherit;
 		white-space: nowrap;
+		cursor: pointer;
+	}
+	.sdocs-scale-reset:focus-visible {
+		outline: 2px solid var(--color-action-500);
+		outline-offset: 2px;
+		border-radius: 2px;
 	}
 	.sdocs-scale input {
 		width: 72px;
@@ -558,7 +633,7 @@
 		accent-color: var(--color-action-500);
 		cursor: pointer;
 	}
-	.sdocs-scale output {
+	.sdocs-scale-value {
 		/* Fixed width so the row doesn't shuffle as the number changes. */
 		width: 2.4em;
 		text-align: right;

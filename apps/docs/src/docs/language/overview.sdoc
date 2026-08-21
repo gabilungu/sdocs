@@ -101,4 +101,61 @@
 	- Svelte code is valid only **inside** blocks. Body text outside any block is
 	  an error.
 
+	## Notes
+
+	Every entity — and every `[example]` — takes `notes`, standing remarks
+	shown with the page and marked in the sidebar:
+
+	```sdoc
+	[SHOWCASE
+		title="Forms / Button"
+		notes={[
+			{ note: 'Being replaced by ActionButton in v4.', intent: 'warning' },
+			{ note: 'Ships in the next release.' },
+		]}
+	]
+	```
+
+	`intent` is one of `danger`, `warning`, `success`, `info`. Leave it off and
+	the note is grey — a remark with no urgency attached. An intent sdocs
+	doesn't know is an error rather than a silent fallback to grey, since grey
+	is a real choice and a typo would look like one. The values are plain
+	quoted strings: the attribute is never evaluated, so anything that would
+	need running is reported instead.
+
+	Each note renders as an alert directly under the entity's title, in the
+	order written. A [`[LAYOUT]`](/language/layout-docs) shows no title, so its
+	notes ride over the top of the layout, each with a dismiss button that
+	uncovers the layout when the reader is done with it.
+
+	In the sidebar they become one dot in the entity's row: **filled** when the
+	worst of them is on that page, **hollow** when it belongs to something
+	inside it. A row always shows the worst note at or under it, ranked
+
+	`danger` → `warning` → *no intent* → `success` → `info`
+
+	— so a folder of pages carries the loudest thing anywhere inside it, and a
+	note without an intent outranks one whose whole content is reassurance. A
+	`hide` entity's notes stay out of the roll-up: the mark would point at a row
+	the reader has no way to open.
+
+	### Writing them from the Explorer
+
+	Under `sdocs dev` a small note button sits at the end of every entity and
+	example title; on a `[LAYOUT]` or a `[PAGE]`, which show no title, it hides
+	in the top-right corner until the pointer finds it. It opens an editor for
+	that opener's notes — add one, reword one, change an intent, drop one — and
+	**Save writes straight back into the `.sdoc` file**, which Vite reloads.
+
+	The edit is the smallest one that will do: only the `notes` attribute's own
+	span is rewritten, so the rest of the document keeps its formatting to the
+	byte, and emptying the list removes the attribute rather than leaving
+	`notes={[]}` behind.
+
+	It is a dev-server feature and cannot be otherwise: the endpoint behind
+	Save is mounted only by the dev server, and it refuses any file the project
+	does not already document. A built site has neither the button nor the
+	route. An [embedded Explorer](/explorer/embedded-vite) opts in by passing
+	`dev={import.meta.env.DEV}`.
+
 [/DOC]

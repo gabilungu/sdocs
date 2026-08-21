@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.74] - 2026-08-21
+
+### Fixed
+
+- **The Projects view starts a server without a shell on Windows.** It used
+  one on every Windows launch, which meant `cmd.exe` received a command line
+  assembled from the project's own directory: a project under
+  `C:\Users\First Last\...` split at the space and never started, and one
+  under a path containing `&` ran whatever came after it. Node needs no shell
+  to launch a real executable. The npx fallback still uses one — npx is
+  `npx.cmd` there and Node refuses to execute it directly — but its three
+  arguments are constants, so there is nothing in it to reinterpret.
+
 ## [0.0.73] - 2026-08-21
 
 ### Fixed

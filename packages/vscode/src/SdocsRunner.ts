@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { spawn, type ChildProcess } from 'node:child_process';
-import { createRequire } from 'node:module';
-import * as path from 'node:path';
+import { launchCommand } from './launch.js';
 
 export type ScopeStatus = 'stopped' | 'starting' | 'running';
 
@@ -45,15 +44,11 @@ export class SdocsRunner implements vscode.Disposable {
 		}
 		if (existing) return; // starting — onReady will fire when the URL appears
 
-		const [command, args] = this.launchCommand(scopeDir);
+		const { command, args, shell } = launchCommand(scopeDir);
 		this.output.appendLine(`[${scopeDir}] ${command} ${args.join(' ')}`);
 		const env: NodeJS.ProcessEnv = { ...process.env, NO_COLOR: '1' };
 		delete env.FORCE_COLOR;
-		const child = spawn(command, args, {
-			cwd: scopeDir,
-			env,
-			shell: process.platform === 'win32',
-		});
+		const child = spawn(command, args, { cwd: scopeDir, env, shell });
 		const scope: RunningScope = { process: child, status: 'starting' };
 		this.scopes.set(scopeDir, scope);
 		this.emitter.fire();
@@ -115,20 +110,6 @@ export class SdocsRunner implements vscode.Disposable {
 	async openExternal(scopeDir: string): Promise<void> {
 		const url = this.scopes.get(scopeDir)?.url;
 		if (url) await vscode.env.openExternal(vscode.Uri.parse(url));
-	}
-
-	/** Prefer the scope's own sdocs install; fall back to npx. */
-	private launchCommand(scopeDir: string): [string, string[]] {
-		try {
-			// Resolve a real export ('sdocs/vite' → <pkg>/dist/vite.js) and derive
-			// the bin from it; './package.json' isn't guaranteed to be exported.
-			const require = createRequire(path.join(scopeDir, 'noop.js'));
-			const vitePlugin = require.resolve('sdocs/vite');
-			const bin = path.join(path.dirname(vitePlugin), '..', 'bin', 'sdocs.js');
-			return [process.execPath, [bin, 'run']];
-		} catch {
-			return ['npx', ['--yes', 'sdocs', 'run']];
-		}
 	}
 
 	dispose() {

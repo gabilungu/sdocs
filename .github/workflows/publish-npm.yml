@@ -54,6 +54,10 @@ jobs:
         if: steps.version.outputs.publish == 'true'
         run: npm run build
 
+      - name: Type-check
+        if: steps.version.outputs.publish == 'true'
+        run: npm run check
+
       # After Build: the e2e tests drive the built CLI
       - name: Test
         if: steps.version.outputs.publish == 'true'

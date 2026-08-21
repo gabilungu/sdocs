@@ -1,12 +1,17 @@
 name: Tests
 
-# Runs the full suites of both packages on every push to main, so a broken
-# commit is visible even when no version was bumped (publishes have their
-# own gates).
+# Runs the full suites of both packages on every push to main AND on every pull
+# request, so a broken commit is visible even when no version was bumped
+# (publishes have their own gates).
+#
+# Pull requests matter more than they look: main is where this project's
+# mistakes have landed, and a check that only runs after the merge is a check
+# that reports history rather than preventing it.
 
 on:
   push:
     branches: main
+  pull_request:
   workflow_dispatch:
 
 # Least privilege: the suites only read the checkout.
@@ -32,8 +37,18 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Type-check Svelte and TypeScript
+        run: npm run check
+
       - name: Test
         run: npm test -w sdocs
+
+      # The docs site is the project's own biggest .sdoc corpus, and every
+      # release edits it. Compiling it here catches a broken stage before it
+      # reaches the deploy, which has no gate of its own.
+      - name: Check the docs site compiles
+        run: node packages/sdocs/bin/sdocs.js check
+        working-directory: apps/docs
 
   vscode:
     runs-on: ubuntu-latest

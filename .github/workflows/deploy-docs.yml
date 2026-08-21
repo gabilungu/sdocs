@@ -21,7 +21,40 @@ permissions:
   contents: read
 
 jobs:
+  # A gate, not a duplicate suite. The published site is the project's shop
+  # window, and it used to ship whatever landed on main — including, for one
+  # day, a Getting Started page whose sample did not parse. The suite that
+  # catches that is cheap; deploying past it is not.
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build sdocs
+        run: npm run build
+
+      - name: Type-check
+        run: npm run check
+
+      - name: Test
+        run: npm test -w sdocs
+
+      - name: Check the docs site compiles
+        run: node packages/sdocs/bin/sdocs.js check
+        working-directory: apps/docs
+
   build:
+    needs: gate
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

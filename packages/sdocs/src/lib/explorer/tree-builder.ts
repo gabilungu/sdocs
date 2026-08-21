@@ -192,6 +192,19 @@ export interface BuildSectionsOptions {
 }
 
 /**
+ * Routes the Explorer serves itself, which an entity therefore cannot claim.
+ *
+ * Both are prerendered into their own directories and both resolve to no
+ * entity, so a page landing on one is shadowed with no error anywhere — it
+ * simply never appears. `/about` was checked from the start; `/changelog`
+ * arrived later and was not, which is exactly how a list like this drifts.
+ */
+const RESERVED_ROUTES = new Map([
+	['about', 'About'],
+	['changelog', 'Changelog'],
+]);
+
+/**
  * Group docs into their declared sections, build each section's tree, apply
  * the per-section `order` arrays, and register every navigable route.
  * Structure problems — an unknown `@section`, two entities on one route, a
@@ -278,9 +291,9 @@ export function buildSections(docs: DocEntry[], opts?: BuildSectionsOptions): Se
 						message: `Page route "/${key}" collides with the "${node.route[0]}" section — give "${node.doc.meta.title}" a different slug or a @section prefix.`,
 						file: node.doc.filePath,
 					});
-				} else if (key === 'about') {
+				} else if (RESERVED_ROUTES.has(key)) {
 					errors.push({
-						message: `Page route "/about" is reserved for the built-in About page — give "${node.doc.meta.title}" a different slug.`,
+						message: `Page route "/${key}" is reserved for the built-in ${RESERVED_ROUTES.get(key)} page — give "${node.doc.meta.title}" a different slug.`,
 						file: node.doc.filePath,
 					});
 				}

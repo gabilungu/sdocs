@@ -63,24 +63,38 @@
 </script>
 
 <div class="sdocs-control-group">
+	<!-- The prop's name is in the neighbouring table cell, which a screen
+	     reader does not read as this control's name — `name` supplies it. -->
 	{#if controlType === 'text'}
 		<TextControl
+			name={prop.name}
 			value={isSet ? String(value) : ''}
 			placeholder={prop.default ?? ''}
 			onchange={onText}
 		/>
 	{:else if controlType === 'number'}
 		<NumberControl
+			name={prop.name}
 			value={isSet ? Number(value) : undefined}
 			placeholder={prop.default ?? ''}
 			{onchange}
 		/>
 	{:else if controlType === 'boolean'}
-		<CheckboxControl value={Boolean(value ?? (prop.default === 'true'))} {onchange} />
+		<CheckboxControl
+			name={prop.name}
+			value={Boolean(value ?? (prop.default === 'true'))}
+			{onchange}
+		/>
 	{:else if controlType === 'select'}
 		<!-- Unset with no default → a "Please select…" placeholder, so an unset
 		     enum prop reads as unset instead of silently showing option one. -->
-		<SelectControl value={String(value ?? prop.default ?? '')} {options} placeholder="Please select…" {onchange} />
+		<SelectControl
+			name={prop.name}
+			value={String(value ?? prop.default ?? '')}
+			{options}
+			placeholder="Please select…"
+			{onchange}
+		/>
 	{:else}
 		<span class="sdocs-control-unsupported">—</span>
 	{/if}

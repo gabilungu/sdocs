@@ -2,6 +2,10 @@
 	interface Props {
 		/** Optional label; omit when the control sits next to its name (e.g. in a table) */
 		label?: string;
+		/** The control's accessible name when `label` is omitted. Without it the
+		 * name is only in a neighbouring cell, which a screen reader does not
+		 * read as this control's — it announces an unlabelled input. */
+		name?: string;
 		value: string;
 		options: string[];
 		/** Shown as a disabled first option while no real option is selected —
@@ -10,7 +14,7 @@
 		onchange: (value: string) => void;
 	}
 
-	let { label, value, options, placeholder, onchange }: Props = $props();
+	let { label, name, value, options, placeholder, onchange }: Props = $props();
 
 	const unset = $derived(placeholder !== undefined && !options.includes(value));
 </script>
@@ -21,6 +25,7 @@
 	{/if}
 	<select
 		class="sdocs-control-select"
+		aria-label={label ? undefined : name}
 		value={unset ? '' : value}
 		onchange={(e) => onchange(e.currentTarget.value)}
 	>

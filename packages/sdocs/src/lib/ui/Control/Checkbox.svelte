@@ -2,11 +2,15 @@
 	interface Props {
 		/** Optional label; omit when the control sits next to its name (e.g. in a table) */
 		label?: string;
+		/** The control's accessible name when `label` is omitted. Without it the
+		 * name is only in a neighbouring cell, which a screen reader does not
+		 * read as this control's — it announces an unlabelled input. */
+		name?: string;
 		value: boolean;
 		onchange: (value: boolean) => void;
 	}
 
-	let { label, value, onchange }: Props = $props();
+	let { label, name, value, onchange }: Props = $props();
 </script>
 
 <label class="sdocs-control">
@@ -18,6 +22,7 @@
 		checked={value}
 		onchange={(e) => onchange(e.currentTarget.checked)}
 		class="sdocs-control-checkbox"
+		aria-label={label ? undefined : name}
 	/>
 </label>
 

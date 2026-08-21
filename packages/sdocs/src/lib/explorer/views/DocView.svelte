@@ -336,6 +336,11 @@
 	.sdocs-page-main {
 		flex: 1;
 		min-width: 0;
+		/* The containing block for the corner note control. Without it that
+		   control resolves `top: 0` against the app root and its 120×52 hover
+		   zone lands over the top bar, swallowing clicks meant for fullscreen
+		   and the kebab menu. */
+		position: relative;
 	}
 	.sdocs-view-header {
 		margin-bottom: 24px;

@@ -12,6 +12,25 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.160] - 2026-08-21
+
+### Fixed
+
+- **The dev note control no longer swallows top-bar clicks.** Its corner
+  variant is a 120×52 hover zone positioned at the top-right of the doc's
+  content column — except nothing between it and the app root was positioned,
+  so it resolved against the viewport and sat over the top bar. On any `[DOC]`
+  page whose body supplies its own heading, fullscreen and the kebab menu
+  stopped responding, invisibly, in dev.
+- **`/changelog` is a reserved route.** `/about` has always been refused to
+  entities that would shadow it; its twin arrived later and was not added to
+  the list, so a page landing on `/changelog` was silently never served.
+- **Every control has an accessible name.** The prop and CSS-variable controls
+  take their name from a neighbouring table cell, which a screen reader does
+  not read as theirs — they announced as unlabelled inputs. The sidebar search
+  had only a placeholder, which is not a name and vanishes on the first
+  keystroke; it is now a labelled `type="search"` field.
+
 ## [0.0.159] - 2026-08-21
 
 ### Fixed

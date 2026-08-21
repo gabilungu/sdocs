@@ -254,9 +254,13 @@
 
 	{#if tree.length > 0}
 		<div class="sdocs-sidebar-search">
+			<!-- The placeholder is not a name: it disappears the moment anyone
+			     types, and screen readers are not required to read it as one.
+			     `type="search"` also gets the field announced as a search. -->
 			<input
-				type="text"
+				type="search"
 				placeholder="Search..."
+				aria-label="Search this section"
 				bind:value={searchQuery}
 				class="sdocs-search-input"
 			/>

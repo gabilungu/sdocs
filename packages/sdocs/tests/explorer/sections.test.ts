@@ -388,3 +388,44 @@ describe('slugifySegment folds accents instead of dropping them', () => {
 		expect(slugifySegment('コンポーネント')).toBe('item');
 	});
 });
+
+/**
+ * The Explorer serves `/about` and `/changelog` itself, so an entity landing
+ * on either is shadowed — with no error anywhere, its page simply never
+ * appears. `/about` was checked from the start and `/changelog` was added
+ * later without joining the list.
+ */
+describe('routes the Explorer reserves', () => {
+	const page = (title: string): DocEntry =>
+		({
+			kind: 'page',
+			filePath: `/src/${title}.sdoc`,
+			entitySlug: title.toLowerCase(),
+			meta: { title },
+			previews: [],
+			prose: [],
+			examples: [],
+			content: null,
+		}) as unknown as DocEntry;
+
+	// A [PAGE] routes at the site root only where sections are declared —
+	// that is the arrangement in which it can collide with a built-in.
+	const build = (title: string) =>
+		buildSections([page(title)], { sections: [{ slug: 'guides', title: 'Guides' }] });
+
+	it('refuses an entity on /about', () => {
+		expect(build('About').errors.map((e) => e.message).join('\n')).toContain(
+			'"/about" is reserved',
+		);
+	});
+
+	it('refuses an entity on /changelog', () => {
+		expect(build('Changelog').errors.map((e) => e.message).join('\n')).toContain(
+			'"/changelog" is reserved',
+		);
+	});
+
+	it('leaves any other root route alone', () => {
+		expect(build('Welcome').errors).toEqual([]);
+	});
+});

@@ -2,6 +2,10 @@
 	interface Props {
 		/** Optional label; omit when the control sits next to its name (e.g. in a table) */
 		label?: string;
+		/** The control's accessible name when `label` is omitted. Without it the
+		 * name is only in a neighbouring cell, which a screen reader does not
+		 * read as this control's — it announces an unlabelled input. */
+		name?: string;
 		/** Absent while the prop is unset — the input shows only the placeholder */
 		value?: number;
 		/** Ghost text while the input is empty — e.g. the prop's default */
@@ -9,7 +13,7 @@
 		onchange: (value: number) => void;
 	}
 
-	let { label, value, placeholder, onchange }: Props = $props();
+	let { label, name, value, placeholder, onchange }: Props = $props();
 </script>
 
 <label class="sdocs-control">
@@ -22,6 +26,7 @@
 		{placeholder}
 		oninput={(e) => onchange(Number(e.currentTarget.value))}
 		class="sdocs-control-input"
+		aria-label={label ? undefined : name}
 	/>
 </label>
 

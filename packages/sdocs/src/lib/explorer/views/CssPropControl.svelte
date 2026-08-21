@@ -39,11 +39,11 @@
 
 <div class="sdocs-control-group">
 	{#if controlType === 'color'}
-		<ColorControl value={colorValue} {onchange} />
+		<ColorControl name={cssProp.name} value={colorValue} {onchange} />
 	{:else if controlType === 'dimension'}
-		<DimensionControl value={value ?? cssProp.default ?? '0px'} {onchange} />
+		<DimensionControl name={cssProp.name} value={value ?? cssProp.default ?? '0px'} {onchange} />
 	{:else}
-		<TextControl value={value ?? cssProp.default ?? ''} {onchange} />
+		<TextControl name={cssProp.name} value={value ?? cssProp.default ?? ''} {onchange} />
 	{/if}
 	{#if changed}
 		<button

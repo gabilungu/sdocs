@@ -407,13 +407,11 @@ const TOOLS = [
 	{
 		name: 'get_component_api',
 		description:
-			"A Svelte component's full extracted API, exactly as sdocs documents it: " +
-			'props (with types, defaults, descriptions), events, snippets, methods, ' +
-			'states, CSS custom properties, and class/rest forwarding. Use it to ' +
-			'read a component in this project without parsing the source yourself. ' +
-			'Call as get_component_api({ componentPath: "src/Button/Button.svelte" }). ' +
-			'A `warnings` array comes back when the source has props this reader ' +
-			"could not see — an empty `props` without one means the component has none.",
+			"A component's full extracted API: its own `<!-- @component -->` " +
+			'description, plus props (type, default, required, description), events, ' +
+			'snippets, exported methods and state, and annotated CSS custom ' +
+			'properties. Read it before writing a doc for a component, and before ' +
+			'changing how one is used.',
 		inputSchema: {
 			type: 'object',
 			properties: {
@@ -1067,6 +1065,8 @@ async function getComponentApi(params: Record<string, unknown>) {
 	return toolResult({
 		component: basename(read.abs).replace(/\.svelte$/, ''),
 		path: relative(process.cwd(), read.abs),
+		// The component's own <!-- @component --> comment, when it has one.
+		...(data.description ? { description: data.description } : {}),
 		props: data.props.filter((p) => p.category === 'prop'),
 		events: data.props.filter((p) => p.category === 'event'),
 		snippets: data.props.filter((p) => p.category === 'snippet'),

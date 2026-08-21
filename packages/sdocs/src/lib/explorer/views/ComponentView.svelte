@@ -82,6 +82,7 @@
 	);
 
 	const cd = $derived(activePreview?.componentData ?? null);
+
 	const componentName = $derived(
 		activePreview?.componentName ??
 			((meta.title ?? '').split('/').pop()?.trim() || 'Component'),
@@ -569,10 +570,19 @@
 				</div>
 			{/if}
 
+			<!-- Both descriptions, most specific first: what this preview says
+			     about itself, then what the component says about itself wherever
+			     it appears. Prose between the tabs and the stage, never part of
+			     the preview panel. -->
 			{#if activePreview?.snippet.description}
-				<!-- The preview's description: prose between the tabs and the stage,
-				     never part of the preview panel itself. -->
-				<p class="sdocs-preview-description">{@html renderInlineMarkdown(activePreview.snippet.description)}</p>
+				<p class="sdocs-preview-description">
+					{@html renderInlineMarkdown(activePreview.snippet.description)}
+				</p>
+			{/if}
+			{#if cd?.descriptionHtml}
+				<div class="sdocs-prose sdocs-component-description" {@attach copyCode()}>
+					{@html cd.descriptionHtml}
+				</div>
 			{/if}
 
 			{#if activePreview?.snippet.synonyms?.length}
@@ -1157,6 +1167,19 @@
 		font-size: 13px;
 		color: var(--color-base-500);
 	}
+	/* Under the block's own description, above the stage. Its top margin is
+	   trimmed so the two read as one passage rather than two boxes. */
+	.sdocs-component-description {
+		max-width: var(--sdocs-content-max, 1200px);
+		margin-bottom: 14px;
+	}
+	.sdocs-component-description > :global(:first-child) {
+		margin-top: 0;
+	}
+	.sdocs-component-description > :global(:last-child) {
+		margin-bottom: 0;
+	}
+
 	.sdocs-preview-description {
 		margin: 2px 0 12px;
 		font-size: 13px;

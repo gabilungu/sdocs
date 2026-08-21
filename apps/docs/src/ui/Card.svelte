@@ -1,3 +1,8 @@
+<!--
+@component
+A linked card: an icon tile, a line of body text, and a call-to-action. The
+whole card is the link, so nothing inside it should be clickable on its own.
+-->
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import ArrowRight from '@lucide/svelte/icons/arrow-right';

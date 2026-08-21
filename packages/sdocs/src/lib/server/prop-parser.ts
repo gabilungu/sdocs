@@ -16,6 +16,7 @@ export async function parseComponent(filePath: string): Promise<ComponentData> {
 
 /** Parse component data from source */
 export function parseComponentSource(source: string): ComponentData {
+	const description = extractComponentComment(source);
 	const scriptContent = extractScriptContent(source);
 	const styleContent = extractStyleContent(source);
 
@@ -85,6 +86,7 @@ export function parseComponentSource(source: string): ComponentData {
 	const cssProps = styleContent ? parseCssProps(source, styleContent) : [];
 
 	return {
+		...(description ? { description } : {}),
 		props,
 		methods,
 		state,
@@ -695,4 +697,36 @@ function hasExportModifier(node: ts.Node): boolean {
 		? ts.getModifiers(node)
 		: undefined;
 	return modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword) ?? false;
+}
+
+
+/**
+ * The component's own description, from Svelte's `<!-- @component -->` comment.
+ *
+ * This is the convention Svelte documents and editors already read on hover,
+ * so it is where a component's description belongs — beside the code, written
+ * once, rather than repeated in every `.sdoc` that previews it.
+ *
+ * Markdown is allowed inside it (the Svelte docs say so explicitly), so the
+ * text comes back raw and the renderer decides. Only the first such comment
+ * counts, and only the part after the `@component` line.
+ */
+export function extractComponentComment(source: string): string | null {
+	const match = /<!--\s*@component\b([\s\S]*?)-->/.exec(source);
+	if (!match) return null;
+	const body = match[1];
+	// A comment written on one line puts the text after the tag; one written
+	// across lines puts it on the lines below. Both arrive here the same way.
+	const lines = body.replace(/\r\n/g, '\n').split('\n');
+	// Drop the indentation the comment sits at, so a block indented inside a
+	// file does not arrive as an indented markdown code block.
+	const indents = lines
+		.filter((l) => l.trim())
+		.map((l) => l.match(/^[ \t]*/)?.[0].length ?? 0);
+	const strip = indents.length ? Math.min(...indents) : 0;
+	const text = lines
+		.map((l) => (l.trim() ? l.slice(strip) : l))
+		.join('\n')
+		.trim();
+	return text || null;
 }

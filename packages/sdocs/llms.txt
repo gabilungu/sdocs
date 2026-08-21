@@ -820,6 +820,39 @@ Layouts can link to each other (and to any sdocs page) with plain anchors —
 see "Linking between pages" below — so a multi-screen sketch wires its flows
 together: a cart layout's checkout button opens the payment layout.
 
+## Describing a component
+
+Two descriptions can sit under a component's tab, and they answer different
+questions:
+
+```svelte
+<!--
+@component
+A **button**. Use it for actions; for navigation, use a link.
+-->
+<script lang="ts">
+	let { label }: { label: string } = $props();
+</script>
+```
+
+```sdoc
+[COMPONENT component={Button} description="This preview starts disabled — flip the control."]
+	<Button {...args} />
+[/COMPONENT]
+```
+
+- The `.svelte` file's **`<!-- @component -->`** comment describes the
+  *component*, wherever it appears. It is Svelte's own convention — editors
+  already show it on hover — so write it once, beside the code, rather than
+  repeating it in every `.sdoc` that previews the component. **Markdown and
+  code fences work inside it**, and sdocs renders them.
+- The block's **`description="…"`** describes *this preview*: what it is set
+  up to show, what to try. Inline markdown only.
+
+Both render when both are present — the block's line first, the component's own
+underneath, then the stage. `get_component_api` returns the `@component` text
+too, so an agent reading a component's API sees what it is for.
+
 ## Writing components so sdocs documents them well
 
 For every previewed component, sdocs parses the source and extracts its full

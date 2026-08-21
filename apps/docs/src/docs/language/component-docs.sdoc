@@ -78,6 +78,41 @@
 
 	Inside the body, `args` is in scope — spread it, pick from it, or ignore it.
 
+	### Two descriptions, and which is which
+
+	A component's tab can carry two lines of prose, answering different
+	questions:
+
+	```svelte
+	<!--
+	@component
+	A **button**. Use it for actions; for navigation, use a link.
+	-->
+	<script lang="ts">
+		let { label }: { label: string } = $props();
+	</script>
+	```
+
+	```sdoc
+	[COMPONENT component={Button} description="This preview starts disabled — flip the control."]
+		<Button {...args} />
+	[/COMPONENT]
+	```
+
+	The `.svelte` file's `<!-- @component -->` comment describes **the
+	component**, wherever it appears. That's Svelte's own convention — your
+	editor already shows it on hover — so it belongs beside the code, written
+	once, rather than repeated in every `.sdoc` that previews it. Markdown and
+	code fences work inside it, and sdocs renders them.
+
+	The block's `description="…"` describes **this preview**: what it is set up
+	to show, what to try. Inline markdown only.
+
+	When both exist, both render — the block's line first, the component's own
+	underneath, then the stage. The MCP `get_component_api` tool returns the
+	`@component` text too, so an agent reading a component's API sees what it is
+	for and not only what props it takes.
+
 	### `status` — where a component is in its life
 
 	Optional, and shown as a glyph after the name on the component's tab — which

@@ -1,3 +1,12 @@
+<!--
+@component
+Shows where a value sits in a known range — a **measurement**, not a progress
+bar. For something that fills over time, reach for a progress bar instead.
+
+```svelte
+<Meter value={64} max={100} label="Docs coverage" />
+```
+-->
 <script lang="ts">
 	/**
 	 * @cssvar {color} --meter-fill - Fill color (default: hsl(221 83% 53%))

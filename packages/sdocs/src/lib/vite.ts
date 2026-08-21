@@ -569,6 +569,13 @@ export function sdocsPlugin(
 				cached = { data: null, highlighted: null };
 				try {
 					cached.data = await parseComponent(componentPath);
+					// The component's own <!-- @component --> description, rendered
+					// here because Svelte allows markdown and fences inside it and
+					// the client has no block renderer.
+					if (cached.data?.description) {
+						const rendered = await renderPageMarkdown(cached.data.description);
+						cached.data.descriptionHtml = applyBaseToHtml(rendered.html, base);
+					}
 					const componentSource = await readFile(componentPath, 'utf-8');
 					cached.highlighted = await highlight(componentSource);
 				} catch (err) {

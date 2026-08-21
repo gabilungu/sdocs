@@ -12,6 +12,28 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.148] - 2026-08-21
+
+### Added
+
+- **A component's `<!-- @component -->` comment is read and shown.** It is
+  Svelte's own convention for documenting a component — editors already show it
+  on hover — and sdocs ignored it completely: JSDoc was extracted for props,
+  methods, state and CSS properties, and nothing at all for the component
+  itself. So the one description that lives beside the code had to be repeated
+  in every `.sdoc` that previewed it.
+
+  Markdown and code fences work inside it, as the Svelte docs promise, because
+  it goes through the same renderer a `[DOC]` body does.
+
+  Where a `[COMPONENT]` also carries `description="…"`, **both** render: the
+  block's line first, the component's own underneath, then the stage. They
+  answer different questions — the block describes *this preview*, the comment
+  describes *the component* wherever it appears.
+
+- **`get_component_api` returns that description**, so an agent reading a
+  component's API learns what it is for and not only what props it takes.
+
 ## [0.0.147] - 2026-08-21
 
 ### Added

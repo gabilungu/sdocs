@@ -21,7 +21,7 @@
 		```
 	[/PROSE]
 
-	[COMPONENT component={Meter} status="experimental" args={{ value: 64, max: 100, label: 'Docs coverage' }}]
+	[COMPONENT component={Meter} status="experimental" description="This preview starts at 64% — drag the value control to watch the fill track it." args={{ value: 64, max: 100, label: 'Docs coverage' }}]
 		<Meter {...args} />
 	[/COMPONENT]
 

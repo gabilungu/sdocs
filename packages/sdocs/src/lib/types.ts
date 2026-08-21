@@ -392,6 +392,14 @@ export interface ParsedCssProp {
 
 /** All parsed data from a component */
 export interface ComponentData {
+	/** The component's own description, from its `<!-- @component -->` comment
+	 * — Svelte's convention for documenting a component, which editors already
+	 * show on hover. Null when the file has none. */
+	description?: string | null;
+	/** That description rendered to HTML. The Svelte docs allow markdown and
+	 * code blocks inside an `@component` comment, so it goes through the same
+	 * pipeline a [DOC] body does rather than an inline-only renderer. */
+	descriptionHtml?: string;
 	props: ParsedProp[];
 	methods: ParsedMethod[];
 	state: ParsedState[];

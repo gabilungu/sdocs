@@ -54,7 +54,12 @@
 
 	[COMPONENTS]
 
-		[COMPONENT component={Disclosure} status="draft" args={{ summary: 'Draft', open: false }}]
+		[COMPONENT
+			component={Disclosure}
+			status="draft"
+			description="Block description only — this component has no `@component` comment of its own."
+			args={{ summary: 'Draft', open: false }}
+		]
 			<Disclosure {...args}>Sketched, not real yet.</Disclosure>
 		[/COMPONENT]
 
@@ -66,7 +71,12 @@
 			<NoticeJs {...args}>Built, waiting on sign-off.</NoticeJs>
 		[/COMPONENT]
 
-		[COMPONENT component={Meter} status="experimental" args={{ value: 40, max: 100, label: 'Experimental' }}]
+		[COMPONENT
+			component={Meter}
+			status="experimental"
+			description="Both descriptions — this line is the block's, and the component's own follows underneath."
+			args={{ value: 40, max: 100, label: 'Experimental' }}
+		]
 			<Meter {...args} />
 		[/COMPONENT]
 
@@ -78,6 +88,7 @@
 			<LinkButton {...args}>Deprecated</LinkButton>
 		[/COMPONENT]
 
+		<!-- No block description: only this component's own @component comment shows. -->
 		[COMPONENT component={Card} args={{ href: '#', title: 'No status', linkText: 'Nobody said' }}]
 			<Card {...args}>
 				This one declares no status at all, which reads as nobody said — a

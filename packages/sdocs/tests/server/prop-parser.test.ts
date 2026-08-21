@@ -512,3 +512,48 @@ describe('type aliases resolve to the values they name', () => {
 		expect(byName(parseComponentSource(source).props, 'onclick').type).toBe('ClickHandler');
 	});
 });
+
+/**
+ * Svelte's own way of documenting a component is a `<!-- @component -->`
+ * comment — editors read it on hover. sdocs extracted JSDoc for props,
+ * methods, state and CSS properties, and nothing at all for the component
+ * itself, so the one description that lives beside the code went unread.
+ */
+describe('the @component comment', () => {
+	it('reads a multi-line comment, without its indentation', () => {
+		const data = parseComponentSource(
+			[
+				'<!--',
+				'@component',
+				'A flexible **button**.',
+				'',
+				'Use it for actions; for navigation use a link.',
+				'-->',
+				'<script>let { label } = $props();</script>',
+				'<button>{label}</button>',
+			].join('\n'),
+		);
+		expect(data.description).toBe(
+			'A flexible **button**.\n\nUse it for actions; for navigation use a link.',
+		);
+	});
+
+	it('reads one written on a single line', () => {
+		const data = parseComponentSource('<!-- @component A small badge. -->\n<span></span>');
+		expect(data.description).toBe('A small badge.');
+	});
+
+	// Indented inside a file, the text would otherwise arrive with four spaces
+	// of leading whitespace and render as a markdown code block.
+	it('strips the comment’s own indent so markdown is not mistaken for code', () => {
+		const data = parseComponentSource(
+			['\t<!--', '\t@component', '\tA badge.', '\t-->', '<span></span>'].join('\n'),
+		);
+		expect(data.description).toBe('A badge.');
+	});
+
+	it('is absent when the file has no such comment', () => {
+		const data = parseComponentSource('<!-- an ordinary comment -->\n<span></span>');
+		expect(data.description).toBeUndefined();
+	});
+});

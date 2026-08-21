@@ -49,6 +49,7 @@
 		file={doc.filePath}
 		entitySlug={doc.entitySlug}
 		notes={doc.meta?.notes ?? []}
+		todos={doc.meta?.todos ?? []}
 	/>
 	{#if notes.length > dismissed.length}
 		<div class="sdocs-layout-note">

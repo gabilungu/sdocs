@@ -13,7 +13,7 @@
 
 import { scanSdoc, type Attrs, type Entity, type SubBlock } from '../language/scanner.js';
 import { slugifyTitle } from '../language/parser.js';
-import type { DocNote } from '../types.js';
+import type { DocNote, TodoItem } from '../types.js';
 
 export interface NoteTarget {
 	/** Slug of the entity to edit, as the Explorer knows it. */
@@ -130,7 +130,23 @@ function locate(
 export function writeNotes(source: string, target: NoteTarget, notes: DocNote[]): string {
 	const file = scanSdoc(source);
 	const { openerSpan, notesSpan, bodyIndent } = locate(source, file.entities, target);
-	const text = serializeNotes(notes, bodyIndent);
+	return splice(source, openerSpan, notesSpan, serializeNotes(notes, bodyIndent));
+}
+
+/**
+ * Put `text` where `blockSpan` is, or just under `openerSpan` when there is no
+ * block yet, or take the block out when `text` is empty.
+ *
+ * Shared by both writers: a `[NOTES]` and a `[TODO]` sit in the same place and
+ * are replaced the same way — only what goes in them differs.
+ */
+function splice(
+	source: string,
+	openerSpan: { start: number; end: number },
+	blockSpan: { start: number; end: number } | null,
+	text: string,
+): string {
+	const notesSpan = blockSpan;
 
 	// Replace the block that is there.
 	if (notesSpan) {
@@ -208,4 +224,38 @@ export function toggleTodo(
 	}
 	if (!item) throw new NoteTargetError('A todo path cannot be empty.');
 	return source.slice(0, item.at) + (done ? 'x' : ' ') + source.slice(item.at + 1);
+}
+
+/**
+ * A `[TODO]` block, or '' when the list is empty.
+ *
+ * `base` is the indentation the block sits at; each level of nesting adds one
+ * tab inside it, because indentation is what nests one item under another.
+ */
+export function serializeTodos(items: TodoItem[], base: string): string {
+	if (items.length === 0) return '';
+	const lines: string[] = [];
+	const walk = (list: TodoItem[], depth: number) => {
+		for (const item of list) {
+			const text = item.text.replace(/\r?\n/g, ' ').trim();
+			lines.push(`${base}\t${'\t'.repeat(depth)}- [${item.done ? 'x' : ' '}] ${text}`);
+			walk(item.children, depth + 1);
+		}
+	};
+	walk(items, 0);
+	return [`${base}[TODO]`, ...lines, `${base}[/TODO]`].join('\n');
+}
+
+/**
+ * Return `source` with the target's `[TODO]` carrying exactly `items`.
+ *
+ * The whole block is re-serialized, unlike `toggleTodo` — this is the path for
+ * edits that change the list's shape (text, an added item, a removed one),
+ * where there is nothing smaller to rewrite. Emptying the list removes the
+ * block rather than leaving an empty one behind.
+ */
+export function writeTodos(source: string, target: NoteTarget, items: TodoItem[]): string {
+	const file = scanSdoc(source);
+	const { openerSpan, notesSpan, bodyIndent } = locate(source, file.entities, target, 'todo');
+	return splice(source, openerSpan, notesSpan, serializeTodos(items, bodyIndent));
 }

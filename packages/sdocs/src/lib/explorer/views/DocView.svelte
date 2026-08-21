@@ -216,6 +216,7 @@
 							file={doc.filePath}
 							entitySlug={doc.entitySlug}
 							notes={meta.notes ?? []}
+							todos={meta.todos ?? []}
 						/>
 					</div>
 					{#if meta.description}
@@ -239,6 +240,7 @@
 					file={doc.filePath}
 					entitySlug={doc.entitySlug}
 					notes={meta.notes ?? []}
+					todos={meta.todos ?? []}
 				/>
 			{/if}
 			{#if doc.bodyTitle && (meta.notes?.length || meta.todos?.length)}

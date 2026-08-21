@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { DocNote } from '../../types.js';
+	import type { DocNote, TodoItem } from '../../types.js';
 	import { Icon } from '../../ui/Icon/index.js';
 	import NoteEditor from './NoteEditor.svelte';
 
@@ -18,6 +18,9 @@
 		 * the way out of fullscreen does.
 		 */
 		variant?: 'inline' | 'corner';
+		/** The target's [TODO] items — the button to start one shows only
+		 * when there are none, since an existing block carries its own `+`. */
+		todos?: TodoItem[];
 	}
 
 	let {
@@ -27,10 +30,36 @@
 		entitySlug,
 		exampleTitle = null,
 		notes = [],
+		todos = [],
 		variant = 'inline',
 	}: Props = $props();
 
 	let open = $state(false);
+	let busy = $state(false);
+
+	/** Start a [TODO] with one item, opened for typing where it renders.
+	 * There is nothing to edit before the block exists, so this writes the
+	 * first item rather than opening an editor for an empty list. */
+	async function startTodo() {
+		busy = true;
+		try {
+			await fetch('/__sdocs/todo', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					file,
+					entitySlug,
+					exampleTitle,
+					items: [{ text: 'New item', done: false, children: [] }],
+				}),
+			});
+			// Vite reloads the file; the block renders with its own controls.
+		} catch {
+			// Dev-only endpoint — if it is unreachable there is nothing to say
+			// here that the note editor does not already say on save.
+		}
+		busy = false;
+	}
 </script>
 
 {#if dev}
@@ -43,6 +72,17 @@
 		>
 			<Icon name="sticky-note" --w="14px" --h="14px" --fill="currentColor" />
 		</button>
+		{#if todos.length === 0}
+			<button
+				class="sdocs-note-open"
+				disabled={busy}
+				onclick={startTodo}
+				title="Add a todo list"
+				aria-label="Add a todo list"
+			>
+				<Icon name="circle-check" --w="14px" --h="14px" --fill="currentColor" />
+			</button>
+		{/if}
 	</div>
 
 	{#if open}
@@ -63,6 +103,7 @@
 		margin-left: auto;
 		flex: none;
 		display: inline-flex;
+		gap: 2px;
 	}
 	/* The zone, not the button: a 26px target at zero opacity is one nobody
 	   can find. Hovering anywhere in the corner brings it up, the same deal

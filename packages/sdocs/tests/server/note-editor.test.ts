@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { writeNotes, toggleTodo, NoteTargetError } from '../../src/lib/server/note-editor.js';
+import { writeNotes, writeTodos, toggleTodo, NoteTargetError } from '../../src/lib/server/note-editor.js';
 import { parseSdoc } from '../../src/lib/language/parser.js';
 
 const DOC = ['[DOC title="Guides / Intro"]', '', '\tHello.', '', '[/DOC]', ''].join('\n');
@@ -187,5 +187,46 @@ describe('toggleTodo', () => {
 		expect(() => toggleTodo(DOC, { entitySlug: 'guides-intro' }, [0], true)).toThrow(
 			NoteTargetError,
 		);
+	});
+});
+
+/**
+ * The other todo write: anything that changes the list's *shape* re-serializes
+ * the block, since there is no single character to rewrite. This is what the
+ * Explorer's `+` and its inline rename go through.
+ */
+describe('writeTodos', () => {
+	const items = (text: string) => [{ text, done: false, children: [] }];
+
+	it('opens a [TODO] under an entity that has none', () => {
+		const out = writeTodos(DOC, { entitySlug: 'guides-intro' }, items('Write the intro'));
+		expect(out).toContain('\t[TODO]\n\t\t- [ ] Write the intro\n\t[/TODO]');
+		// The body it already had is untouched.
+		expect(out).toContain('\tHello.');
+	});
+
+	it('nests by indentation, one tab per level', () => {
+		const out = writeTodos(DOC, { entitySlug: 'guides-intro' }, [
+			{
+				text: 'Parent',
+				done: true,
+				children: [{ text: 'Child', done: false, children: [] }],
+			},
+		]);
+		expect(out).toContain('\t\t- [x] Parent\n\t\t\t- [ ] Child');
+	});
+
+	it('removes the block when the list is emptied', () => {
+		const withTodo = writeTodos(DOC, { entitySlug: 'guides-intro' }, items('Temporary'));
+		expect(writeTodos(withTodo, { entitySlug: 'guides-intro' }, [])).toBe(DOC);
+	});
+
+	it('writes into an example', () => {
+		const out = writeTodos(
+			SHOWCASE,
+			{ entitySlug: 'display-badge', exampleTitle: 'Plain' },
+			items('Check the dark theme'),
+		);
+		expect(out).toContain('\t\t[TODO]\n\t\t\t- [ ] Check the dark theme\n\t\t[/TODO]');
 	});
 });

@@ -176,9 +176,15 @@
 	```
 
 	It always renders when present — this is documentation, not a dev-only
-	affordance. Under `sdocs dev` the boxes are live, and ticking one writes
-	straight back into the `.sdoc`: the single character between the brackets
-	changes and nothing else does. A built site shows the same list read-only,
+	affordance. Under `sdocs dev` the whole list is editable: the boxes tick,
+	the `+` on its header adds an item, and clicking an item's text renames it
+	in place. Emptying an item removes it, and emptying the list removes the
+	block. Where an entity or example has no `[TODO]` at all, a button beside
+	the note button starts one.
+
+	Ticking writes straight back into the `.sdoc`, changing the single character
+	between the brackets and nothing else; only an edit that changes the list's
+	shape re-serializes the block. A built site shows the same list read-only,
 	since there is no source there to write to.
 
 	Indentation is meaning here rather than layout — it is what nests one item

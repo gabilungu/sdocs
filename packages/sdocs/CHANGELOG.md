@@ -116,6 +116,16 @@ a breaking change written under any other heading is one an agent will miss.
   already prose, and a nested block would have no answer to where it goes
   relative to the body around it.
 
+- **Authoring buttons for the blocks**, under `sdocs dev` and beside the note
+  button that was already there. With no `[TODO]` on an entity or example, a
+  button starts one; with a block already there, its own `+` adds an item, and
+  clicking an item's text renames it in place. Emptying an item removes it, and
+  emptying the list removes the block.
+
+  A tick still rewrites the one character between the brackets; only edits that
+  change the list's shape re-serialize the block, because there is nothing
+  smaller to rewrite.
+
 - **An example opened on its own route shows everything it carries** —
   description, notes, todo, prose and tags — instead of just its title and its
   stage.

@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { loadRawConfig, resolveAndFinalize } from './server/config.js';
 import { discoverDocFiles, globBase } from './server/discovery.js';
 import { parseComponent } from './server/prop-parser.js';
-import { writeNotes, toggleTodo, NoteTargetError } from './server/note-editor.js';
+import { writeNotes, writeTodos, toggleTodo, NoteTargetError } from './server/note-editor.js';
 import { parseSdoc, offsetToPosition } from './language/index.js';
 import {
 	planEntitySnippets,
@@ -180,15 +180,20 @@ export function sdocsPlugin(
 						entitySlug: String(body.entitySlug ?? ''),
 						exampleTitle: body.exampleTitle ?? null,
 					};
+					// A tick rewrites one character; anything that changes the list's
+					// shape sends the whole tree, because there is nothing smaller
+					// to rewrite.
 					const next =
 						endpoint === NOTES_ENDPOINT
 							? writeNotes(source, target, Array.isArray(body.notes) ? body.notes : [])
-							: toggleTodo(
-									source,
-									target,
-									(Array.isArray(body.path) ? body.path : []).map(Number),
-									!!body.done,
-								);
+							: Array.isArray(body.items)
+								? writeTodos(source, target, body.items)
+								: toggleTodo(
+										source,
+										target,
+										(Array.isArray(body.path) ? body.path : []).map(Number),
+										!!body.done,
+									);
 					if (next !== source) await writeFile(filePath, next, 'utf-8');
 					res.statusCode = 200;
 					res.setHeader('Content-Type', 'application/json');

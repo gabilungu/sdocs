@@ -426,6 +426,7 @@
 					entitySlug={doc.entitySlug}
 					exampleTitle={snippetName}
 					notes={focusedSnippet.notes ?? []}
+					todos={focusedSnippet.todos ?? []}
 				/>
 			</div>
 			<!-- Opened on its own, an example is the whole page: everything it
@@ -470,6 +471,7 @@
 					file={doc.filePath}
 					entitySlug={doc.entitySlug}
 					notes={meta.notes ?? []}
+					todos={meta.todos ?? []}
 				/>
 			</div>
 			{#if meta.description}
@@ -695,6 +697,7 @@
 						entitySlug={doc.entitySlug}
 						exampleTitle={example.name}
 						notes={example.notes ?? []}
+						todos={example.todos ?? []}
 					/>
 				</h3>
 				{@render exampleHeader(example)}

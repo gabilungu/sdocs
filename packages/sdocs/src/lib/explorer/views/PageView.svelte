@@ -60,6 +60,7 @@
 		file={doc.filePath}
 		entitySlug={doc.entitySlug}
 		notes={doc.meta?.notes ?? []}
+		todos={doc.meta?.todos ?? []}
 	/>
 	<div class="sdocs-svelte-page-inner" style:max-width={doc.maxWidth} style:margin={containerMargin}>
 		<!-- A [PAGE] renders no title of its own, so the note opens the page

@@ -17,7 +17,8 @@ import {
 	type TagBlock,
 } from './scanner.js';
 import { declaredBindings, scrubScriptText } from './script-scan.js';
-import type { DocNote, NoteType, TodoItem } from '../types.js';
+import type { ComponentStatus, DocNote, NoteType, TodoItem } from '../types.js';
+import { NOTE_TYPES } from '../note-order.js';
 
 export type { TodoItem };
 
@@ -58,6 +59,9 @@ export interface PreviewBlock {
 	/** Other names this component answers to, from synonyms="…". Shown with
 	 * the preview and searched by the MCP server; empty when absent. */
 	synonyms: string[];
+	/** Where this component sits in its life, from status="…"; null when the
+	 * author did not say. */
+	status: ComponentStatus | null;
 	/** Tab label: the title override or the component name */
 	label: string;
 	sizing: Sizing;
@@ -516,6 +520,7 @@ const SUB_BLOCK_ATTR_RULES: Record<string, Record<string, AttrRule>> = {
 		title: { required: false, kind: 'string', hint: 'title="…"' },
 		description: { required: false, kind: 'string', hint: 'description="…"' },
 		synonyms: { required: false, kind: 'string', hint: 'synonyms="pill, chip"' },
+		status: { required: false, kind: 'string', hint: 'status="ready"' },
 		...SIZING_ATTR_RULES,
 		...STAGE_LAYOUT_ATTR_RULES,
 	},
@@ -603,16 +608,22 @@ const NOTE_KEYS = ['note', 'intent'];
  * without saying what about, which is more than a note whose whole content is
  * reassurance.
  */
-export const NOTE_TYPES: readonly NoteType[] = ['bug', 'deprecated', 'wip', 'ready'];
-export const NOTE_TYPE_ORDER: (NoteType | null)[] = [
-	'bug',
-	'deprecated',
+export { NOTE_TYPES, NOTE_TYPE_ORDER } from '../note-order.js';
+
+/** The lifecycle a `[COMPONENT]` may declare, in order. */
+export const COMPONENT_STATUSES: readonly ComponentStatus[] = [
+	'draft',
 	'wip',
-	null,
+	'review',
+	'experimental',
 	'ready',
+	'deprecated',
 ];
 
-const NOTE_LINE_RE = /^-\s+(?:([a-z]+):\s*)?(.*)$/;
+// The type allows digits, not just letters: `a11y` is one of them, and a
+// letters-only pattern silently read it as an untyped note whose text began
+// "a11y:" — no diagnostic, just a grey note where a red one belonged.
+const NOTE_LINE_RE = /^-\s+(?:([a-z][a-z0-9]*):\s*)?(.*)$/;
 
 /**
  * A `[NOTES]` body: one `- type: text` line per note, or `- text` for a plain
@@ -832,6 +843,23 @@ function parsePreview(
 		}
 	}
 
+	// An unknown status is an error rather than a silent no-status: a component
+	// with no status reads as "nobody said", and a typo would look like one.
+	let status: ComponentStatus | null = null;
+	const statusAttr = block.attrs.status;
+	if (statusAttr && statusAttr.kind === 'string') {
+		const raw = statusAttr.raw.trim();
+		if ((COMPONENT_STATUSES as readonly string[]).includes(raw)) {
+			status = raw as ComponentStatus;
+		} else {
+			diagnostics.push({
+				code: 'component-status',
+				message: `Unknown status "${raw}" — expected ${COMPONENT_STATUSES.join(', ')}.`,
+				span: statusAttr.valueSpan,
+			});
+		}
+	}
+
 	let args: Record<string, ArgValue> | null = null;
 	let argsRaw: string | null = null;
 	const argsAttr = block.attrs.args;
@@ -848,6 +876,7 @@ function parsePreview(
 		title,
 		description: stringAttr(block.attrs, 'description'),
 		synonyms: listAttr(block.attrs, 'synonyms'),
+		status,
 		label: title ?? componentName ?? 'Preview',
 		sizing: sizingOf(block.attrs),
 		body: normalizeBody(block.body),

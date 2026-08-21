@@ -511,27 +511,30 @@ One note per line, once per entity and once per `[EXAMPLE]`:
 [SHOWCASE title="Forms / Button"]
 
 	[NOTES]
-		- deprecated: Being replaced by ActionButton in v4.
 		- bug: Focus ring lands 1px off in Safari.
+		- a11y: The icon-only variant has no accessible name.
+		- warning: Being replaced by ActionButton in v4.
+		- tip: Pair it with Field when it labels an input.
 		- Ships in the next release.
 	[/NOTES]
 
-	[COMPONENT component={Button}]
+	[COMPONENT component={Button} status="review"]
 		<Button {...args} />
 	[/COMPONENT]
 
 [/SHOWCASE]
 ```
 
-- Each line is `- text`, or `- status: text`. A note's text is one line: the
+- Each line is `- text`, or `- type: text`. A note's text is one line: the
   block's grammar is one note per line, so a wrapped note is two notes.
-- The status is one of `bug`, `deprecated`, `wip`, `ready`. Leave it off and the
-  note is a plain remark, shown in grey. A status outside that set is an error,
-  not a silent fallback: grey is a real choice, and a typo would read as one.
-- The vocabulary is **status, not severity**: what state is this thing in.
-  `a11y` and `perf` are categories rather than states, and mixing the two would
-  make the sidebar's worst-first roll-up meaningless — categories are what
-  `tags` is for.
+- The type is one of `bug`, `a11y`, `warning`, `perf`, `tip`, `info`. Leave it
+  off and the note is a plain remark, shown in grey. A type outside that set is
+  an error, not a silent fallback: grey is a real choice, and a typo would read
+  as one.
+- A note is an **observation** — what should someone know about this. Where a
+  component sits in its life is `status` on the `[COMPONENT]`, which is a
+  property of the thing rather than a remark about it; the two vocabularies
+  were one until 0.0.140.
 - Each renders as an alert directly under the entity's title, in the order
   written. A `[LAYOUT]` shows no title, so its notes ride **over** the layout,
   each with a dismiss button.
@@ -544,10 +547,50 @@ it refuses any file the project does not document.
 
 In the sidebar the notes become one dot on the row: **filled** when the worst of
 them is on that page, **hollow** when it is on something inside it. A row shows
-the worst note at or under it — `bug` > `deprecated` > `wip` > *no status* >
-`ready` — so a folder carries the loudest thing anywhere inside, and a remark
-with no status outranks one whose whole content is reassurance. A `hide`
-entity's notes stay out of the roll-up.
+the worst note at or under it, ranked by how much it costs the reader to not
+know:
+
+`bug` > `a11y` > `warning` > `perf` > *no type* > `tip` > `info`
+
+`a11y` sits under `bug` because it is a defect with a narrower blast radius,
+and above `warning` because it is still a defect rather than a caveat; `perf`
+sits under `warning` for the same reason in the other direction. A note with no
+type outranks `tip` and `info` deliberately — an author who did not reach for a
+word was not being reassuring. A `hide` entity's notes stay out of the
+roll-up.
+
+## `status` — where a component is in its life
+
+An optional attribute on `[COMPONENT]`, shown as a glyph after the name on its
+tab (which is why the tab strip renders even for a single component):
+
+```sdoc
+[COMPONENT component={Button} status="experimental"]
+	<Button {...args} />
+[/COMPONENT]
+```
+
+One linear path, plus the end of it:
+
+| Value | Means |
+|---|---|
+| `draft` | sketched, not real yet |
+| `wip` | being built |
+| `review` | built, waiting on sign-off |
+| `experimental` | usable, but the API may still change |
+| `ready` | done — use it |
+| `deprecated` | on the way out |
+
+`review` and `experimental` are both "not final", and the difference is who
+they wait on: a review waits on a person, an experiment waits on real use.
+
+Leave it off and the component has no status, which reads as *nobody said* — a
+different thing from `draft`. A value outside the set is an error rather than a
+silent no-status, for the same reason an unknown note type is.
+
+This is a property of the component. A remark *about* it — including "this is
+being replaced by X" — is a `[NOTES]` line, which can carry the text that says
+what to use instead.
 
 ## `[TODO]` — a checklist
 

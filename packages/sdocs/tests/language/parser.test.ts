@@ -134,10 +134,10 @@ describe('notes', () => {
 		parseSdoc(['[DOC title="X"]', ...body, '[/DOC]', ''].join('\n'));
 
 	it('reads a typed note and a plain one', () => {
-		const doc = entity(['\t[NOTES]', '\t\t- wip: Being rewritten.', '\t\t- Plain.', '\t[/NOTES]']);
+		const doc = entity(['\t[NOTES]', '\t\t- warning: Being rewritten.', '\t\t- Plain.', '\t[/NOTES]']);
 		expect(doc.diagnostics).toEqual([]);
 		expect(doc.entities[0].notes).toEqual([
-			{ note: 'Being rewritten.', type: 'wip' },
+			{ note: 'Being rewritten.', type: 'warning' },
 			{ note: 'Plain.', type: null },
 		]);
 	});

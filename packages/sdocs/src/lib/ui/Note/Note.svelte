@@ -15,19 +15,24 @@
 
 	let { text, type = null, onclose }: Props = $props();
 
-	/** The glyph per intent. An unset intent still gets the information mark:
-	 * it is a remark, which is what that glyph means, only quieter. */
+	/** The glyph per type. An untyped note still gets the information mark: it
+	 * is a remark, which is what that glyph means, only quieter. */
 	const ICONS: Record<NoteType, string> = {
-		bug: 'circle-alert',
-		deprecated: 'triangle-alert',
-		wip: 'info',
-		ready: 'circle-check',
+		bug: 'bug',
+		a11y: 'accessibility',
+		warning: 'triangle-alert',
+		perf: 'zap',
+		tip: 'lightbulb',
+		info: 'info',
 	};
 
 	const icon = $derived(type ? ICONS[type] : 'info');
+	/** The two defects get the assertive role; a caveat or a fact does not
+	 * interrupt someone using a screen reader. */
+	const assertive = $derived(type === 'bug' || type === 'a11y');
 </script>
 
-<div class="Note" data-type={type ?? 'none'} role={type === 'bug' ? 'alert' : 'note'}>
+<div class="Note" data-type={type ?? 'none'} role={assertive ? 'alert' : 'note'}>
 	<Icon name={icon} --w="16px" --h="16px" --fill="var(--noteAccent)" />
 	<p class="Note-text">{text}</p>
 	{#if onclose}
@@ -67,22 +72,37 @@
 		line-height: 1.5;
 		color: var(--noteText);
 	}
+	/* Colour follows the ranking, not the topic: the two defects are red, the
+	   two caveats amber, and the two helpful ones cool. A reader should be able
+	   to tell how much a note costs them without reading the word. */
 	.Note[data-type='bug'] {
 		--noteAccent: var(--color-danger-500);
 		--noteBg: var(--color-danger-100);
 		--noteText: var(--color-danger-700);
 	}
-	.Note[data-type='deprecated'] {
+	/* a11y is a defect, so it shares the bug's ramp — one step softer, because
+	   it is the narrower of the two rather than a second alarm. */
+	.Note[data-type='a11y'] {
+		--noteAccent: var(--color-danger-400);
+		--noteBg: var(--color-danger-100);
+		--noteText: var(--color-danger-700);
+	}
+	.Note[data-type='warning'] {
 		--noteAccent: var(--color-warning-500);
 		--noteBg: var(--color-warning-100);
 		--noteText: var(--color-warning-700);
 	}
-	.Note[data-type='ready'] {
+	.Note[data-type='perf'] {
+		--noteAccent: var(--color-amber-400);
+		--noteBg: var(--color-amber-100);
+		--noteText: var(--color-amber-700);
+	}
+	.Note[data-type='tip'] {
 		--noteAccent: var(--color-success-500);
 		--noteBg: var(--color-success-100);
 		--noteText: var(--color-success-700);
 	}
-	.Note[data-type='wip'] {
+	.Note[data-type='info'] {
 		--noteAccent: var(--color-action-500);
 		--noteBg: var(--color-action-100);
 		--noteText: var(--color-action-700);

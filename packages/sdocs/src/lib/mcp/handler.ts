@@ -4,6 +4,7 @@ import { basename, dirname, isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseSdoc } from '../language/parser.js';
 import type { DocNote } from '../types.js';
+import { NOTE_TYPES } from '../note-order.js';
 import { offsetToPosition } from '../language/scanner.js';
 import { parseComponentSource } from '../server/prop-parser.js';
 import { loadConfig } from '../server/config.js';
@@ -199,9 +200,10 @@ const INSTRUCTIONS =
 /** Results one search_docs call returns before it starts reporting a cut. */
 const SEARCH_LIMIT = 50;
 
-/** Note types search_docs will filter on; 'none' is a note written
- * without one. */
-const SEARCH_TYPES = ['bug', 'deprecated', 'wip', 'ready', 'none'];
+/** Note types search_docs will filter on, from the language's own list so the
+ * filter cannot drift from what the parser accepts; 'none' is a note written
+ * without a type. */
+const SEARCH_TYPES: string[] = [...NOTE_TYPES, 'none'];
 
 const TOOLS = [
 	{

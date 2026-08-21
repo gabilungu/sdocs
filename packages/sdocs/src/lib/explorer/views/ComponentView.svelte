@@ -1,6 +1,12 @@
 <script lang="ts">
 	import type { Component, Snippet } from 'svelte';
-	import type { DocEntry, DocNote, ExtractedSnippet, FlowItem } from '../../types.js';
+	import type {
+		ComponentStatus,
+		DocEntry,
+		DocNote,
+		ExtractedSnippet,
+		FlowItem,
+	} from '../../types.js';
 	import { Icon } from '../../ui/Icon/index.js';
 	import { Note } from '../../ui/Note/index.js';
 	import NoteControl from './NoteControl.svelte';
@@ -79,6 +85,18 @@
 		activePreview?.componentName ??
 			((meta.title ?? '').split('/').pop()?.trim() || 'Component'),
 	);
+	/** The glyph and the words behind each status. The icons read as the stage
+	 * they name — an empty circle for a draft, a filled one once it is ready —
+	 * so the strip is scannable before anything is hovered. */
+	const STATUS: Record<ComponentStatus, { icon: string; label: string }> = {
+		draft: { icon: 'circle-dashed', label: 'Draft — sketched, not real yet' },
+		wip: { icon: 'circle-dot', label: 'Work in progress — being built' },
+		review: { icon: 'eye', label: 'In review — built, awaiting sign-off' },
+		experimental: { icon: 'flask', label: 'Experimental — usable, but the API may change' },
+		ready: { icon: 'circle-check', label: 'Ready — done, use it' },
+		deprecated: { icon: 'triangle-alert', label: 'Deprecated — on the way out' },
+	};
+
 	const exampleSnippets = $derived(doc.examples ?? []);
 
 	/**
@@ -494,17 +512,34 @@
 		     exception to source order: they are tabs over a shared stage, so they
 		     render as a single item wherever the first of them appears. -->
 		{#snippet componentsBlock()}
-			{#if previews.length > 1}
+			<!-- Shown for a single component too: the tab names the component
+			     being previewed, and carries its status — a page that drops the
+			     strip when there is one component makes that information appear
+			     and disappear with the count. -->
+			{#if previews.length > 0}
 				<div class="sdocs-preview-tabs" role="tablist">
 					{#each previews as preview, i (preview.snippet.slug)}
 						<button
 							class="sdocs-preview-tab"
 							class:active={i === activeIndex}
+							class:is-only={previews.length === 1}
 							role="tab"
 							aria-selected={i === activeIndex}
+							disabled={previews.length === 1}
 							onclick={() => selectTab(i)}
 						>
 							{preview.label}
+							{#if preview.snippet.status}
+								{@const status = STATUS[preview.snippet.status]}
+								<span
+									class="sdocs-status"
+									data-status={preview.snippet.status}
+									title={status.label}
+									aria-label={status.label}
+								>
+									<Icon name={status.icon} --w="13px" --h="13px" --fill="currentColor" />
+								</span>
+							{/if}
 						</button>
 					{/each}
 				</div>
@@ -927,6 +962,37 @@
 	}
 	.sdocs-preview-tab {
 		flex: none;
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+	}
+	/* A lone tab is a label, not a choice: it keeps the active underline and
+	   the component's name, but nothing about it invites a click. */
+	.sdocs-preview-tab.is-only {
+		cursor: default;
+		opacity: 1;
+	}
+
+	/* Colour follows the lifecycle: unfinished is grey, in-flight is blue,
+	   ready is green, deprecated is amber — so a strip of tabs reads at a
+	   glance without anyone hovering a glyph. */
+	.sdocs-status {
+		display: inline-flex;
+		align-items: center;
+		color: var(--color-base-400);
+	}
+	.sdocs-status[data-status='wip'],
+	.sdocs-status[data-status='review'] {
+		color: var(--color-action-500);
+	}
+	.sdocs-status[data-status='experimental'] {
+		color: var(--color-purple-500);
+	}
+	.sdocs-status[data-status='ready'] {
+		color: var(--color-success-500);
+	}
+	.sdocs-status[data-status='deprecated'] {
+		color: var(--color-warning-600);
 	}
 	.sdocs-preview-tab {
 		padding: 7px 14px;

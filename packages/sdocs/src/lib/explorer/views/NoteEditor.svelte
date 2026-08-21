@@ -17,7 +17,10 @@
 
 	let { label, file, entitySlug, exampleTitle = null, notes, onclose }: Props = $props();
 
-	const TYPES: (NoteType | 'none')[] = ['none', 'ready', 'wip', 'deprecated', 'bug'];
+	// Least urgent first, so the picker reads left-to-right as "how much does
+	// this cost the reader" — the reverse of the sidebar's worst-first order,
+	// which is a ranking rather than a scale to pick from.
+	const TYPES: (NoteType | 'none')[] = ['none', 'info', 'tip', 'perf', 'warning', 'a11y', 'bug'];
 
 	// A copy: closing the editor has to leave the page exactly as it was, and
 	// the page is rendering the very array being edited.

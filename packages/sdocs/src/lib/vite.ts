@@ -568,6 +568,7 @@ export function sdocsPlugin(
 				// stage is payload the page never reads.
 				...(p.tags?.length ? { tags: p.tags } : {}),
 				...(p.synonyms?.length ? { synonyms: p.synonyms } : {}),
+				...(p.status ? { status: p.status } : {}),
 				...(p.notes?.length ? { notes: p.notes } : {}),
 				...(p.todos?.length ? { todos: p.todos } : {}),
 				// Only the exception travels; showing the code is the default.

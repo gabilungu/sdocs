@@ -6,7 +6,11 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { parseSdoc, type ShowcaseEntity } from '../../src/lib/language/parser.js';
+import {
+	COMPONENT_STATUSES,
+	parseSdoc,
+	type ShowcaseEntity,
+} from '../../src/lib/language/parser.js';
 import {
 	planEntitySnippets,
 	planIframeSnippets,
@@ -21,7 +25,7 @@ const SRC = [
 	'',
 	'\t[NOTES]',
 	'\t\t- bug: Focus ring lands 1px off in Safari.',
-	'\t\t- ready: Audited for contrast.',
+	'\t\t- info: Audited for contrast.',
 	'\t\t- A plain remark.',
 	'\t[/NOTES]',
 	'',
@@ -38,7 +42,7 @@ const SRC = [
 	'',
 	'\t[EXAMPLE title="Ghost"]',
 	'\t\t[NOTES]',
-	'\t\t\t- wip: Not final.',
+	'\t\t\t- warning: Not final.',
 	'\t\t[/NOTES]',
 	'\t\t<B variant="ghost" />',
 	'\t[/EXAMPLE]',
@@ -53,7 +57,7 @@ it('parses the new blocks', () => {
 	const sc = doc.entities[0] as ShowcaseEntity;
 	expect(sc.notes).toEqual([
 		{ note: 'Focus ring lands 1px off in Safari.', type: 'bug' },
-		{ note: 'Audited for contrast.', type: 'ready' },
+		{ note: 'Audited for contrast.', type: 'info' },
 		{ note: 'A plain remark.', type: null },
 	]);
 	expect(sc.todos).toEqual([
@@ -63,7 +67,7 @@ it('parses the new blocks', () => {
 		]},
 		{ text: 'Document the size prop', done: true, children: [] },
 	]);
-	expect(sc.examples[0].notes).toEqual([{ note: 'Not final.', type: 'wip' }]);
+	expect(sc.examples[0].notes).toEqual([{ note: 'Not final.', type: 'warning' }]);
 	// The nested block must not remain in what gets staged.
 	expect(sc.examples[0].markup).not.toContain('[NOTES]');
 	expect(sc.examples[0].markup).toContain('<B variant="ghost" />');
@@ -240,4 +244,74 @@ describe('[COMPONENTS]', () => {
 		const doc = wrap(['\t[COMPONENTS]', component('Tabs')].join('\n'));
 		expect(doc.diagnostics.map((d) => d.code)).toContain('unclosed-block');
 	});
+});
+
+/**
+ * `status` says where a component sits in its life — a property of the thing,
+ * where a note is a remark about it. The two vocabularies were one until
+ * 0.0.140, which is why `wip`, `ready` and `deprecated` moved here and the
+ * note types became observations.
+ */
+describe('[COMPONENT] status', () => {
+	const showcase = (opener: string) =>
+		parseSdoc(
+			[
+				'[SHOWCASE title="Forms / Button"]',
+				`\t${opener}`,
+				'\t\t<Button />',
+				'\t[/COMPONENT]',
+				'[/SHOWCASE]',
+			].join('\n'),
+		);
+
+	it('reads every value in the lifecycle', () => {
+		for (const status of COMPONENT_STATUSES) {
+			const doc = showcase(`[COMPONENT component={Button} status="${status}"]`);
+			expect(doc.diagnostics, status).toEqual([]);
+			expect((doc.entities[0] as ShowcaseEntity).previews[0].status).toBe(status);
+		}
+	});
+
+	it('is optional — a component with none reads as "nobody said"', () => {
+		const doc = showcase('[COMPONENT component={Button}]');
+		expect(doc.diagnostics).toEqual([]);
+		expect((doc.entities[0] as ShowcaseEntity).previews[0].status).toBeNull();
+	});
+
+	// Silently ignoring a typo would look exactly like deciding not to set one.
+	it('refuses a status it does not know', () => {
+		const doc = showcase('[COMPONENT component={Button} status="stable"]');
+		expect(doc.diagnostics.map((d) => d.code)).toEqual(['component-status']);
+		expect(doc.diagnostics[0].message).toContain('draft, wip, review, experimental, ready, deprecated');
+	});
+
+	// The note vocabulary no longer overlaps it: a lifecycle word in a note is
+	// now an error, which is what makes the two readable side by side.
+	it('does not share its words with [NOTES]', () => {
+		const doc = parseSdoc(
+			['[SHOWCASE title="X"]', '\t[NOTES]', '\t\t- ready: Done.', '\t[/NOTES]', '[/SHOWCASE]'].join(
+				'\n',
+			),
+		);
+		expect(doc.diagnostics.map((d) => d.code)).toEqual(['note-type']);
+	});
+});
+
+// `a11y` has a digit in it, and the type pattern was letters-only — which did
+// not report anything, it just read the whole line as an untyped note whose
+// text happened to start "a11y:". A grey note where a red one belonged.
+it('reads a note type containing digits', () => {
+	const doc = parseSdoc(
+		[
+			'[SHOWCASE title="X"]',
+			'\t[NOTES]',
+			'\t\t- a11y: The icon-only variant has no accessible name.',
+			'\t[/NOTES]',
+			'[/SHOWCASE]',
+		].join('\n'),
+	);
+	expect(doc.diagnostics).toEqual([]);
+	expect((doc.entities[0] as ShowcaseEntity).notes).toEqual([
+		{ note: 'The icon-only variant has no accessible name.', type: 'a11y' },
+	]);
 });

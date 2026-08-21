@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import ts from 'typescript';
 import type { SdocEntity } from '../language/index.js';
-import type { DocNote, TodoItem } from '../types.js';
+import type { ComponentStatus, DocNote, TodoItem } from '../types.js';
 import { exampleSlug, previewSlug } from '../language/parser.js';
 import { scrubScriptText } from '../language/script-scan.js';
 
@@ -41,6 +41,9 @@ export interface PlannedSnippet {
 	/** A preview's synonyms="…" — the component's other names. Absent on
 	 * other roles. */
 	synonyms?: string[];
+	/** A preview's status="…" — where the component sits in its life. Absent
+	 * on other roles, and when the author did not say. */
+	status?: ComponentStatus | null;
 	/** For a [component] preview: the component reference it demonstrates */
 	componentName?: string | null;
 }
@@ -121,6 +124,7 @@ export function planEntitySnippets(entity: SdocEntity): PlannedSnippet[] {
 				role: 'preview' as const,
 				componentName: p.componentName ?? null,
 				synonyms: p.synonyms ?? [],
+				status: p.status ?? null,
 				...blockParts(p),
 			};
 		});

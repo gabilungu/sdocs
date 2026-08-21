@@ -53,7 +53,7 @@ const SUB_BLOCKS: BlockSpec[] = [
 	{
 		label: 'NOTES',
 		detail: 'Standing remarks — one per line, optionally typed',
-		insert: 'NOTES]\n\t- ${1|bug,deprecated,wip,ready|}: $0\n[/NOTES]',
+		insert: 'NOTES]\n\t- ${1|bug,a11y,warning,perf,tip,info|}: $0\n[/NOTES]',
 	},
 	{
 		label: 'TODO',
@@ -97,6 +97,8 @@ const ATTR_SHOWCASE: Record<string, string> = {
 	tags: 'What this example shows, comma-separated: `tags="user menu, badge"`. Rendered as quiet badges, and searched by the MCP `search_docs` tool.',
 	synonyms:
 		'Other names this component answers to, comma-separated: `synonyms="pill, chip"`. Rendered above the preview, and searched by the MCP `search_docs` tool.',
+	status:
+		'Where this component sits in its life: `draft` · `wip` · `review` · `experimental` · `ready` · `deprecated`. Shown as a glyph on the component\'s tab. Optional — no status reads as "nobody said". A `[NOTES]` line is the place for a remark *about* the component; this is a property of it.',
 };
 
 /** Snippet body for an attribute, from its value kind. The two expression
@@ -104,6 +106,8 @@ const ATTR_SHOWCASE: Record<string, string> = {
  * facing an empty pair of braces with no clue what belongs in them. */
 function attrInsert(name: string, rule: AttrRule): string {
 	if (name === 'args') return 'args={{ $1 }}';
+	// The six are a closed set, so offer them rather than an empty pair of quotes.
+	if (name === 'status') return 'status="${1|draft,wip,review,experimental,ready,deprecated|}"';
 	if (rule.kind === 'bare') return name;
 	return rule.kind === 'expression' ? `${name}={$1}` : `${name}="$1"`;
 }

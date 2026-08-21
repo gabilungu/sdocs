@@ -309,7 +309,7 @@ describe('the note endpoint', () => {
 						const res = await post({
 							file: doc,
 							entitySlug: 'thing',
-							notes: [{ note: 'Set from the Explorer.', type: 'deprecated' }],
+							notes: [{ note: 'Set from the Explorer.', type: 'warning' }],
 						});
 						return res.status === 200 ? res : null;
 					} catch {
@@ -323,7 +323,7 @@ describe('the note endpoint', () => {
 			const after = readFileSync(doc, 'utf-8');
 			// A [NOTES] block, opened under the entity's opener.
 			expect(after).toContain('\t[NOTES]');
-			expect(after).toContain('\t\t- deprecated: Set from the Explorer.');
+			expect(after).toContain('\t\t- warning: Set from the Explorer.');
 			expect(after).toContain('\t[/NOTES]');
 			expect(after).not.toBe(before);
 

@@ -93,9 +93,9 @@ describe('note marks roll up the tree', () => {
 				meta: {
 					title: 'Alpha',
 					notes: [
-						{ note: 'a', type: 'wip' },
+						{ note: 'a', type: 'warning' },
 						{ note: 'b', type: 'bug' },
-						{ note: 'c', type: 'ready' },
+						{ note: 'c', type: 'info' },
 					],
 				},
 			} as Partial<DocEntry>),
@@ -109,19 +109,19 @@ describe('note marks roll up the tree', () => {
 
 	it('shows a parent the worst of what is inside it, hollow', () => {
 		const map = buildSections([
-			noted('Forms / Quiet', 'wip'),
+			noted('Forms / Quiet', 'warning'),
 			noted('Forms / Loud', 'bug'),
 		]);
 		expect(markAt(map, 'Forms')).toEqual({ type: 'bug', own: false });
 	});
 
 	it('ranks an typeless note above success and info', () => {
-		const map = buildSections([noted('Forms / Plain', null), noted('Forms / Good', 'ready')]);
+		const map = buildSections([noted('Forms / Plain', null), noted('Forms / Good', 'info')]);
 		expect(markAt(map, 'Forms')).toEqual({ type: null, own: false });
 	});
 
 	it('ranks danger above warning', () => {
-		const map = buildSections([noted('Forms / A', 'deprecated'), noted('Forms / B', 'bug')]);
+		const map = buildSections([noted('Forms / A', 'warning'), noted('Forms / B', 'bug')]);
 		expect(markAt(map, 'Forms')).toEqual({ type: 'bug', own: false });
 	});
 
@@ -130,7 +130,7 @@ describe('note marks roll up the tree', () => {
 		// inside it — hollow, because the danger is not on this page.
 		const map = buildSections([
 			doc('Badge', 'component', {
-				meta: { title: 'Badge', notes: [{ note: 'x', type: 'wip' }] },
+				meta: { title: 'Badge', notes: [{ note: 'x', type: 'warning' }] },
 				examples: [
 					{ name: 'Broken', slug: 'broken', role: 'example', body: '', notes: [{ note: 'y', type: 'bug' }] },
 				],
@@ -145,7 +145,7 @@ describe('note marks roll up the tree', () => {
 			doc('Badge', 'component', {
 				meta: { title: 'Badge', notes: [{ note: 'x', type: 'bug' }] },
 				examples: [
-					{ name: 'Fine', slug: 'fine', role: 'example', body: '', notes: [{ note: 'y', type: 'wip' }] },
+					{ name: 'Fine', slug: 'fine', role: 'example', body: '', notes: [{ note: 'y', type: 'warning' }] },
 				],
 			} as Partial<DocEntry>),
 		]);

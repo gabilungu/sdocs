@@ -4,7 +4,7 @@
 
 [SHOWCASE title="@demo/Disclosure" description="Expandable panel with a children snippet, a parameterized marker snippet, and an ontoggle event."]
 
-	[COMPONENT component={Disclosure} args={{ summary: 'What is a .sdoc file?', open: false }}]
+	[COMPONENT component={Disclosure} status="draft" args={{ summary: 'What is a .sdoc file?', open: false }}]
 		<Disclosure {...args}>
 			A file of <code>[SHOWCASE]</code>, <code>[DOC]</code>, and <code>[LAYOUT]</code>
 			blocks, rendered by the Explorer with live previews and controls.

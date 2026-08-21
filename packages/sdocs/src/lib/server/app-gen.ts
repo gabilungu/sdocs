@@ -85,12 +85,27 @@ function getExplorerSourceDir(): string {
 	return resolve(__dirname, '../explorer');
 }
 
+/**
+ * Runtime modules the Explorer imports that live beside it rather than under
+ * `explorer/`, because the parser imports them too.
+ *
+ * Only *runtime* ones: `types.js` is not here because the Explorer imports
+ * types from it, which erase at compile time and need no file in the staging
+ * tree. A module added here that nothing imports is dead weight; one missing
+ * is a "Failed to resolve import" the moment a staged app boots.
+ */
+const SHARED_MODULES = ['note-order.js'];
+
 /** Copy the Explorer app plus the ui/ tree it imports (styles, fonts,
- * components) and the grammar the client highlighter loads for sdoc fences. */
+ * components), the grammar the client highlighter loads for sdoc fences, and
+ * the shared modules above. */
 async function copyExplorerApp(sdocsDir: string): Promise<void> {
 	await copyDir(getExplorerSourceDir(), resolve(sdocsDir, 'explorer'));
 	await copyDir(resolve(__dirname, '../ui'), resolve(sdocsDir, 'ui'));
 	await copyDir(resolve(__dirname, '../grammar'), resolve(sdocsDir, 'grammar'));
+	for (const name of SHARED_MODULES) {
+		await copyFile(resolve(__dirname, '..', name), resolve(sdocsDir, name));
+	}
 }
 
 /** Nearest node_modules walking up from dir (mirrors Node's resolution) */

@@ -501,16 +501,24 @@
 	.sdocs-note-dot.is-own {
 		background: var(--dot);
 	}
+	/* Same ramps the Note itself uses, so a dot and the alert it stands for are
+	   recognisably the same thing. */
 	.sdocs-note-dot[data-type='bug'] {
 		--dot: var(--color-danger-500);
 	}
-	.sdocs-note-dot[data-type='deprecated'] {
+	.sdocs-note-dot[data-type='a11y'] {
+		--dot: var(--color-danger-400);
+	}
+	.sdocs-note-dot[data-type='warning'] {
 		--dot: var(--color-warning-500);
 	}
-	.sdocs-note-dot[data-type='ready'] {
+	.sdocs-note-dot[data-type='perf'] {
+		--dot: var(--color-amber-400);
+	}
+	.sdocs-note-dot[data-type='tip'] {
 		--dot: var(--color-success-500);
 	}
-	.sdocs-note-dot[data-type='wip'] {
+	.sdocs-note-dot[data-type='info'] {
 		--dot: var(--color-action-500);
 	}
 

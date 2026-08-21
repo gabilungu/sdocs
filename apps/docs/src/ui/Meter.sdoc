@@ -21,7 +21,7 @@
 		```
 	[/PROSE]
 
-	[COMPONENT component={Meter} args={{ value: 64, max: 100, label: 'Docs coverage' }}]
+	[COMPONENT component={Meter} status="experimental" args={{ value: 64, max: 100, label: 'Docs coverage' }}]
 		<Meter {...args} />
 	[/COMPONENT]
 
@@ -38,7 +38,7 @@
 
 	[EXAMPLE title="Themed"]
 		[NOTES]
-			- wip: The mascot palette is still being picked.
+			- info: The mascot palette is still being picked.
 		[/NOTES]
 		[PROSE]
 			Every colour and dimension is a custom property, so a theme is a

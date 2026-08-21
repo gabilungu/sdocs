@@ -8,11 +8,15 @@
 ]
 
 	[NOTES]
-		- ready: The kitchen sink — this page exists to exercise every documented feature at once, not to model a real component doc.
+		- a11y: The dismiss button has no accessible name when `title` is empty.
+		- warning: `count` past 99 widens the title row — see the Repeated example.
+		- perf: Re-renders every child on a `tone` change, snippets included.
+		- tip: One Notice per region; a stack of them reads as noise.
+		- info: The kitchen sink — this page exists to exercise every documented feature at once, not to model a real component doc.
 		- Also the corpus the language-server and formatter tests run against.
 	[/NOTES]
 
-	[COMPONENT component={Notice} synonyms="callout, alert, admonition, banner" args={{ title: 'Build finished', tone: 'success', dismissible: true, count: 1 }}]
+	[COMPONENT component={Notice} status="ready" synonyms="callout, alert, admonition, banner" args={{ title: 'Build finished', tone: 'success', dismissible: true, count: 1 }}]
 		<Notice {...args}>
 			All 12 pages compiled in 1.2s — try dismissing me, or change my props
 			in the table below.

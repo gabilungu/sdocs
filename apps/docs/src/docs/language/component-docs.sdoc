@@ -78,6 +78,38 @@
 
 	Inside the body, `args` is in scope — spread it, pick from it, or ignore it.
 
+	### `status` — where a component is in its life
+
+	Optional, and shown as a glyph after the name on the component's tab — which
+	is why the tab strip renders even when there is only one component to show.
+
+	```sdoc
+	[COMPONENT component={Button} status="experimental"]
+		<Button {...args} />
+	[/COMPONENT]
+	```
+
+	| Value | Means |
+	|---|---|
+	| `draft` | sketched, not real yet |
+	| `wip` | being built |
+	| `review` | built, waiting on sign-off |
+	| `experimental` | usable, but the API may still change |
+	| `ready` | done — use it |
+	| `deprecated` | on the way out |
+
+	One linear path, plus the end of it. `review` and `experimental` are both
+	"not final", and the difference is who they wait on: a review waits on a
+	person, an experiment waits on real use.
+
+	Leave it off and the component has no status, which reads as *nobody said* —
+	a different thing from `draft`. A value sdocs doesn't know is an error rather
+	than a silent no-status, for the same reason an unknown note type is.
+
+	This is a property of the component. A remark *about* it — including "use
+	ActionButton instead" — is a [`[NOTES]`](/language/overview#text-blocks)
+	line, which can carry the text that says what to use.
+
 	### `synonyms` — the component's other names
 
 	A component is rarely known by one name. `synonyms` lists the others:

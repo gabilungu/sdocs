@@ -1,3 +1,4 @@
+import { noteRank } from '../note-order.js';
 import type {
 	DocEntry,
 	DocNote,
@@ -471,19 +472,6 @@ function registerRoutes(
 
 /** Drop hidden entities (and their subtrees) from the sidebar; their routes
  * stay registered. Folders left empty disappear with them. */
-/**
- * Severity, worst first. A note written without an intent sits above `success`
- * and `info`: it says "read me" without saying what about, which is more than
- * a note whose whole content is reassurance.
- */
-const NOTE_ORDER: (NoteType | null)[] = ['bug', 'deprecated', 'wip', null, 'ready'];
-
-function noteRank(type: NoteType | null): number {
-	const at = NOTE_ORDER.indexOf(type);
-	// An intent the parser would have rejected: rank it last rather than
-	// letting `indexOf`'s -1 make it the worst thing in the tree.
-	return at === -1 ? NOTE_ORDER.length : at;
-}
 
 /** The notes a row carries itself: an entity's, or an example child's. */
 function ownNotes(node: TreeNode): DocNote[] {

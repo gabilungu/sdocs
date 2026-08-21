@@ -12,6 +12,60 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.140] - 2026-08-21
+
+### Breaking
+
+- **The `[NOTES]` vocabulary is now observations, not lifecycle.** `bug`,
+  `a11y`, `warning`, `perf`, `tip`, `info` — `deprecated`, `wip` and `ready`
+  are errors in a note.
+
+  0.0.139 made notes a *status* vocabulary. That was the wrong home for it: a
+  status is a property of the component, and a note is a remark about it. With
+  `status` on `[COMPONENT]` (below) the two separate cleanly, and a note can
+  now say "being replaced by ActionButton — use it instead" while the component
+  itself says `deprecated`, which the single vocabulary could not express.
+
+  To migrate: `deprecated` and `wip` on a note usually become `warning`, and
+  `ready` becomes `info` — or the note moves to the component's `status` and
+  stops being a note at all.
+
+  The sidebar ranks them by how much it costs the reader to not know:
+
+  `bug` > `a11y` > `warning` > `perf` > *no type* > `tip` > `info`
+
+  `a11y` sits under `bug` because it is a defect with a narrower blast radius,
+  and above `warning` because it is still a defect rather than a caveat; `perf`
+  sits under `warning` for the same reason in the other direction. `bug` and
+  `a11y` are the two that get `role="alert"`.
+
+  The MCP `search_docs({ type })` filter follows, and now reads its values from
+  the language rather than its own copy of the list.
+
+### Added
+
+- **`status` on `[COMPONENT]`** — where a component sits in its life:
+  `draft`, `wip`, `review`, `experimental`, `ready`, `deprecated`. Optional; no
+  status reads as *nobody said*, which is a different thing from `draft`. An
+  unknown value is an error rather than a silent no-status, for the same reason
+  an unknown note type is.
+
+  One linear path plus its end. `review` and `experimental` are both "not
+  final", and the difference is who they wait on: a review waits on a person,
+  an experiment waits on real use.
+
+- **The component tab strip renders for a single component too.** The tab
+  carries the component's name and its status, and a strip that appeared only
+  at two components would make that information come and go with the count. A
+  lone tab is a label rather than a choice — it is not clickable.
+
+### Fixed
+
+- **A note type containing a digit was silently dropped.** The line pattern
+  accepted `[a-z]+` for the type, so `- a11y: …` did not report anything — it
+  read as an untyped note whose text began "a11y:", rendering grey where it
+  should have been red. Found by looking at the page rather than at the tests.
+
 ## [0.0.139] - 2026-08-21
 
 ### Breaking

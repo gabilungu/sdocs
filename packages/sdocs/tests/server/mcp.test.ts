@@ -234,7 +234,7 @@ describe('MCP handler', () => {
 			'',
 			'[SHOWCASE title="Display / Badge"]',
 			'\t[NOTES]',
-			'\t\t- deprecated: Being replaced by Chip in v4.',
+			'\t\t- warning: Being replaced by Chip in v4.',
 			'\t[/NOTES]',
 			'\t[COMPONENT component={Badge} synonyms="pill, chip, tag"]',
 			'\t\t<Badge {...args} />',
@@ -322,7 +322,7 @@ describe('MCP handler', () => {
 			// The notes come back with the hit — the point of finding it is to
 			// read what it says.
 			expect(found.results[0].notes).toEqual([
-				{ note: 'Being replaced by Chip in v4.', type: 'deprecated' },
+				{ note: 'Being replaced by Chip in v4.', type: 'warning' },
 			]);
 		});
 
@@ -356,7 +356,7 @@ describe('MCP handler', () => {
 			expect(danger.results.map((r: { title: string }) => r.title)).toEqual([
 				'Display / Badge / Plain',
 			]);
-			const warning = await inProject(() => both('plain', 'deprecated'));
+			const warning = await inProject(() => both('plain', 'warning'));
 			expect(warning.results.map((r: { title: string }) => r.title)).toEqual([]);
 		});
 

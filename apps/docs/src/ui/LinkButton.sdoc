@@ -4,7 +4,7 @@
 
 [SHOWCASE title="@demo/LinkButton" description="Button-shaped link used for the site's calls to action."]
 
-	[COMPONENT component={LinkButton} args={{ href: '#', variant: 'primary', external: false }}]
+	[COMPONENT component={LinkButton} status="deprecated" args={{ href: '#', variant: 'primary', external: false }}]
 		<LinkButton {...args}>Get started</LinkButton>
 	[/COMPONENT]
 

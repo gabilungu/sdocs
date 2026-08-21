@@ -130,7 +130,7 @@ describe('sizing attributes', () => {
 describe('attributeRules (shared by diagnostics and completions)', () => {
 	it('exposes the full attribute set per block kind', () => {
 		expect(Object.keys(attributeRules('preview'))).toEqual([
-			'component', 'args', 'title', 'description', 'synonyms', 'maxWidth', 'padding', 'direction', 'gap', 'contentX', 'contentY', 'background', 'minHeight',
+			'component', 'args', 'title', 'description', 'synonyms', 'status', 'maxWidth', 'padding', 'direction', 'gap', 'contentX', 'contentY', 'background', 'minHeight',
 		]);
 		// [component] is the canonical tag for the same block
 		expect(attributeRules('component')).toEqual(attributeRules('preview'));

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.69] - 2026-08-21
+
+### Changed
+
+- **The `[NOTES]` types from sdocs 0.0.140** — `bug`, `a11y`, `warning`,
+  `perf`, `tip`, `info` — in the block snippet's type picker and in the hover,
+  which also now says where the lifecycle words went.
+
+### Added
+
+- **Completion and hover for `status`** on `[COMPONENT]`. The six values are a
+  closed set, so completing the attribute offers them as a choice rather than
+  an empty pair of quotes.
+
 ## [0.0.68] - 2026-08-21
 
 ### Added

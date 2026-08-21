@@ -39,15 +39,15 @@ function notesOf(source: string, index = 0) {
 describe('writeNotes', () => {
 	it('opens a [NOTES] block under the entity opener', () => {
 		const out = writeNotes(DOC, { entitySlug: 'guides-intro' }, [
-			{ note: 'Being rewritten.', type: 'wip' },
+			{ note: 'Being rewritten.', type: 'warning' },
 		]);
 		expect(out.split('\n').slice(0, 4)).toEqual([
 			'[DOC title="Guides / Intro"]',
 			'',
 			'\t[NOTES]',
-			'\t\t- wip: Being rewritten.',
+			'\t\t- warning: Being rewritten.',
 		]);
-		expect(notesOf(out)).toEqual([{ note: 'Being rewritten.', type: 'wip' }]);
+		expect(notesOf(out)).toEqual([{ note: 'Being rewritten.', type: 'warning' }]);
 	});
 
 	it('writes a plain remark with no type', () => {

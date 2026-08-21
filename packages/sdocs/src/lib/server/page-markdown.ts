@@ -209,12 +209,20 @@ async function renderProse(source: string, state: ProseState): Promise<string> {
 
 	marked.use({
 		renderer: {
+			// The heading *is* the link to its own section. Every heading already
+			// carries a stable id (the toc depends on it), but nothing surfaced
+			// it, so linking to a section meant opening devtools. No `#` glyph
+			// beside the text — the cursor is the only hint, and the URL in the
+			// address bar is the thing to copy.
 			heading(token) {
 				const html = this.parser.parseInline(token.tokens);
 				const id = headingIds.get(token);
-				return id
-					? `<h${token.depth} id="${id}">${html}</h${token.depth}>\n`
-					: `<h${token.depth}>${html}</h${token.depth}>\n`;
+				if (!id) return `<h${token.depth}>${html}</h${token.depth}>\n`;
+				return (
+					`<h${token.depth} id="${id}">` +
+					`<a class="sdocs-heading-link" href="#${id}">${html}</a>` +
+					`</h${token.depth}>\n`
+				);
 			},
 			// GitHub-style alerts: `> [!NOTE]` blockquotes become callouts.
 			blockquote(token) {

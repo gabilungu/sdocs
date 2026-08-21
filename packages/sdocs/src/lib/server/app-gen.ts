@@ -24,9 +24,9 @@ export function sdocsVersion(): string {
 }
 
 /**
- * Make the staging dir self-sufficient: the staged Explorer imports shiki
- * (and svelte) as bare specifiers, but when the staging dir sits inside a
- * bare project (npx run, no local install), walking up never reaches sdocs'
+ * Make the staging dir self-sufficient: the staged Explorer imports shiki and
+ * marked (and svelte) as bare specifiers, but when the staging dir sits inside
+ * a bare project (npx run, no local install), walking up never reaches sdocs'
  * own dependency tree. Link what the Explorer needs into the staging dir's
  * node_modules — svelte only when the project has no copy of its own, so a
  * project-local svelte keeps winning (two svelte runtimes don't mix).
@@ -40,6 +40,9 @@ async function linkStagedDeps(sdocsDir: string, cwd: string): Promise<void> {
 		await symlink(target, resolve(nodeModules, pkg), 'junction').catch(() => {});
 	};
 	await link('shiki');
+	// Descriptions render inline markdown in the browser, so marked is a client
+	// dependency as well as a build-time one.
+	await link('marked');
 	await link('esm-env');
 	try {
 		require.resolve('svelte/package.json', { paths: [cwd] });

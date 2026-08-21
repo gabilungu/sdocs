@@ -1,3 +1,5 @@
+import { marked } from 'marked';
+
 /** Drop `import('module').` qualifiers — JSDoc types carry them, TS ones don't */
 function normalizeType(value: unknown): string {
 	return String(value)
@@ -85,33 +87,25 @@ export function typeParts(value: unknown): string[] {
 	return parts.length > 1 ? parts : [v];
 }
 
-function escapeHtml(s: string): string {
-	return s
-		.replace(/&/g, '&amp;')
-		.replace(/</g, '&lt;')
-		.replace(/>/g, '&gt;')
-		.replace(/"/g, '&quot;');
+/**
+ * Inline markdown for description prose — the same constructs the body
+ * renderer supports, minus the block ones: emphasis, code spans, **links**,
+ * and raw HTML, which is the author's own file at the same trust level as a
+ * `[DOC]` body.
+ *
+ * `parseInline` rather than `parse`: a description sits inside a `<p>` already,
+ * and block parsing would nest one inside it.
+ *
+ * Braces are escaped, and that is not cosmetic. The body renderer deliberately
+ * leaves `{expressions}` intact so Svelte islands compile; a description is
+ * attribute text rendered through `{@html}`, so a stray `{` would reach the
+ * compiler as an expression and fail the build.
+ */
+export function renderInlineMarkdown(text: string): string {
+	return marked.parseInline(text, { async: false }).replace(/[{}]/g, (c) => BRACE_ENTITIES[c]);
 }
 
-/** Inline markdown for description prose — `` `code` ``, `**bold**`,
- * `*italics*` — so a JSDoc or showcase description reads styled, not as raw
- * backticks. Input is HTML-escaped first (descriptions legitimately mention
- * tags like `<p>`), and emphasis never runs inside a code span. */
-export function renderInlineMarkdown(text: string): string {
-	const emphasize = (s: string) =>
-		s
-			.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-			.replace(/\*([^*\s][^*]*)\*/g, '<em>$1</em>');
-	// Code spans are literal — split them out before emphasis runs.
-	return text
-		.split(/(`[^`]+`)/)
-		.map((part) =>
-			part.startsWith('`') && part.endsWith('`') && part.length > 2
-				? `<code>${escapeHtml(part.slice(1, -1))}</code>`
-				: emphasize(escapeHtml(part)),
-		)
-		.join('');
-}
+const BRACE_ENTITIES: Record<string, string> = { '{': '&#123;', '}': '&#125;' };
 
 /** Parse a union of string or number literals ("'sm' | 'md'", "1 | 2") into
  * select options — across line breaks and leading pipes, the way Prettier

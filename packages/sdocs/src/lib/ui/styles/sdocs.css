@@ -361,6 +361,22 @@
 .sdocs-prose h3:first-child {
 	margin-top: 0;
 }
+/* The measure, not the column.
+ *
+ * Prose set to the full content width runs 102 characters per line at 1280px
+ * and 139 at 1920 — roughly double what is comfortable to read. The column
+ * itself has to stay wide, since tables, stages and code all want the room, so
+ * the cap goes on the text elements instead.
+ *
+ * Fixed rather than configurable: every other content knob (`maxWidth`,
+ * `padding`, `contentX`) sizes a container, while a measure is a typographic
+ * constant. A project that wants narrower prose narrows the whole column with
+ * `maxWidth` on the entity. */
+.sdocs-prose p,
+.sdocs-prose li,
+.sdocs-prose blockquote {
+	max-width: 70ch;
+}
 .sdocs-prose p {
 	margin: 0.7em 0;
 }
@@ -477,3 +493,129 @@
 }
 
 /* ── Example stages in the page flow ── */
+
+/* A heading links to its own section — it inherits the heading's type entirely,
+ * so the only sign it is a link is the cursor. */
+.sdocs-prose .sdocs-heading-link {
+	color: inherit;
+	font: inherit;
+	text-decoration: none;
+}
+
+.sdocs-prose .sdocs-heading-link:hover {
+	text-decoration: underline;
+	text-underline-offset: 4px;
+	text-decoration-color: var(--color-base-300);
+}
+
+/* Passed-through HTML.
+ *
+ * Markdown has no syntax for these, so they only appear when an author writes
+ * the tag directly. Unstyled, a <kbd> reads as ordinary prose and a
+ * <figcaption> as a stray paragraph — an element that renders wrong is worse
+ * than one that does not render at all. */
+.sdocs-prose kbd {
+	display: inline-block;
+	min-width: 1em;
+	padding: 1px 5px;
+	border: 1px solid var(--color-base-200);
+	/* The bottom edge is what reads as a key's depth — a full border with an
+	   even shadow reads as a chip instead. */
+	border-bottom-width: 2px;
+	border-radius: 4px;
+	background: var(--color-base-50);
+	font-family: var(--mono);
+	font-size: 0.85em;
+	line-height: 1.4;
+	color: var(--color-base-800);
+	text-align: center;
+	white-space: nowrap;
+}
+
+.sdocs-prose figure {
+	margin: 1.2em 0;
+	/* Wide figures scroll inside themselves rather than the page. */
+	overflow-x: auto;
+}
+
+.sdocs-prose figure > :first-child {
+	margin-top: 0;
+}
+
+.sdocs-prose figcaption {
+	margin-top: 8px;
+	font-size: 13px;
+	line-height: 1.5;
+	color: var(--color-base-600);
+}
+
+.sdocs-prose sup,
+.sdocs-prose sub {
+	font-size: 0.75em;
+	/* Keeps a line with a footnote marker on the same rhythm as one without. */
+	line-height: 0;
+	position: relative;
+	vertical-align: baseline;
+}
+
+.sdocs-prose sup {
+	top: -0.5em;
+}
+
+.sdocs-prose sub {
+	bottom: -0.25em;
+}
+
+/* ── Copy button ───────────────────────────────────────────────────────────
+ *
+ * Created as a DOM node by the copyCode attachment rather than as a component:
+ * the code it sits on is `{@html}` in every case — a rendered fence, a shiki
+ * panel — so there is no markup to hang a component off. Global for the same
+ * reason: the button is not inside any component's scope. */
+.sdocs-copy {
+	position: absolute;
+	top: 6px;
+	right: 6px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 26px;
+	height: 26px;
+	padding: 0;
+	border: 1px solid var(--color-base-200);
+	border-radius: 5px;
+	background: var(--color-base-0);
+	color: var(--color-base-600);
+	cursor: pointer;
+	/* Hidden until the pointer or focus finds it, but always in the layout —
+	   appearing out of display:none has nothing to transition from. */
+	opacity: 0;
+	transition: opacity 120ms ease;
+}
+
+.sdocs-copy-host:hover > .sdocs-copy,
+.sdocs-copy:focus-visible {
+	opacity: 1;
+}
+
+.sdocs-copy:hover {
+	border-color: var(--color-base-300);
+	color: var(--color-base-900);
+}
+
+.sdocs-copy.is-copied {
+	color: var(--color-success-600, var(--color-base-900));
+}
+
+/* Touch has no hover: on a coarse pointer the button is simply always there. */
+@media (hover: none) {
+	.sdocs-copy {
+		opacity: 1;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.sdocs-copy {
+		transition: none;
+	}
+}

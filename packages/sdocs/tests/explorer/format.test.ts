@@ -112,10 +112,26 @@ describe('renderInlineMarkdown (description prose)', () => {
 		);
 	});
 
-	it('escapes HTML in prose and inside code spans', () => {
-		expect(renderInlineMarkdown('renders a <p> tag')).toBe('renders a &lt;p&gt; tag');
+	it('renders links', () => {
+		expect(renderInlineMarkdown('see [the guide](/language/overview)')).toBe(
+			'see <a href="/language/overview">the guide</a>',
+		);
+	});
+
+	// A description is the author's own file, at the same trust level as a
+	// [DOC] body — which passes raw HTML through too. A code span still escapes.
+	it('passes raw HTML through, and escapes it inside a code span', () => {
+		expect(renderInlineMarkdown('renders a <p> tag')).toBe('renders a <p> tag');
 		expect(renderInlineMarkdown('caption → `<span>`')).toBe(
 			'caption → <code>&lt;span&gt;</code>',
+		);
+	});
+
+	// Descriptions are attribute text rendered through {@html}: a stray brace
+	// would reach the Svelte compiler as an expression and fail the build.
+	it('escapes braces', () => {
+		expect(renderInlineMarkdown('pass {count} through')).toBe(
+			'pass &#123;count&#125; through',
 		);
 	});
 

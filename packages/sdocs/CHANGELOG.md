@@ -48,6 +48,39 @@ a breaking change written under any other heading is one an agent will miss.
 
 ### Added
 
+- **Descriptions render full inline markdown.** `renderInlineMarkdown` was
+  fourteen lines of regex covering `**bold**`, `*italic*` and `` `code` `` —
+  and **no links**. It is `marked.parseInline` now, at all six render sites,
+  JSDoc prop descriptions included: a link written in a component's own
+  docblock is a link.
+
+  Raw HTML passes through, as it already does in a `[DOC]` body — same file,
+  same author, same trust level. An author who wrote a bare `<` meaning
+  less-than gets different output. Braces are escaped, which the body renderer
+  deliberately does not do: a description is attribute text rendered through
+  `{@html}`, so a stray `{` would reach the Svelte compiler.
+
+- **A copy button on every block of code** — the `[DOC]` prose fences and the
+  Explorer's Code / Preview Code / Component Source panels alike. Nothing in
+  sdocs could be copied before this. Revealed on hover, like the width bar and
+  the height bar; always visible on touch, which has no hover.
+
+- **Headings link to their own section.** Every heading already carried a
+  stable id for the table of contents, but nothing surfaced it — linking to a
+  section meant opening devtools. The heading itself is the link: no `#` glyph
+  beside it, the cursor is the only hint.
+
+- **A reading measure on prose.** Text ran 102 characters per line at 1280px
+  and 139 at 1920, roughly double what is comfortable; it is ~70 now. The cap
+  is on the text elements rather than the column, which stays wide for tables,
+  stages and code. Fixed rather than configurable: every other content knob
+  sizes a container, and a measure is a typographic constant.
+
+- **Styles for `kbd`, `figure`/`figcaption` and `sup`/`sub`.** Markdown has no
+  syntax for these, so they appear only when an author writes the tag — and
+  then they arrived unstyled: a key cap read as ordinary prose, a caption as a
+  stray paragraph.
+
 - **`[TODO]`** — a checklist, nested to any depth by indentation, once per
   entity and once per `[EXAMPLE]`. It always renders when present, and under
   `sdocs dev` the boxes are live: ticking one writes back into the `.sdoc`,

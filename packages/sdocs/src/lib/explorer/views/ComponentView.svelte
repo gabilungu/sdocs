@@ -6,6 +6,7 @@
 	import NoteControl from './NoteControl.svelte';
 	import TodoList from './TodoList.svelte';
 	import NativeBody from './NativeBody.svelte';
+	import { copyCode } from '../copy-code.svelte.js';
 	import HeightHandle from './HeightHandle.svelte';
 	import { highlightSvelte } from '../highlighter.js';
 	import CollapsiblePanel from './CollapsiblePanel.svelte';
@@ -344,7 +345,7 @@
 		/>
 	{/if}
 	{#if example.proseHtml}
-		<div class="sdocs-prose sdocs-prose-block">{@html example.proseHtml}</div>
+		<div class="sdocs-prose sdocs-prose-block" {@attach copyCode()}>{@html example.proseHtml}</div>
 	{/if}
 	{#if example.tags?.length}
 		{@render metaChips(example.tags, 'Tags', 'sm')}
@@ -452,7 +453,9 @@
 		{#if focusedSnippet.showCode !== false}
 			<div class="sdocs-panels">
 				<CollapsiblePanel title="Code" defaultExpanded={false} flush>
-					<div class="sdocs-code-block">{@html focusedSnippet.highlightedHtml ?? ''}</div>
+					<div class="sdocs-code-block" {@attach copyCode()}>
+						{@html focusedSnippet.highlightedHtml ?? ''}
+					</div>
 				</CollapsiblePanel>
 			</div>
 		{/if}
@@ -545,7 +548,7 @@
 
 				<div class="sdocs-panels">
 					<CollapsiblePanel title="Preview Code" defaultExpanded={false} flush>
-						<div class="sdocs-code-block">
+						<div class="sdocs-code-block" {@attach copyCode()}>
 							{#if highlightedUsageHtml}
 								{@html highlightedUsageHtml}
 							{:else}
@@ -556,7 +559,9 @@
 
 					{#if activePreview.highlightedSource}
 						<CollapsiblePanel title="Component Source" defaultExpanded={false} flush>
-							<div class="sdocs-code-block">{@html activePreview.highlightedSource}</div>
+							<div class="sdocs-code-block" {@attach copyCode()}>
+								{@html activePreview.highlightedSource}
+							</div>
 						</CollapsiblePanel>
 					{/if}
 				</div>
@@ -717,7 +722,9 @@
 				{#if example.showCode !== false}
 					<div class="sdocs-panels">
 						<CollapsiblePanel title="Code" defaultExpanded={false} flush>
-							<div class="sdocs-code-block">{@html example.highlightedHtml ?? ''}</div>
+							<div class="sdocs-code-block" {@attach copyCode()}>
+								{@html example.highlightedHtml ?? ''}
+							</div>
 						</CollapsiblePanel>
 					</div>
 				{/if}
@@ -728,7 +735,7 @@
 			{#if item.kind === 'prose'}
 				{@const block = doc.prose?.[item.index]}
 				{#if block}
-					<div class="sdocs-prose sdocs-prose-block">
+					<div class="sdocs-prose sdocs-prose-block" {@attach copyCode()}>
 						<NativeBody key={block.key} {pageModules} {preloaded} />
 					</div>
 				{/if}
@@ -1048,6 +1055,8 @@
 		margin: 0;
 	}
 	.sdocs-code-block {
+		/* The copy button is positioned against this. */
+		position: relative;
 		overflow-x: auto;
 		font-size: 13px;
 		line-height: 1.5;

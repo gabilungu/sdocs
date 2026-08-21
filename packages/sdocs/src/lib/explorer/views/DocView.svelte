@@ -6,6 +6,7 @@
 	import { Note } from '../../ui/Note/index.js';
 	import NoteControl from './NoteControl.svelte';
 	import TodoList from './TodoList.svelte';
+	import { copyCode } from '../copy-code.svelte.js';
 	import CollapsiblePanel from './CollapsiblePanel.svelte';
 	import PreviewFrame from './PreviewFrame.svelte';
 	import HeightHandle from './HeightHandle.svelte';
@@ -165,7 +166,7 @@
 					/>
 				{/if}
 				{#if example.proseHtml}
-					<div class="sdocs-prose sdocs-prose-block">{@html example.proseHtml}</div>
+					<div class="sdocs-prose sdocs-prose-block" {@attach copyCode()}>{@html example.proseHtml}</div>
 				{/if}
 			{/if}
 			<div class="sdocs-panels">
@@ -189,7 +190,9 @@
 				</div>
 				{#if example.showCode !== false}
 					<CollapsiblePanel title="Code" defaultExpanded={false} flush>
-						<div class="sdocs-code-block">{@html example.highlightedHtml ?? ''}</div>
+						<div class="sdocs-code-block" {@attach copyCode()}>
+							{@html example.highlightedHtml ?? ''}
+						</div>
 					</CollapsiblePanel>
 				{/if}
 			</div>
@@ -253,7 +256,7 @@
 			{/if}
 
 			<!-- Content -->
-			<div class="sdocs-page-content sdocs-prose" bind:this={container}>
+			<div class="sdocs-page-content sdocs-prose" bind:this={container} {@attach copyCode()}>
 				{#if PageComponent}
 					<PageComponent __sdocsExample={exampleFrame} />
 				{/if}
@@ -374,6 +377,8 @@
 		background: var(--color-base-0);
 	}
 	.sdocs-code-block {
+		/* The copy button is positioned against this. */
+		position: relative;
 		overflow-x: auto;
 		font-size: 13px;
 		line-height: 1.5;

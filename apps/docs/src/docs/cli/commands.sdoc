@@ -209,6 +209,16 @@
 	  **substring** — `butt` finds `Button`. A `type` sweeps by note status
 	  instead: `type: 'bug'` lists everything marked bug with no query at all. Every hit says which names matched, the notes it carries, and the
 	  route it serves at, ready to hand to `resolve_visual_target`.
+	- **`set_notes`**, **`set_status`**, **`set_todos`**, **`toggle_todo`** — the
+	  four tools that **write**. They replace a `[NOTES]` block, set a
+	  `[COMPONENT]`'s status, replace a `[TODO]` checklist, or tick one item.
+
+	  Each rewrites the smallest span that will do — a block's own span, or a
+	  single attribute — so formatting and every other byte survive, and each
+	  refuses any path the project's `include` globs don't already match. They
+	  exist because an agent asked to "mark Button deprecated" will edit that
+	  `.sdoc` one way or another; a tool that splices the one attribute can't
+	  produce a file that doesn't parse.
 	- **`check_docs`** — compile every stage and report Svelte errors, missing
 	  relative imports, and grammar diagnostics; the same check as
 	  [`sdocs check`](#sdocs-check). Takes an optional `file` to check one

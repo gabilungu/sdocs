@@ -12,6 +12,32 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.146] - 2026-08-21
+
+### Added
+
+- **MCP can write the blocks**: `set_notes`, `set_status`, `set_todos` and
+  `toggle_todo`. Four tools, all read-only until now.
+
+  They exist because an agent asked to "mark Button deprecated" will edit that
+  `.sdoc` one way or another — through a tool that splices the one attribute,
+  or by pattern-matching your source. Each rewrites the smallest span that will
+  do: a block's own span, or a single attribute, or the one character between a
+  todo's brackets. Formatting, comments and every other byte survive, and a
+  file that would not parse cannot come out.
+
+  Each refuses any path the project's `include` globs do not already match —
+  the same guard the dev server's endpoints use, because a write tool that
+  touches whatever path it is handed can be pointed anywhere.
+
+- **`list_docs` reports everything an entity carries**, not just its notes: its
+  `[TODO]` tree, its `[GLOSSARY]` terms, and each component's `status`. Three
+  of those had shipped with no way to read them at all.
+
+- **`search_docs` matches glossary terms and todo text.** A glossary term is
+  exactly the kind of word someone searches for — they read it somewhere and
+  want to know what it means in *this* project.
+
 ## [0.0.145] - 2026-08-21
 
 ### Added

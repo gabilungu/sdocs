@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { writeNotes, writeTodos, toggleTodo, NoteTargetError } from '../../src/lib/server/note-editor.js';
+import { writeNotes, writeTodos, writeStatus, toggleTodo, NoteTargetError } from '../../src/lib/server/note-editor.js';
 import { parseSdoc } from '../../src/lib/language/parser.js';
 
 const DOC = ['[DOC title="Guides / Intro"]', '', '\tHello.', '', '[/DOC]', ''].join('\n');
@@ -228,5 +228,81 @@ describe('writeTodos', () => {
 			items('Check the dark theme'),
 		);
 		expect(out).toContain('\t\t[TODO]\n\t\t\t- [ ] Check the dark theme\n\t\t[/TODO]');
+	});
+});
+
+/**
+ * `status` stayed an attribute when notes and todos became blocks, because it
+ * genuinely is one: a single word *about* the component, not something written
+ * inside it. So it is spliced like an attribute — its own span and nothing
+ * else.
+ */
+describe('writeStatus', () => {
+	const SRC = [
+		'[SHOWCASE title="Display / Badge"]',
+		'',
+		'\t[COMPONENT component={Badge} args={{ label: "Hi" }}]',
+		'\t\t<Badge />',
+		'\t[/COMPONENT]',
+		'',
+		'[/SHOWCASE]',
+		'',
+	].join('\n');
+
+	it('adds the attribute inside the opener when there is none', () => {
+		const out = writeStatus(SRC, { entitySlug: 'display-badge', component: 'Badge' }, 'ready');
+		expect(out).toContain('[COMPONENT component={Badge} args={{ label: "Hi" }} status="ready"]');
+		// Nothing else moved.
+		expect(out.replace(' status="ready"', '')).toBe(SRC);
+	});
+
+	it('replaces the value when one is already there', () => {
+		const withStatus = writeStatus(SRC, { entitySlug: 'display-badge', component: 'Badge' }, 'wip');
+		const out = writeStatus(
+			withStatus,
+			{ entitySlug: 'display-badge', component: 'Badge' },
+			'deprecated',
+		);
+		expect(out).toContain('status="deprecated"');
+		expect(out).not.toContain('status="wip"');
+	});
+
+	it('removes the attribute, and the space before it, for a null status', () => {
+		const withStatus = writeStatus(SRC, { entitySlug: 'display-badge', component: 'Badge' }, 'ready');
+		expect(writeStatus(withStatus, { entitySlug: 'display-badge', component: 'Badge' }, null)).toBe(
+			SRC,
+		);
+	});
+
+	it('finds the block by its tab title as well as its component', () => {
+		const titled = SRC.replace('component={Badge} args', 'component={Badge} title="As a chip" args');
+		const out = writeStatus(titled, { entitySlug: 'display-badge', component: 'As a chip' }, 'draft');
+		expect(out).toContain('status="draft"');
+	});
+
+	// A wrapped opener closes on a line of its own; the attribute joins the
+	// column rather than landing on the bracket line.
+	it('writes into a wrapped opener one attribute per line', () => {
+		const wrapped = [
+			'[SHOWCASE title="Display / Badge"]',
+			'',
+			'\t[COMPONENT',
+			'\t\tcomponent={Badge}',
+			'\t\targs={{ label: "Hi" }}',
+			'\t]',
+			'\t\t<Badge />',
+			'\t[/COMPONENT]',
+			'',
+			'[/SHOWCASE]',
+			'',
+		].join('\n');
+		const out = writeStatus(wrapped, { entitySlug: 'display-badge', component: 'Badge' }, 'review');
+		expect(out).toContain('\t\targs={{ label: "Hi" }}\n\t\tstatus="review"\n\t]');
+	});
+
+	it('refuses a component it cannot find', () => {
+		expect(() =>
+			writeStatus(SRC, { entitySlug: 'display-badge', component: 'Nope' }, 'ready'),
+		).toThrow(NoteTargetError);
 	});
 });

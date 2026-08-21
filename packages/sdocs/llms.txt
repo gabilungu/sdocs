@@ -146,20 +146,41 @@ Explorer uses:
   changelog are what a migration would say.
 - `list_docs {}` — map the project's documentation: every `.sdoc` file the
   config's `include` globs match, each with its entities (kind, title), the
-  **route** each one serves at (plus a route per example), and the components
-  its previews document. The routes come from the Explorer's own router, so
+  **route** each one serves at (plus a route per example), the components its
+  previews document, and everything the entity carries — its `notes`, its
+  `[TODO]` tree, its `[GLOSSARY]` terms, and each component's `status`. The routes come from the Explorer's own router, so
   they're exactly what the site serves — drive a browser over them to smoke
   test every page.
 - `search_docs { query?, type?, limit? }` — find documentation by any name it
   goes under: the entity title, a component it previews, that component's
-  `synonyms`, an example title, an example's `tags`, or the text of any `notes`
-  on either. Matching is a case-insensitive **substring**, so `butt` finds
+  `synonyms`, an example title, an example's `tags`, a `[GLOSSARY]` term or its
+  definition, a `[TODO]` line, or the text of any `notes` on either. Matching is a case-insensitive **substring**, so `butt` finds
   `Button` and `menu` finds every example tagged "user menu". `type` sweeps by
   note status instead — `type: 'bug'` lists everything marked bug with no query
   at all, and `'none'` finds notes written without one; give both
   and a result has to satisfy both. Each hit says which names matched, the
   notes it carries, and the route it serves at — pass that route to
   `resolve_visual_target` to screenshot it. Reach for it before reading files.
+- `set_notes { file, entity, example?, notes }` — replace a `[NOTES]` block's
+  contents. Pass the whole list you want; an empty one removes the block. Each
+  note is `{ note, type? }` with type `bug`/`a11y`/`warning`/`perf`/`tip`/`info`.
+- `set_status { file, entity, component, status }` — set a `[COMPONENT]`'s
+  status, or `null` to remove it. Name the component by its `component={…}`
+  identifier, or by its `title="…"` when one entity previews the same component
+  twice.
+- `set_todos { file, entity, example?, todos }` — replace a `[TODO]` checklist.
+  Items are `{ text, done?, children? }`, nesting to any depth.
+- `toggle_todo { file, entity, example?, path, done }` — tick one item by its
+  position at each level (`[1, 0]` is the first child of the second root item,
+  as `list_docs` reports the tree). Rewrites one character; prefer it to
+  `set_todos` when you are only ticking something off.
+
+  **The four writes above edit the project's `.sdoc` files.** Each rewrites the
+  smallest span that will do — a block's own span, or a single attribute — so
+  formatting, comments and every other byte survive. Reach for them rather than
+  editing `.sdoc` text yourself: they cannot produce a file that does not
+  parse. Each refuses any path the project's `include` globs do not already
+  match.
 - `check_docs { file? }` — **compile** every stage (previews, examples, page
   and layout bodies) the way the dev server does and report what breaks:
   Svelte compile errors, relative imports that resolve to no file, and grammar

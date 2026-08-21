@@ -259,3 +259,69 @@ export function writeTodos(source: string, target: NoteTarget, items: TodoItem[]
 	const { openerSpan, notesSpan, bodyIndent } = locate(source, file.entities, target, 'todo');
 	return splice(source, openerSpan, notesSpan, serializeTodos(items, bodyIndent));
 }
+
+/** Which `[COMPONENT]` to edit: the entity it lives in, and the component it
+ * documents (the `component={X}` identifier, or the `title="…"` tab label when
+ * one entity previews the same component twice). */
+export interface ComponentTarget {
+	entitySlug: string;
+	component: string;
+}
+
+/**
+ * Return `source` with the target `[COMPONENT]`'s `status` set to `status`, or
+ * with the attribute removed when it is null.
+ *
+ * The one attribute writer left in this module. Notes and todos became blocks
+ * in 0.0.139; a status is genuinely an attribute — a single word about the
+ * component rather than something written *inside* it — so it is spliced the
+ * way the notes attribute used to be: the attribute's own span and nothing
+ * else, or just inside the opener's closing bracket when there is none yet.
+ */
+export function writeStatus(
+	source: string,
+	target: ComponentTarget,
+	status: string | null,
+): string {
+	const file = scanSdoc(source);
+	const entity = file.entities.find((e) => slugifyTitle(titleOf(e.attrs)) === target.entitySlug);
+	if (!entity) {
+		throw new NoteTargetError(`No entity with the slug "${target.entitySlug}" in this file.`);
+	}
+	const wanted = target.component.trim();
+	const block = entity.blocks.find((b: SubBlock) => {
+		if (b.kind !== 'preview') return false;
+		const component = b.attrs['component'];
+		const name = component && component.kind === 'expression' ? component.raw.trim() : '';
+		return name === wanted || titleOf(b.attrs) === wanted;
+	});
+	if (!block) {
+		throw new NoteTargetError(
+			`No [COMPONENT] for "${wanted}" in "${titleOf(entity.attrs)}" — name it by its component={…} identifier or its title="…".`,
+		);
+	}
+
+	const existing = block.attrs['status'];
+	if (existing) {
+		if (status) {
+			return source.slice(0, existing.valueSpan.start) + status + source.slice(existing.valueSpan.end);
+		}
+		// Take the whitespace before it too, or removing the attribute leaves a
+		// double space inside the opener.
+		let from = existing.span.start;
+		while (from > 0 && (source[from - 1] === ' ' || source[from - 1] === '\t')) from--;
+		return source.slice(0, from) + source.slice(existing.span.end);
+	}
+	if (!status) return source;
+
+	// No attribute yet: write one just inside the opener's closing bracket.
+	const close = source.lastIndexOf(']', block.openerSpan.end - 1);
+	if (close === -1) throw new NoteTargetError('That [COMPONENT] opener has no closing bracket.');
+	// A wrapped opener closes on a line of its own, one attribute per line.
+	const lineStart = source.lastIndexOf('\n', close) + 1;
+	const wrapped = source.slice(lineStart, close).trim() === '';
+	const indent = source.slice(lineStart, close);
+	return wrapped
+		? `${source.slice(0, lineStart)}${indent}\tstatus="${status}"\n${source.slice(lineStart)}`
+		: `${source.slice(0, close)} status="${status}"${source.slice(close)}`;
+}

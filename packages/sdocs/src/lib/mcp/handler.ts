@@ -1,14 +1,21 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { basename, dirname, isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseSdoc } from '../language/parser.js';
-import type { DocNote } from '../types.js';
+import type { ComponentStatus, DocNote, GlossaryBlock, TodoItem } from '../types.js';
 import { NOTE_TYPES } from '../note-order.js';
+import { COMPONENT_STATUSES, slugifyTitle } from '../language/parser.js';
 import { offsetToPosition } from '../language/scanner.js';
 import { parseComponentSource } from '../server/prop-parser.js';
 import { loadConfig } from '../server/config.js';
 import { discoverDocFiles } from '../server/discovery.js';
+import {
+	writeNotes,
+	writeStatus,
+	writeTodos,
+	toggleTodo,
+} from '../server/note-editor.js';
 import { buildSections, slugifySegment, splitSection } from '../explorer/tree-builder.js';
 import {
 	extractImports,
@@ -418,6 +425,111 @@ const TOOLS = [
 			required: ['componentPath'],
 		},
 	},
+	{
+		name: 'set_notes',
+		description:
+			"Replace a [NOTES] block's contents on an entity, or on one of its " +
+			'[EXAMPLE]s. Pass the full list you want the block to end up with — ' +
+			'an empty list removes the block. Each note is { note, type? } where ' +
+			'type is bug, a11y, warning, perf, tip or info; leave it off for a ' +
+			'plain remark. Only the block\'s own span is rewritten, so the rest ' +
+			'of the file keeps its formatting exactly. Prefer this to editing the ' +
+			'.sdoc by hand: it cannot produce a file that does not parse.',
+		inputSchema: {
+			type: 'object',
+			properties: {
+				file: { type: 'string', description: 'Path to the .sdoc, as list_docs reports it' },
+				entity: { type: 'string', description: "The entity's title or route slug" },
+				example: {
+					type: 'string',
+					description: "An [EXAMPLE] title, to edit its notes instead of the entity's",
+				},
+				notes: {
+					type: 'array',
+					description: 'The notes the block should end up with',
+					items: {
+						type: 'object',
+						properties: {
+							note: { type: 'string' },
+							type: { type: 'string', enum: [...NOTE_TYPES] },
+						},
+						required: ['note'],
+					},
+				},
+			},
+			required: ['file', 'entity', 'notes'],
+		},
+	},
+	{
+		name: 'set_status',
+		description:
+			"Set a [COMPONENT]'s status — where it sits in its life. One of " +
+			'draft, wip, review, experimental, ready, deprecated; pass null to ' +
+			'remove it, which reads as "nobody said" rather than draft. Name the ' +
+			'component by its component={…} identifier, or by its title="…" when ' +
+			'one entity previews the same component twice. Rewrites the one ' +
+			'attribute and nothing else.',
+		inputSchema: {
+			type: 'object',
+			properties: {
+				file: { type: 'string', description: 'Path to the .sdoc, as list_docs reports it' },
+				entity: { type: 'string', description: "The entity's title or route slug" },
+				component: { type: 'string', description: 'The component identifier or tab title' },
+				status: {
+					type: ['string', 'null'],
+					enum: [...COMPONENT_STATUSES, null],
+					description: 'The new status, or null to remove it',
+				},
+			},
+			required: ['file', 'entity', 'component', 'status'],
+		},
+	},
+	{
+		name: 'set_todos',
+		description:
+			"Replace a [TODO] checklist on an entity or one of its [EXAMPLE]s. " +
+			'Pass the whole tree you want; an empty list removes the block. Each ' +
+			'item is { text, done?, children? } and nests to any depth. Use ' +
+			'toggle_todo instead when you only need to tick one item — it rewrites ' +
+			'a single character, where this re-serializes the block.',
+		inputSchema: {
+			type: 'object',
+			properties: {
+				file: { type: 'string', description: 'Path to the .sdoc, as list_docs reports it' },
+				entity: { type: 'string', description: "The entity's title or route slug" },
+				example: { type: 'string', description: 'An [EXAMPLE] title, to edit its checklist' },
+				todos: {
+					type: 'array',
+					description: 'The checklist the block should end up with',
+					items: { type: 'object' },
+				},
+			},
+			required: ['file', 'entity', 'todos'],
+		},
+	},
+	{
+		name: 'toggle_todo',
+		description:
+			'Tick or untick one item in a [TODO], addressed by its position at ' +
+			'each level: [1, 0] is the first child of the second root item, as ' +
+			'list_docs reports the tree. Rewrites the single character between ' +
+			'the brackets, so the author\'s wording and spacing are untouched.',
+		inputSchema: {
+			type: 'object',
+			properties: {
+				file: { type: 'string', description: 'Path to the .sdoc, as list_docs reports it' },
+				entity: { type: 'string', description: "The entity's title or route slug" },
+				example: { type: 'string', description: 'An [EXAMPLE] title, to tick inside its checklist' },
+				path: {
+					type: 'array',
+					items: { type: 'number' },
+					description: 'Position at each level, outermost first',
+				},
+				done: { type: 'boolean', description: 'Ticked or not' },
+			},
+			required: ['file', 'entity', 'path', 'done'],
+		},
+	},
 ];
 
 // --- Tools -------------------------------------------------------------------
@@ -549,9 +661,17 @@ interface IndexedEntity {
 	kind: string;
 	title: string;
 	route: string | null;
-	components: { name: string; synonyms: string[] }[];
-	examples: { name: string; route: string | null; tags: string[]; notes: DocNote[] }[];
+	components: { name: string; synonyms: string[]; status: ComponentStatus | null }[];
+	examples: {
+		name: string;
+		route: string | null;
+		tags: string[];
+		notes: DocNote[];
+		todos: TodoItem[];
+	}[];
 	notes: DocNote[];
+	todos: TodoItem[];
+	glossaries: GlossaryBlock[];
 }
 
 interface IndexedFile {
@@ -620,11 +740,17 @@ async function collectDocIndex() {
 				title: e.title,
 				route: routeOf.get(entry) ?? null,
 				notes: e.notes,
+				todos: 'todos' in e ? e.todos : [],
+				glossaries: 'glossaries' in e ? e.glossaries : [],
 				components:
 					e.kind === 'SHOWCASE'
 						? e.previews
 								.filter((p) => p.componentName !== null)
-								.map((p) => ({ name: p.componentName as string, synonyms: p.synonyms }))
+								.map((p) => ({
+									name: p.componentName as string,
+									synonyms: p.synonyms,
+									status: p.status,
+								}))
 						: [],
 				examples:
 					e.kind === 'SHOWCASE' || e.kind === 'DOC'
@@ -633,6 +759,7 @@ async function collectDocIndex() {
 								route: routes?.get(x.title) ?? null,
 								tags: x.tags,
 								notes: x.notes,
+								todos: x.todos,
 							}))
 						: [],
 			};
@@ -640,6 +767,63 @@ async function collectDocIndex() {
 	}));
 
 	return { cwd, config, files, indexed, structureErrors: map.errors.map((e) => e.message) };
+}
+
+
+/**
+ * Resolve a write request to a real file in this project, and apply `edit`.
+ *
+ * The guard is the same one the dev server's endpoints use: the path has to be
+ * a file the project's `include` globs already match. A write tool that would
+ * touch any path it is handed is a write tool that can be pointed anywhere.
+ *
+ * `entity` is matched on its title or its slug, so a caller can pass back
+ * whatever `list_docs` showed it.
+ */
+async function editDoc(
+	params: Record<string, unknown>,
+	edit: (source: string, entitySlug: string) => string,
+): Promise<unknown> {
+	const asked = String(params.file ?? '').trim();
+	const entityName = String(params.entity ?? '').trim();
+	if (!asked) return invalidParams('file is required');
+	if (!entityName) return invalidParams('entity is required');
+
+	const cwd = process.cwd();
+	const config = await loadConfig(cwd);
+	const files = await discoverDocFiles(
+		config.include.map((p) => resolve(cwd, p)),
+		cwd,
+	);
+	const target = resolve(cwd, asked);
+	if (!files.includes(target)) {
+		return invalidParams(
+			`"${asked}" is not a .sdoc this project documents — list_docs reports the ones that are.`,
+		);
+	}
+
+	const source = await readFile(target, 'utf-8');
+	const doc = parseSdoc(source);
+	const entity =
+		doc.entities.find((e) => e.title === entityName) ??
+		doc.entities.find((e) => e.slug === slugifyTitle(entityName));
+	if (!entity) {
+		return invalidParams(
+			`No entity called "${entityName}" in ${asked} — it has ${doc.entities.map((e) => `"${e.title}"`).join(', ') || 'none'}.`,
+		);
+	}
+
+	let next: string;
+	try {
+		next = edit(source, entity.slug);
+	} catch (err) {
+		return invalidParams(err instanceof Error ? err.message : String(err));
+	}
+	if (next === source) {
+		return toolResult({ file: asked, entity: entity.title, changed: false });
+	}
+	await writeFile(target, next, 'utf-8');
+	return toolResult({ file: asked, entity: entity.title, changed: true });
 }
 
 async function listDocs() {
@@ -651,17 +835,29 @@ async function listDocs() {
 		entities: f.entities.map((e) => {
 			const synonyms = e.components.filter((c) => c.synonyms.length);
 			const examples = e.examples.filter((x) => x.route !== null);
+			const withStatus = e.components.filter((c) => c.status);
 			return {
 				kind: e.kind,
 				title: e.title,
 				route: e.route,
 				...(e.components.length ? { components: e.components.map((c) => c.name) } : {}),
+				...(withStatus.length
+					? { statuses: withStatus.map((c) => ({ component: c.name, status: c.status })) }
+					: {}),
 				// Only what the author actually wrote — an empty list on every
 				// entity is noise in a map meant to be read at a glance.
 				...(synonyms.length
 					? { synonyms: synonyms.map((c) => ({ component: c.name, names: c.synonyms })) }
 					: {}),
 				...(e.notes.length ? { notes: e.notes } : {}),
+				...(e.todos.length ? { todos: e.todos } : {}),
+				...(e.glossaries.length
+					? {
+							glossary: e.glossaries.flatMap((g) =>
+								g.terms.map((t) => ({ term: t.term, definition: t.definition })),
+							),
+						}
+					: {}),
 				...(examples.length
 					? {
 							examples: examples.map((x) => ({
@@ -669,6 +865,7 @@ async function listDocs() {
 								route: x.route as string,
 								...(x.tags.length ? { tags: x.tags } : {}),
 								...(x.notes.length ? { notes: x.notes } : {}),
+								...(x.todos.length ? { todos: x.todos } : {}),
 							})),
 						}
 					: {}),
@@ -702,6 +899,33 @@ async function listDocs() {
  * reading files. Every hit says which name matched, so a surprising result
  * explains itself.
  */
+/**
+ * Coerce whatever a caller sent into the checklist shape.
+ *
+ * An agent will send `{ text }` and leave the rest off; filling the gaps here
+ * beats rejecting the call over a missing `children: []`.
+ */
+function normalizeTodos(items: unknown[]): TodoItem[] {
+	return items.flatMap((raw) => {
+		if (!raw || typeof raw !== 'object') return [];
+		const item = raw as Record<string, unknown>;
+		const text = String(item.text ?? '').trim();
+		if (!text) return [];
+		return [
+			{
+				text,
+				done: !!item.done,
+				children: normalizeTodos(Array.isArray(item.children) ? item.children : []),
+			},
+		];
+	});
+}
+
+/** Every todo's text, nesting flattened — search does not care about depth. */
+function flattenTodos(items: TodoItem[]): string[] {
+	return items.flatMap((item) => [item.text, ...flattenTodos(item.children)]);
+}
+
 /** The status of a note as the filter names it — an unset one is 'none'. */
 function noteTypeName(note: DocNote): string {
 	return note.type ?? 'none';
@@ -752,6 +976,17 @@ async function searchDocs(params: Record<string, unknown>) {
 			for (const note of entity.notes) {
 				if (hits(note.note)) matched.push(`note: ${note.note}`);
 			}
+			// A glossary term is exactly the kind of word someone searches for —
+			// they read it somewhere and want to know what it means here.
+			for (const glossary of entity.glossaries) {
+				for (const entry of glossary.terms) {
+					if (hits(entry.term)) matched.push(`term: ${entry.term} — ${entry.definition}`);
+					else if (hits(entry.definition)) matched.push(`definition of ${entry.term}`);
+				}
+			}
+			for (const todo of flattenTodos(entity.todos)) {
+				if (hits(todo)) matched.push(`todo: ${todo}`);
+			}
 			// Kept apart from the query's hits until the decision is made: an
 			// status match must not stand in for the text the caller asked for.
 			const byType = noteTypeHits(entity.notes, type);
@@ -777,6 +1012,9 @@ async function searchDocs(params: Record<string, unknown>) {
 				}
 				for (const note of example.notes) {
 					if (hits(note.note)) why.push(`note: ${note.note}`);
+				}
+				for (const todo of flattenTodos(example.todos)) {
+					if (hits(todo)) why.push(`todo: ${todo}`);
 				}
 				const whyIntent = noteTypeHits(example.notes, type);
 				if (!keep(why, example.notes)) continue;
@@ -1258,6 +1496,41 @@ async function dispatch(method: string, params: Record<string, unknown>): Promis
 					const section = typeof args.section === 'string' ? args.section : '';
 					const text = section ? guideSection(section) : authoringGuide();
 					return { content: [{ type: 'text', text }] };
+				}
+				case 'set_notes': {
+					const notes = Array.isArray(args.notes) ? args.notes : [];
+					const example = typeof args.example === 'string' ? args.example : null;
+					return editDoc(args, (source, entitySlug) =>
+						writeNotes(source, { entitySlug, exampleTitle: example }, notes as never),
+					);
+				}
+				case 'set_status': {
+					const status = args.status == null ? null : String(args.status);
+					if (status && !(COMPONENT_STATUSES as readonly string[]).includes(status)) {
+						return invalidParams(`status must be one of ${COMPONENT_STATUSES.join(', ')}, or null`);
+					}
+					const component = String(args.component ?? '').trim();
+					if (!component) return invalidParams('component is required');
+					return editDoc(args, (source, entitySlug) =>
+						writeStatus(source, { entitySlug, component }, status),
+					);
+				}
+				case 'set_todos': {
+					const todos = Array.isArray(args.todos) ? args.todos : [];
+					const example = typeof args.example === 'string' ? args.example : null;
+					return editDoc(args, (source, entitySlug) =>
+						writeTodos(source, { entitySlug, exampleTitle: example }, normalizeTodos(todos)),
+					);
+				}
+				case 'toggle_todo': {
+					const path = (Array.isArray(args.path) ? args.path : []).map(Number);
+					if (!path.length || path.some((n) => !Number.isInteger(n) || n < 0)) {
+						return invalidParams('path must be one or more non-negative positions, outermost first');
+					}
+					const example = typeof args.example === 'string' ? args.example : null;
+					return editDoc(args, (source, entitySlug) =>
+						toggleTodo(source, { entitySlug, exampleTitle: example }, path, !!args.done),
+					);
 				}
 				case 'get_changelog': {
 					const since = typeof args.since === 'string' ? args.since : undefined;

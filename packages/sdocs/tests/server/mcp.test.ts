@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { handleMcpMessage, type JsonRpcResponse } from '../../src/lib/mcp/handler.js';
@@ -67,7 +67,7 @@ describe('MCP handler', () => {
 		expect((await rpc('nope/nope')).error?.code).toBe(-32601);
 	});
 
-	it('lists the ten tools', async () => {
+	it('lists the fourteen tools, reads before writes', async () => {
 		const { result } = await rpc('tools/list');
 		const names = (result as { tools: { name: string }[] }).tools.map((t) => t.name);
 		expect(names).toEqual([
@@ -81,6 +81,12 @@ describe('MCP handler', () => {
 			'check_coverage',
 			'resolve_visual_target',
 			'get_component_api',
+			// The writes come last, so a tool list read top-to-bottom is
+			// everything that only looks, then everything that changes a file.
+			'set_notes',
+			'set_status',
+			'set_todos',
+			'toggle_todo',
 		]);
 	});
 
@@ -703,5 +709,168 @@ describe('get_authoring_guide({ section }) and get_changelog({ since })', () => 
 	it('returns the whole changelog with no version, and says so for an unknown one', async () => {
 		expect(await textOf('get_changelog')).toContain('# Changelog');
 		expect(await textOf('get_changelog', { since: '9.9.9' })).toContain('No release "9.9.9"');
+	});
+});
+
+/**
+ * Reading and writing the blocks.
+ *
+ * The writes exist because an agent asked to "mark Button deprecated" will
+ * edit that `.sdoc` one way or another — through a tool that splices the one
+ * attribute, or by pattern-matching the source. The first cannot produce a
+ * file that does not parse.
+ */
+describe('the blocks over MCP', () => {
+	const SOURCE = [
+		'[SHOWCASE title="Display / Badge"]',
+		'',
+		'\t[NOTES]',
+		'\t\t- bug: Overflows past 99.',
+		'\t[/NOTES]',
+		'',
+		'\t[TODO]',
+		'\t\t- [ ] Cap the count',
+		'\t\t\t- [ ] Decide the ceiling',
+		'\t[/TODO]',
+		'',
+		'\t[GLOSSARY title="Terms"]',
+		'\t\t- Badge: a small count or label attached to something.',
+		'\t[/GLOSSARY]',
+		'',
+		'\t[COMPONENT component={Badge}]',
+		'\t\t<Badge />',
+		'\t[/COMPONENT]',
+		'',
+		'[/SHOWCASE]',
+		'',
+	].join('\n');
+
+	function project() {
+		const dir = mkdtempSync(join(tmpdir(), 'sdocs-mcp-blocks-'));
+		writeFileSync(join(dir, 'sdocs.config.js'), 'export default { include: ["./*.sdoc"] };');
+		writeFileSync(join(dir, 'Badge.sdoc'), SOURCE);
+		return dir;
+	}
+
+	async function inDir<T>(dir: string, fn: () => Promise<T>): Promise<T> {
+		const prev = process.cwd();
+		process.chdir(dir);
+		try {
+			return await fn();
+		} finally {
+			process.chdir(prev);
+		}
+	}
+
+	it('reports todos and glossary terms, not just notes', async () => {
+		const dir = project();
+		const entity = await inDir(
+			dir,
+			async () => ((await callTool('list_docs')).structuredContent as any).docs[0].entities[0],
+		);
+		expect(entity.notes).toEqual([{ note: 'Overflows past 99.', type: 'bug' }]);
+		expect(entity.todos[0].children[0].text).toBe('Decide the ceiling');
+		expect(entity.glossary).toEqual([
+			{ term: 'Badge', definition: 'a small count or label attached to something.' },
+		]);
+	});
+
+	it('searches todo text and glossary definitions', async () => {
+		const dir = project();
+		const search = async (query: string) =>
+			((await callTool('search_docs', { query })).structuredContent as any).results.flatMap(
+				(r: { matched: string[] }) => r.matched,
+			);
+		expect(await inDir(dir, () => search('ceiling'))).toContain('todo: Decide the ceiling');
+		expect(await inDir(dir, () => search('count or label'))).toContain('definition of Badge');
+	});
+
+	it('sets a status, and removes it again byte-for-byte', async () => {
+		const dir = project();
+		const file = join(dir, 'Badge.sdoc');
+		const set = (status: string | null) =>
+			inDir(dir, () =>
+				callTool('set_status', {
+					file: 'Badge.sdoc',
+					entity: 'Display / Badge',
+					component: 'Badge',
+					status,
+				}),
+			);
+		await set('review');
+		expect(readFileSync(file, 'utf-8')).toContain('[COMPONENT component={Badge} status="review"]');
+		await set(null);
+		// The attribute and the space before it, and nothing else.
+		expect(readFileSync(file, 'utf-8')).toBe(SOURCE);
+	});
+
+	it('ticks one todo without touching the author’s text', async () => {
+		const dir = project();
+		await inDir(dir, () =>
+			callTool('toggle_todo', {
+				file: 'Badge.sdoc',
+				entity: 'Display / Badge',
+				path: [0, 0],
+				done: true,
+			}),
+		);
+		expect(readFileSync(join(dir, 'Badge.sdoc'), 'utf-8')).toBe(
+			SOURCE.replace('- [ ] Decide the ceiling', '- [x] Decide the ceiling'),
+		);
+	});
+
+	it('replaces the notes block wholesale', async () => {
+		const dir = project();
+		await inDir(dir, () =>
+			callTool('set_notes', {
+				file: 'Badge.sdoc',
+				entity: 'Display / Badge',
+				notes: [{ note: 'Pair it with Avatar.', type: 'tip' }],
+			}),
+		);
+		const out = readFileSync(join(dir, 'Badge.sdoc'), 'utf-8');
+		expect(out).toContain('- tip: Pair it with Avatar.');
+		expect(out).not.toContain('Overflows past 99');
+	});
+
+	// The same guard the dev server's endpoints use: a write tool that touches
+	// any path it is handed can be pointed anywhere.
+	it('refuses a file the project does not document', async () => {
+		const dir = project();
+		const { error } = await inDir(dir, () =>
+			rpc('tools/call', {
+				name: 'set_status',
+				arguments: {
+					file: '../../etc/passwd',
+					entity: 'Display / Badge',
+					component: 'Badge',
+					status: 'ready',
+				},
+			}),
+		);
+		expect(error?.message).toContain('not a .sdoc this project documents');
+	});
+
+	it('refuses a status outside the vocabulary, and an entity that is not there', async () => {
+		const dir = project();
+		const bad = await inDir(dir, () =>
+			rpc('tools/call', {
+				name: 'set_status',
+				arguments: {
+					file: 'Badge.sdoc',
+					entity: 'Display / Badge',
+					component: 'Badge',
+					status: 'stable',
+				},
+			}),
+		);
+		expect(bad.error?.message).toContain('status must be one of');
+		const missing = await inDir(dir, () =>
+			rpc('tools/call', {
+				name: 'set_notes',
+				arguments: { file: 'Badge.sdoc', entity: 'Nope', notes: [] },
+			}),
+		);
+		expect(missing.error?.message).toContain('No entity called "Nope"');
 	});
 });

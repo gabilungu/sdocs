@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.75] - 2026-08-21
+
+### Fixed
+
+- **"Create Component Documentation" no longer breaks a sectioned site.** It
+  wrote a title with no `@section/` prefix, which on a project that declares
+  sections belongs to no section — a site-structure error, and those render
+  full-page over the whole Explorer. The command whose job is getting someone
+  started replaced their docs with an error screen. It now takes the prefix
+  its neighbours use, and writes none where they carry none, which is right
+  for the default no-sections project.
+- **The scaffold writes `[COMPONENT]`, not `[component]`.** Lowercase is still
+  accepted, but the canonical spelling has been uppercase since 0.0.139 and
+  the tool that writes people's first `.sdoc` should write the current form.
+
 ## [0.0.74] - 2026-08-21
 
 ### Fixed

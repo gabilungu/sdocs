@@ -1,6 +1,6 @@
 {
 	"name": "sdocs",
-	"version": "0.0.141",
+	"version": "0.0.142",
 	"description": "A lightweight documentation tool for Svelte 5 components",
 	"type": "module",
 	"license": "MIT",
@@ -39,7 +39,8 @@
 		"dist",
 		"bin",
 		"llms.txt",
-		"CHANGELOG.md"
+		"CHANGELOG.md",
+		"NOTICE.md"
 	],
 	"peerDependencies": {
 		"@sveltejs/vite-plugin-svelte": "*",

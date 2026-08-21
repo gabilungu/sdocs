@@ -6,8 +6,8 @@
 
 	[TODO]
 		- [x] Theme every dimension through a custom property
-		- [ ] Indeterminate state
-			- [ ] Decide what the label reads while it runs
+		- [x] Indeterminate state
+			- [x] Decide what the label reads while it runs
 			- [x] Pick the animation
 	[/TODO]
 

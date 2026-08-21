@@ -85,16 +85,24 @@
 		activePreview?.componentName ??
 			((meta.title ?? '').split('/').pop()?.trim() || 'Component'),
 	);
-	/** The glyph and the words behind each status. The icons read as the stage
-	 * they name — an empty circle for a draft, a filled one once it is ready —
-	 * so the strip is scannable before anything is hovered. */
+	/** The glyph and the words behind each status.
+	 *
+	 * One shape throughout, filling as the component matures: an empty circle
+	 * for a draft, half-filled while it is built, a dot under review, a notch
+	 * while it is experimental, a tick when it is ready, a cross once it is on
+	 * the way out. A strip of tabs then reads as a scale rather than as six
+	 * unrelated pictures, and every one is a square viewBox so they hold the
+	 * same optical size beside each other. */
 	const STATUS: Record<ComponentStatus, { icon: string; label: string }> = {
-		draft: { icon: 'circle-dashed', label: 'Draft — sketched, not real yet' },
-		wip: { icon: 'circle-dot', label: 'Work in progress — being built' },
-		review: { icon: 'eye', label: 'In review — built, awaiting sign-off' },
-		experimental: { icon: 'flask', label: 'Experimental — usable, but the API may change' },
-		ready: { icon: 'circle-check', label: 'Ready — done, use it' },
-		deprecated: { icon: 'triangle-alert', label: 'Deprecated — on the way out' },
+		draft: { icon: 'fa-circle', label: 'Draft — sketched, not real yet' },
+		wip: { icon: 'fa-circle-half-stroke', label: 'Work in progress — being built' },
+		review: { icon: 'fa-circle-dot', label: 'In review — built, awaiting sign-off' },
+		experimental: {
+			icon: 'fa-circle-notch',
+			label: 'Experimental — usable, but the API may change',
+		},
+		ready: { icon: 'fa-circle-check', label: 'Ready — done, use it' },
+		deprecated: { icon: 'fa-circle-xmark', label: 'Deprecated — on the way out' },
 	};
 
 	const exampleSnippets = $derived(doc.examples ?? []);

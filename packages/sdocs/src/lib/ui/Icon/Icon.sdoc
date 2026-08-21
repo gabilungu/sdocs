@@ -2,7 +2,7 @@
 	import Icon from './Icon.svelte';
 </script>
 
-[SHOWCASE title="Icon" description="Displays an SVG icon by name. Supports sizing and color via CSS custom properties."]
+[SHOWCASE title="Icon" description="Displays an SVG icon by name. Interface icons are Lucide strokes; the `fa-` prefixed ones are Font Awesome Free fills, used for the two semantic sets — `[COMPONENT]` status and `[NOTES]` types."]
 
 	[COMPONENT component={Icon} args={{ name: 'chevron-right' }}]
 		<Icon name="chevron-right" --w="24px" --h="24px" --fill="currentColor" />
@@ -16,6 +16,28 @@
 			<Icon name="chevron-right" />
 			<Icon name="folder" />
 			<Icon name="folder-open" />
+		</div>
+	[/EXAMPLE]
+
+	[EXAMPLE title="StatusScale" description="The `[COMPONENT]` status glyphs — one shape filling as a component matures, so a strip of tabs reads as a scale."]
+		<div style="display: flex; gap: 12px; align-items: center;">
+			<Icon name="fa-circle" --w="14px" --h="14px" />
+			<Icon name="fa-circle-half-stroke" --w="14px" --h="14px" />
+			<Icon name="fa-circle-dot" --w="14px" --h="14px" />
+			<Icon name="fa-circle-notch" --w="14px" --h="14px" />
+			<Icon name="fa-circle-check" --w="14px" --h="14px" />
+			<Icon name="fa-circle-xmark" --w="14px" --h="14px" />
+		</div>
+	[/EXAMPLE]
+
+	[EXAMPLE title="NoteTypes" description="The `[NOTES]` glyphs, worst first: bug, a11y, warning, perf, tip, info."]
+		<div style="display: flex; gap: 12px; align-items: center;">
+			<Icon name="fa-bug" --w="16px" --h="16px" />
+			<Icon name="fa-universal-access" --w="16px" --h="16px" />
+			<Icon name="fa-triangle-exclamation" --w="16px" --h="16px" />
+			<Icon name="fa-gauge-high" --w="16px" --h="16px" />
+			<Icon name="fa-lightbulb" --w="16px" --h="16px" />
+			<Icon name="fa-circle-info" --w="16px" --h="16px" />
 		</div>
 	[/EXAMPLE]
 

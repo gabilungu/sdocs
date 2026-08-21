@@ -18,15 +18,15 @@
 	/** The glyph per type. An untyped note still gets the information mark: it
 	 * is a remark, which is what that glyph means, only quieter. */
 	const ICONS: Record<NoteType, string> = {
-		bug: 'bug',
-		a11y: 'accessibility',
-		warning: 'triangle-alert',
-		perf: 'zap',
-		tip: 'lightbulb',
-		info: 'info',
+		bug: 'fa-bug',
+		a11y: 'fa-universal-access',
+		warning: 'fa-triangle-exclamation',
+		perf: 'fa-gauge-high',
+		tip: 'fa-lightbulb',
+		info: 'fa-circle-info',
 	};
 
-	const icon = $derived(type ? ICONS[type] : 'info');
+	const icon = $derived(type ? ICONS[type] : 'fa-circle-info');
 	/** The two defects get the assertive role; a caveat or a fact does not
 	 * interrupt someone using a screen reader. */
 	const assertive = $derived(type === 'bug' || type === 'a11y');

@@ -1,12 +1,24 @@
 <script lang="ts">
-	import accessibilitySvg from './icons/accessibility.svg?raw';
+	// Font Awesome Free (CC BY 4.0) — the two semantic sets, [COMPONENT] status
+	// and [NOTES] types. Filled, where the chrome icons below are Lucide
+	// strokes: a status glyph is content, and reads better solid at 13px.
+	import faCircleSvg from './icons/fa/circle.svg?raw';
+	import faCircleHalfStrokeSvg from './icons/fa/circle-half-stroke.svg?raw';
+	import faCircleDotSvg from './icons/fa/circle-dot.svg?raw';
+	import faCircleNotchSvg from './icons/fa/circle-notch.svg?raw';
+	import faCircleCheckSvg from './icons/fa/circle-check.svg?raw';
+	import faCircleXmarkSvg from './icons/fa/circle-xmark.svg?raw';
+	import faBugSvg from './icons/fa/bug.svg?raw';
+	import faUniversalAccessSvg from './icons/fa/universal-access.svg?raw';
+	import faTriangleExclamationSvg from './icons/fa/triangle-exclamation.svg?raw';
+	import faGaugeHighSvg from './icons/fa/gauge-high.svg?raw';
+	import faLightbulbSvg from './icons/fa/lightbulb.svg?raw';
+	import faCircleInfoSvg from './icons/fa/circle-info.svg?raw';
+
 	import bookmarkSvg from './icons/bookmark.svg?raw';
-	import bugSvg from './icons/bug.svg?raw';
 	import chevronDownSvg from './icons/chevron-down.svg?raw';
 	import circleAlertSvg from './icons/circle-alert.svg?raw';
 	import circleCheckSvg from './icons/circle-check.svg?raw';
-	import circleDashedSvg from './icons/circle-dashed.svg?raw';
-	import circleDotSvg from './icons/circle-dot.svg?raw';
 	import chevronLeftSvg from './icons/chevron-left.svg?raw';
 	import chevronRightSvg from './icons/chevron-right.svg?raw';
 	import chevronUpSvg from './icons/chevron-up.svg?raw';
@@ -16,11 +28,8 @@
 	import databaseSvg from './icons/database.svg?raw';
 	import diamondSvg from './icons/diamond.svg?raw';
 	import externalLinkSvg from './icons/external-link.svg?raw';
-	import eyeSvg from './icons/eye.svg?raw';
-	import flaskSvg from './icons/flask.svg?raw';
 	import fileCodeSvg from './icons/file-code.svg?raw';
 	import infoSvg from './icons/info.svg?raw';
-	import lightbulbSvg from './icons/lightbulb.svg?raw';
 	import fileTextSvg from './icons/file-text.svg?raw';
 	import folderOpenSvg from './icons/folder-open.svg?raw';
 	import folderSvg from './icons/folder.svg?raw';
@@ -36,14 +45,22 @@
 	import zapSvg from './icons/zap.svg?raw';
 
 	const icons: Record<string, string> = {
-		'accessibility': accessibilitySvg,
+		'fa-circle': faCircleSvg,
+		'fa-circle-half-stroke': faCircleHalfStrokeSvg,
+		'fa-circle-dot': faCircleDotSvg,
+		'fa-circle-notch': faCircleNotchSvg,
+		'fa-circle-check': faCircleCheckSvg,
+		'fa-circle-xmark': faCircleXmarkSvg,
+		'fa-bug': faBugSvg,
+		'fa-universal-access': faUniversalAccessSvg,
+		'fa-triangle-exclamation': faTriangleExclamationSvg,
+		'fa-gauge-high': faGaugeHighSvg,
+		'fa-lightbulb': faLightbulbSvg,
+		'fa-circle-info': faCircleInfoSvg,
 		'bookmark': bookmarkSvg,
-		'bug': bugSvg,
 		'chevron-down': chevronDownSvg,
 		'circle-alert': circleAlertSvg,
 		'circle-check': circleCheckSvg,
-		'circle-dashed': circleDashedSvg,
-		'circle-dot': circleDotSvg,
 		'chevron-left': chevronLeftSvg,
 		'chevron-right': chevronRightSvg,
 		'chevron-up': chevronUpSvg,
@@ -53,11 +70,8 @@
 		'database': databaseSvg,
 		'diamond': diamondSvg,
 		'external-link': externalLinkSvg,
-		'eye': eyeSvg,
-		'flask': flaskSvg,
 		'file-code': fileCodeSvg,
 		'info': infoSvg,
-		'lightbulb': lightbulbSvg,
 		'file-text': fileTextSvg,
 		'folder-open': folderOpenSvg,
 		'folder': folderSvg,

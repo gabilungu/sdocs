@@ -12,6 +12,38 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.142] - 2026-08-21
+
+### Changed
+
+- **The two semantic icon sets are Font Awesome Free** (CC BY 4.0) — the
+  `[COMPONENT]` `status` glyphs and the `[NOTES]` type glyphs. The interface
+  icons stay Lucide, and the split is the point: chrome is stroked, a content
+  marker is filled, and a fill reads far better than a 2px stroke at 13px.
+
+  The status glyphs are now one shape filling as a component matures — an empty
+  circle for `draft`, half-filled for `wip`, a dot for `review`, a notch for
+  `experimental`, a tick for `ready`, a cross for `deprecated`. A tab strip
+  reads as a scale rather than as six unrelated pictures, and every one is a
+  square viewBox so they hold the same optical size beside each other.
+
+  Font Awesome icons are registered under an `fa-` prefix, live in their own
+  folder, and keep the attribution comment they were distributed with — which
+  travels into the bundle with the icon. Only free-tier icons are included:
+  Font Awesome Pro's licence does not permit redistribution, so no Pro icon is
+  in this package and none may be added.
+
+- **`NOTICE.md` ships with the package**, crediting Lucide (ISC) and Font
+  Awesome Free (CC BY 4.0). The Lucide icons had never been credited.
+
+### Fixed
+
+- **Icon names are checked.** A name that is not in the registry renders an
+  empty span — no error, no failed build, just a glyph that is not there — and
+  the names live in string maps that typescript cannot check. A test now
+  resolves every name the views ask for, and fails on any icon file that
+  nothing registers.
+
 ## [0.0.141] - 2026-08-21
 
 ### Fixed

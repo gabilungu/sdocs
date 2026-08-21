@@ -173,6 +173,33 @@
 		['get_component_api', 'a component’s full extracted API'],
 	];
 
+	/** The kebab: About, and MCP when the config leaves it on. Closing on an
+	 * outside pointerdown rather than a click, so the menu is gone before
+	 * whatever was clicked reacts. */
+	let menuOpen = $state(false);
+	let menuEl: HTMLElement | undefined = $state();
+	let menuButton: HTMLElement | undefined = $state();
+
+	$effect(() => {
+		if (!menuOpen) return;
+		const close = (e: Event) => {
+			const target = e.target as Node;
+			if (menuEl?.contains(target) || menuButton?.contains(target)) return;
+			menuOpen = false;
+		};
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key !== 'Escape') return;
+			menuOpen = false;
+			menuButton?.focus();
+		};
+		document.addEventListener('pointerdown', close, true);
+		document.addEventListener('keydown', onKey);
+		return () => {
+			document.removeEventListener('pointerdown', close, true);
+			document.removeEventListener('keydown', onKey);
+		};
+	});
+
 	function openMcp() {
 		mcpUrl = `${location.origin}/mcp`;
 		copied = '';
@@ -331,11 +358,9 @@
 				{/if}
 			</div>
 		{/if}
-		{#if mcp}
-			<button class="sdocs-topbar-btn sdocs-mcp-btn" onclick={openMcp} title="MCP server">
-				MCP
-			</button>
-		{/if}
+		<!-- Theme and fullscreen stay as buttons: they get used. About and MCP
+		     are read-once actions, and the two slots they were spending are
+		     what crowds the section tabs into their compact mode. -->
 		<button class="sdocs-topbar-btn" onclick={() => onThemeChange?.(theme === 'light' ? 'dark' : 'light')} title="{themeLabels[theme]} theme">
 			{themeIcons[theme]}
 		</button>
@@ -346,16 +371,48 @@
 		>
 			&#x26F6;
 		</button>
-		<!-- A real link: middle-click and open-in-new-tab work, and history
-		     mode routes it client-side like any other internal anchor. -->
-		<a
-			class="sdocs-topbar-btn sdocs-about-btn"
-			href={routeHref(['about'])}
-			title="About"
-			onclick={() => onCloseNav?.()}
-		>
-			&#9432;
-		</a>
+		<div class="sdocs-menu-wrap">
+			<button
+				bind:this={menuButton}
+				class="sdocs-topbar-btn sdocs-menu-btn"
+				aria-haspopup="menu"
+				aria-expanded={menuOpen}
+				title="More"
+				onclick={() => (menuOpen = !menuOpen)}
+			>
+				&#8942;
+			</button>
+			{#if menuOpen}
+				<div class="sdocs-menu" role="menu" bind:this={menuEl}>
+					<!-- A real link: middle-click and open-in-new-tab work, and
+					     history mode routes it client-side like any other
+					     internal anchor. -->
+					<a
+						class="sdocs-menu-item"
+						role="menuitem"
+						href={routeHref(['about'])}
+						onclick={() => {
+							menuOpen = false;
+							onCloseNav?.();
+						}}
+					>
+						About sdocs
+					</a>
+					{#if mcp}
+						<button
+							class="sdocs-menu-item"
+							role="menuitem"
+							onclick={() => {
+								menuOpen = false;
+								openMcp();
+							}}
+						>
+							MCP server
+						</button>
+					{/if}
+				</div>
+			{/if}
+		</div>
 	</div>
 </header>
 
@@ -663,14 +720,51 @@
 	.sdocs-topbar-btn:hover {
 		background: var(--color-base-100);
 	}
-	/* The About link wears the button's chrome. */
-	.sdocs-about-btn {
-		text-decoration: none;
+	/* ── Kebab menu ── */
+	.sdocs-menu-wrap {
+		position: relative;
+		display: flex;
 	}
-	.sdocs-mcp-btn {
-		font-size: 11px;
-		font-weight: 600;
-		letter-spacing: 0.04em;
+
+	.sdocs-menu-btn {
+		/* The glyph is a thin column of dots; without extra tracking it reads
+		   as a speck rather than a control. */
+		font-size: 17px;
+		line-height: 1;
+	}
+
+	.sdocs-menu {
+		position: absolute;
+		top: calc(100% + 6px);
+		right: 0;
+		z-index: 30;
+		display: flex;
+		flex-direction: column;
+		min-width: 150px;
+		padding: 4px;
+		border: 1px solid var(--color-base-200);
+		border-radius: 8px;
+		background: var(--color-base-0);
+		box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
+	}
+
+	.sdocs-menu-item {
+		display: block;
+		width: 100%;
+		padding: 7px 10px;
+		border: none;
+		border-radius: 5px;
+		background: none;
+		font: inherit;
+		font-size: 13px;
+		color: var(--color-base-800);
+		text-align: left;
+		text-decoration: none;
+		cursor: pointer;
+	}
+
+	.sdocs-menu-item:hover {
+		background: var(--color-base-100);
 	}
 
 	@media (max-width: 860px) {
@@ -707,9 +801,10 @@
 			border-color: transparent;
 			font-size: 16px;
 		}
-		.sdocs-mcp-btn {
-			font-size: 11px;
-			border-color: var(--color-base-200);
+		.sdocs-menu-item {
+			/* Menu rows are thumb targets on a phone, like the bar's buttons. */
+			padding: 11px 12px;
+			font-size: 14px;
 		}
 		/* Fullscreen hides chrome to free the stage — on a phone there is no
 		   chrome worth the trade, and its exit is a hover-only hot corner.

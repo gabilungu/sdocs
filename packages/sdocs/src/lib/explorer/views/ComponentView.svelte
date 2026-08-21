@@ -914,6 +914,16 @@
 		gap: 4px;
 		margin-bottom: 12px;
 		border-bottom: 1px solid var(--color-base-200);
+		/* Enough tabs — or long enough labels — and the strip ran out of the
+		   layout instead of staying inside it. It scrolls like the top bar's
+		   section tabs; unlike those, there is no compact mode to fall back
+		   to, so scrolling is the whole fix. */
+		overflow-x: auto;
+		/* Without this a flex item refuses to shrink below its content. */
+		min-width: 0;
+	}
+	.sdocs-preview-tab {
+		flex: none;
 	}
 	.sdocs-preview-tab {
 		padding: 7px 14px;

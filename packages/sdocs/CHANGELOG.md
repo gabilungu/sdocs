@@ -122,6 +122,16 @@ a breaking change written under any other heading is one an agent will miss.
 
 ### Changed
 
+- **About and MCP moved into a kebab menu** in the top bar. Both are read-once
+  actions, so a menu is the right home; theme and fullscreen stay as buttons
+  because they get used. The bar gets two slots back — and the bar is what
+  crowds the section tabs into their compact mode.
+
+- **The component tab strip scrolls.** Enough tabs, or long enough labels, and
+  it ran out of the layout instead of staying inside it. Unlike the top bar's
+  section tabs there is no compact mode to fall back to, so scrolling is the
+  whole fix.
+
 - **The text blocks are matched uppercase and alone on their line.** They carry
   no attributes, so nothing else can follow the tag. This is not a style rule:
   `[notes](/language/overview)` at the start of a line is an ordinary markdown

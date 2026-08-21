@@ -12,6 +12,29 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.153] - 2026-08-21
+
+### Fixed
+
+- **The debounced syntax-highlight timer leaked past navigation.** The effect
+  that highlights a component's usage code scheduled a 150ms `setTimeout` and
+  returned no teardown, so leaving a page inside that window left the timer to
+  run against a destroyed component: a full Shiki tokenization for a page you
+  had already left, and a state write on a dead instance. Its
+  `code === usageCode` staleness check re-executed the derived chain with a
+  destroyed parent effect, which is what produced the `derived_inert` warnings
+  on fast navigation — the 150ms debounce being the threshold.
+
+  The effect now cancels both halves: the pending timer, and the in-flight
+  `await` (Shiki can resolve after the timer has already fired). A `cancelled`
+  flag replaces the comparison that was itself the offending read, and drops
+  results that arrive after destroy, which the comparison never did.
+
+  0.0.152 listed this as unresolved. It was found by a runtime causal test —
+  dropping only 150ms timers took the warning count to zero while dropping
+  1500ms ones left it unchanged — rather than by reading the stack, which had
+  pointed at the symptom rather than the cause.
+
 ## [0.0.152] - 2026-08-21
 
 ### Fixed
@@ -41,13 +64,6 @@ a breaking change written under any other heading is one an agent will miss.
   README and the authoring guide. The package declared no Node floor at all
   while relying on module-syntax detection and, for `.ts` configs, native type
   stripping. Node 22 is what CI verifies.
-
-### Known
-
-- Navigating between routes faster than ~200ms apart logs `derived_inert`
-  warnings from the component view's example stages. Dev-only, and no stale
-  value has been observed on screen. Four attempts at the read did not silence
-  it; the code carries a comment with what was ruled out.
 
 ## [0.0.151] - 2026-08-21
 

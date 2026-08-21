@@ -9,6 +9,7 @@
 	import PageView from './views/PageView.svelte';
 	import LayoutView from './views/LayoutView.svelte';
 	import AboutPage from './views/AboutPage.svelte';
+	import NotFoundPage from './views/NotFoundPage.svelte';
 	import ChangelogPage from './views/ChangelogPage.svelte';
 	import ErrorScreen from './views/ErrorScreen.svelte';
 	import { onMount, setContext, type Component } from 'svelte';
@@ -297,6 +298,14 @@
 	const resolved = $derived(
 		isAboutRoute || isChangelogRoute ? null : resolveRoute(sectionMap, currentRoute),
 	);
+	// An address that names something and resolves to nothing. The root is not
+	// this — it falls through to the home entity or About by design — and
+	// neither are /about and /changelog, which resolve to no entity on purpose.
+	// Without the distinction a typo'd or renamed route rendered the About
+	// page, so a dead link looked like a working one.
+	const isNotFound = $derived(
+		currentRoute.length > 0 && !isAboutRoute && !isChangelogRoute && !resolved,
+	);
 	// The tab the current route sits in. With declared sections that's the
 	// route's first segment; the implicit lone `docs` section is active on any
 	// doc route. Home/About highlight no tab.
@@ -326,6 +335,10 @@
 		let page: string | null = null;
 		if (isAboutRoute) {
 			page = 'About';
+		} else if (isChangelogRoute) {
+			page = 'Changelog';
+		} else if (isNotFound) {
+			page = 'Not found';
 		} else if (resolved && currentRoute.length > 0) {
 			const name = displayTitle(resolved.doc.meta.title);
 			page = resolved.snippetName ? `${name} / ${resolved.snippetName}` : name;
@@ -454,12 +467,12 @@
 						{dev}
 					/>
 				{/if}
+			{:else if isChangelogRoute}
+				<ChangelogPage {sdocsVersion} load={loadChangelog} />
+			{:else if isNotFound}
+				<NotFoundPage route={currentRoute} sections={sectionMap.sections} />
 			{:else}
-				{#if isChangelogRoute}
-					<ChangelogPage {sdocsVersion} load={loadChangelog} />
-				{:else}
-					<AboutPage {docs} title={headerTitle} logo={headerLogo} {sdocsVersion} />
-				{/if}
+				<AboutPage {docs} title={headerTitle} logo={headerLogo} {sdocsVersion} />
 			{/if}
 		</main>
 	</div>

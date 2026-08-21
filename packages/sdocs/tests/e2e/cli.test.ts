@@ -11,7 +11,7 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { execFileSync, spawn, type ChildProcess } from 'node:child_process';
+import { execFileSync, spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -494,5 +494,54 @@ describe('sdocs build in the standalone test app', () => {
 			dangling.map((t) => Buffer.from(t, 'base64url').toString('utf8')),
 			'every preview a built page points at was emitted',
 		).toEqual([]);
+	});
+});
+
+/**
+ * Options used to be read only where a command happened to look for them:
+ * `--base` on build and nothing else. Everything else — `--port`, and every
+ * typo — was accepted in silence, so `sdocs build --bse /repo/` built every
+ * asset URL at the wrong prefix and reported success.
+ */
+describe('option handling', () => {
+	/** Runs the bin and returns its exit code and combined output. */
+	const run = (args: string[]) => {
+		const res = spawnSync(process.execPath, [BIN, ...args], {
+			cwd: REPO,
+			encoding: 'utf-8',
+			timeout: 60_000,
+		});
+		return { code: res.status, out: `${res.stdout ?? ''}${res.stderr ?? ''}` };
+	};
+
+	it('rejects a misspelled option and names what the command accepts', () => {
+		const { code, out } = run(['build', '--bse', '/repo/']);
+		expect(code).toBe(1);
+		expect(out).toContain('--bse');
+		expect(out).toContain('--base');
+	});
+
+	it('rejects an option on a command that takes none', () => {
+		const { code, out } = run(['check', '--port', '3000']);
+		expect(code).toBe(1);
+		expect(out).toContain('takes no options');
+	});
+
+	it('rejects a --port that is not a port', () => {
+		const { code, out } = run(['dev', '--port', 'abc']);
+		expect(code).toBe(1);
+		expect(out).toContain('--port');
+	});
+
+	it('does not read a valid option value as an option', () => {
+		// `--base /repo/` must not trip the unknown-option check on "/repo/",
+		// and must not be confused by the `=` form either.
+		expect(run(['build', '--base=/repo/', '--out-dir']).out).not.toContain('Unknown option');
+	});
+
+	it('lists the new options in --help', () => {
+		const { out } = run(['--help']);
+		expect(out).toContain('--port');
+		expect(out).toContain('--out-dir');
 	});
 });

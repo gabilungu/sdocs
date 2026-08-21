@@ -25,7 +25,14 @@ function builtBase(distDir: string, fallback: string): string {
 	}
 }
 
-export async function previewCommand(): Promise<void> {
+export interface PreviewOptions {
+	/** `--port`, overriding the config's. */
+	port?: number;
+	/** `--open` / `--no-open`, overriding the config's. */
+	open?: boolean;
+}
+
+export async function previewCommand(opts?: PreviewOptions): Promise<void> {
 	const cwd = process.cwd();
 	const { preview } = await loadVite(cwd);
 	const config = await loadConfig(cwd);
@@ -50,8 +57,9 @@ export async function previewCommand(): Promise<void> {
 			outDir: distDir,
 		},
 		preview: {
-			port: config.port,
-			open: config.open,
+			port: opts?.port ?? config.port,
+			strictPort: opts?.port !== undefined,
+			open: opts?.open ?? config.open,
 		},
 	});
 

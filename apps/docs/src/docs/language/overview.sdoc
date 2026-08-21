@@ -154,7 +154,7 @@
 
 	A note is an **observation** — what should someone know about this thing.
 	Where a component sits in its life is
-	[`status`](/language/component-docs#status--where-a-component-is-in-its-life)
+	[`status`](/language/component-docs#status-where-a-component-is-in-its-life)
 	on the `[COMPONENT]`, which is a property of it rather than a remark about
 	it. The two were one vocabulary until 0.0.140, and splitting them is what
 	lets a note say "being replaced by ActionButton" while the component itself

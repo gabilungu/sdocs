@@ -12,6 +12,29 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.156] - 2026-08-21
+
+### Added
+
+- **A not-found page.** An address that resolves to nothing used to render the
+  About screen, so a typo'd or renamed route looked like a working page that
+  went somewhere odd. It now says what it could not resolve and links back
+  into each section. Static builds already answered these with a real 404
+  status; only what the reader saw was wrong.
+- **CLI options that are read, and rejected when they aren't.** `--port` and
+  `--open` / `--no-open` on `dev`, `run` and `preview`; `--out-dir` on
+  `build`. Everything the CLI does not understand is now an error naming the
+  offending option and what that command accepts — previously only `--base`
+  was read at all, so `sdocs build --bse "/repo/"` built every asset URL at
+  the wrong prefix and reported success. A `--port` you asked for is taken
+  literally: if it is occupied the server says so and stops, rather than
+  serving on an address you are not watching.
+
+### Fixed
+
+- **A port already in use prints a sentence, not a listen stack.**
+- **The changelog page sets a tab title** instead of leaving the site's own.
+
 ## [0.0.155] - 2026-08-21
 
 ### Added

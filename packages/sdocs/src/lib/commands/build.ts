@@ -15,18 +15,22 @@ import { loadSveltePlugin, loadVite, svelteDedupe } from '../server/svelte-toolc
 
 type RenderRoute = (segments: string[]) => { head: string; body: string };
 
-export async function buildCommand(opts?: { base?: string }): Promise<void> {
+export async function buildCommand(opts?: { base?: string; outDir?: string }): Promise<void> {
 	const cwd = process.cwd();
 	// Same rule as dev: the project's toolchain compiles and runs (svelte-toolchain.ts).
 	const svelte = await loadSveltePlugin(cwd);
 	const { build } = await loadVite(cwd);
 	const config = await loadConfig(cwd);
 
+	// Both overrides land on the config before anything reads it, so every
+	// later use — the guard, the prerenderer, the closing log — follows.
+	if (opts?.outDir !== undefined) config.outDir = opts.outDir;
+	// A --base flag overrides the config (lets CI derive it from the repo name).
+	if (opts?.base !== undefined) config.base = normalizeBase(opts.base);
+
 	// Before any work: refuse an output directory that is not ours to empty.
 	const outDir = resolve(cwd, config.outDir);
 	assertSafeToEmpty(outDir, config.outDir);
-	// A --base flag overrides the config (lets CI derive it from the repo name).
-	if (opts?.base !== undefined) config.base = normalizeBase(opts.base);
 
 	console.log('[sdocs] Building static site...');
 	if (config.base !== '/') console.log(`[sdocs] Base path: ${config.base}`);

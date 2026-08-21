@@ -32,6 +32,7 @@
 	  home?: string;
 	  routing?: 'history' | 'hash';
 	  base?: string;
+	  outDir?: string;
 	  mcp?: boolean;
 	  components?: string | string[];
 	  axes?: { id: string; label?: string; values: string[] }[];
@@ -264,7 +265,39 @@
 	```
 
 	`sdocs build` also writes a `404.html` (a copy of the shell), so an unknown
-	deep link on a static host still boots the app instead of a bare 404.
+	deep link on a static host answers with a real 404 status and still boots
+	the app — which then shows a not-found page naming the address it could not
+	resolve, and links back into each section.
+
+	### `outDir`
+
+	Where `sdocs build` writes the finished site.
+
+	- **Type:** `string`
+	- **Default:** `'dist'`
+
+	Relative to the project root. The build **empties this directory first**,
+	which is why it is worth setting: a component library documenting itself
+	already uses `dist/` for its own published bundle. Rather than delete it,
+	the build stops and names the files it found:
+
+	```bash
+	$ npx sdocs build
+	[sdocs] dist/ already has files in it, and they were not put there by sdocs.
+	  Building would delete them. Point sdocs somewhere of its own:
+
+	    // sdocs.config.js
+	    export default { outDir: 'docs-dist' };
+
+	  Or empty dist/ yourself if its contents are disposable.
+	```
+
+	Directories a previous `sdocs build` wrote are marked, and rebuild without
+	a word. `--out-dir <dir>` overrides this from the CLI.
+
+	```js
+	outDir: 'docs-dist'
+	```
 
 	### `mcp`
 

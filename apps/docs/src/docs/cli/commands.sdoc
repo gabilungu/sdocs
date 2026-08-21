@@ -20,15 +20,31 @@
 
 	## Flags
 
-	| Flag | Description |
-	|---|---|
-	| `--version`, `-v` | Print the package version |
-	| `--help`, `-h` | Print the help message |
+	| Flag | Commands | Description |
+	|---|---|---|
+	| `--version`, `-v` | any | Print the package version |
+	| `--help`, `-h` | any | Print the help message |
+	| `--port <n>` | `dev`, `run`, `preview` | Serve on this port instead of the configured one |
+	| `--open` / `--no-open` | `dev`, `run`, `preview` | Open a browser on start, or don't |
+	| `--base <path>` | `build` | Public base path (see [`base`](/explorer/configuration#base)) |
+	| `--out-dir <dir>` | `build` | Where to write (see [`outDir`](/explorer/configuration#outdir)) |
 
 	`--help` and `--version` work anywhere in the arguments and never run the
 	command: `sdocs build --help` prints this help and writes nothing.
-	Other per-command flags are not currently accepted — configure via the
-	config file.
+
+	Every other flag is an error. A command that reads no options rejects all
+	of them, and one that does names what it accepts:
+
+	```bash
+	$ npx sdocs build --bse "/my-repo/"
+	[sdocs] Unknown option for `sdocs build`: --bse
+	[sdocs] It accepts --base, --out-dir.
+	```
+
+	A `--port` you asked for is taken literally — if it is occupied the server
+	says so and stops, rather than quietly serving somewhere you aren't
+	looking. Without the flag, the configured port still falls forward to the
+	next free one unless `port` is set in the config.
 
 	## `sdocs init`
 

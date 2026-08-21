@@ -1,13 +1,15 @@
 /**
- * Internal links on the docs site have to point at routes that exist.
+ * Internal links on the docs site have to point at routes and anchors that
+ * exist.
  *
- * A dead one does not 404 — the Explorer resolves an unknown route to the
- * About screen with HTTP 200 — so a broken link looks like a working link that
- * goes somewhere odd. Three of them (`/cli`, `/extension`, twice) sat on the
- * Explorer overview page until an audit went looking.
+ * Three dead routes (`/cli`, `/extension`, twice) sat on the Explorer overview
+ * page until an audit went looking, and a `#outdir` anchor pointed at a
+ * section that had never been written. Neither breaks loudly: the route lands
+ * on the not-found page, and a dead anchor just quietly doesn't scroll.
  *
- * Routes come from the section builder, the same code the site itself routes
- * with, so this cannot drift from what is actually served.
+ * Both sides come from the code the site itself uses — the section builder for
+ * routes, the markdown renderer's own TOC for anchors — so this cannot drift
+ * from what is actually served.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -15,6 +17,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseSdoc } from '../../src/lib/language/parser.js';
 import { buildSections } from '../../src/lib/explorer/tree-builder.js';
+import { renderPageMarkdown } from '../../src/lib/server/page-markdown.js';
 import type { DocEntry } from '../../src/lib/types.js';
 
 const DOCS = resolve(__dirname, '../../../../apps/docs/src');
@@ -73,6 +76,22 @@ describe('the docs site links to routes that exist', () => {
 		// Every route the site serves, plus the two pages sdocs always adds.
 		const routes = new Set(['/', '/about', '/changelog', ...[...map.routes.keys()].map((k) => `/${k}`)]);
 
+		// Anchors a route actually offers, keyed by route. Only [DOC] bodies
+		// generate headings, and their ids come from the renderer's own TOC.
+		const anchors = new Map<string, Set<string>>();
+		for (const file of files) {
+			for (const entity of parseSdoc(readFileSync(file, 'utf-8')).entities) {
+				if (entity.kind !== 'DOC') continue;
+				const target = [...map.routes.entries()].find(
+					([, t]) => t.doc.entitySlug === entity.slug,
+				);
+				if (!target) continue;
+				const body = 'body' in entity ? String(entity.body ?? '') : '';
+				const { toc } = await renderPageMarkdown(body);
+				anchors.set(`/${target[0]}`, new Set(toc.map((h) => h.id)));
+			}
+		}
+
 		const dead: string[] = [];
 		for (const file of files) {
 			const source = readFileSync(file, 'utf-8');
@@ -80,8 +99,16 @@ describe('the docs site links to routes that exist', () => {
 				const href = m[1];
 				if (ILLUSTRATIVE.test(href)) continue;
 				const route = href.replace(/\/$/, '') || '/';
+				const where = `${file.slice(DOCS.length + 1)} → ${href}${m[2] ?? ''}`;
 				if (!routes.has(route)) {
-					dead.push(`${file.slice(DOCS.length + 1)} → ${href}`);
+					dead.push(where);
+					continue;
+				}
+				const fragment = m[2]?.slice(1);
+				// A route with no headings of its own (a [PAGE], a showcase)
+				// has nothing to anchor into, so only check where we know.
+				if (fragment && anchors.has(route) && !anchors.get(route)!.has(fragment)) {
+					dead.push(where);
 				}
 			}
 		}

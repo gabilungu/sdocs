@@ -22,9 +22,18 @@ export function sdocsPackageRoot(): string {
 
 export { svelteDedupe } from '../server/svelte-toolchain.js';
 
-export async function devCommand(): Promise<void> {
+export interface DevOptions {
+	/** `--port`, overriding the config's. */
+	port?: number;
+	/** `--open` / `--no-open`, overriding the config's. */
+	open?: boolean;
+}
+
+export async function devCommand(opts?: DevOptions): Promise<void> {
 	const cwd = process.cwd();
 	const config = await loadConfig(cwd);
+	const port = opts?.port ?? config.port;
+	const open = opts?.open ?? config.open;
 
 	console.log('[sdocs] Starting dev server...');
 
@@ -84,13 +93,15 @@ export async function devCommand(): Promise<void> {
 				: []),
 		],
 		server: {
-			port: config.port,
+			port,
 			// A configured port is an instruction. Sliding to the next free one
 			// hides the usual cause — a stale sdocs for this same project still
 			// holding it — behind a server that answers every request with the
 			// old config, so edits look ignored and nothing reports an error.
-			strictPort: config.portDeclared,
-			open: config.open,
+			// A port asked for on the command line is not a suggestion — silently
+			// serving on another one leaves the caller watching a dead address.
+			strictPort: opts?.port !== undefined || config.portDeclared,
+			open,
 			fs: {
 				// The staging dir (an explicit allow list replaces Vite's implicit
 				// root allowance), the project, and sdocs' own dependency tree

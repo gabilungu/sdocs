@@ -7,9 +7,11 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { createHighlighter, createHighlighterCore } from 'shiki';
+import { NOTE_TYPES } from '../../src/lib/note-order.js';
+import { scanSdoc } from '../../src/lib/language/scanner.js';
 import { createJavaScriptRegexEngine } from 'shiki/engine/javascript';
 import js from '@shikijs/langs/javascript';
 import ts from '@shikijs/langs/typescript';
@@ -684,5 +686,85 @@ describe('markdown fences shield entity closers in DOC bodies (review regression
 		assertDocJsFence(run(DOC_JS_FENCE), DOC_JS_FENCE);
 		assertDocExampleFence(run(DOC_EXAMPLE_FENCE), DOC_EXAMPLE_FENCE);
 		hl.dispose();
+	});
+});
+
+/**
+ * The grammar spells the note types out in a regex alternation, and the parser
+ * spells them out in an array. They have drifted before: an audit found the
+ * grammar still colouring three words that had been removed and missing five
+ * that had been added, so valid notes rendered as plain text and invalid ones
+ * looked accepted. Nothing else compares the two lists.
+ */
+describe('note types match the parser', () => {
+	it('the grammar accepts exactly the types the parser does', () => {
+		// Every `match` string in the grammar, however deeply nested.
+		const patterns: string[] = [];
+		const walk = (node: unknown) => {
+			if (Array.isArray(node)) return node.forEach(walk);
+			if (node && typeof node === 'object') {
+				for (const [key, value] of Object.entries(node)) {
+					if (key === 'match' && typeof value === 'string') patterns.push(value);
+					else walk(value);
+				}
+			}
+		};
+		walk(grammar);
+		// The note/todo line rule: `- bug: …`, `- [ ] …`, or a bare `- …`.
+		const hit = patterns.map((p) => /\(\?:([a-z0-9|]+)\):\)/.exec(p)).find(Boolean);
+		expect(hit, 'note-type alternation not found in the grammar').toBeTruthy();
+		expect(hit![1].split('|').sort()).toEqual([...NOTE_TYPES].sort());
+	});
+});
+
+/**
+ * A grammar desync is silent and total: once a begin/end region fails to
+ * close, every line after it loses its scopes, and the file just renders as
+ * plain text from that point on. Nothing errors.
+ *
+ * The tell is an entity closer. The scanner knows which `[/DOC]` lines are
+ * real and which are sitting inside a code fence as an example of the syntax —
+ * it walks fences to decide. A real closer that comes out unscoped means the
+ * grammar lost its place somewhere above it.
+ */
+describe('the grammar keeps its place over the whole docs corpus', () => {
+	it('scopes every real entity closer', async () => {
+		const docs = resolve(__dirname, '../../../../apps/docs/src');
+		const files = (function walk(dir: string): string[] {
+			return readdirSync(dir).flatMap((name) => {
+				const path = join(dir, name);
+				if (statSync(path).isDirectory()) return walk(path);
+				return name.endsWith('.sdoc') ? [path] : [];
+			});
+		})(docs);
+		expect(files.length).toBeGreaterThan(20);
+
+		const hl = await createHighlighter({
+			themes: ['github-dark'],
+			langs: [
+				'javascript', 'typescript', 'css', 'svelte', 'markdown', 'html',
+				{ ...grammar, name: 'sdoc', embeddedLangs: ['svelte', 'typescript', 'javascript', 'css', 'markdown'] },
+			],
+		});
+		const unscoped: string[] = [];
+		let checked = 0;
+		for (const file of files) {
+			const source = readFileSync(file, 'utf-8');
+			const lines = source.split('\n');
+			const { tokens } = hl.codeToTokens(source, { lang: 'sdoc', theme: 'github-dark' });
+			for (const entity of scanSdoc(source, file).entities) {
+				// The closer is the last line the entity's span covers.
+				const end = source.slice(0, entity.span.end).split('\n').length - 1;
+				if (!/^\[\/[A-Z]+\]$/.test((lines[end] ?? '').trim())) continue;
+				checked++;
+				const colors = new Set((tokens[end] ?? []).map((t) => t.color));
+				if (colors.size === 1 && colors.has(PLAIN.toUpperCase())) {
+					unscoped.push(`${file.slice(docs.length + 1)}:${end + 1}`);
+				}
+			}
+		}
+		hl.dispose();
+		expect(checked).toBeGreaterThan(20);
+		expect(unscoped).toEqual([]);
 	});
 });

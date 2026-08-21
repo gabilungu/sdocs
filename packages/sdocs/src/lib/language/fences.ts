@@ -21,8 +21,9 @@
  * blockquote. Null when no fence is open. */
 export type FenceState = { marker: string; len: number; inQuote: boolean } | null;
 
-/** Indent, then any number of blockquote markers, then the fence run. */
-const FENCE_RE = /^(\s*(?:>\s?)*)(`{3,}|~{3,})/;
+/** Indent, then any number of blockquote markers, then the fence run, then
+ * whatever follows it on the line — the info string, for an opener. */
+const FENCE_RE = /^(\s*(?:>\s?)*)(`{3,}|~{3,})(.*)$/;
 const QUOTE_RE = /^\s*>/;
 
 /**
@@ -41,12 +42,19 @@ export function stepFence(
 		const inQuote = match[1].includes('>');
 		const marker = match[2][0];
 		const len = match[2].length;
+		const info = match[3].trim();
 		if (!state.fence) {
 			state.fence = { marker, len, inQuote };
-		} else if (marker === state.fence.marker && len >= state.fence.len) {
-			// CommonMark: a fence closes only on the SAME marker character with
-			// AT LEAST as many chars; other marker lines are fenced content.
+		} else if (marker === state.fence.marker && len >= state.fence.len && !info) {
+			// CommonMark: a fence closes only on the SAME marker character, with
+			// AT LEAST as many chars, and NO info string. That last clause is
+			// what makes ```bash inside a ```sdoc block content rather than a
+			// closer — and getting it wrong shifts every fence after it, which
+			// is how a doc page lost its highlighting from line 14 to the end.
 			state.fence = null;
+		} else {
+			// An opener-shaped line inside a fence is just more content.
+			return { fence: false, inside: true };
 		}
 		return { fence: true, inside: true };
 	}

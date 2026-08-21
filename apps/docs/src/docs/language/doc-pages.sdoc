@@ -11,7 +11,7 @@
 	anywhere in the flow: it renders in place on an isolated stage that loads
 	the configured `css`, exactly like an example in a `[SHOWCASE]` entity.
 
-	```sdoc
+	````sdoc
 	<script lang="ts">
 		import Button from './Button.svelte';
 		const version = '2.0';
@@ -42,7 +42,7 @@
 		| `sdocs build` | static site |
 
 	[/DOC]
-	```
+	````
 
 	## Attributes
 

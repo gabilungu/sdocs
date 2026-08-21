@@ -1000,3 +1000,57 @@ describe('code fences inside blockquotes', () => {
 		expect(project(src).text).not.toContain('{ b: 1 }');
 	});
 });
+
+/**
+ * A closing fence may not carry an info string — CommonMark is explicit about
+ * it, and it is the rule that lets fences nest. Without it, the ```bash inside
+ * a ```sdoc sample reads as the outer fence's closer, every fence after it is
+ * inverted, and the highlighting on that page died from line 14 to the end.
+ */
+describe('a fence that opens inside a fence', () => {
+	const wrap = (body: string[]) =>
+		['[DOC title="Guides / Docs"]', '', ...body, '', '[/DOC]', ''].join('\n');
+	const project = (src: string) => projectSdoc(scanSdoc(src, 'test.sdoc'));
+
+	it('treats an info-string line as content, not as the closer', () => {
+		// The second ``` carries a language, so it cannot close — the fence runs
+		// on to the bare one, and everything up to it stays code. Read the other
+		// way, the middle line closes the fence and the object literal below it
+		// becomes prose, which Svelte then compiles as an expression.
+		const src = wrap([
+			'\t```js',
+			'\tconst a = { first: 1 };',
+			'\t```python',
+			'\tconst b = { second: 2 };',
+			'\t```',
+			'',
+			'\t## Still a heading',
+		]);
+		expect(project(src).text).not.toContain('{ second: 2 }');
+		expect(project(src).text).toContain('## Still a heading');
+	});
+
+	it('keeps a nested fence as content when the outer one is wider', () => {
+		const src = wrap([
+			'\t````sdoc',
+			'\t[DOC title="Inner"]',
+			'',
+			'\t\t```bash',
+			'\t\tnpm install -D sdocs',
+			'\t\t```',
+			'',
+			'\t[/DOC]',
+			'\t````',
+			'',
+			'\t## Still a heading',
+		]);
+		expect(project(src).text).toContain('## Still a heading');
+		expect(project(src).text).not.toContain('npm install -D sdocs');
+	});
+
+	it('still closes on a bare fence of the same run', () => {
+		const src = wrap(['\t```js', '\tconst a = { b: 1 };', '\t```', '', '\t## After']);
+		expect(project(src).text).toContain('## After');
+		expect(project(src).text).not.toContain('{ b: 1 }');
+	});
+});

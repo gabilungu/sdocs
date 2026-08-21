@@ -12,6 +12,33 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.161] - 2026-08-21
+
+### Fixed
+
+- **A closing code fence may not carry an info string.** CommonMark is
+  explicit about it, and it is the rule that lets fences nest: without it the
+  ```` ```bash ```` inside a ```` ```sdoc ```` sample reads as the outer
+  fence's closer, and every fence after it is inverted. On the Doc Pages
+  reference that meant the syntax highlighting died at line 14 and never
+  recovered — 150 lines of the page, including its headings and its `[/DOC]`,
+  rendered as plain text. The scanner, the projection and the TextMate grammar
+  now agree on the rule.
+- **The Doc Pages sample nests properly.** Its outer fence is four backticks,
+  so the three-backtick blocks inside it are content rather than an ambiguity
+  every reader of the file has to resolve the same way.
+
+### Added
+
+- **A test that tokenizes the whole docs corpus** and checks that every real
+  entity closer still carries its tag scope. A grammar desync is silent and
+  total — once a region fails to close, the rest of the file simply loses its
+  colours — and a closer that comes out unscoped is the tell. It found the
+  fence bug on its first run.
+- **A test that the grammar's note types match the parser's.** The two lists
+  are written out separately and have drifted before, colouring words that had
+  been removed and missing ones that had been added.
+
 ## [0.0.160] - 2026-08-21
 
 ### Fixed

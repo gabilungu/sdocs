@@ -18,7 +18,7 @@ npx sdocs dev
 npm install sdocs
 ```
 
-**Requirements:** Svelte 5, Vite 6+, `@sveltejs/vite-plugin-svelte` 5+
+**Requirements:** Node 22+, Svelte 5, Vite 6+, `@sveltejs/vite-plugin-svelte` 5+
 
 ## Usage
 

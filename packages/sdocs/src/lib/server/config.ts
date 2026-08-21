@@ -1,3 +1,4 @@
+import { basename } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -155,11 +156,51 @@ export function resolveAndFinalize(
 	return resolved;
 }
 
-/** Import a config file (.js/.mjs; .ts only on Node with native type stripping) */
+/**
+ * Import a config file (.js/.mjs; .ts only on Node with native type stripping).
+ *
+ * A throw here reaches the user as the very first thing sdocs says, so it is
+ * caught and rewritten. Node's own error for a syntax error in an imported
+ * module is `SyntaxError: Invalid or unexpected token` followed by ten frames
+ * of `node:internal/modules/esm/*` — and the name of the file it failed to
+ * read appears in none of them.
+ */
 async function importConfig(configPath: string): Promise<SdocsConfig> {
-	// Use dynamic import with file:// URL for ESM compatibility
-	const mod = await import(pathToFileURL(configPath).href);
-	return mod.default ?? mod;
+	try {
+		// Use dynamic import with file:// URL for ESM compatibility
+		const mod = await import(pathToFileURL(configPath).href);
+		return mod.default ?? mod;
+	} catch (err) {
+		const name = basename(configPath);
+		const detail = err instanceof Error ? err.message : String(err);
+		// `instanceof` is unreliable here: the error crosses a dynamic-import
+		// boundary and may not be the same SyntaxError constructor this realm
+		// sees. The name survives.
+		if (err instanceof Error && err.name === 'SyntaxError') {
+			throw new ConfigError(`${name} has a syntax error: ${detail}`, configPath);
+		}
+		// A CommonJS project (no "type": "module", a .js config using `export
+		// default`) fails here too, and the fix is a rename rather than an edit.
+		if (/module is not defined|Cannot use import statement|require is not defined/i.test(detail)) {
+			throw new ConfigError(
+				`${name} could not be loaded as an ES module: ${detail}\n` +
+					`  Either rename it to sdocs.config.mjs, or add "type": "module" to package.json.`,
+				configPath,
+			);
+		}
+		throw new ConfigError(`${name} could not be loaded: ${detail}`, configPath);
+	}
+}
+
+/** A config that could not be read, reported by path rather than by stack. */
+export class ConfigError extends Error {
+	constructor(
+		message: string,
+		readonly configPath: string,
+	) {
+		super(message);
+		this.name = 'ConfigError';
+	}
 }
 
 /** Sections with defaults filled in; the implicit `docs` section when none

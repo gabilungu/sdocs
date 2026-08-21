@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { resolveConfig, resolveAndFinalize } from '../../src/lib/server/config.js';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { resolveConfig, resolveAndFinalize, loadConfig } from '../../src/lib/server/config.js';
 import { parseSdoc, attributeRules } from '../../src/lib/language/index.js';
 
 describe('mcp config', () => {
@@ -419,5 +422,43 @@ describe('scale presets', () => {
 	it('resolves idempotently', () => {
 		const once = resolveConfig({ scale: { ...base, presets: [{ label: 'M', value: 1 }] } });
 		expect(resolveConfig(once).scale).toEqual(once.scale);
+	});
+});
+
+/**
+ * A config that cannot be loaded is often the first thing sdocs says to a new
+ * user, and Node's own error for it is `SyntaxError: Invalid or unexpected
+ * token` over ten frames of `node:internal/modules/esm/*` — none of which name
+ * the file.
+ */
+describe('a config that will not load', () => {
+	function project(config: string) {
+		const dir = mkdtempSync(join(tmpdir(), 'sdocs-badconfig-'));
+		writeFileSync(join(dir, 'sdocs.config.js'), config);
+		return dir;
+	}
+
+	// The assertion is the user-facing contract — the file is named and a reason
+	// is given — not the classification. Whether the throw arrives as a
+	// SyntaxError depends on who loaded the module: real Node reports one (the
+	// CLI prints "has a syntax error"), while Vitest's module runner wraps it
+	// differently. Both land on a message that names the file.
+	it('names the file and gives a reason, never a bare stack', async () => {
+		const dir = project("export default { title: 'Broken,, };\n");
+		await expect(loadConfig(dir)).rejects.toThrow(/^sdocs\.config\.js /);
+		await expect(loadConfig(dir)).rejects.not.toThrow(/node:internal/);
+	});
+
+	it('carries the path, so the message can point at it', async () => {
+		const dir = project('export default { title: ]] };\n');
+		await expect(loadConfig(dir)).rejects.toMatchObject({
+			name: 'ConfigError',
+			configPath: expect.stringContaining('sdocs.config.js'),
+		});
+	});
+
+	it('still loads a good config', async () => {
+		const dir = project("export default { title: 'Fine' };\n");
+		await expect(loadConfig(dir)).resolves.toMatchObject({ title: 'Fine' });
 	});
 });

@@ -12,6 +12,43 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.152] - 2026-08-21
+
+### Fixed
+
+- **`sdocs preview` serves a sub-path build.** It never passed `base`, so a
+  site built with `--base "/repo/"` previewed as a blank page — the server
+  answered `/` while every asset URL asked for `/repo/…`. Preview now reads the
+  base back out of the built `index.html`, which is the only place that knows
+  it when the base came from the command line rather than the config, and
+  prints the path it is serving under.
+
+- **A config that will not load names itself.** Node's error for a syntax error
+  in an imported module is `SyntaxError: Invalid or unexpected token` over ten
+  frames of `node:internal/modules/esm/*`, and the file it failed to read is
+  named in none of them — a bad first thing for sdocs to say. It now reports
+  the filename, the reason and the path, and a config that is ESM in a CommonJS
+  project gets the fix rather than the symptom.
+
+- **Stage sizes no longer leak between component pages.** The effect that
+  resets dragged widths and heights depended only on `doc.maxWidth`, so moving
+  between two components that share one — every component on a default config —
+  never re-ran it.
+
+### Added
+
+- **`engines: { node: ">=22" }`**, and the requirement is documented in the
+  README and the authoring guide. The package declared no Node floor at all
+  while relying on module-syntax detection and, for `.ts` configs, native type
+  stripping. Node 22 is what CI verifies.
+
+### Known
+
+- Navigating between routes faster than ~200ms apart logs `derived_inert`
+  warnings from the component view's example stages. Dev-only, and no stale
+  value has been observed on screen. Four attempts at the read did not silence
+  it; the code carries a comment with what was ruled out.
+
 ## [0.0.151] - 2026-08-21
 
 ### Fixed

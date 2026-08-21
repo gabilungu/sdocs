@@ -9,6 +9,8 @@
 
 ## Requirements
 
+- **Node 22 or newer** (what the package declares and CI verifies). A `.ts`
+  config additionally needs a Node with native type stripping.
 - Svelte 5
 - Vite with `@sveltejs/vite-plugin-svelte`
 

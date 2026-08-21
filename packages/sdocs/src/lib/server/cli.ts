@@ -1,3 +1,4 @@
+import { ConfigError } from './config.js';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
@@ -105,6 +106,15 @@ async function main() {
 }
 
 main().catch((err) => {
-	console.error(err);
+	// A ConfigError already says what is wrong and which file it is in; the
+	// stack behind it is sdocs' own internals and helps nobody. Everything
+	// else keeps its stack, because an unexpected throw is a bug worth
+	// reporting in full.
+	if (err instanceof ConfigError) {
+		console.error(`[sdocs] ${err.message}`);
+		console.error(`  ${err.configPath}`);
+	} else {
+		console.error(err);
+	}
 	process.exit(1);
 });

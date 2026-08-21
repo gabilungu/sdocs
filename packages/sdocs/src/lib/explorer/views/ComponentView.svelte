@@ -279,15 +279,28 @@
 
 	$effect(() => {
 		const code = usageCode;
+		let cancelled = false;
 		clearTimeout(highlightTimer);
 		highlightTimer = setTimeout(async () => {
 			try {
 				const html = await highlightSvelte(code);
-				if (code === usageCode) highlightedUsageHtml = html;
+				if (!cancelled) highlightedUsageHtml = html;
 			} catch {
-				highlightedUsageHtml = '';
+				if (!cancelled) highlightedUsageHtml = '';
 			}
 		}, 150);
+		// Both halves matter. The timer outlives the view otherwise — a route
+		// change inside the debounce window leaves it to fire against a
+		// destroyed component — and Shiki's `await` can still resolve after
+		// that, so the run is flagged as well as cancelled. The flag is also
+		// what drops a stale highlight: comparing the finished `code` against
+		// `usageCode` did that before, but that read of a `$derived` owned by
+		// this (by then destroyed) effect is exactly what Svelte warns about
+		// as `derived_inert`.
+		return () => {
+			cancelled = true;
+			clearTimeout(highlightTimer);
+		};
 	});
 
 	function handleReset() {

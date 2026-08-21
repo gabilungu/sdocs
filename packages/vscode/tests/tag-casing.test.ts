@@ -10,6 +10,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { formatSdoc } from '../src/server/formatting';
+import { sdocTagHover } from '../src/server/tagHover';
 
 const OPTIONS = { tabSize: 4, insertSpaces: false };
 
@@ -63,5 +64,90 @@ describe('formatting migrates tag casing', () => {
 		const out = (await formatSdoc(doc, OPTIONS)) ?? doc;
 		expect(out).toContain('[component component={B}]');
 		expect(out).not.toContain('[COMPONENT');
+	});
+});
+
+/**
+ * The blocks added in 0.0.139. Two of them the formatter deliberately does not
+ * touch: a `[TODO]`'s nesting *is* its indentation, so normalizing the body
+ * would change what the checklist means.
+ */
+describe('the text blocks and [COMPONENTS]', () => {
+	it('indents the blocks inside a [COMPONENTS] one level deeper', async () => {
+		const source = [
+			'[SHOWCASE title="Nav / Tabs"]',
+			'',
+			'[COMPONENTS]',
+			'[COMPONENT component={Tabs}]',
+			'<Tabs />',
+			'[/COMPONENT]',
+			'[/COMPONENTS]',
+			'',
+			'[/SHOWCASE]',
+			'',
+		].join('\n');
+		const out = (await formatSdoc(source, OPTIONS)) ?? source;
+		expect(out).toContain('\t\t[COMPONENT component={Tabs}]');
+		expect(out).toContain('\t\t[/COMPONENT]');
+	});
+
+	it('leaves a [TODO] body exactly as written', async () => {
+		const source = [
+			'[SHOWCASE title="Nav / Tabs"]',
+			'',
+			'\t[TODO]',
+			'\t\t- [ ] Parent',
+			'\t\t\t\t- [x] Deeply nested on purpose',
+			'\t[/TODO]',
+			'',
+			'\t[COMPONENT component={Tabs}]',
+			'\t\t<Tabs />',
+			'\t[/COMPONENT]',
+			'',
+			'[/SHOWCASE]',
+			'',
+		].join('\n');
+		const out = (await formatSdoc(source, OPTIONS)) ?? source;
+		expect(out).toContain('\t\t\t\t- [x] Deeply nested on purpose');
+	});
+
+	it('formats a [PROSE] body as markdown', async () => {
+		const source = [
+			'[SHOWCASE title="Nav / Tabs"]',
+			'',
+			'\t[PROSE]',
+			'\t\tA    paragraph   with loose spacing.',
+			'\t[/PROSE]',
+			'',
+			'\t[COMPONENT component={Tabs}]',
+			'\t\t<Tabs />',
+			'\t[/COMPONENT]',
+			'',
+			'[/SHOWCASE]',
+			'',
+		].join('\n');
+		const out = (await formatSdoc(source, OPTIONS)) ?? source;
+		expect(out).toContain('A paragraph with loose spacing.');
+	});
+});
+
+/** The hover shares the parser's collision rule: uppercase-only for the text
+ * blocks, so prose that opens with a markdown link is left alone. */
+describe('tag hover', () => {
+	const at = (line: string, character: number) => sdocTagHover(line, { line: 0, character });
+
+	it('describes the new blocks in either position', () => {
+		expect(at('\t[NOTES]', 3)?.contents).toBeTruthy();
+		expect(at('\t[/TODO]', 4)?.contents).toBeTruthy();
+		expect(at('\t[COMPONENTS]', 4)?.contents).toBeTruthy();
+	});
+
+	it('still describes both casings of the older blocks', () => {
+		expect(at('\t[COMPONENT component={B}]', 4)?.contents).toBeTruthy();
+		expect(at('\t[component component={B}]', 4)?.contents).toBeTruthy();
+	});
+
+	it('leaves a markdown link alone', () => {
+		expect(at('See [notes](/language/overview#notes) for details.', 6)).toBeNull();
 	});
 });

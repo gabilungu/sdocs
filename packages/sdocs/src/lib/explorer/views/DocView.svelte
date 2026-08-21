@@ -5,6 +5,7 @@
 	import { Icon } from '../../ui/Icon/index.js';
 	import { Note } from '../../ui/Note/index.js';
 	import NoteControl from './NoteControl.svelte';
+	import TodoList from './TodoList.svelte';
 	import CollapsiblePanel from './CollapsiblePanel.svelte';
 	import PreviewFrame from './PreviewFrame.svelte';
 	import HeightHandle from './HeightHandle.svelte';
@@ -151,6 +152,21 @@
 				{#if example.description}
 					<p class="sdocs-block-description">{@html renderInlineMarkdown(example.description)}</p>
 				{/if}
+				{#each example.notes ?? [] as entry, i (i)}
+					<Note text={entry.note} type={entry.type} />
+				{/each}
+				{#if example.todos?.length}
+					<TodoList
+						items={example.todos}
+						{dev}
+						file={doc.filePath}
+						entitySlug={doc.entitySlug}
+						exampleTitle={example.name}
+					/>
+				{/if}
+				{#if example.proseHtml}
+					<div class="sdocs-prose sdocs-prose-block">{@html example.proseHtml}</div>
+				{/if}
 			{/if}
 			<div class="sdocs-panels">
 				<div class="sdocs-preview-wrapper">
@@ -199,11 +215,14 @@
 							notes={meta.notes ?? []}
 						/>
 					</div>
+					{#if meta.description}
+						<p class="sdocs-view-description">{@html renderInlineMarkdown(meta.description)}</p>
+					{/if}
 					{#each meta.notes ?? [] as entry, i (i)}
 						<Note text={entry.note} type={entry.type} />
 					{/each}
-					{#if meta.description}
-						<p class="sdocs-view-description">{@html renderInlineMarkdown(meta.description)}</p>
+					{#if meta.todos?.length}
+						<TodoList items={meta.todos} {dev} file={doc.filePath} entitySlug={doc.entitySlug} />
 					{/if}
 				</div>
 			{:else}
@@ -219,19 +238,22 @@
 					notes={meta.notes ?? []}
 				/>
 			{/if}
-			{#if doc.bodyTitle && meta.notes?.length}
+			{#if doc.bodyTitle && (meta.notes?.length || meta.todos?.length)}
 				<!-- The body's own `#` is the title here, and it lives inside the
-				     rendered markdown — so the notes take the place the header
-				     would have had, just above it. -->
+				     rendered markdown — so the notes and the todo take the place
+				     the header would have had, just above it. -->
 				<div class="sdocs-doc-note">
-					{#each meta.notes as entry, i (i)}
+					{#each meta.notes ?? [] as entry, i (i)}
 						<Note text={entry.note} type={entry.type} />
 					{/each}
+					{#if meta.todos?.length}
+						<TodoList items={meta.todos} {dev} file={doc.filePath} entitySlug={doc.entitySlug} />
+					{/if}
 				</div>
 			{/if}
 
 			<!-- Content -->
-			<div class="sdocs-page-content" bind:this={container}>
+			<div class="sdocs-page-content sdocs-prose" bind:this={container}>
 				{#if PageComponent}
 					<PageComponent __sdocsExample={exampleFrame} />
 				{/if}
@@ -318,154 +340,6 @@
 	}
 
 	/* ── Page prose: the docs app's own typography ── */
-	.sdocs-page-content {
-		font-size: 14px;
-		line-height: 1.7;
-		color: var(--color-base-800);
-	}
-	.sdocs-page-content :global(h1),
-	.sdocs-page-content :global(h2),
-	.sdocs-page-content :global(h3),
-	.sdocs-page-content :global(h4),
-	.sdocs-page-content :global(h5),
-	.sdocs-page-content :global(h6) {
-		color: var(--color-base-900);
-		font-weight: 650;
-		line-height: 1.3;
-		margin: 1.6em 0 0.5em;
-		scroll-margin-top: 16px;
-	}
-	/* The body h1 serves as the page title — match .sdocs-view-title */
-	.sdocs-page-content :global(h1) {
-		font-size: 24px;
-		font-weight: 700;
-	}
-	.sdocs-page-content :global(h2) { font-size: 18px; }
-	.sdocs-page-content :global(h3) { font-size: 15px; }
-	.sdocs-page-content :global(h4),
-	.sdocs-page-content :global(h5),
-	.sdocs-page-content :global(h6) { font-size: 14px; }
-	.sdocs-page-content :global(h1:first-child),
-	.sdocs-page-content :global(h2:first-child),
-	.sdocs-page-content :global(h3:first-child) {
-		margin-top: 0;
-	}
-	.sdocs-page-content :global(p) {
-		margin: 0.7em 0;
-	}
-	.sdocs-page-content :global(a) {
-		color: var(--color-action-500, var(--color-base-900));
-		text-decoration: underline;
-		text-underline-offset: 2px;
-	}
-	.sdocs-page-content :global(ul),
-	.sdocs-page-content :global(ol) {
-		margin: 0.7em 0;
-		padding-left: 1.6em;
-	}
-	.sdocs-page-content :global(li) {
-		margin: 0.25em 0;
-	}
-	.sdocs-page-content :global(blockquote) {
-		margin: 0.9em 0;
-		padding: 2px 16px;
-		border-left: 3px solid var(--color-base-200);
-		color: var(--color-base-600);
-	}
-	.sdocs-page-content :global(hr) {
-		border: none;
-		border-top: 1px solid var(--color-base-200);
-		margin: 24px 0;
-	}
-	.sdocs-page-content :global(code) {
-		font-family: var(--mono);
-		font-size: 0.92em;
-	}
-	.sdocs-page-content :global(:not(pre) > code) {
-		background: var(--color-base-100);
-		border-radius: 4px;
-		padding: 1px 5px;
-	}
-	.sdocs-page-content :global(pre) {
-		margin: 0.9em 0;
-		padding: 12px;
-		border-radius: 6px;
-		overflow-x: auto;
-		font-size: 13px;
-		line-height: 1.5;
-		tab-size: 4;
-	}
-	.sdocs-page-content :global(table) {
-		border-collapse: collapse;
-		margin: 0.9em 0;
-		display: block;
-		max-width: 100%;
-		overflow-x: auto;
-	}
-	.sdocs-page-content :global(th),
-	.sdocs-page-content :global(td) {
-		border: 1px solid var(--color-base-200);
-		padding: 6px 12px;
-		text-align: left;
-	}
-	.sdocs-page-content :global(td[align='center']),
-	.sdocs-page-content :global(th[align='center']) {
-		text-align: center;
-	}
-	.sdocs-page-content :global(td[align='right']),
-	.sdocs-page-content :global(th[align='right']) {
-		text-align: right;
-	}
-	.sdocs-page-content :global(th) {
-		background: var(--color-base-50);
-		font-weight: 600;
-	}
-	.sdocs-page-content :global(img) {
-		max-width: 100%;
-		border-radius: 6px;
-	}
-
-	/* Task lists: GitHub-style checkboxes, no bullet */
-	.sdocs-page-content :global(li:has(> input[type='checkbox']:first-child)) {
-		list-style: none;
-		margin-left: -1.3em;
-	}
-	.sdocs-page-content :global(li > input[type='checkbox']) {
-		margin-right: 6px;
-		vertical-align: -2px;
-	}
-
-	/* GitHub-style alerts: > [!NOTE] / [!TIP] / [!IMPORTANT] / [!WARNING] / [!CAUTION] */
-	.sdocs-page-content :global(.sdocs-alert) {
-		margin: 0.9em 0;
-		padding: 8px 16px;
-		border-left: 3px solid var(--sdocs-alert-color);
-		border-radius: 0 6px 6px 0;
-		background: color-mix(in srgb, var(--sdocs-alert-color) 6%, transparent);
-	}
-	.sdocs-page-content :global(.sdocs-alert-label) {
-		font-size: 13px;
-		font-weight: 650;
-		color: var(--sdocs-alert-color);
-		margin: 0.25em 0 0;
-	}
-	.sdocs-page-content :global(.sdocs-alert-note) {
-		--sdocs-alert-color: var(--color-blue-500);
-	}
-	.sdocs-page-content :global(.sdocs-alert-tip) {
-		--sdocs-alert-color: var(--color-green-500);
-	}
-	.sdocs-page-content :global(.sdocs-alert-important) {
-		--sdocs-alert-color: var(--color-purple-500);
-	}
-	.sdocs-page-content :global(.sdocs-alert-warning) {
-		--sdocs-alert-color: var(--color-amber-500);
-	}
-	.sdocs-page-content :global(.sdocs-alert-caution) {
-		--sdocs-alert-color: var(--color-red-500);
-	}
-
-	/* ── Example stages in the page flow ── */
 	.sdocs-page-example {
 		display: flex;
 		flex-direction: column;

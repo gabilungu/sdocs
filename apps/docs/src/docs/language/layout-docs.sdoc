@@ -73,7 +73,7 @@
 	## Layouts vs. the other entities
 
 	- **[Component doc](/language/component-docs)** — one component, with
-	  controls, examples, and extracted API. Its `[example]` blocks cover small
+	  controls, examples, and extracted API. Its `[EXAMPLE]` blocks cover small
 	  variants of that component.
 	- **[Doc](/language/doc-pages)** — markdown prose with component islands.
 	- **[Svelte page](/language/svelte-pages)** — a docs-context page built in plain Svelte.

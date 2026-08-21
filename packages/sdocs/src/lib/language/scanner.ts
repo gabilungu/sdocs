@@ -62,6 +62,11 @@ const TEXT_BLOCK_TAG_KINDS: Record<string, SubBlockKind> = {
 /** `^[NOTES]$` and friends — uppercase, and nothing else on the line. */
 const TEXT_BLOCK_RE = /^\[(NOTES|TODO|PROSE)\]$/;
 
+/** `[COMPONENTS]` groups the `[COMPONENT]` blocks that share a tab strip.
+ * Uppercase and alone on the line, for the same reason the text blocks are. */
+const COMPONENTS_OPEN = '[COMPONENTS]';
+const COMPONENTS_CLOSE = '[/COMPONENTS]';
+
 /**
  * The text block a whole line opens, or null.
  *
@@ -111,6 +116,10 @@ export type Attrs = Record<string, AttrValue>;
 
 export interface SubBlock {
 	kind: SubBlockKind;
+	/** Which `[COMPONENTS]` container this block was written in — 0 for the
+	 * first in the entity, 1 for the next. Null when it was written directly
+	 * in the entity body, which a lone `[COMPONENT]` may be. */
+	group?: number | null;
 	/** The tag as written — 'component', 'preview' (alias), or 'example' —
 	 * so diagnostics can name the block the author actually typed. */
 	tag: string;
@@ -673,6 +682,10 @@ export function scanSdoc(source: string): SdocFile {
 		let i = startLi;
 		let sawContent = false;
 		let styleMisplacedReported = false;
+		/** The [COMPONENTS] container currently open, and how many have been
+		 * seen — a block written outside one carries null. */
+		let group: number | null = null;
+		let groups = 0;
 		while (i < lines.length) {
 			const line = lines[i];
 			const trimmed = line.text.trim();
@@ -740,9 +753,41 @@ export function scanSdoc(source: string): SdocFile {
 			sawContent = true;
 			const token = tagToken(trimmed);
 			if (token && token.closer && token.name === 'SHOWCASE' && trimmed === '[/SHOWCASE]') {
+				if (group !== null) {
+					errors.push({
+						code: 'unclosed-block',
+						message: `Missing ${COMPONENTS_CLOSE}.`,
+						span: { start: line.start, end: line.end },
+					});
+				}
 				const tagStart = line.start + line.text.indexOf('[/SHOWCASE]');
 				entity.span.end = tagStart + '[/SHOWCASE]'.length;
 				return i + 1;
+			}
+			if (trimmed === COMPONENTS_OPEN) {
+				if (group !== null) {
+					errors.push({
+						code: 'nested-components',
+						message: `[COMPONENTS] cannot hold another [COMPONENTS].`,
+						span: { start: line.start, end: line.end },
+					});
+				} else {
+					group = groups++;
+				}
+				i++;
+				continue;
+			}
+			if (trimmed === COMPONENTS_CLOSE) {
+				if (group === null) {
+					errors.push({
+						code: 'stray-closer',
+						message: `Unexpected closer ${COMPONENTS_CLOSE} — no [COMPONENTS] is open.`,
+						span: { start: line.start, end: line.end },
+					});
+				}
+				group = null;
+				i++;
+				continue;
 			}
 			const textKind = textBlockKindOf(trimmed);
 			if (textKind) {
@@ -757,6 +802,7 @@ export function scanSdoc(source: string): SdocFile {
 				}
 				entity.blocks.push({
 					kind: textKind,
+					group,
 					tag: trimmed.slice(1, -1),
 					attrs: {},
 					body: captured.body,
@@ -787,6 +833,7 @@ export function scanSdoc(source: string): SdocFile {
 				const sub = scanSubBlockBody(opener.nextLi, captured.nextLi - 1, token.name);
 				entity.blocks.push({
 					kind,
+					group,
 					tag: token.name,
 					attrs: opener.attrs,
 					body: captured.body,
@@ -816,7 +863,7 @@ export function scanSdoc(source: string): SdocFile {
 					code: token.closer ? 'stray-closer' : 'unknown-tag',
 					message: token.closer
 						? `Unexpected closer [/${token.name}] inside [SHOWCASE].`
-						: `Unknown block [${token.name}] inside [SHOWCASE] — expected [COMPONENT] or [EXAMPLE].`,
+						: `Unknown block [${token.name}] inside [SHOWCASE] — expected [COMPONENT], [COMPONENTS], [EXAMPLE], [NOTES], [TODO] or [PROSE].`,
 					span,
 				});
 				i++;

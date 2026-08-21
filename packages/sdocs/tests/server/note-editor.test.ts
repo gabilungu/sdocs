@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { writeNotes, NoteTargetError } from '../../src/lib/server/note-editor.js';
+import { writeNotes, toggleTodo, NoteTargetError } from '../../src/lib/server/note-editor.js';
 import { parseSdoc } from '../../src/lib/language/parser.js';
 
 const DOC = ['[DOC title="Guides / Intro"]', '', '\tHello.', '', '[/DOC]', ''].join('\n');
@@ -116,5 +116,76 @@ describe('writeNotes', () => {
 		expect(() =>
 			writeNotes(SHOWCASE, { entitySlug: 'display-badge', exampleTitle: 'Missing' }, []),
 		).toThrow(NoteTargetError);
+	});
+});
+
+/**
+ * Ticking a todo is the other write the Explorer makes. It has to be even
+ * smaller than a note edit — one character between the brackets — because the
+ * checklist is the author's own text and a tick is not an invitation to
+ * reformat it.
+ */
+describe('toggleTodo', () => {
+	const WITH_TODO = [
+		'[DOC title="Guides / Intro"]',
+		'',
+		'\t[TODO]',
+		'\t\t- [ ] Write the intro',
+		'\t\t\t- [x] Outline   it',
+		'\t\t\t- [ ] Fill it in',
+		'\t\t- [ ] Ship',
+		'\t[/TODO]',
+		'',
+		'\tHello.',
+		'',
+		'[/DOC]',
+		'',
+	].join('\n');
+
+	it('ticks a root item and changes nothing else', () => {
+		const out = toggleTodo(WITH_TODO, { entitySlug: 'guides-intro' }, [1], true);
+		expect(out).toBe(WITH_TODO.replace('- [ ] Ship', '- [x] Ship'));
+	});
+
+	it('addresses a nested item by path', () => {
+		const out = toggleTodo(WITH_TODO, { entitySlug: 'guides-intro' }, [0, 1], true);
+		expect(out).toBe(WITH_TODO.replace('- [ ] Fill it in', '- [x] Fill it in'));
+	});
+
+	// The author's spacing inside the line is theirs; only the mark moves.
+	it('unticks without touching the text', () => {
+		const out = toggleTodo(WITH_TODO, { entitySlug: 'guides-intro' }, [0, 0], false);
+		expect(out).toBe(WITH_TODO.replace('- [x] Outline   it', '- [ ] Outline   it'));
+		expect(out).toContain('Outline   it');
+	});
+
+	it('ticks a todo inside an example', () => {
+		const source = [
+			'[SHOWCASE title="Display / Badge"]',
+			'',
+			'\t[EXAMPLE title="Plain"]',
+			'\t\t[TODO]',
+			'\t\t\t- [ ] Check the dark theme',
+			'\t\t[/TODO]',
+			'\t\t<Badge />',
+			'\t[/EXAMPLE]',
+			'',
+			'[/SHOWCASE]',
+			'',
+		].join('\n');
+		const out = toggleTodo(source, { entitySlug: 'display-badge', exampleTitle: 'Plain' }, [0], true);
+		expect(out).toBe(source.replace('- [ ]', '- [x]'));
+	});
+
+	it('refuses a path that addresses nothing', () => {
+		expect(() => toggleTodo(WITH_TODO, { entitySlug: 'guides-intro' }, [9], true)).toThrow(
+			NoteTargetError,
+		);
+	});
+
+	it('refuses an entity with no [TODO] block', () => {
+		expect(() => toggleTodo(DOC, { entitySlug: 'guides-intro' }, [0], true)).toThrow(
+			NoteTargetError,
+		);
 	});
 });

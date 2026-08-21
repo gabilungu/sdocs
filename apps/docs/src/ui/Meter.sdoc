@@ -4,15 +4,46 @@
 
 [SHOWCASE title="@demo/Meter" description="Progress meter themed entirely through annotated CSS custom properties — try the color and dimension controls."]
 
+	[TODO]
+		- [x] Theme every dimension through a custom property
+		- [ ] Indeterminate state
+			- [ ] Decide what the label reads while it runs
+			- [x] Pick the animation
+	[/TODO]
+
+	[PROSE]
+		A meter is a **measurement**, not a progress bar: it shows where a value
+		sits in a range that is known up front. For something that fills over
+		time, reach for a progress bar instead.
+
+		```svelte
+		<Meter value={64} max={100} label="Docs coverage" />
+		```
+	[/PROSE]
+
 	[COMPONENT component={Meter} args={{ value: 64, max: 100, label: 'Docs coverage' }}]
 		<Meter {...args} />
 	[/COMPONENT]
+
+	[PROSE]
+		### Reading a meter
+
+		The fill is the value's share of the range, so a meter at half width is
+		at half its maximum — not half done.
+	[/PROSE]
 
 	[EXAMPLE title="Full"]
 		<Meter {...args} label="Shipped" value={100} />
 	[/EXAMPLE]
 
 	[EXAMPLE title="Themed"]
+		[NOTES]
+			- wip: The mascot palette is still being picked.
+		[/NOTES]
+		[PROSE]
+			Every colour and dimension is a custom property, so a theme is a
+			`style` away — no props to thread through.
+		[/PROSE]
 		<div style="--meter-fill: #fc1d29; --meter-height: 14px; --meter-radius: 4px;">
 			<Meter {...args} label="Mascot mode" />
 		</div>

@@ -57,7 +57,7 @@
 
 		[component component={Button} args={{ label: 'Click me', disabled: false }}]
 			<Button {...args} />
-		[/component]
+		[/COMPONENT]
 
 	[/SHOWCASE]
 	```

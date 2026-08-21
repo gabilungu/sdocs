@@ -8,20 +8,23 @@
 	description="The plain-JavaScript twin of Notice: the same full feature surface documented through JSDoc (@typedef + @property) instead of TypeScript — compare the two pages."
 ]
 
-	[COMPONENT
-		component={NoticeJs}
-		args={{ title: 'Build finished', tone: 'success', dismissible: true, count: 1 }}
-	]
-		<NoticeJs {...args}>
-			Documented entirely with JSDoc — types, descriptions, events, and snippets
-			all come from the annotations.
-		</NoticeJs>
-	[/COMPONENT]
+	[COMPONENTS]
 
-	[COMPONENT component={Notice}]
-		<Notice {...args}>Something here</Notice>
-	[/COMPONENT]
+		[COMPONENT
+			component={NoticeJs}
+			args={{ title: 'Build finished', tone: 'success', dismissible: true, count: 1 }}
+		]
+			<NoticeJs {...args}>
+				Documented entirely with JSDoc — types, descriptions, events, and snippets
+				all come from the annotations.
+			</NoticeJs>
+		[/COMPONENT]
 
+		[COMPONENT component={Notice}]
+			<Notice {...args}>Something here</Notice>
+		[/COMPONENT]
+
+	[/COMPONENTS]
 
 	[EXAMPLE title="WithIconSnippet"]
 		<NoticeJs title="Deploy warning" tone="warning">

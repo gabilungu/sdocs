@@ -210,13 +210,15 @@ describe('parseSdoc typed entities', () => {
 
 [SHOWCASE title="Navigation / Tabs" description="A tab bar."]
 
-	[component component={Tabs} args={{ active: 0 }}]
-		<Tabs {...args}><Tab label="One">…</Tab></Tabs>
-	[/component]
+	[COMPONENTS]
+		[component component={Tabs} args={{ active: 0 }}]
+			<Tabs {...args}><Tab label="One">…</Tab></Tabs>
+		[/component]
 
-	[component component={Tab} args={{ label: 'One' }}]
-		<Tabs><Tab {...args}>…</Tab></Tabs>
-	[/component]
+		[component component={Tab} args={{ label: 'One' }}]
+			<Tabs><Tab {...args}>…</Tab></Tabs>
+		[/component]
+	[/COMPONENTS]
 
 	[example title="Vertical"]
 		<Tabs vertical />
@@ -261,12 +263,14 @@ describe('parseSdoc typed entities', () => {
 	it('uses title= as the tab label override', () => {
 		const overridden = parseSdoc(
 			`[SHOWCASE title="X"]
+[COMPONENTS]
 [component component={Button} title="As a link" args={{ a: 1 }}]
 x
 [/component]
 [component component={Button}]
 x
 [/component]
+[/COMPONENTS]
 [/SHOWCASE]
 `,
 		);
@@ -343,7 +347,7 @@ describe('parseSdoc validation', () => {
 		).toContain('duplicate-example-title');
 		expect(
 			diagnosticCodes(
-				'[SHOWCASE title="X"]\n[component component={B}]\nx\n[/component]\n[component component={B}]\ny\n[/component]\n[/SHOWCASE]\n',
+				'[SHOWCASE title="X"]\n[COMPONENTS]\n[component component={B}]\nx\n[/component]\n[component component={B}]\ny\n[/component]\n[/COMPONENTS]\n[/SHOWCASE]\n',
 			),
 		).toContain('duplicate-preview-label');
 	});

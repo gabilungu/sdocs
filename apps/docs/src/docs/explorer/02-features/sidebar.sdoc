@@ -108,8 +108,8 @@
 	  Disabled     ← example
 	```
 
-	Selecting the component itself shows its docs; each `[example]` is also a
-	standalone sub-page. A doc with several `[component]` previews (a compound
+	Selecting the component itself shows its docs; each `[EXAMPLE]` is also a
+	standalone sub-page. A doc with several `[COMPONENT]` previews (a compound
 	family) gets a distinct multi-part icon in place of the single-component
 	mark.
 

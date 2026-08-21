@@ -86,7 +86,7 @@
 	```sdoc
 	[component component={Button} args={{ label: 'Click me', size: 'md', disabled: false }}]
 		<Button {...args} />
-	[/component]
+	[/COMPONENT]
 	```
 
 	For CSS custom properties, set defaults via the `var()` fallback in your component's `<style>` block (`var(--bg, #333)`) — sdocs picks these up automatically.

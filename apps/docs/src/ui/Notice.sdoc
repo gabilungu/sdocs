@@ -5,11 +5,12 @@
 [SHOWCASE
 	title="@demo/Notice"
 	description="Kitchen sink: every documented feature in one component — text, number, boolean, and union props; events; plain and parameterized snippets; methods; exported state; and annotated CSS custom properties."
-	notes={[
-		{ note: 'The kitchen sink: this page exists to exercise every documented feature at once, not to model a real component doc.', intent: 'info' },
-		{ note: 'Also the corpus the language-server and formatter tests run against.' },
-	]}
 ]
+
+	[NOTES]
+		- ready: The kitchen sink — this page exists to exercise every documented feature at once, not to model a real component doc.
+		- Also the corpus the language-server and formatter tests run against.
+	[/NOTES]
 
 	[COMPONENT component={Notice} synonyms="callout, alert, admonition, banner" args={{ title: 'Build finished', tone: 'success', dismissible: true, count: 1 }}]
 		<Notice {...args}>
@@ -27,7 +28,10 @@
 		</Notice>
 	[/EXAMPLE]
 
-	[EXAMPLE title="Repeated" tags="count, badge" notes={[{ note: 'The count badge has no upper bound yet — past 99 it widens the title row.', intent: 'warning' }]}]
+	[EXAMPLE title="Repeated" tags="count, badge"]
+		[NOTES]
+			- bug: The count badge has no upper bound yet — past 99 it widens the title row.
+		[/NOTES]
 		<Notice {...args} title="Connection retried" tone="danger" count={4}>
 			The count prop renders an occurrence badge next to the title.
 		</Notice>

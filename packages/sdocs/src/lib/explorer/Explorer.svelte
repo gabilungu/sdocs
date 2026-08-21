@@ -428,7 +428,14 @@
 				{:else if resolved.doc.kind === 'layout'}
 					<LayoutView doc={resolved.doc} {activeStylesheet} {dev} />
 				{:else}
-					<ComponentView doc={resolved.doc} snippetName={resolved.snippetName} {activeStylesheet} {dev} />
+					<ComponentView
+						doc={resolved.doc}
+						snippetName={resolved.snippetName}
+						{activeStylesheet}
+						{pageModules}
+						{preloaded}
+						{dev}
+					/>
 				{/if}
 			{:else}
 				<AboutPage {docs} title={headerTitle} logo={headerLogo} {sdocsVersion} />

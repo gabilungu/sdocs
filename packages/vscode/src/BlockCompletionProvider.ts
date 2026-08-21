@@ -32,18 +32,48 @@ const ENTITY_BLOCKS: BlockSpec[] = [
 	},
 ];
 
+/** Uppercase since 0.0.139 — what the formatter writes, so what completion
+ * offers. Lowercase still parses; nothing here needs to offer it. */
 const SUB_BLOCKS: BlockSpec[] = [
 	{
-		label: 'component',
+		label: 'COMPONENT',
 		detail: 'Live showcase with interactive controls',
-		insert: 'component component={$1}]\n\t$0\n[/component]',
+		insert: 'COMPONENT component={$1}]\n\t$0\n[/COMPONENT]',
 	},
 	{
-		label: 'example',
+		label: 'COMPONENTS',
+		detail: 'Groups several [COMPONENT] blocks into one tab strip',
+		insert: 'COMPONENTS]\n\t$0\n[/COMPONENTS]',
+	},
+	{
+		label: 'EXAMPLE',
 		detail: 'Frozen showcase, rendered exactly as written',
-		insert: 'example title="$1"]\n\t$0\n[/example]',
+		insert: 'EXAMPLE title="$1"]\n\t$0\n[/EXAMPLE]',
+	},
+	{
+		label: 'NOTES',
+		detail: 'Standing remarks — one per line, optionally typed',
+		insert: 'NOTES]\n\t- ${1|bug,deprecated,wip,ready|}: $0\n[/NOTES]',
+	},
+	{
+		label: 'TODO',
+		detail: 'A nested checklist, tickable from the Explorer in dev',
+		insert: 'TODO]\n\t- [ ] $0\n[/TODO]',
+	},
+	{
+		label: 'PROSE',
+		detail: 'Markdown between the blocks — the capabilities of a [DOC] body',
+		insert: 'PROSE]\n\t$0\n[/PROSE]',
 	},
 ];
+
+/** What each entity takes. A [DOC] body is already prose, so it takes neither
+ * [PROSE] nor the component blocks; a [LAYOUT] and a [PAGE] take none of them
+ * yet — their bodies capture no blocks. */
+const SUB_BLOCKS_BY_ENTITY: Record<string, string[]> = {
+	SHOWCASE: ['COMPONENT', 'COMPONENTS', 'EXAMPLE', 'NOTES', 'TODO', 'PROSE'],
+	DOC: ['EXAMPLE', 'NOTES', 'TODO'],
+};
 
 /** Human descriptions for attributes, keyed by name. The set of attributes a
  * block *allows* comes from the parser (attributeRules) — the single source of
@@ -63,8 +93,6 @@ const ATTR_SHOWCASE: Record<string, string> = {
 	toc: '`toc="false"` hides the table of contents for this page.',
 	slug: 'Overrides the URL segment for this entity (lowercase letters, digits, hyphens). Defaults to the slugified last title segment.',
 	hide: 'Keeps this entity routable but out of every sidebar — for pages reached by link only (a home page, say).',
-	notes:
-		"Standing remarks about this page: `notes={[{ note: 'Deprecated in v3', intent: 'warning' }]}`. `intent` is `danger` · `warning` · `success` · `info`; leave it off for a grey remark. Each renders as an alert under the title, and the sidebar row gets a dot — filled for its own note, hollow for one inside it.",
 	code: '`code="false"` hides this example\'s code panel — for a `[DOC]` that wants the rendered thing, not its source. Shown by default.',
 	tags: 'What this example shows, comma-separated: `tags="user menu, badge"`. Rendered as quiet badges, and searched by the MCP `search_docs` tool.',
 	synonyms:
@@ -76,7 +104,6 @@ const ATTR_SHOWCASE: Record<string, string> = {
  * facing an empty pair of braces with no clue what belongs in them. */
 function attrInsert(name: string, rule: AttrRule): string {
 	if (name === 'args') return 'args={{ $1 }}';
-	if (name === 'notes') return "notes={[{ note: '$1' }]}";
 	if (rule.kind === 'bare') return name;
 	return rule.kind === 'expression' ? `${name}={$1}` : `${name}="$1"`;
 }
@@ -111,12 +138,12 @@ export class BlockCompletionProvider implements vscode.CompletionItemProvider {
 			const host = file.entities.find(
 				(e) => offset > e.openerSpan.end && offset < e.span.end,
 			);
-			const specs =
-				host?.kind === 'SHOWCASE'
-					? SUB_BLOCKS
-					: host?.kind === 'DOC'
-						? SUB_BLOCKS.filter((s) => s.label === 'example')
-						: ENTITY_BLOCKS;
+			const allowed = host ? SUB_BLOCKS_BY_ENTITY[host.kind] : undefined;
+			const specs = allowed
+				? SUB_BLOCKS.filter((s) => allowed.includes(s.label))
+				: host
+					? []
+					: ENTITY_BLOCKS;
 			// The editor auto-closes '[' — swallow the ']' sitting after the cursor.
 			const closer = line.slice(position.character).startsWith(']');
 			return specs.map((spec) => {
@@ -136,7 +163,7 @@ export class BlockCompletionProvider implements vscode.CompletionItemProvider {
 		}
 
 		// Attribute names on a block opener line.
-		const opener = /^\s*\[(SHOWCASE|DOC|PAGE|LAYOUT|component|example)\b/.exec(line);
+		const opener = /^\s*\[(SHOWCASE|DOC|PAGE|LAYOUT|COMPONENT|EXAMPLE|component|example)\b/.exec(line);
 		if (!opener) return undefined;
 		const rules = attributeRules(opener[1]);
 		const tagEnd = line.indexOf('[') + 1 + opener[1].length;

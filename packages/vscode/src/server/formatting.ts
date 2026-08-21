@@ -174,9 +174,10 @@ export async function formatSdoc(
 	const bodies: { span: Span; indent: string; markdown?: boolean }[] = [];
 	const pushBlockBodies = (blocks: SdocFile['entities'][number]['blocks']) => {
 		for (const block of blocks) {
-			if (block.bodySpan.end > block.bodySpan.start) {
-				bodies.push({ span: block.bodySpan, indent: oneLevel });
-			}
+			if (block.bodySpan.end <= block.bodySpan.start) continue;
+			if (block.kind === 'notes' || block.kind === 'todo') continue;
+			const indent = block.group == null ? oneLevel : oneLevel + oneLevel;
+			bodies.push({ span: block.bodySpan, indent, markdown: block.kind === 'prose' });
 		}
 	};
 	const pushProse = (start: number, end: number, indent: string) => {
@@ -307,8 +308,9 @@ export async function formatSdoc(
 			// The tag as written — [component] must not reprint as [preview].
 			// Capitalized on the way out — the opener and its closer together.
 			const tag = block.tag.toUpperCase();
-			reopen(block.openerSpan, block.attrs, tag, oneLevel);
-			retag(Math.max(block.openerSpan.end, block.span.end - 1), oneLevel, `[/${tag}]`);
+			const level = block.group == null ? oneLevel : oneLevel + oneLevel;
+			reopen(block.openerSpan, block.attrs, tag, level);
+			retag(Math.max(block.openerSpan.end, block.span.end - 1), level, `[/${tag}]`);
 		}
 	}
 

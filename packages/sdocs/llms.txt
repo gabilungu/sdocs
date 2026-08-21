@@ -50,9 +50,9 @@ Write a first doc next to a component (`src/lib/Button.svelte` →
 
 [SHOWCASE title="Components / Button" description="A flexible button."]
 
-	[component component={Button} args={{ label: 'Click me', disabled: false }}]
+	[COMPONENT component={Button} args={{ label: 'Click me', disabled: false }}]
 		<Button {...args} />
-	[/component]
+	[/COMPONENT]
 
 [/SHOWCASE]
 ```
@@ -73,7 +73,7 @@ npx sdocs dev      # dev server at http://localhost:3000
 | `npx sdocs build` | Build a static site to `dist/` |
 | `npx sdocs preview` | Serve the built `dist/` locally |
 | `npx sdocs check` | Compile every doc stage and report what breaks (exits 1 on error) |
-| `npx sdocs coverage` | Report which components have a `[component]` preview |
+| `npx sdocs coverage` | Report which components have a `[COMPONENT]` preview |
 | `npx sdocs mcp` | Serve the sdocs MCP server on stdio (authoring tools for agents) |
 
 Global flags: `--version`/`-v`, `--help`/`-h` — recognised anywhere in the
@@ -137,13 +137,13 @@ Explorer uses:
   its previews document. The routes come from the Explorer's own router, so
   they're exactly what the site serves — drive a browser over them to smoke
   test every page.
-- `search_docs { query?, intent?, limit? }` — find documentation by any name it
+- `search_docs { query?, type?, limit? }` — find documentation by any name it
   goes under: the entity title, a component it previews, that component's
   `synonyms`, an example title, an example's `tags`, or the text of any `notes`
   on either. Matching is a case-insensitive **substring**, so `butt` finds
-  `Button` and `menu` finds every example tagged "user menu". `intent` sweeps
-  by note severity instead — `intent: 'danger'` lists everything marked danger
-  with no query at all, and `'none'` finds notes written without one; give both
+  `Button` and `menu` finds every example tagged "user menu". `type` sweeps by
+  note status instead — `type: 'bug'` lists everything marked bug with no query
+  at all, and `'none'` finds notes written without one; give both
   and a result has to satisfy both. Each hit says which names matched, the
   notes it carries, and the route it serves at — pass that route to
   `resolve_visual_target` to screenshot it. Reach for it before reading files.
@@ -155,7 +155,7 @@ Explorer uses:
   otherwise appears only when the route is opened. Omit `file` to check the
   whole project. It does not type-check and cannot see runtime-only failures.
 - `check_coverage {}` — documentation coverage: which components under the
-  `components` globs have a `[component]` preview and which don't, plus
+  `components` globs have a `[COMPONENT]` preview and which don't, plus
   components documented from more than one file, references that resolve to
   no source, and documented components outside the globs. A compound family
   is measured per sub-component.
@@ -175,7 +175,7 @@ component through a browser without photographing the whole Explorer.
 ### Looking at a component with a browser
 
 Every stage is its own page. `/@sdocs/preview/<token>/<slug>` renders one
-`[component]`, `[example]`, or `[LAYOUT]` — project css, declared args, no
+`[COMPONENT]`, `[EXAMPLE]`, or `[LAYOUT]` — project css, declared args, no
 Explorer chrome — and works as a direct top-level navigation. Photographing
 that instead of the Explorer is the difference between ~2 image tokens and
 ~2000 for the same button.
@@ -346,7 +346,12 @@ example renders isolated, so each gets its own copy of anything mutable.
 - Tags are line-anchored square brackets, each on its own line: `[SHOWCASE …]`
   opens, `[/SHOWCASE]` closes.
 - Entity tags are UPPERCASE (`[SHOWCASE]`, `[DOC]`, `[PAGE]`, `[LAYOUT]`); inner
-  blocks are lowercase (`[component]`, `[example]`). Casing is strict.
+  blocks inside them are UPPERCASE too (`[COMPONENT]`, `[COMPONENTS]`,
+  `[EXAMPLE]`, `[NOTES]`, `[TODO]`, `[PROSE]`). `[COMPONENT]` and `[EXAMPLE]`
+  are also accepted lowercase, indefinitely — files written before 0.0.139 keep
+  working, and the formatter capitalizes them when a document is next
+  formatted. The text blocks are uppercase-only, so a line opening with a
+  markdown link (`[notes](…)`) stays prose.
 - Attributes use Svelte syntax: `title="text"` (string), `component={Button}`
   (expression), `args={{ … }}` (expression). Openers may span multiple lines.
 - Svelte code is valid only *inside* blocks; body text outside any block is an
@@ -362,7 +367,7 @@ example renders isolated, so each gets its own copy of anything mutable.
 | `[LAYOUT]` | a full-page composition of your product, isolated frame | project |
 
 **Project context vs docs context** (the concept that ties the format together):
-`[example]`/`[component]` **stages** and `[LAYOUT]` bodies load your project's
+`[EXAMPLE]`/`[COMPONENT]` **stages** and `[LAYOUT]` bodies load your project's
 `css` — they look like your product. `[DOC]` prose and `[PAGE]` bodies render in
 the **docs** context (the docs app's own styling, its CSS variables) — the
 project `css` never touches them. Rule of thumb: *prose is docs-styled, stages
@@ -410,7 +415,7 @@ Two more structural facts:
 
 - A component page with examples becomes its own expandable node with one
   sub-page per example — selecting the component itself shows its docs. A doc
-  with several `[component]` previews gets a distinct compound icon.
+  with several `[COMPONENT]` previews gets a distinct compound icon.
 - `:` groups are always expanded; folders start collapsed.
 - **Ordering**: siblings at every level sort alphabetically; pin items first by
   listing their route paths in the section's `order` array
@@ -420,7 +425,7 @@ Two more structural facts:
 
 ## `[SHOWCASE]` — documenting a component
 
-Holds any number of `[component]` previews (live, control-driven) and `[example]`
+Holds any number of `[COMPONENT]` previews (live, control-driven) and `[EXAMPLE]`
 blocks (frozen, verbatim). Zero previews is valid (examples-only page). Several
 previews grow a **tab bar** — made for compound families like `Tabs`/`Tab` (wrap
 the child in its parent inside each preview body).
@@ -433,12 +438,12 @@ These attributes are how a stage is laid out. The stage element is itself the
 flex container, so content goes straight into the block — see "the stage is
 already the container" below before reaching for a wrapper `<div>`.
 
-### `[component]` — a live, interactive preview
+### `[COMPONENT]` — a live, interactive preview
 
 ```sdoc
-[component component={Button} args={{ variant: 'primary', disabled: false }}]
+[COMPONENT component={Button} args={{ variant: 'primary', disabled: false }}]
 	<Button {...args} />
-[/component]
+[/COMPONENT]
 ```
 
 - `component={X}` (required) — an identifier imported in a `<script>`. Drives
@@ -468,10 +473,10 @@ objects, or imported values — put anything richer directly in the body markup,
 where full Svelte is available. One invalid value rejects the whole `args`
 object, so keep every value literal.
 
-### `[example]` — a frozen showcase
+### `[EXAMPLE]` — a frozen showcase
 
 Renders **exactly what you wrote**; controls never touch it. Requires a `title`
-(unique within the block). Same stage attributes as `[component]` plus
+(unique within the block). Same stage attributes as `[COMPONENT]` plus
 `description`. Examples render below the previews and stay visible on every tab;
 the same block also works inside a `[DOC]`, mid-prose.
 
@@ -485,41 +490,133 @@ puts on screen, or the context it belongs to. Same comma-separated list as
 `search_docs`: tag every example that composes a user menu and one query
 collects them from across the project.
 
-## `notes` — standing remarks
+## `[NOTES]` — standing remarks
 
-Every entity, and every `[example]`, takes a list of them:
+One note per line, once per entity and once per `[EXAMPLE]`:
 
 ```sdoc
-[SHOWCASE
-	title="Forms / Button"
-	notes={[
-		{ note: 'Being replaced by ActionButton in v4.', intent: 'warning' },
-		{ note: 'Focus ring lands 1px off in Safari.', intent: 'danger' },
-		{ note: 'Ships in the next release.' },
-	]}
-]
+[SHOWCASE title="Forms / Button"]
+
+	[NOTES]
+		- deprecated: Being replaced by ActionButton in v4.
+		- bug: Focus ring lands 1px off in Safari.
+		- Ships in the next release.
+	[/NOTES]
+
+	[COMPONENT component={Button}]
+		<Button {...args} />
+	[/COMPONENT]
+
+[/SHOWCASE]
 ```
 
-- `note` — what it says. Each renders as an alert directly under the entity's
-  title, in the order written. A `[LAYOUT]` shows no title, so its notes ride
-  **over** the layout, each with a dismiss button.
-- `intent` — `danger`, `warning`, `success` or `info`. Leave it off and the
-  note is grey. An intent outside that set is an error, not a silent fallback:
-  grey is a real choice, and a typo would read as one. So is an entry with no
-  `note`, an unknown key, and a value that isn't a plain quoted string — the
-  attribute is source text that is never evaluated.
+- Each line is `- text`, or `- status: text`. A note's text is one line: the
+  block's grammar is one note per line, so a wrapped note is two notes.
+- The status is one of `bug`, `deprecated`, `wip`, `ready`. Leave it off and the
+  note is a plain remark, shown in grey. A status outside that set is an error,
+  not a silent fallback: grey is a real choice, and a typo would read as one.
+- The vocabulary is **status, not severity**: what state is this thing in.
+  `a11y` and `perf` are categories rather than states, and mixing the two would
+  make the sidebar's worst-first roll-up meaningless — categories are what
+  `tags` is for.
+- Each renders as an alert directly under the entity's title, in the order
+  written. A `[LAYOUT]` shows no title, so its notes ride **over** the layout,
+  each with a dismiss button.
 
-Under `sdocs dev` the Explorer can write them: a note button at the end of
-every entity and example title (top-right corner on a `[LAYOUT]` or `[PAGE]`,
-which show no title) opens an editor, and Save rewrites the `notes` attribute
-in the `.sdoc` itself. Dev only — the endpoint behind it exists on no built
-site, and it refuses any file the project does not document.
+Under `sdocs dev` the Explorer can write them: a note button at the end of every
+entity and example title (top-right corner on a `[LAYOUT]` or `[PAGE]`, which
+show no title) opens an editor, and Save rewrites the `[NOTES]` block in the
+`.sdoc` itself. Dev only — the endpoint behind it exists on no built site, and
+it refuses any file the project does not document.
 
-In the sidebar the notes become one dot on the row: **filled** when the worst
-of them is on that page, **hollow** when it is on something inside it. A row
-shows the worst note at or under it — `danger` > `warning` > *no intent* >
-`success` > `info` — so a folder carries the loudest thing anywhere inside. A
-`hide` entity's notes stay out of the roll-up.
+In the sidebar the notes become one dot on the row: **filled** when the worst of
+them is on that page, **hollow** when it is on something inside it. A row shows
+the worst note at or under it — `bug` > `deprecated` > `wip` > *no status* >
+`ready` — so a folder carries the loudest thing anywhere inside, and a remark
+with no status outranks one whose whole content is reassurance. A `hide`
+entity's notes stay out of the roll-up.
+
+## `[TODO]` — a checklist
+
+Once per entity and once per `[EXAMPLE]`, nested to any depth by indentation:
+
+```sdoc
+[TODO]
+	- [x] Ship the component
+	- [ ] Document the dark theme
+		- [ ] Decide the token names
+		- [x] Pick the ramp
+[/TODO]
+```
+
+Every line is `- [ ] text` or `- [x] text`; the text is inline markdown. It
+always renders when present — this is not a dev-only affordance — and under
+`sdocs dev` the boxes are live: ticking one writes straight back into the
+`.sdoc`, rewriting the single character between the brackets and nothing else.
+A built site shows the same list read-only, since there is no source there to
+write to.
+
+Indentation is meaning here, not layout: it is what nests one item under
+another. The formatter leaves a `[TODO]` body exactly as written for that
+reason.
+
+## `[PROSE]` — markdown between the blocks
+
+A `[SHOWCASE]` is not only a component and its examples — it can explain
+itself. `[PROSE]` gives it the capabilities of a `[DOC]` body (markdown, code
+fences, tables, Svelte islands) anywhere in the entity, as many times as it
+likes:
+
+```sdoc
+[SHOWCASE title="Forms / Button"]
+
+	[PROSE]
+		A button triggers an action. For navigation, use a link.
+	[/PROSE]
+
+	[COMPONENTS]
+		[COMPONENT component={Button}]
+			<Button {...args} />
+		[/COMPONENT]
+		[COMPONENT component={ButtonGroup}]
+			<ButtonGroup {...args} />
+		[/COMPONENT]
+	[/COMPONENTS]
+
+	[PROSE]
+		### Choosing a variant
+
+		Ghost buttons are for the third action in a row, never the first.
+	[/PROSE]
+
+	[EXAMPLE title="Ghost"]
+		<Button variant="ghost">Cancel</Button>
+	[/EXAMPLE]
+
+[/SHOWCASE]
+```
+
+Blocks render **in the order they were written**, with one exception: several
+`[COMPONENT]` blocks are tabs over a shared stage, so the whole tab strip is a
+single item wherever the first of them appears.
+
+Inside an `[EXAMPLE]`, `[PROSE]` is markdown only — no islands to compile — and
+it follows the example to its own route, where a sibling block would not.
+
+A `[DOC]` takes no `[PROSE]`: its body is already prose, and a block nested in
+it would have no answer to where it goes relative to the body around it.
+
+## `[COMPONENTS]` — one tab strip
+
+`[COMPONENT]` blocks are not flow, they are tabs: several of them share one
+stage, one code panel and one API table. `[COMPONENTS]` makes that explicit, so
+the strip is a single item and prose around it means something.
+
+- A lone `[COMPONENT]` needs no container.
+- Two or more **must** sit inside one `[COMPONENTS]`. With two bare components
+  and prose between them there is no correct place for the tab strip they
+  share, so this is an error rather than a guess.
+- One container per `[SHOWCASE]`, holding `[COMPONENT]` blocks only.
 
 ## Scoped `<script>` / `<style>` — the ladder
 
@@ -546,7 +643,7 @@ fences:
 - **Svelte islands** — a line starting with a component/HTML tag (`<Button`,
   `<div`) or a Svelte block (`{#snippet`, `{@render`), after a blank line, begins
   an island that runs until its tags/blocks balance. Islands run in the **docs**
-  context (structure the page itself; for product-styled output use `[example]`).
+  context (structure the page itself; for product-styled output use `[EXAMPLE]`).
 - **Snippets** — declare `{#snippet name(...)}…{/snippet}` as an island, render
   with `{@render name(...)}` anywhere in the body.
 - **GFM** — headings, links (external open in a new tab), images, tables with
@@ -555,10 +652,10 @@ fences:
   `[!IMPORTANT]`, `[!WARNING]`, or `[!CAUTION]` renders as a tinted callout.
 - **Inert fences** — code inside ``` fences ``` (and `` `inline code` ``) is
   displayed/highlighted, never executed, even if it looks like a component or an
-  `[example]` opener. Fence languages: anything shiki knows, plus `sdoc`. Escape
+  `[EXAMPLE]` opener. Fence languages: anything shiki knows, plus `sdoc`. Escape
   a literal brace in prose as `\{`.
 
-Drop an `[example]` block anywhere in the flow to showcase real, project-styled
+Drop an `[EXAMPLE]` block anywhere in the flow to showcase real, project-styled
 components mid-prose. A page has no controls or prop extraction — for stateful
 component demos reach for a `[SHOWCASE]` or `[LAYOUT]`.
 
@@ -694,18 +791,18 @@ behaviour.
 
   ```sdoc
   <!-- Wrong: a wrapper that re-does what the stage and frame already do -->
-  [example title="Sizes"]
+  [EXAMPLE title="Sizes"]
   	<div style="display: flex; gap: 8px; height: 500px; overflow-y: auto;">
   		<Badge text="sm" />
   		<Badge text="md" />
   	</div>
-  [/example]
+  [/EXAMPLE]
 
   <!-- Right: the stage is the flex container, the frame handles height -->
-  [example title="Sizes" direction="row" gap="8px"]
+  [EXAMPLE title="Sizes" direction="row" gap="8px"]
   	<Badge text="sm" />
   	<Badge text="md" />
-  [/example]
+  [/EXAMPLE]
   ```
 
   The one height knob worth reaching for is `minHeight`, and it does the
@@ -721,19 +818,19 @@ behaviour.
 
 [SHOWCASE title="@components/:Display / Badge" description="A small status **badge** — dot, count, or label."]
 
-	[component component={Badge} args={{ text: 'New', size: 'sm' }}]
+	[COMPONENT component={Badge} args={{ text: 'New', size: 'sm' }}]
 		<Badge {...args} />
-	[/component]
+	[/COMPONENT]
 
-	[example title="Sizes" direction="row" gap="8px" contentY="middle"]
+	[EXAMPLE title="Sizes" direction="row" gap="8px" contentY="middle"]
 		<Badge text="xs" size="xs" />
 		<Badge text="sm" size="sm" />
 		<Badge text="md" size="md" />
-	[/example]
+	[/EXAMPLE]
 
-	[example title="Coloured" description="Theme with `--bg` / `--fg`."]
+	[EXAMPLE title="Coloured" description="Theme with `--bg` / `--fg`."]
 		<Badge text="info" --bg="var(--info-100)" --fg="var(--info-600)" />
-	[/example]
+	[/EXAMPLE]
 
 [/SHOWCASE]
 ```

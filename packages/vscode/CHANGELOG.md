@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.68] - 2026-08-21
+
+### Added
+
+- **The blocks from sdocs 0.0.139** — `[COMPONENTS]`, `[NOTES]`, `[TODO]` and
+  `[PROSE]` — complete, hover, and highlight. Completion offers what the entity
+  under the cursor actually takes: a `[DOC]` gets no `[PROSE]`, since its body
+  is already prose.
+
+- **Syntax highlighting for either casing** of `[COMPONENT]` and `[EXAMPLE]`.
+  The formatter capitalizes tags, so a grammar that only knew lowercase would
+  stop highlighting the files it had just rewritten.
+
+### Changed
+
+- **The formatter indents blocks inside a `[COMPONENTS]`** one level deeper,
+  and leaves a `[NOTES]` or `[TODO]` body exactly as written. A todo's nesting
+  *is* its indentation, so normalizing the body would change what the checklist
+  means.
+
+- **Completion offers the uppercase spelling** of every block, matching what
+  the formatter writes. Lowercase still parses, so old files keep working.
+
+- **Hover matches tags case-sensitively.** The text blocks are uppercase-only,
+  so `[notes](…)` in prose stays a markdown link instead of hovering as a block.
+
+- **`notes` is gone from attribute completion**, replaced by the `[NOTES]`
+  block.
+
 ## [0.0.67] - 2026-08-21
 
 ### Added

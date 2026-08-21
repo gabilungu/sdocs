@@ -12,11 +12,14 @@ import {
 	type ScanError,
 	type SdocFile,
 	type Span,
+	subBlockKindOf,
 	type SubBlock,
 	type TagBlock,
 } from './scanner.js';
 import { declaredBindings, scrubScriptText } from './script-scan.js';
-import type { DocNote, NoteType } from '../types.js';
+import type { DocNote, NoteType, TodoItem } from '../types.js';
+
+export type { TodoItem };
 
 export type ArgValue = string | number | boolean | null;
 
@@ -100,11 +103,19 @@ export interface ExampleBlock {
 }
 
 /** One `- [ ] text` line of a `[TODO]` block, with whatever nests under it. */
-export interface TodoItem {
-	text: string;
-	done: boolean;
-	children: TodoItem[];
-}
+/**
+ * One item in a [SHOWCASE]'s body, in source order.
+ *
+ * `[COMPONENT]` blocks are tabs rather than flow: several of them share one
+ * stage, one set of code panels and one API table, so the whole tab strip is a
+ * single item here — which is what lets prose sit before or after it and mean
+ * something. `index` points into the entity's own `previews`/`examples`/
+ * `prose` arrays.
+ */
+export type FlowItem =
+	| { kind: 'components'; indices: number[] }
+	| { kind: 'example'; index: number }
+	| { kind: 'prose'; index: number };
 
 export interface ShowcaseEntity {
 	kind: 'SHOWCASE';
@@ -118,6 +129,10 @@ export interface ShowcaseEntity {
 	notes: DocNote[];
 	/** The checklist from a [TODO] block; empty when there is none */
 	todos: TodoItem[];
+	/** Markdown from [PROSE] blocks, in source order; empty when there are none */
+	prose: string[];
+	/** What the entity shows, in the order it was written. */
+	flow: FlowItem[];
 	description: string | null;
 	sizing: Sizing;
 	/** Entity-level <script> — shared by every block of this entity */
@@ -142,6 +157,8 @@ export interface DocEntity {
 	notes: DocNote[];
 	/** The checklist from a [TODO] block; empty when there is none */
 	todos: TodoItem[];
+	/** Markdown from [PROSE] blocks, in source order; empty when there are none */
+	prose: string[];
 	sizing: Sizing;
 	/** Entity-level <script> — shared by every block of this entity */
 	script: TagBlock | null;
@@ -171,6 +188,8 @@ export interface PageEntity {
 	notes: DocNote[];
 	/** The checklist from a [TODO] block; empty when there is none */
 	todos: TodoItem[];
+	/** Markdown from [PROSE] blocks, in source order; empty when there are none */
+	prose: string[];
 	sizing: Sizing;
 	/** Entity-level <script> — shared by every block of this entity */
 	script: TagBlock | null;
@@ -194,6 +213,8 @@ export interface LayoutEntity {
 	notes: DocNote[];
 	/** The checklist from a [TODO] block; empty when there is none */
 	todos: TodoItem[];
+	/** Markdown from [PROSE] blocks, in source order; empty when there are none */
+	prose: string[];
 	sizing: Sizing;
 	/** Entity-level <script> — shared by every block of this entity */
 	script: TagBlock | null;
@@ -510,11 +531,16 @@ const SUB_BLOCK_ATTR_RULES: Record<string, Record<string, AttrRule>> = {
 
 /** Allowed attributes and their value shapes for a block, keyed by kind
  * ('SHOWCASE'|'DOC'|'PAGE'|'LAYOUT'|'preview'|'example'). Single source of
- * truth for both diagnostics and editor attribute completions. */
+ * truth for both diagnostics and editor attribute completions.
+ *
+ * Entity kinds are uppercase; a sub-block tag is accepted in either casing,
+ * matching the parser — a file the formatter has not reached yet is still a
+ * file the editor has to help with. */
 export function attributeRules(kind: string): Record<string, AttrRule> {
-	// [component] is the canonical tag for the preview kind.
-	const key = kind === 'component' ? 'preview' : kind;
-	return ENTITY_ATTR_RULES[key] ?? SUB_BLOCK_ATTR_RULES[key] ?? {};
+	if (ENTITY_ATTR_RULES[kind]) return ENTITY_ATTR_RULES[kind];
+	// [COMPONENT] is the canonical tag for the preview kind.
+	const key = subBlockKindOf(kind) ?? kind;
+	return SUB_BLOCK_ATTR_RULES[key] ?? {};
 }
 
 function checkAttrs(
@@ -962,7 +988,7 @@ function checkSnippetSlugCollisions(
  * because "once" has to be enforced somewhere that sees all of them: a second
  * block is reported rather than silently winning or losing.
  */
-function textBlocks(owner: string, diagnostics: ScanError[]) {
+function textBlocks(owner: string, diagnostics: ScanError[], allowProse = true) {
 	const seen = new Map<string, true>();
 	let notes: DocNote[] = [];
 	let todos: TodoItem[] = [];
@@ -970,6 +996,17 @@ function textBlocks(owner: string, diagnostics: ScanError[]) {
 	return {
 		take(block: SubBlock) {
 			if (block.kind === 'prose') {
+				// A [DOC] body is markdown already: a [PROSE] block inside one
+				// would be prose nested in prose, with no answer to where it
+				// goes relative to the body that surrounds it.
+				if (!allowProse) {
+					diagnostics.push({
+						code: 'prose-in-doc',
+						message: `A ${owner} body is already prose — write it directly, without a [PROSE] block.`,
+						span: block.openerSpan,
+					});
+					return;
+				}
 				prose.push(block);
 				return;
 			}
@@ -986,8 +1023,11 @@ function textBlocks(owner: string, diagnostics: ScanError[]) {
 			if (block.kind === 'notes') notes = parseNoteLines(block, diagnostics);
 			else todos = parseTodoItems(block, diagnostics);
 		},
+		get proseCount() {
+			return prose.length;
+		},
 		get result() {
-			return { notes, todos, prose };
+			return { notes, todos, prose: prose.map((b) => normalizeBody(b.body)) };
 		},
 	};
 }
@@ -1006,6 +1046,13 @@ function parseShowcase(
 	const exampleTitles = new Set<string>();
 	const previewLabels = new Set<string>();
 	const text = textBlocks('[SHOWCASE]', diagnostics);
+	const flow: FlowItem[] = [];
+	/** The one tab strip, added to the flow where the first [COMPONENT] was
+	 * written. Every [COMPONENT] in the entity joins it: they share a stage,
+	 * a code panel and an API table, so there is only ever one. */
+	let tabs: { kind: 'components'; indices: number[] } | null = null;
+	let bareComponents = 0;
+	const containers = new Set<number>();
 
 	for (const block of entity.blocks) {
 		if (block.kind === 'preview') {
@@ -1018,18 +1065,66 @@ function parseShowcase(
 				});
 			}
 			previewLabels.add(preview.label);
-			previews.push(preview);
+			const index = previews.push(preview) - 1;
+			const group = block.group ?? null;
+			if (group === null) bareComponents++;
+			else containers.add(group);
+			// A lone [COMPONENT] needs no container. Two of them do: with prose
+			// between them there is no correct place for the tab strip they
+			// share, so refusing beats guessing.
+			if (bareComponents === 2 || (bareComponents === 1 && containers.size > 0)) {
+				diagnostics.push({
+					code: 'components-need-container',
+					message:
+						'Two [COMPONENT] blocks in one [SHOWCASE] — wrap them all in one [COMPONENTS] so they share a tab strip.',
+					span: block.openerSpan,
+				});
+				bareComponents = 0; // reported once, not once per block
+			}
+			if (containers.size === 2) {
+				diagnostics.push({
+					code: 'one-components-container',
+					message:
+						'One [COMPONENTS] per [SHOWCASE] — its blocks share a single tab strip, so a second container has nowhere to go.',
+					span: block.openerSpan,
+				});
+				containers.delete(group!);
+			}
+			if (tabs) {
+				tabs.indices.push(index);
+			} else {
+				tabs = { kind: 'components', indices: [index] };
+				flow.push(tabs);
+			}
 		} else if (block.kind === 'example') {
+			if (block.group != null) {
+				diagnostics.push({
+					code: 'block-in-components',
+					message: '[COMPONENTS] holds [COMPONENT] blocks only — move this [EXAMPLE] outside it.',
+					span: block.openerSpan,
+				});
+				continue;
+			}
+			flow.push({ kind: 'example', index: examples.length });
 			examples.push(parseExample(block, exampleTitles, 'SHOWCASE', outerImports, diagnostics));
 			exampleSpans.push(block.openerSpan);
 		} else {
+			if (block.group != null) {
+				diagnostics.push({
+					code: 'block-in-components',
+					message: `[COMPONENTS] holds [COMPONENT] blocks only — move this [${block.tag.toUpperCase()}] outside it.`,
+					span: block.openerSpan,
+				});
+				continue;
+			}
+			if (block.kind === 'prose') flow.push({ kind: 'prose', index: text.proseCount });
 			text.take(block);
 		}
 	}
 	checkSnippetSlugCollisions(previews, examples, exampleSpans, diagnostics);
 
 	const title = stringAttr(entity.attrs, 'title') ?? '';
-	const { notes, todos } = text.result;
+	const { notes, todos, prose } = text.result;
 	return {
 		kind: 'SHOWCASE',
 		title,
@@ -1038,6 +1133,8 @@ function parseShowcase(
 		hide: bareAttr(entity.attrs, 'hide'),
 		notes,
 		todos,
+		prose,
+		flow,
 		description: stringAttr(entity.attrs, 'description'),
 		sizing: sizingOf(entity.attrs),
 		script: entity.script,
@@ -1090,7 +1187,7 @@ function parseDoc(
 	const examples: ExampleBlock[] = [];
 	const exampleSpans: Span[] = [];
 	const exampleTitles = new Set<string>();
-	const text = textBlocks('[DOC]', diagnostics);
+	const text = textBlocks('[DOC]', diagnostics, false);
 	for (const block of entity.blocks) {
 		if (block.kind !== 'example') {
 			text.take(block);
@@ -1109,6 +1206,7 @@ function parseDoc(
 		hide: bareAttr(entity.attrs, 'hide'),
 		notes: text.result.notes,
 		todos: text.result.todos,
+		prose: [],
 		sizing: sizingOf(entity.attrs),
 		script: entity.script,
 		style: entity.style,
@@ -1162,10 +1260,11 @@ export function parseSdoc(source: string): SdocDocument {
 				slug: slugifyTitle(title),
 				routeSlug: routeSlugAttr(entity.attrs, diagnostics),
 				hide: bareAttr(entity.attrs, 'hide'),
-				// [PAGE] takes neither block. [LAYOUT] takes both, but its body
-				// captures no blocks yet — see the scanner.
+				// [PAGE] takes none of them. [LAYOUT] takes notes and todos, but
+				// its body captures no blocks yet — see the scanner.
 				notes: [],
 				todos: [],
+				prose: [],
 				sizing: sizingOf(entity.attrs),
 				script: entity.script,
 				style: entity.style,

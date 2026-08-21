@@ -1,9 +1,11 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
-	import type { DocEntry, DocNote } from '../../types.js';
+	import type { Component, Snippet } from 'svelte';
+	import type { DocEntry, DocNote, ExtractedSnippet, FlowItem } from '../../types.js';
 	import { Icon } from '../../ui/Icon/index.js';
 	import { Note } from '../../ui/Note/index.js';
 	import NoteControl from './NoteControl.svelte';
+	import TodoList from './TodoList.svelte';
+	import NativeBody from './NativeBody.svelte';
 	import HeightHandle from './HeightHandle.svelte';
 	import { highlightSvelte } from '../highlighter.js';
 	import CollapsiblePanel from './CollapsiblePanel.svelte';
@@ -30,9 +32,21 @@
 		/** Dev only: the note editor writes to the project's source. */
 		dev?: boolean;
 		activeStylesheet?: string;
+		/** [PROSE] bodies from `virtual:sdocs`, keyed like doc/page content. */
+		pageModules?: Record<string, () => Promise<{ default: unknown }>>;
+		/** Already-resolved prose components, from the prerenderer or the
+		 * built app's entry, so hydration matches the static HTML. */
+		preloaded?: Record<string, Component>;
 	}
 
-	let { doc, snippetName, activeStylesheet, dev = false }: Props = $props();
+	let {
+		doc,
+		snippetName,
+		activeStylesheet,
+		dev = false,
+		pageModules = {},
+		preloaded = {},
+	}: Props = $props();
 
 	const meta = $derived(doc.meta);
 	const previews = $derived(doc.previews ?? []);
@@ -65,6 +79,23 @@
 			((meta.title ?? '').split('/').pop()?.trim() || 'Component'),
 	);
 	const exampleSnippets = $derived(doc.examples ?? []);
+
+	/**
+	 * What to render, in the order it was written.
+	 *
+	 * An entity parsed before the flow existed — or one built by a host that
+	 * does not send it — falls back to the arrangement that was fixed before:
+	 * prose, then the component, then the examples.
+	 */
+	const flow = $derived<FlowItem[]>(
+		doc.flow ?? [
+			...(doc.prose ?? []).map((_, index) => ({ kind: 'prose' as const, index })),
+			...(previews.length ? [{ kind: 'components' as const, indices: previews.map((_, i) => i) }] : []),
+			...exampleSnippets.map((_, index) => ({ kind: 'example' as const, index })),
+		],
+	);
+	/** Where the run of examples starts — the heading opens it once. */
+	const firstExampleAt = $derived(flow.findIndex((item) => item.kind === 'example'));
 	const focusedSnippet = $derived(
 		snippetName ? exampleSnippets.find((s) => s.name === snippetName) : null,
 	);
@@ -291,6 +322,35 @@
 	{/each}
 {/snippet}
 
+<!-- Everything an [EXAMPLE] carries above its stage, in the language's order:
+     description, notes, todo, prose, tags. Shared by the example in a
+     component's list and the same example opened on its own route — a stage on
+     its own page is still the same block, and used to arrive stripped of
+     everything but its title. -->
+{#snippet exampleHeader(example: ExtractedSnippet)}
+	{#if example.description}
+		<p class="sdocs-block-description">{@html renderInlineMarkdown(example.description)}</p>
+	{/if}
+	{#if example.notes?.length}
+		{@render notes(example.notes)}
+	{/if}
+	{#if example.todos?.length}
+		<TodoList
+			items={example.todos}
+			{dev}
+			file={doc.filePath}
+			entitySlug={doc.entitySlug}
+			exampleTitle={example.name}
+		/>
+	{/if}
+	{#if example.proseHtml}
+		<div class="sdocs-prose sdocs-prose-block">{@html example.proseHtml}</div>
+	{/if}
+	{#if example.tags?.length}
+		{@render metaChips(example.tags, 'Tags', 'sm')}
+	{/if}
+{/snippet}
+
 {#snippet metaChips(items: string[], label: string, size: 'sm' | 'md')}
 	<ul class="sdocs-meta-chips" aria-label={label}>
 		{#each items as item (item)}
@@ -367,11 +427,9 @@
 					notes={focusedSnippet.notes ?? []}
 				/>
 			</div>
-			<!-- Opened on its own, an example is the whole page: its notes have
-			     to travel with it, or a warning only shows on the way in. -->
-			{#if focusedSnippet.notes?.length}
-				{@render notes(focusedSnippet.notes)}
-			{/if}
+			<!-- Opened on its own, an example is the whole page: everything it
+			     carries travels with it, or a warning only shows on the way in. -->
+			{@render exampleHeader(focusedSnippet)}
 		</div>
 		<!-- The example IS the page — its stage rides the same resizable split. -->
 		{#snippet focusedContent()}
@@ -411,259 +469,284 @@
 					notes={meta.notes ?? []}
 				/>
 			</div>
-			{#if meta.notes?.length}
-				{@render notes(meta.notes)}
-			{/if}
 			{#if meta.description}
 				<p class="sdocs-view-description">{@html renderInlineMarkdown(meta.description)}</p>
 			{/if}
+			{#if meta.notes?.length}
+				{@render notes(meta.notes)}
+			{/if}
+			{#if meta.todos?.length}
+				<TodoList
+					items={meta.todos}
+					{dev}
+					file={doc.filePath}
+					entitySlug={doc.entitySlug}
+				/>
+			{/if}
 		</div>
 
-		{#if previews.length > 1}
-			<div class="sdocs-preview-tabs" role="tablist">
-				{#each previews as preview, i (preview.snippet.slug)}
-					<button
-						class="sdocs-preview-tab"
-						class:active={i === activeIndex}
-						role="tab"
-						aria-selected={i === activeIndex}
-						onclick={() => selectTab(i)}
-					>
-						{preview.label}
-					</button>
-				{/each}
-			</div>
-		{/if}
-
-		{#if activePreview?.snippet.description}
-			<!-- The preview's description: prose between the tabs and the stage,
-			     never part of the preview panel itself. -->
-			<p class="sdocs-preview-description">{@html renderInlineMarkdown(activePreview.snippet.description)}</p>
-		{/if}
-
-		{#if activePreview?.snippet.synonyms?.length}
-			{@render metaChips(activePreview.snippet.synonyms, 'Also known as', 'md')}
-		{/if}
-
-		{#if activePreview}
-			<!-- The stage rides in a resizable pane spanning the full view width:
-			     drag the handle to narrow the iframe and test responsive layouts. -->
-			{#snippet previewContent()}
-				{#key activePreview.snippet.slug}
-					<div class="sdocs-preview-wrapper">
-						<PreviewFrame
-							bind:this={defaultPreview}
-							src={activePreview.snippet.previewUrl ?? ''}
-							stage={activePreview.snippet}
-							props={propValues}
-							cssVars={appliedCss}
-							{activeStylesheet}
-							height={stageHeights[activePreview.snippet.slug] ?? null}
-							onStateValues={(values) => (liveStateValues = values)}
-							onready={resolveVarColors}
-						/>
-					</div>
-				{/key}
-			{/snippet}
-			{@render stage(
-				previewContent,
-				() => previewWidth,
-				(v) => (previewWidth = v),
-				() => (previewWidth = defaultStageWidth),
-				activePreview.snippet.slug,
-			)}
-
-			<div class="sdocs-panels">
-				<CollapsiblePanel title="Preview Code" defaultExpanded={false} flush>
-					<div class="sdocs-code-block">
-						{#if highlightedUsageHtml}
-							{@html highlightedUsageHtml}
-						{:else}
-							<pre><code>{usageCode}</code></pre>
-						{/if}
-					</div>
-				</CollapsiblePanel>
-
-				{#if activePreview.highlightedSource}
-					<CollapsiblePanel title="Component Source" defaultExpanded={false} flush>
-						<div class="sdocs-code-block">{@html activePreview.highlightedSource}</div>
-					</CollapsiblePanel>
-				{/if}
-			</div>
-		{/if}
-
-		{#snippet propControl(row: Row)}
-			{@const prop = cd?.props.find((p) => p.name === row.name && p.category === 'prop')}
-			{#if prop}
-				<PropControl
-					{prop}
-					value={propValues[prop.name]}
-					onchange={(v) => handlePropChange(prop.name, v)}
-					onunset={() => handlePropUnset(prop.name)}
-				/>
+		<!-- The body, in the order it was written. [COMPONENT] blocks are the one
+		     exception to source order: they are tabs over a shared stage, so they
+		     render as a single item wherever the first of them appears. -->
+		{#snippet componentsBlock()}
+			{#if previews.length > 1}
+				<div class="sdocs-preview-tabs" role="tablist">
+					{#each previews as preview, i (preview.snippet.slug)}
+						<button
+							class="sdocs-preview-tab"
+							class:active={i === activeIndex}
+							role="tab"
+							aria-selected={i === activeIndex}
+							onclick={() => selectTab(i)}
+						>
+							{preview.label}
+						</button>
+					{/each}
+				</div>
 			{/if}
-		{/snippet}
 
-		{#snippet methodControl(row: Row)}
-			{@const method = cd?.methods.find((m) => m.name === row.name)}
-			{@const hasParams = String(method?.params ?? '').trim().length > 0}
-			<button
-				class="sdocs-run-btn"
-				disabled={hasParams || !defaultPreview}
-				title={hasParams ? 'Only methods without parameters can be run here' : `Run ${row.name}() on the preview`}
-				onclick={() => defaultPreview?.callMethod(String(row.name))}
-			>
-				Run
-			</button>
-		{/snippet}
-
-		{#snippet cssPropControl(row: Row)}
-			{@const cssProp = cd?.cssProps.find((p) => p.name === row.name)}
-			{#if cssProp}
-				<CssPropControl
-					{cssProp}
-					value={cssValues[cssProp.name]}
-					resolvedColor={resolvedColors[cssProp.name]}
-					onchange={(v) => handleCssChange(cssProp.name, v)}
-				/>
+			{#if activePreview?.snippet.description}
+				<!-- The preview's description: prose between the tabs and the stage,
+				     never part of the preview panel itself. -->
+				<p class="sdocs-preview-description">{@html renderInlineMarkdown(activePreview.snippet.description)}</p>
 			{/if}
-		{/snippet}
 
-		{#if propsRows.length > 0 || cd?.acceptsClass || cd?.forwardsRest}
-			<section class="sdocs-doc-section">
-				<h2 class="sdocs-doc-section-title">
-					<Icon name="sliders-horizontal" --w="15px" --h="15px" --fill="var(--color-base-500)" />
-					Props
-					{#if hasEditableControls}
-						<button class="sdocs-reset-btn" onclick={handleReset}>Reset</button>
-					{/if}
-				</h2>
-				{#if propsRows.length > 0}
-					<ApiTable rows={propsRows} control={propControl} />
-				{/if}
-				{#if cd?.acceptsClass || cd?.forwardsRest}
-					<!-- class / ...rest are forwarding infrastructure, not API — chips, not rows -->
-					<div class="sdocs-forwarded">
-						<span class="sdocs-forwarded-label">Also forwarded to the root element:</span>
-						{#if cd?.acceptsClass}<code class="sdocs-forwarded-chip">class</code>{/if}
-						{#if cd?.forwardsRest}
-							<code class="sdocs-forwarded-chip" title={cd?.restType ?? undefined}>{cd?.restType ? `…rest (${cd.restType})` : '…rest'}</code>
-						{/if}
-					</div>
-				{/if}
-			</section>
-		{/if}
+			{#if activePreview?.snippet.synonyms?.length}
+				{@render metaChips(activePreview.snippet.synonyms, 'Also known as', 'md')}
+			{/if}
 
-		{#if cssPropsRows.length > 0}
-			<section class="sdocs-doc-section">
-				<h2 class="sdocs-doc-section-title">
-					<Icon name="palette" --w="15px" --h="15px" --fill="var(--color-base-500)" />
-					CSS Props
-					{#if showResetInCss}
-						<button class="sdocs-reset-btn" onclick={handleReset}>Reset</button>
-					{/if}
-				</h2>
-				<ApiTable rows={cssPropsRows} control={cssPropControl} />
-			</section>
-		{/if}
-
-		{#if eventsRows.length > 0}
-			<section class="sdocs-doc-section">
-				<h2 class="sdocs-doc-section-title">
-					<Icon name="zap" --w="15px" --h="15px" --fill="var(--color-base-500)" />
-					Events
-				</h2>
-				<ApiTable rows={eventsRows} showDefault={false} />
-			</section>
-		{/if}
-
-		{#if snippetsRows.length > 0}
-			<section class="sdocs-doc-section">
-				<h2 class="sdocs-doc-section-title">
-					<Icon name="code" --w="15px" --h="15px" --fill="var(--color-base-500)" />
-					Snippets
-				</h2>
-				<ApiTable rows={snippetsRows} showDefault={false} />
-			</section>
-		{/if}
-
-		{#if methodsRows.length > 0}
-			<section class="sdocs-doc-section">
-				<h2 class="sdocs-doc-section-title">
-					<Icon name="square-function" --w="15px" --h="15px" --fill="var(--color-base-500)" />
-					Methods
-				</h2>
-				<ApiTable rows={methodsRows} showDefault={false} control={methodControl} />
-			</section>
-		{/if}
-
-		{#if stateRows.length > 0}
-			<section class="sdocs-doc-section">
-				<h2 class="sdocs-doc-section-title">
-					<Icon name="database" --w="15px" --h="15px" --fill="var(--color-base-500)" />
-					States
-				</h2>
-				<ApiTable rows={stateRows} defaultLabel="Current value" />
-			</section>
-		{/if}
-
-		{#if exampleSnippets.length > 0}
-			<hr class="sdocs-divider" />
-			<h2 class="sdocs-section-title">Examples</h2>
-			{#each exampleSnippets as example (example.name)}
-				<div class="sdocs-example">
-					<h3 class="sdocs-example-title">
-						<Icon name="bookmark" --w="14px" --h="14px" --fill="var(--color-example-500)" />
-						{example.name || '⚠ title required'}
-						<NoteControl
-							{dev}
-							label="{displayTitle(meta.title)} / {example.name}"
-							file={doc.filePath}
-							entitySlug={doc.entitySlug}
-							exampleTitle={example.name}
-							notes={example.notes ?? []}
-						/>
-					</h3>
-					{#if example.notes?.length}
-						{@render notes(example.notes)}
-					{/if}
-					{#if example.description}
-						<p class="sdocs-block-description">{@html renderInlineMarkdown(example.description)}</p>
-					{/if}
-					{#if example.tags?.length}
-						{@render metaChips(example.tags, 'Tags', 'sm')}
-					{/if}
-					{#snippet exampleContent()}
+			{#if activePreview}
+				<!-- The stage rides in a resizable pane spanning the full view width:
+				     drag the handle to narrow the iframe and test responsive layouts. -->
+				{#snippet previewContent()}
+					{#key activePreview.snippet.slug}
 						<div class="sdocs-preview-wrapper">
 							<PreviewFrame
-								src={example.previewUrl ?? ''}
+								bind:this={defaultPreview}
+								src={activePreview.snippet.previewUrl ?? ''}
+								stage={activePreview.snippet}
+								props={propValues}
+								cssVars={appliedCss}
 								{activeStylesheet}
-								stage={example}
-								height={stageHeights[example.slug] ?? null}
+								height={stageHeights[activePreview.snippet.slug] ?? null}
+								onStateValues={(values) => (liveStateValues = values)}
+								onready={resolveVarColors}
 							/>
 						</div>
-					{/snippet}
-					{@render stage(
-						exampleContent,
-						() => exampleOverrides[example.slug] ?? defaultStageWidth,
-						(v) => (exampleOverrides[example.slug] = v),
-						() => {
-							const next = { ...exampleOverrides };
-							delete next[example.slug];
-							exampleOverrides = next;
-						},
-						example.slug,
-					)}
-					{#if example.showCode !== false}
-						<div class="sdocs-panels">
-							<CollapsiblePanel title="Code" defaultExpanded={false} flush>
-								<div class="sdocs-code-block">{@html example.highlightedHtml ?? ''}</div>
-							</CollapsiblePanel>
+					{/key}
+				{/snippet}
+				{@render stage(
+					previewContent,
+					() => previewWidth,
+					(v) => (previewWidth = v),
+					() => (previewWidth = defaultStageWidth),
+					activePreview.snippet.slug,
+				)}
+
+				<div class="sdocs-panels">
+					<CollapsiblePanel title="Preview Code" defaultExpanded={false} flush>
+						<div class="sdocs-code-block">
+							{#if highlightedUsageHtml}
+								{@html highlightedUsageHtml}
+							{:else}
+								<pre><code>{usageCode}</code></pre>
+							{/if}
 						</div>
+					</CollapsiblePanel>
+
+					{#if activePreview.highlightedSource}
+						<CollapsiblePanel title="Component Source" defaultExpanded={false} flush>
+							<div class="sdocs-code-block">{@html activePreview.highlightedSource}</div>
+						</CollapsiblePanel>
 					{/if}
 				</div>
-			{/each}
-		{/if}
+			{/if}
+
+			{#snippet propControl(row: Row)}
+				{@const prop = cd?.props.find((p) => p.name === row.name && p.category === 'prop')}
+				{#if prop}
+					<PropControl
+						{prop}
+						value={propValues[prop.name]}
+						onchange={(v) => handlePropChange(prop.name, v)}
+						onunset={() => handlePropUnset(prop.name)}
+					/>
+				{/if}
+			{/snippet}
+
+			{#snippet methodControl(row: Row)}
+				{@const method = cd?.methods.find((m) => m.name === row.name)}
+				{@const hasParams = String(method?.params ?? '').trim().length > 0}
+				<button
+					class="sdocs-run-btn"
+					disabled={hasParams || !defaultPreview}
+					title={hasParams ? 'Only methods without parameters can be run here' : `Run ${row.name}() on the preview`}
+					onclick={() => defaultPreview?.callMethod(String(row.name))}
+				>
+					Run
+				</button>
+			{/snippet}
+
+			{#snippet cssPropControl(row: Row)}
+				{@const cssProp = cd?.cssProps.find((p) => p.name === row.name)}
+				{#if cssProp}
+					<CssPropControl
+						{cssProp}
+						value={cssValues[cssProp.name]}
+						resolvedColor={resolvedColors[cssProp.name]}
+						onchange={(v) => handleCssChange(cssProp.name, v)}
+					/>
+				{/if}
+			{/snippet}
+
+			{#if propsRows.length > 0 || cd?.acceptsClass || cd?.forwardsRest}
+				<section class="sdocs-doc-section">
+					<h2 class="sdocs-doc-section-title">
+						<Icon name="sliders-horizontal" --w="15px" --h="15px" --fill="var(--color-base-500)" />
+						Props
+						{#if hasEditableControls}
+							<button class="sdocs-reset-btn" onclick={handleReset}>Reset</button>
+						{/if}
+					</h2>
+					{#if propsRows.length > 0}
+						<ApiTable rows={propsRows} control={propControl} />
+					{/if}
+					{#if cd?.acceptsClass || cd?.forwardsRest}
+						<!-- class / ...rest are forwarding infrastructure, not API — chips, not rows -->
+						<div class="sdocs-forwarded">
+							<span class="sdocs-forwarded-label">Also forwarded to the root element:</span>
+							{#if cd?.acceptsClass}<code class="sdocs-forwarded-chip">class</code>{/if}
+							{#if cd?.forwardsRest}
+								<code class="sdocs-forwarded-chip" title={cd?.restType ?? undefined}>{cd?.restType ? `…rest (${cd.restType})` : '…rest'}</code>
+							{/if}
+						</div>
+					{/if}
+				</section>
+			{/if}
+
+			{#if cssPropsRows.length > 0}
+				<section class="sdocs-doc-section">
+					<h2 class="sdocs-doc-section-title">
+						<Icon name="palette" --w="15px" --h="15px" --fill="var(--color-base-500)" />
+						CSS Props
+						{#if showResetInCss}
+							<button class="sdocs-reset-btn" onclick={handleReset}>Reset</button>
+						{/if}
+					</h2>
+					<ApiTable rows={cssPropsRows} control={cssPropControl} />
+				</section>
+			{/if}
+
+			{#if eventsRows.length > 0}
+				<section class="sdocs-doc-section">
+					<h2 class="sdocs-doc-section-title">
+						<Icon name="zap" --w="15px" --h="15px" --fill="var(--color-base-500)" />
+						Events
+					</h2>
+					<ApiTable rows={eventsRows} showDefault={false} />
+				</section>
+			{/if}
+
+			{#if snippetsRows.length > 0}
+				<section class="sdocs-doc-section">
+					<h2 class="sdocs-doc-section-title">
+						<Icon name="code" --w="15px" --h="15px" --fill="var(--color-base-500)" />
+						Snippets
+					</h2>
+					<ApiTable rows={snippetsRows} showDefault={false} />
+				</section>
+			{/if}
+
+			{#if methodsRows.length > 0}
+				<section class="sdocs-doc-section">
+					<h2 class="sdocs-doc-section-title">
+						<Icon name="square-function" --w="15px" --h="15px" --fill="var(--color-base-500)" />
+						Methods
+					</h2>
+					<ApiTable rows={methodsRows} showDefault={false} control={methodControl} />
+				</section>
+			{/if}
+
+			{#if stateRows.length > 0}
+				<section class="sdocs-doc-section">
+					<h2 class="sdocs-doc-section-title">
+						<Icon name="database" --w="15px" --h="15px" --fill="var(--color-base-500)" />
+						States
+					</h2>
+					<ApiTable rows={stateRows} defaultLabel="Current value" />
+				</section>
+			{/if}
+		{/snippet}
+
+		{#snippet exampleBlock(example: ExtractedSnippet)}
+			<div class="sdocs-example">
+				<h3 class="sdocs-example-title">
+					<Icon name="bookmark" --w="14px" --h="14px" --fill="var(--color-example-500)" />
+					{example.name || '⚠ title required'}
+					<NoteControl
+						{dev}
+						label="{displayTitle(meta.title)} / {example.name}"
+						file={doc.filePath}
+						entitySlug={doc.entitySlug}
+						exampleTitle={example.name}
+						notes={example.notes ?? []}
+					/>
+				</h3>
+				{@render exampleHeader(example)}
+				{#snippet exampleContent()}
+					<div class="sdocs-preview-wrapper">
+						<PreviewFrame
+							src={example.previewUrl ?? ''}
+							{activeStylesheet}
+							stage={example}
+							height={stageHeights[example.slug] ?? null}
+						/>
+					</div>
+				{/snippet}
+				{@render stage(
+					exampleContent,
+					() => exampleOverrides[example.slug] ?? defaultStageWidth,
+					(v) => (exampleOverrides[example.slug] = v),
+					() => {
+						const next = { ...exampleOverrides };
+						delete next[example.slug];
+						exampleOverrides = next;
+					},
+					example.slug,
+				)}
+				{#if example.showCode !== false}
+					<div class="sdocs-panels">
+						<CollapsiblePanel title="Code" defaultExpanded={false} flush>
+							<div class="sdocs-code-block">{@html example.highlightedHtml ?? ''}</div>
+						</CollapsiblePanel>
+					</div>
+				{/if}
+			</div>
+		{/snippet}
+
+		{#each flow as item, i (i)}
+			{#if item.kind === 'prose'}
+				{@const block = doc.prose?.[item.index]}
+				{#if block}
+					<div class="sdocs-prose sdocs-prose-block">
+						<NativeBody key={block.key} {pageModules} {preloaded} />
+					</div>
+				{/if}
+			{:else if item.kind === 'components'}
+				{@render componentsBlock()}
+			{:else}
+				{@const example = exampleSnippets[item.index]}
+				{#if example}
+					<!-- The heading opens the run of examples once, wherever it
+					     starts — prose written between two of them does not repeat it. -->
+					{#if i === firstExampleAt}
+						<hr class="sdocs-divider" />
+						<h2 class="sdocs-section-title">Examples</h2>
+					{/if}
+					{@render exampleBlock(example)}
+				{/if}
+			{/if}
+		{/each}
 
 	{/if}
 </div>
@@ -867,6 +950,16 @@
 		align-items: center;
 		gap: 8px;
 	}
+	/* A [PROSE] block sits in the page flow like a paragraph of the entity's
+	   own, so its first and last elements do not add margin to the gap the
+	   view already sets between blocks. */
+	.sdocs-prose-block > :global(:first-child) {
+		margin-top: 0;
+	}
+	.sdocs-prose-block > :global(:last-child) {
+		margin-bottom: 0;
+	}
+
 	.sdocs-view-description {
 		font-size: 14px;
 		line-height: 1.5;

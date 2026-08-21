@@ -148,8 +148,23 @@ describe('generatePageComponent', () => {
 
 	it('page virtual ids round-trip', () => {
 		const id = pageVirtualId('/proj/src/Colors.sdoc', 'colors');
-		expect(id).toMatch(/^\/@sdocs\/page\/[A-Za-z0-9_-]+\.svelte$/);
-		expect(parsePageId(id)).toEqual({ docFilePath: '/proj/src/Colors.sdoc', entitySlug: 'colors' });
+		expect(id).toMatch(/^\/@sdocs\/page\/[A-Za-z0-9_-]+\/content\.svelte$/);
+		expect(parsePageId(id)).toEqual({
+			docFilePath: '/proj/src/Colors.sdoc',
+			entitySlug: 'colors',
+			slug: 'content',
+		});
+	});
+
+	// A [SHOWCASE]'s [PROSE] blocks compile natively too, one component each,
+	// so the id carries which body it is rather than only which entity.
+	it('page virtual ids address a prose block', () => {
+		const id = pageVirtualId('/proj/src/Colors.sdoc', 'colors', 'prose-2');
+		expect(parsePageId(id)).toEqual({
+			docFilePath: '/proj/src/Colors.sdoc',
+			entitySlug: 'colors',
+			slug: 'prose-2',
+		});
 	});
 });
 

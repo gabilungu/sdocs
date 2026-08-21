@@ -176,8 +176,8 @@ const TOOLS = [
 			'component it previews, that component\'s `synonyms`, an example ' +
 			'title, an example\'s `tags`, or the text of any `notes` on either. ' +
 			'Matching is a case-insensitive substring, so "butt" finds Button and ' +
-			'"menu" finds every example tagged "user menu". `intent` sweeps by ' +
-			'note severity instead — intent:"danger" lists everything marked ' +
+			'"menu" finds every example tagged "user menu". `type` sweeps by ' +
+			'note status instead — type:"bug" lists everything marked ' +
 			'as a bug, with no query at all; give both and a result has to satisfy ' +
 			'both. Each hit reports which name matched, the notes it carries, and ' +
 			'the route it serves at; pass that route to resolve_visual_target to ' +
@@ -573,17 +573,17 @@ async function listDocs() {
  * reading files. Every hit says which name matched, so a surprising result
  * explains itself.
  */
-/** The intent of a note as the filter names it — an unset one is 'none'. */
-function intentName(note: DocNote): string {
+/** The status of a note as the filter names it — an unset one is 'none'. */
+function noteTypeName(note: DocNote): string {
 	return note.type ?? 'none';
 }
 
-/** Why an intent filter kept a result, reported alongside the query's hits. */
-function intentHits(notes: DocNote[], type: string): string[] {
+/** Why a status filter kept a result, reported alongside the query's hits. */
+function noteTypeHits(notes: DocNote[], type: string): string[] {
 	if (!type) return [];
 	return notes
-		.filter((n) => intentName(n) === type)
-		.map((n) => `note type: ${intentName(n)}`);
+		.filter((n) => noteTypeName(n) === type)
+		.map((n) => `note type: ${noteTypeName(n)}`);
 }
 
 async function searchDocs(params: Record<string, unknown>) {
@@ -603,7 +603,7 @@ async function searchDocs(params: Record<string, unknown>) {
 	/** With both given, a result has to satisfy both. */
 	const keep = (matched: string[], notes: DocNote[]) => {
 		if (raw && !matched.length) return false;
-		if (type && !notes.some((n) => intentName(n) === type)) return false;
+		if (type && !notes.some((n) => noteTypeName(n) === type)) return false;
 		return true;
 	};
 
@@ -624,8 +624,8 @@ async function searchDocs(params: Record<string, unknown>) {
 				if (hits(note.note)) matched.push(`note: ${note.note}`);
 			}
 			// Kept apart from the query's hits until the decision is made: an
-			// intent match must not stand in for the text the caller asked for.
-			const byIntent = intentHits(entity.notes, type);
+			// status match must not stand in for the text the caller asked for.
+			const byType = noteTypeHits(entity.notes, type);
 			if (keep(matched, entity.notes)) {
 				results.push({
 					kind: entity.kind,
@@ -636,7 +636,7 @@ async function searchDocs(params: Record<string, unknown>) {
 						? { components: entity.components.map((c) => c.name) }
 						: {}),
 					...(entity.notes.length ? { notes: entity.notes } : {}),
-					matched: [...matched, ...byIntent],
+					matched: [...matched, ...byType],
 				});
 			}
 
@@ -649,7 +649,7 @@ async function searchDocs(params: Record<string, unknown>) {
 				for (const note of example.notes) {
 					if (hits(note.note)) why.push(`note: ${note.note}`);
 				}
-				const whyIntent = intentHits(example.notes, type);
+				const whyIntent = noteTypeHits(example.notes, type);
 				if (!keep(why, example.notes)) continue;
 				results.push({
 					kind: 'example',

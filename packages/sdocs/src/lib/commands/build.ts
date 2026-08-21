@@ -176,6 +176,7 @@ async function buildSiteMap(config: ResolvedSdocsConfig, cwd: string) {
 						: {}),
 				},
 				previews: [],
+				prose: [],
 				examples:
 					entity.kind === 'SHOWCASE'
 						? planEntitySnippets(entity)

@@ -13,7 +13,7 @@
 	| `npx sdocs build` | Build a static documentation site to `dist/` |
 	| `npx sdocs preview` | Preview the built site locally |
 	| `npx sdocs check` | Compile every doc stage and report what breaks |
-	| `npx sdocs coverage` | Report which components have a `[component]` preview |
+	| `npx sdocs coverage` | Report which components have a `[COMPONENT]` preview |
 	| `npx sdocs mcp` | Serve the sdocs MCP server on stdio — authoring tools for agents |
 
 	All commands read `sdocs.config.js` (or `sdocs.config.ts` / `sdocs.config.mjs`) from the current directory.
@@ -110,8 +110,8 @@
 
 	## `sdocs check`
 
-	Compiles every documentation stage — each `[component]` preview, each
-	`[example]`, and every `[PAGE]`/`[LAYOUT]`/`[DOC]` body — exactly the way
+	Compiles every documentation stage — each `[COMPONENT]` preview, each
+	`[EXAMPLE]`, and every `[PAGE]`/`[LAYOUT]`/`[DOC]` body — exactly the way
 	the dev server does, and reports what breaks:
 
 	- **Svelte compile errors** inside a stage (an unclosed tag, a malformed
@@ -145,9 +145,9 @@
 
 	## `sdocs coverage`
 
-	Reports which components have a `[component]` preview and which don't,
+	Reports which components have a `[COMPONENT]` preview and which don't,
 	measuring the [`components`](/explorer/configuration#components) globs
-	against every `[component]` in the project:
+	against every `[COMPONENT]` in the project:
 
 	```bash
 	npx sdocs coverage
@@ -167,7 +167,7 @@
 	supported pattern (tabs) and is never reported as a duplicate — only a
 	component documented from **more than one file** is.
 
-	It also reports `[component]` references with no component source behind
+	It also reports `[COMPONENT]` references with no component source behind
 	them, and documented components that fall outside the globs (usually a sign
 	the globs are too narrow). It's a report, not a gate: it always exits 0.
 	The [MCP server](#sdocs-mcp)'s `check_coverage` tool returns the same data.
@@ -196,21 +196,20 @@
 	  entity title, a component it previews, that component's
 	  [`synonyms`](/language/component-docs), an example title, an example's
 	  [`tags`](/language/component-docs), or the text of any
-	  [`notes`](/language/overview#notes). Matching is a case-insensitive
-	  **substring** — `butt` finds `Button`. An `intent` sweeps by note severity
-	  instead: `intent: 'danger'` lists everything marked danger with no query at
-	  all. Every hit says which names matched, the notes it carries, and the
+	  [`[NOTES]`](/language/overview#notes). Matching is a case-insensitive
+	  **substring** — `butt` finds `Button`. A `type` sweeps by note status
+	  instead: `type: 'bug'` lists everything marked bug with no query at all. Every hit says which names matched, the notes it carries, and the
 	  route it serves at, ready to hand to `resolve_visual_target`.
 	- **`check_docs`** — compile every stage and report Svelte errors, missing
 	  relative imports, and grammar diagnostics; the same check as
 	  [`sdocs check`](#sdocs-check). Takes an optional `file` to check one
 	  document.
-	- **`check_coverage`** — which components have a `[component]` preview and
+	- **`check_coverage`** — which components have a `[COMPONENT]` preview and
 	  which don't, plus duplicates, unresolved references, and components
 	  outside the globs; the same data as
 	  [`sdocs coverage`](#sdocs-coverage).
-	- **`resolve_visual_target`** — resolve a stage (a `[component]` preview, an
-	  `[example]`, a `[LAYOUT]`) to a **preview-only route**, the selectors an
+	- **`resolve_visual_target`** — resolve a stage (a `[COMPONENT]` preview, an
+	  `[EXAMPLE]`, a `[LAYOUT]`) to a **preview-only route**, the selectors an
 	  automation client waits on, and the files behind it. See
 	  [visual inspection](#visual-inspection).
 	- **`get_component_api`** — a component's full extracted API: props (types,

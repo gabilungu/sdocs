@@ -75,7 +75,7 @@
 	The Explorer's own chrome adapts on its own. What it cannot adapt is the
 	content you put on a stage:
 
-	- A `[component]` or `[example]` preview renders in an iframe at whatever
+	- A `[COMPONENT]` or `[EXAMPLE]` preview renders in an iframe at whatever
 	  width the phone leaves it — around 340px. A component with a hard
 	  `min-width` will overflow its stage there.
 	- Wide prose content — tables, long code samples — scrolls inside its own

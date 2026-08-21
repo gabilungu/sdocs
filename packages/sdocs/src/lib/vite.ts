@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { loadRawConfig, resolveAndFinalize } from './server/config.js';
 import { discoverDocFiles, globBase } from './server/discovery.js';
 import { parseComponent } from './server/prop-parser.js';
-import { writeNotes, NoteTargetError } from './server/note-editor.js';
+import { writeNotes, toggleTodo, NoteTargetError } from './server/note-editor.js';
 import { parseSdoc, offsetToPosition } from './language/index.js';
 import {
 	planEntitySnippets,
@@ -51,6 +51,8 @@ const RESOLVED_VIRTUAL_ID = '\0virtual:sdocs';
 const IFRAME_PREFIX = '/@sdocs/iframe/';
 /** Where the Explorer posts a note edit. Dev server only. */
 const NOTES_ENDPOINT = '/__sdocs/notes';
+/** Where the Explorer posts a todo tick. Dev server only. */
+const TODO_ENDPOINT = '/__sdocs/todo';
 
 const PREVIEW_PREFIX = '/@sdocs/preview/';
 const MOUNT_PREFIX = '/@sdocs/mount/';
@@ -63,6 +65,26 @@ interface PlannedPreview {
 
 /** Every iframe-served snippet of an entry, in order. DOC and PAGE content
  * renders natively in the Explorer (via pageModules), never as an iframe. */
+/** Key for a natively-rendered body in the `pageModules` map. */
+function pageKey(docFilePath: string, entitySlug: string, slug = 'content'): string {
+	return `${encodeEntityId(docFilePath, entitySlug)}/${slug}`;
+}
+
+/** Renders each example's [PROSE] to HTML. Markdown only: an example's prose
+ * is a caption on a stage, not a page, so it never grows a Svelte island. */
+async function renderExampleProse(
+	entity: { examples: { prose?: string | null }[] },
+	entry: DocEntry,
+	base: string,
+): Promise<void> {
+	for (const [i, example] of entity.examples.entries()) {
+		const snippet = entry.examples[i];
+		if (!snippet || !example.prose) continue;
+		const rendered = await renderPageMarkdown(example.prose);
+		snippet.proseHtml = applyBaseToHtml(rendered.html, base);
+	}
+}
+
 function allSnippets(entry: DocEntry): ExtractedSnippet[] {
 	return [
 		...entry.previews.map((p) => p.snippet),
@@ -87,6 +109,9 @@ export function sdocsPlugin(
 	let projectRoot: string;
 	let server: ViteDevServer;
 	let docEntries: Map<string, DocEntry> = new Map();
+	/** Rendered [PROSE] bodies, by page key. Build-time only: each is compiled
+	 * into its own component, so the payload carries the key, not the HTML. */
+	const proseBodies = new Map<string, string>();
 	let docScriptCache: Map<string, string> = new Map();
 	/** The file-level <style> content per doc file — injected into every one
 	 * of the file's preview/example stages (and its PAGE/DOC content). */
@@ -126,14 +151,16 @@ export function sdocsPlugin(
 		configureServer(devServer) {
 			server = devServer;
 
-			// Middleware: edit an opener's notes from the Explorer.
+			// Middleware: edit an entity's notes, or tick one of its todos,
+			// from the Explorer.
 			//
-			// This writes to the project's source, so it lives here and only
+			// These write to the project's source, so they live here and only
 			// here: `configureServer` runs for the dev server alone, so no
-			// build can carry it. The file has to be one this project already
+			// build can carry them. The file has to be one this project already
 			// documents — a path from the request never reaches the disk.
 			server.middlewares.use(async (req, res, next) => {
-				if (req.url?.split('?')[0] !== NOTES_ENDPOINT) return next();
+				const endpoint = req.url?.split('?')[0];
+				if (endpoint !== NOTES_ENDPOINT && endpoint !== TODO_ENDPOINT) return next();
 				const fail = (code: number, message: string) => {
 					res.statusCode = code;
 					res.setHeader('Content-Type', 'application/json');
@@ -149,11 +176,19 @@ export function sdocsPlugin(
 					if (!known) return fail(400, 'That file is not part of this project.');
 
 					const source = await readFile(filePath, 'utf-8');
-					const next = writeNotes(
-						source,
-						{ entitySlug: String(body.entitySlug ?? ''), exampleTitle: body.exampleTitle ?? null },
-						Array.isArray(body.notes) ? body.notes : [],
-					);
+					const target = {
+						entitySlug: String(body.entitySlug ?? ''),
+						exampleTitle: body.exampleTitle ?? null,
+					};
+					const next =
+						endpoint === NOTES_ENDPOINT
+							? writeNotes(source, target, Array.isArray(body.notes) ? body.notes : [])
+							: toggleTodo(
+									source,
+									target,
+									(Array.isArray(body.path) ? body.path : []).map(Number),
+									!!body.done,
+								);
 					if (next !== source) await writeFile(filePath, next, 'utf-8');
 					res.statusCode = 200;
 					res.setHeader('Content-Type', 'application/json');
@@ -418,7 +453,11 @@ export function sdocsPlugin(
 				const parsed = parsePageId(id.slice(1));
 				if (!parsed) return null;
 				const entry = lookupEntry(docEntries, parsed);
-				if (!entry?.content) return null;
+				const body =
+					parsed.slug === 'content'
+						? entry?.content?.body
+						: proseBodies.get(pageKey(parsed.docFilePath, parsed.entitySlug, parsed.slug));
+				if (!entry || body === undefined) return null;
 				const filePrelude = docScriptCache.get(parsed.docFilePath) ?? '';
 				const entityPrelude = entry.entityScript
 					? resolveScriptImports(entry.entityScript, parsed.docFilePath)
@@ -428,7 +467,7 @@ export function sdocsPlugin(
 					.join('\n\n');
 				return generatePageComponent(
 					[filePrelude, entityPrelude].filter((s) => s.trim()).join('\n'),
-					entry.content.body,
+					body,
 					styles,
 				);
 			}
@@ -525,6 +564,7 @@ export function sdocsPlugin(
 				...(p.tags?.length ? { tags: p.tags } : {}),
 				...(p.synonyms?.length ? { synonyms: p.synonyms } : {}),
 				...(p.notes?.length ? { notes: p.notes } : {}),
+				...(p.todos?.length ? { todos: p.todos } : {}),
 				// Only the exception travels; showing the code is the default.
 				...(p.showCode === false ? { showCode: false } : {}),
 				componentName: p.componentName ?? null,
@@ -542,11 +582,16 @@ export function sdocsPlugin(
 								: 'layout',
 				filePath,
 				entitySlug: entity.slug,
-				meta: { title: entity.title, ...(entity.notes.length ? { notes: entity.notes } : {}) },
+				meta: {
+					title: entity.title,
+					...(entity.notes.length ? { notes: entity.notes } : {}),
+					...(entity.todos.length ? { todos: entity.todos } : {}),
+				},
 				entityScript: entity.script?.content ?? null,
 				entityStyle: entity.style?.content ?? null,
 				previews: [],
 				examples: [],
+				prose: [],
 				content: null,
 				routeSlug: entity.routeSlug ?? undefined,
 				hide: entity.hide,
@@ -570,8 +615,9 @@ export function sdocsPlugin(
 
 			if (entity.kind === 'SHOWCASE') {
 				if (entity.description) entry.meta.description = entity.description;
+				const previewSnippets = snippets.filter((s) => s.role === 'preview');
 				for (const [i, preview] of entity.previews.entries()) {
-					const snippet = snippets[i];
+					const snippet = previewSnippets[i];
 					let componentPath: string | null = null;
 					let componentData: ComponentData | null = null;
 					let highlightedSource: string | null = null;
@@ -616,6 +662,16 @@ export function sdocsPlugin(
 						snippet,
 					});
 				}
+				for (const snippet of snippets.filter((s) => s.role === 'prose')) {
+					const rendered = await renderPageMarkdown(snippet.body);
+					proseBodies.set(
+						pageKey(filePath, entity.slug, snippet.slug),
+						applyBaseToHtml(rendered.html, base),
+					);
+					entry.prose.push({ key: pageKey(filePath, entity.slug, snippet.slug) });
+				}
+				entry.flow = entity.flow;
+
 				entry.examples = snippets.filter((s) => s.role === 'example');
 				entity.examples.forEach((example, i) => {
 					if (entry.examples[i]) entry.examples[i].stage = stageOf(example.sizing);
@@ -623,6 +679,7 @@ export function sdocsPlugin(
 				for (const example of entry.examples) {
 					example.highlightedHtml = await highlight(example.body);
 				}
+				await renderExampleProse(entity, entry, base);
 			} else if (entity.kind === 'DOC') {
 				// The doc body renders natively in the Explorer; only its
 				// [example] blocks are staged in iframes (with the project css),
@@ -637,7 +694,7 @@ export function sdocsPlugin(
 				entry.padding = entity.sizing.padding ?? config.content.doc.padding;
 				entry.contentX = entity.sizing.contentX ?? config.content.doc.contentX;
 				entry.bodyTitle = rendered.bodyTitle;
-				entry.contentKey = encodeEntityId(filePath, entity.slug);
+				entry.contentKey = pageKey(filePath, entity.slug);
 
 				entry.examples = snippets.filter((s) => s.role === 'example');
 				entity.examples.forEach((example, i) => {
@@ -657,6 +714,7 @@ export function sdocsPlugin(
 				for (const example of entry.examples) {
 					example.highlightedHtml = await highlight(example.body);
 				}
+				await renderExampleProse(entity, entry, base);
 			} else if (entity.kind === 'PAGE') {
 				// The page body is plain Svelte rendered natively in the docs
 				// context — no stage, no iframe. Root-absolute src/href carry the
@@ -665,7 +723,7 @@ export function sdocsPlugin(
 				entry.content = snippets[0];
 				entry.padding = entity.sizing.padding ?? config.content.page.padding;
 				entry.contentX = entity.sizing.contentX ?? config.content.page.contentX;
-				entry.contentKey = encodeEntityId(filePath, entity.slug);
+				entry.contentKey = pageKey(filePath, entity.slug);
 			} else {
 				snippets[0].stage = stageOf();
 				entry.content = snippets[0];
@@ -711,6 +769,8 @@ export function sdocsPlugin(
 			showToc: e.showToc,
 			bodyTitle: e.bodyTitle,
 			contentKey: e.contentKey,
+			prose: e.prose,
+			flow: e.flow,
 			routeSlug: e.routeSlug,
 			hide: e.hide,
 		}));
@@ -723,13 +783,14 @@ export function sdocsPlugin(
 		// (dev, embedded build, CLI build) code-splits them through the module
 		// graph — shared Svelte runtime, component CSS via Vite's import helper.
 		const pageImports = Array.from(docEntries.values())
-			.filter((e) => e.kind === 'doc' || e.kind === 'page')
-			.map(
-				(e) =>
-					`\t${JSON.stringify(encodeEntityId(e.filePath, e.entitySlug))}: () => import(${JSON.stringify(
-						pageVirtualId(e.filePath, e.entitySlug),
-					)}),`,
-			)
+			.flatMap((e) => [
+				...(e.kind === 'doc' || e.kind === 'page' ? ['content'] : []),
+				...e.prose.map((_, i) => `prose-${i + 1}`),
+			].map((slug) =>
+				`\t${JSON.stringify(pageKey(e.filePath, e.entitySlug, slug))}: () => import(${JSON.stringify(
+					pageVirtualId(e.filePath, e.entitySlug, slug),
+				)}),`,
+			))
 			.join('\n');
 
 		return `export const docs = ${JSON.stringify(data)};\nexport const cssNames = ${JSON.stringify(cssNames)};\nexport const axes = ${JSON.stringify(config.axes)};\nexport const scale = ${JSON.stringify(config.scale)};\nexport const pageModules = {\n${pageImports}\n};\nexport default docs;`;
@@ -755,9 +816,14 @@ export function sdocsPlugin(
 						server.moduleGraph.invalidateModule(iframeMod);
 					}
 				}
-				if (entry.kind === 'doc' || entry.kind === 'page') {
+				// Native bodies: a doc/page's content, and every [PROSE] block.
+				const nativeSlugs = [
+					...(entry.kind === 'doc' || entry.kind === 'page' ? ['content'] : []),
+					...entry.prose.map((_, i) => `prose-${i + 1}`),
+				];
+				for (const slug of nativeSlugs) {
 					const pageMod = server.moduleGraph.getModuleById(
-						'\0' + pageVirtualId(docFilePath, entry.entitySlug),
+						'\0' + pageVirtualId(docFilePath, entry.entitySlug, slug),
 					);
 					if (pageMod) {
 						server.moduleGraph.invalidateModule(pageMod);

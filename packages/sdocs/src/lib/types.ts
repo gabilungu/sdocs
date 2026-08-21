@@ -264,6 +264,32 @@ export interface DocNote {
 	type: NoteType | null;
 }
 
+/** One line of a `[TODO]` block, with whatever is nested under it. */
+export interface TodoItem {
+	/** The item's text — inline markdown, rendered. */
+	text: string;
+	/** Ticked in the source (`- [x]`). */
+	done: boolean;
+	/** Items indented under this one; nesting has no depth limit. */
+	children: TodoItem[];
+}
+
+/**
+ * One item in a [SHOWCASE]'s body, in the order it was written — the tab strip
+ * its [COMPONENT] blocks share, one [EXAMPLE], or one [PROSE] block. Indices
+ * point into the entry's own `previews` / `examples` / `prose` arrays.
+ */
+export type FlowItem =
+	| { kind: 'components'; indices: number[] }
+	| { kind: 'example'; index: number }
+	| { kind: 'prose'; index: number };
+
+/** One [PROSE] block of a [SHOWCASE], compiled as its own component. */
+export interface ProseBlock {
+	/** Key into `pageModules` from `virtual:sdocs`. */
+	key: string;
+}
+
 /** Entity metadata from a [SHOWCASE]/[DOC]/[PAGE]/[LAYOUT] opener */
 export interface SdocMeta {
 	/** Sidebar path (e.g. 'Demo / Button') */
@@ -273,6 +299,8 @@ export interface SdocMeta {
 	/** Standing remarks about this entity, shown with it and marked in the
 	 * sidebar. */
 	notes?: DocNote[];
+	/** The entity's [TODO] checklist. */
+	todos?: TodoItem[];
 }
 
 /** A parsed prop */
@@ -337,7 +365,7 @@ export interface ExtractedSnippet {
 	name: string;
 	/** URL-safe id, unique within the entity */
 	slug: string;
-	role: 'preview' | 'example' | 'content';
+	role: 'preview' | 'example' | 'content' | 'prose';
 	/** Full body — block script/style included (what the code panel shows) */
 	body: string;
 	/** Markup between the block script and style (what the stage renders) */
@@ -354,8 +382,14 @@ export interface ExtractedSnippet {
 	/** A `[component]`'s synonyms="…": other names the component answers to.
 	 * Rendered above its preview, and searched by the MCP server. */
 	synonyms?: string[];
-	/** An `[example]`'s notes={[…]}, shown under its title. */
+	/** An `[EXAMPLE]`'s [NOTES], shown under its title. */
 	notes?: DocNote[];
+	/** An `[EXAMPLE]`'s [TODO] checklist. */
+	todos?: TodoItem[];
+	/** An `[EXAMPLE]`'s [PROSE], rendered to HTML. Markdown only — the
+	 * Svelte islands a [SHOWCASE]'s prose can carry would have to compile,
+	 * and an example's prose is a caption, not a page. */
+	proseHtml?: string;
 	/** False when the `[example]` opener says `code="false"` — its code panel
 	 * is not rendered. Absent means it is. */
 	showCode?: boolean;
@@ -432,6 +466,12 @@ export interface DocEntry {
 	bodyTitle?: string;
 	/** Key into the virtual module's pageModules map (doc and page kinds) */
 	contentKey?: string;
+	/** A [SHOWCASE]'s [PROSE] blocks, in source order. Each compiles natively
+	 * like a [DOC] body — markdown, code fences, and Svelte islands — and is
+	 * keyed into `pageModules` by `key`. */
+	prose: ProseBlock[];
+	/** What a [SHOWCASE] shows, in source order. Absent on other kinds. */
+	flow?: FlowItem[];
 	/** Explicit route leaf from slug="…"; the slugified title segment otherwise */
 	routeSlug?: string;
 	/** `hide` flag: routable but never listed in a sidebar */

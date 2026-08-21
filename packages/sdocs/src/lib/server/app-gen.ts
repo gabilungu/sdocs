@@ -274,9 +274,13 @@ async function boot() {
 			sections: props.sections.length > 0 ? props.sections : undefined,
 			home: props.home,
 		});
-		const key = resolveRoute(map, getRoute())?.doc.contentKey;
-		if (key && pageModules[key]) {
-			preloaded[key] = (await pageModules[key]()).default;
+		// Every natively-compiled body on this route: the doc/page content and
+		// each [PROSE] block. One missing here is a hydration mismatch — the
+		// static HTML has it and the first client render would not.
+		const doc = resolveRoute(map, getRoute())?.doc;
+		const keys = [doc?.contentKey, ...(doc?.prose ?? []).map((p) => p.key)].filter(Boolean);
+		for (const key of keys) {
+			if (pageModules[key]) preloaded[key] = (await pageModules[key]()).default;
 		}
 	}
 	(prerendered ? hydrate : mount)(Explorer, { target, props: { ...props, preloaded } });

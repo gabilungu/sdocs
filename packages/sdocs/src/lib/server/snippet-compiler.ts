@@ -680,17 +680,20 @@ export function buildPreviewUrl(docFilePath: string, entitySlug: string, snippet
 	return `/previews/${encodeEntityId(docFilePath, entitySlug)}/${snippetSlug}.html`;
 }
 
-/** Virtual module ID for a DOC/PAGE entity's native content component */
-export function pageVirtualId(docFilePath: string, entitySlug: string): string {
-	return `/@sdocs/page/${encodeEntityId(docFilePath, entitySlug)}.svelte`;
+/** Virtual module ID for a natively-rendered body: a DOC or PAGE entity's
+ * content, or one [PROSE] block of a SHOWCASE (slug `prose-1`, `prose-2`, …) */
+export function pageVirtualId(docFilePath: string, entitySlug: string, slug = 'content'): string {
+	return `/@sdocs/page/${encodeEntityId(docFilePath, entitySlug)}/${slug}.svelte`;
 }
 
 /** Parse a page virtual ID back into its parts */
-export function parsePageId(id: string): { docFilePath: string; entitySlug: string } | null {
-	const match = id.match(/^\/@sdocs\/page\/([^/]+)\.svelte$/);
+export function parsePageId(
+	id: string,
+): { docFilePath: string; entitySlug: string; slug: string } | null {
+	const match = id.match(/^\/@sdocs\/page\/([^/]+)\/([^/]+)\.svelte$/);
 	if (!match) return null;
 	const { docFilePath, entitySlug } = decodeEntityId(match[1]);
-	return { docFilePath, entitySlug };
+	return { docFilePath, entitySlug, slug: match[2] };
 }
 
 /** Virtual module ID for a preview's mount script (embedded production builds) */

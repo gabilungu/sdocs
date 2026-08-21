@@ -8,11 +8,11 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import ts from 'typescript';
 import type { SdocEntity } from '../language/index.js';
-import type { DocNote } from '../types.js';
+import type { DocNote, TodoItem } from '../types.js';
 import { exampleSlug, previewSlug } from '../language/parser.js';
 import { scrubScriptText } from '../language/script-scan.js';
 
-export type SnippetRole = 'preview' | 'example' | 'content';
+export type SnippetRole = 'preview' | 'example' | 'content' | 'prose';
 
 export interface PlannedSnippet {
 	name: string;
@@ -30,8 +30,12 @@ export interface PlannedSnippet {
 	description: string | null;
 	/** An example's tags="…" — what it shows. Absent on other roles. */
 	tags?: string[];
-	/** An example's notes={[…]}. Absent on other roles. */
+	/** An example's [NOTES]. Absent on other roles. */
 	notes?: DocNote[];
+	/** An example's [TODO] checklist. Absent on other roles. */
+	todos?: TodoItem[];
+	/** An example's [PROSE], as markdown. Absent on other roles. */
+	prose?: string | null;
 	/** False when the example says `code="false"`. Absent on other roles. */
 	showCode?: boolean;
 	/** A preview's synonyms="…" — the component's other names. Absent on
@@ -45,10 +49,11 @@ export interface PlannedSnippet {
 // time); re-exported here so snippet consumers keep one import site.
 export { exampleSlug, previewSlug };
 
-/** The snippets one entity produces, in order: previews then examples for
- * SHOWCASE, the 'content' body then examples for DOC, the single 'content'
- * body for PAGE and LAYOUT. DOC and PAGE content renders natively in the
- * Explorer — never served as an iframe page (see planIframeSnippets). */
+/** The snippets one entity produces, in order: prose then previews then
+ * examples for SHOWCASE, the 'content' body then examples for DOC, the single
+ * 'content' body for PAGE and LAYOUT. DOC and PAGE content and SHOWCASE prose
+ * render natively in the Explorer — never served as an iframe page (see
+ * planIframeSnippets). */
 export function planEntitySnippets(entity: SdocEntity): PlannedSnippet[] {
 	const blockParts = (b: {
 		body: string;
@@ -83,11 +88,30 @@ export function planEntitySnippets(entity: SdocEntity): PlannedSnippet[] {
 			role: 'example' as const,
 			tags: e.tags ?? [],
 			notes: e.notes ?? [],
+			todos: e.todos ?? [],
+			prose: e.prose ?? null,
 			showCode: e.showCode ?? true,
 			...blockParts(e),
 		};
 	};
 	if (entity.kind === 'SHOWCASE') {
+		// [PROSE] blocks are planned first so their slugs are reserved before
+		// an example can take one: prose-1 is addressable, an example titled
+		// "Prose 1" is not worth a collision.
+		const prose = entity.prose.map((body, i) => {
+			const slug = `prose-${i + 1}`;
+			usedSlugs.add(slug);
+			return {
+				name: `Prose ${i + 1}`,
+				slug,
+				role: 'prose' as const,
+				body,
+				markup: body,
+				script: null,
+				style: null,
+				description: null,
+			};
+		});
 		const previews = entity.previews.map((p) => {
 			const slug = previewSlug(p.label);
 			usedSlugs.add(slug);
@@ -100,7 +124,7 @@ export function planEntitySnippets(entity: SdocEntity): PlannedSnippet[] {
 				...blockParts(p),
 			};
 		});
-		return [...previews, ...entity.examples.map(example)];
+		return [...prose, ...previews, ...entity.examples.map(example)];
 	}
 	const content = {
 		name: 'Content',
@@ -123,6 +147,8 @@ interface ExampleLike {
 	title: string;
 	tags?: string[];
 	notes?: DocNote[];
+	todos?: TodoItem[];
+	prose?: string | null;
 	showCode?: boolean;
 	body: string;
 	markup: string;
@@ -132,12 +158,14 @@ interface ExampleLike {
 }
 
 /** The snippets of an entity that are served as iframe preview pages:
- * everything except DOC and PAGE content, which render natively in the
- * docs context (a DOC's body also references the Explorer-provided
+ * everything except DOC and PAGE content and [PROSE], which render natively
+ * in the docs context (a DOC's body also references the Explorer-provided
  * `__sdocsExample` snippet and only compiles there). */
 export function planIframeSnippets(entity: SdocEntity): PlannedSnippet[] {
 	return planEntitySnippets(entity).filter(
-		(s) => !((entity.kind === 'DOC' || entity.kind === 'PAGE') && s.role === 'content'),
+		(s) =>
+			s.role !== 'prose' &&
+			!((entity.kind === 'DOC' || entity.kind === 'PAGE') && s.role === 'content'),
 	);
 }
 

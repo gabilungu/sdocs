@@ -321,3 +321,159 @@
 	--color-action-900: var(--color-blue-100);
 	--color-action-950: var(--color-blue-50);
 }
+
+/* ── Rendered prose ────────────────────────────────────────────────────────
+ *
+ * The typography of a rendered markdown body, shared by everything that has
+ * one: a [DOC]'s content and a [SHOWCASE]'s [PROSE] blocks. Global rather than
+ * component-scoped because the markup it styles is compiled at build time and
+ * arrives as its own component — there is no scope to share with it.
+ */
+.sdocs-prose {
+	font-size: 14px;
+	line-height: 1.7;
+	color: var(--color-base-800);
+}
+.sdocs-prose h1,
+.sdocs-prose h2,
+.sdocs-prose h3,
+.sdocs-prose h4,
+.sdocs-prose h5,
+.sdocs-prose h6 {
+	color: var(--color-base-900);
+	font-weight: 650;
+	line-height: 1.3;
+	margin: 1.6em 0 0.5em;
+	scroll-margin-top: 16px;
+}
+/* The body h1 serves as the page title — match .sdocs-view-title */
+.sdocs-prose h1 {
+	font-size: 24px;
+	font-weight: 700;
+}
+.sdocs-prose h2 { font-size: 18px; }
+.sdocs-prose h3 { font-size: 15px; }
+.sdocs-prose h4,
+.sdocs-prose h5,
+.sdocs-prose h6 { font-size: 14px; }
+.sdocs-prose h1:first-child,
+.sdocs-prose h2:first-child,
+.sdocs-prose h3:first-child {
+	margin-top: 0;
+}
+.sdocs-prose p {
+	margin: 0.7em 0;
+}
+.sdocs-prose a {
+	color: var(--color-action-500, var(--color-base-900));
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+.sdocs-prose ul,
+.sdocs-prose ol {
+	margin: 0.7em 0;
+	padding-left: 1.6em;
+}
+.sdocs-prose li {
+	margin: 0.25em 0;
+}
+.sdocs-prose blockquote {
+	margin: 0.9em 0;
+	padding: 2px 16px;
+	border-left: 3px solid var(--color-base-200);
+	color: var(--color-base-600);
+}
+.sdocs-prose hr {
+	border: none;
+	border-top: 1px solid var(--color-base-200);
+	margin: 24px 0;
+}
+.sdocs-prose code {
+	font-family: var(--mono);
+	font-size: 0.92em;
+}
+.sdocs-prose :not(pre > code) {
+	background: var(--color-base-100);
+	border-radius: 4px;
+	padding: 1px 5px;
+}
+.sdocs-prose pre {
+	margin: 0.9em 0;
+	padding: 12px;
+	border-radius: 6px;
+	overflow-x: auto;
+	font-size: 13px;
+	line-height: 1.5;
+	tab-size: 4;
+}
+.sdocs-prose table {
+	border-collapse: collapse;
+	margin: 0.9em 0;
+	display: block;
+	max-width: 100%;
+	overflow-x: auto;
+}
+.sdocs-prose th,
+.sdocs-prose td {
+	border: 1px solid var(--color-base-200);
+	padding: 6px 12px;
+	text-align: left;
+}
+.sdocs-prose td[align='center'],
+.sdocs-prose th[align='center'] {
+	text-align: center;
+}
+.sdocs-prose td[align='right'],
+.sdocs-prose th[align='right'] {
+	text-align: right;
+}
+.sdocs-prose th {
+	background: var(--color-base-50);
+	font-weight: 600;
+}
+.sdocs-prose img {
+	max-width: 100%;
+	border-radius: 6px;
+}
+
+/* Task lists: GitHub-style checkboxes, no bullet */
+.sdocs-prose li:has(> input[type='checkbox']:first-child) {
+	list-style: none;
+	margin-left: -1.3em;
+}
+.sdocs-prose li > input[type='checkbox'] {
+	margin-right: 6px;
+	vertical-align: -2px;
+}
+
+/* GitHub-style alerts: > [!NOTE] / [!TIP] / [!IMPORTANT] / [!WARNING] / [!CAUTION] */
+.sdocs-prose .sdocs-alert {
+	margin: 0.9em 0;
+	padding: 8px 16px;
+	border-left: 3px solid var(--sdocs-alert-color);
+	border-radius: 0 6px 6px 0;
+	background: color-mix(in srgb, var(--sdocs-alert-color) 6%, transparent);
+}
+.sdocs-prose .sdocs-alert-label {
+	font-size: 13px;
+	font-weight: 650;
+	color: var(--sdocs-alert-color);
+	margin: 0.25em 0 0;
+}
+.sdocs-prose .sdocs-alert-note {
+	--sdocs-alert-color: var(--color-blue-500);
+}
+.sdocs-prose .sdocs-alert-tip {
+	--sdocs-alert-color: var(--color-green-500);
+}
+.sdocs-prose .sdocs-alert-important {
+	--sdocs-alert-color: var(--color-purple-500);
+}
+.sdocs-prose .sdocs-alert-warning {
+	--sdocs-alert-color: var(--color-amber-500);
+}
+.sdocs-prose .sdocs-alert-caution {
+	--sdocs-alert-color: var(--color-red-500);
+}
+
+/* ── Example stages in the page flow ── */

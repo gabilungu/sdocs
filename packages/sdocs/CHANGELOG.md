@@ -12,6 +12,77 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.139] - 2026-08-21
+
+### Breaking
+
+- **`notes={[…]}` is replaced by a `[NOTES]` block**, and its `intent`
+  vocabulary by a status one. A file using the attribute now reports an unknown
+  attribute rather than rendering.
+
+  ```sdoc
+  [NOTES]
+  	- bug: Focus ring lands 1px off in Safari.
+  	- deprecated: Being replaced by ActionButton in v4.
+  	- Just a remark, with no status.
+  [/NOTES]
+  ```
+
+  `danger`/`warning`/`success`/`info` become `bug`/`deprecated`/`wip`/`ready`,
+  ranked in that order with a status-less note between `wip` and `ready`. The
+  vocabulary is what state a thing is in, not how loud the note is: `a11y` and
+  `perf` are categories rather than states, and mixing the two makes the
+  sidebar's worst-first roll-up meaningless — categories are what `tags`
+  already does.
+
+  The MCP filter follows: `search_docs({ type })` instead of `{ intent }`.
+
+- **Two or more `[COMPONENT]` blocks in one `[SHOWCASE]` must sit inside a
+  `[COMPONENTS]`.** A lone one still needs no container.
+
+  Several component blocks are tabs over a shared stage, one code panel and one
+  API table — a single item on the page rather than two things in a row. Now
+  that a `[SHOWCASE]` can also hold prose, that has to be written down: with
+  two bare components and a paragraph between them there is no correct place
+  for the tab strip they share, and refusing beats guessing.
+
+### Added
+
+- **`[TODO]`** — a checklist, nested to any depth by indentation, once per
+  entity and once per `[EXAMPLE]`. It always renders when present, and under
+  `sdocs dev` the boxes are live: ticking one writes back into the `.sdoc`,
+  changing the single character between the brackets and nothing else. A built
+  site shows the same list read-only, since there is no source there to write
+  to.
+
+  Indentation is meaning here rather than layout, so the formatter leaves a
+  `[TODO]` body exactly as written.
+
+- **`[PROSE]`** — the capabilities of a `[DOC]` body (markdown, fences, tables,
+  Svelte islands) anywhere in a `[SHOWCASE]`, as many times as you like.
+  Blocks render in the order they were written, the tab strip included.
+
+  Inside an `[EXAMPLE]` it is markdown only, and it follows the example to its
+  own route where a sibling block would not. A `[DOC]` takes none: its body is
+  already prose, and a nested block would have no answer to where it goes
+  relative to the body around it.
+
+- **An example opened on its own route shows everything it carries** —
+  description, notes, todo, prose and tags — instead of just its title and its
+  stage.
+
+### Changed
+
+- **The text blocks are matched uppercase and alone on their line.** They carry
+  no attributes, so nothing else can follow the tag. This is not a style rule:
+  `[notes](/language/overview)` at the start of a line is an ordinary markdown
+  link, and a case-insensitive tag turned it into a block opener — it broke a
+  page of our own docs.
+
+- **The TextMate grammar accepts either casing** for `[COMPONENT]` and
+  `[EXAMPLE]`, and highlights the new blocks. The formatter capitalizes tags,
+  so a grammar that only knew lowercase would stop highlighting its own output.
+
 ## [0.0.138] - 2026-08-21
 
 ### Added

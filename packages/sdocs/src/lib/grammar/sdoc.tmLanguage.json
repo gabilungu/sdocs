@@ -17,7 +17,7 @@
 			]
 		},
 		"L:meta.tag.start.svelte - (string, comment, meta.embedded)": {
-			"comment": "CSS-custom-property component props (--background=\"…\" / --x={…}) color like their sibling attributes instead of Svelte's property-name scope — visual parity inside .sdoc bodies. The whole attribute is consumed atomically so the value keeps its own scopes.",
+			"comment": "CSS-custom-property component props (--background=\"\u2026\" / --x={\u2026}) color like their sibling attributes instead of Svelte's property-name scope \u2014 visual parity inside .sdoc bodies. The whole attribute is consumed atomically so the value keeps its own scopes.",
 			"patterns": [
 				{
 					"match": "(--[\\w-]+)(=)(\")((?:[^\"\\\\]|\\\\.)*)(\")",
@@ -262,6 +262,15 @@
 					"include": "#block-style"
 				},
 				{
+					"include": "#components-container"
+				},
+				{
+					"include": "#text-block"
+				},
+				{
+					"include": "#prose"
+				},
+				{
 					"include": "#preview"
 				},
 				{
@@ -305,12 +314,15 @@
 					"include": "text.html.markdown#fenced_code_block"
 				},
 				{
+					"include": "#text-block"
+				},
+				{
 					"include": "#page-example"
 				},
 				{
-					"comment": "The begin consumes the same optional indent as the while: after a fence or example closes, the loop re-begins on the next content line, and a begin line skips the while — without the indent here markdown would see the raw tab and open an indented code block.",
+					"comment": "The begin consumes the same optional indent as the while: after a fence or example closes, the loop re-begins on the next content line, and a begin line skips the while \u2014 without the indent here markdown would see the raw tab and open an indented code block.",
 					"begin": "(^|\\G)(?:\\t|[ ]{1,4})?",
-					"while": "(^|\\G)(?!\\s*\\[/DOC\\]\\s*$)(?!\\s*(?:\\[example\\b|`{3,}|~{3,}))(?:\\t|[ ]{1,4})?",
+					"while": "(^|\\G)(?!\\s*\\[/DOC\\]\\s*$)(?!\\s*(?:\\[(?i:example)\\b|\\[(?:NOTES|TODO)\\]\\s*$|`{3,}|~{3,}))(?:\\t|[ ]{1,4})?",
 					"contentName": "meta.embedded.block.markdown",
 					"patterns": [
 						{
@@ -512,7 +524,7 @@
 		},
 		"preview": {
 			"name": "meta.block.preview.sdoc",
-			"begin": "^\\s*(\\[)(component)\\b(.*)$",
+			"begin": "^\\s*(\\[)((?i:component))\\b(.*)$",
 			"beginCaptures": {
 				"1": {
 					"name": "punctuation.definition.tag.begin.sdoc"
@@ -528,7 +540,7 @@
 					]
 				}
 			},
-			"end": "^\\s*(\\[/)(component)(\\])\\s*$",
+			"end": "^\\s*(\\[/)((?i:component))(\\])\\s*$",
 			"endCaptures": {
 				"1": {
 					"name": "punctuation.definition.tag.begin.sdoc"
@@ -543,7 +555,7 @@
 			"patterns": [
 				{
 					"begin": "(^|\\G)",
-					"while": "(^|\\G)(?!\\s*\\[/(?:component)\\]\\s*$)",
+					"while": "(^|\\G)(?!\\s*\\[/(?:(?i:component))\\]\\s*$)",
 					"patterns": [
 						{
 							"include": "#opener-continuation"
@@ -566,7 +578,7 @@
 		},
 		"example": {
 			"name": "meta.block.example.sdoc",
-			"begin": "^\\s*(\\[)(example)\\b(.*)$",
+			"begin": "^\\s*(\\[)((?i:example))\\b(.*)$",
 			"beginCaptures": {
 				"1": {
 					"name": "punctuation.definition.tag.begin.sdoc"
@@ -582,7 +594,7 @@
 					]
 				}
 			},
-			"end": "^\\s*(\\[/)(example)(\\])\\s*$",
+			"end": "^\\s*(\\[/)((?i:example))(\\])\\s*$",
 			"endCaptures": {
 				"1": {
 					"name": "punctuation.definition.tag.begin.sdoc"
@@ -597,7 +609,7 @@
 			"patterns": [
 				{
 					"begin": "(^|\\G)",
-					"while": "(^|\\G)(?!\\s*\\[/example\\]\\s*$)",
+					"while": "(^|\\G)(?!\\s*\\[/(?i:example)\\]\\s*$)",
 					"patterns": [
 						{
 							"include": "#opener-continuation"
@@ -619,7 +631,7 @@
 			]
 		},
 		"opener-continuation": {
-			"comment": "Attribute lines and the closing ] of a multi-line (wrapped) opener. Every rule is a single whole-line (^…$) match — no begin/end region — so nothing can span into the next line and desync a Svelte block body. The anchored shape also means Svelte text/script never matches.",
+			"comment": "Attribute lines and the closing ] of a multi-line (wrapped) opener. Every rule is a single whole-line (^\u2026$) match \u2014 no begin/end region \u2014 so nothing can span into the next line and desync a Svelte block body. The anchored shape also means Svelte text/script never matches.",
 			"patterns": [
 				{
 					"comment": "Standalone closing ] of a multi-line opener.",
@@ -789,7 +801,7 @@
 		},
 		"page-example": {
 			"name": "meta.block.example.sdoc",
-			"begin": "(^|\\G)\\s*(\\[)(example)\\b(.*)$",
+			"begin": "(^|\\G)\\s*(\\[)((?i:example))\\b(.*)$",
 			"beginCaptures": {
 				"2": {
 					"name": "punctuation.definition.tag.begin.sdoc"
@@ -805,7 +817,7 @@
 					]
 				}
 			},
-			"end": "(^|\\G)\\s*(\\[/)(example)(\\])\\s*$",
+			"end": "(^|\\G)\\s*(\\[/)((?i:example))(\\])\\s*$",
 			"endCaptures": {
 				"2": {
 					"name": "punctuation.definition.tag.begin.sdoc"
@@ -820,7 +832,7 @@
 			"patterns": [
 				{
 					"begin": "(^|\\G)",
-					"while": "(^|\\G)(?!\\s*\\[/example\\]\\s*$)",
+					"while": "(^|\\G)(?!\\s*\\[/(?i:example)\\]\\s*$)",
 					"patterns": [
 						{
 							"include": "#block-script-ts"
@@ -952,6 +964,109 @@
 			"patterns": [
 				{
 					"include": "source.css"
+				}
+			]
+		},
+		"components-container": {
+			"match": "^\\s*(\\[/?)((?i:COMPONENTS))(\\])\\s*$",
+			"captures": {
+				"1": {
+					"name": "punctuation.definition.tag.begin.sdoc"
+				},
+				"2": {
+					"name": "keyword.control.block.sdoc"
+				},
+				"3": {
+					"name": "punctuation.definition.tag.end.sdoc"
+				}
+			}
+		},
+		"text-block": {
+			"name": "meta.block.text.sdoc",
+			"begin": "^\\s*(\\[)(NOTES|TODO)(\\])\\s*$",
+			"beginCaptures": {
+				"1": {
+					"name": "punctuation.definition.tag.begin.sdoc"
+				},
+				"2": {
+					"name": "keyword.control.block.sdoc"
+				},
+				"3": {
+					"name": "punctuation.definition.tag.end.sdoc"
+				}
+			},
+			"end": "^\\s*(\\[/)(NOTES|TODO)(\\])\\s*$",
+			"endCaptures": {
+				"1": {
+					"name": "punctuation.definition.tag.begin.sdoc"
+				},
+				"2": {
+					"name": "keyword.control.block.sdoc"
+				},
+				"3": {
+					"name": "punctuation.definition.tag.end.sdoc"
+				}
+			},
+			"patterns": [
+				{
+					"match": "^\\s*(-)\\s+(?:(\\[[ xX]\\])|((?:bug|deprecated|wip|ready):))?",
+					"captures": {
+						"1": {
+							"name": "punctuation.definition.list.begin.markdown"
+						},
+						"2": {
+							"name": "constant.language.sdoc"
+						},
+						"3": {
+							"name": "entity.name.type.sdoc"
+						}
+					}
+				}
+			]
+		},
+		"prose": {
+			"name": "meta.block.prose.sdoc",
+			"begin": "^\\s*(\\[)(PROSE)(\\])\\s*$",
+			"beginCaptures": {
+				"1": {
+					"name": "punctuation.definition.tag.begin.sdoc"
+				},
+				"2": {
+					"name": "keyword.control.block.sdoc"
+				},
+				"3": {
+					"name": "punctuation.definition.tag.end.sdoc"
+				}
+			},
+			"end": "^\\s*(\\[/)(PROSE)(\\])\\s*$",
+			"endCaptures": {
+				"1": {
+					"name": "punctuation.definition.tag.begin.sdoc"
+				},
+				"2": {
+					"name": "keyword.control.block.sdoc"
+				},
+				"3": {
+					"name": "punctuation.definition.tag.end.sdoc"
+				}
+			},
+			"patterns": [
+				{
+					"include": "text.html.markdown#fenced_code_block"
+				},
+				{
+					"comment": "Same shape as the [DOC] body: the begin consumes the indent the while consumes, so markdown never sees a raw tab and opens an indented code block.",
+					"begin": "(^|\\G)(?:\\t|[ ]{1,4})?",
+					"while": "(^|\\G)(?!\\s*\\[/(?:PROSE)\\]\\s*$)(?!\\s*(?:`{3,}|~{3,}))(?:\\t|[ ]{1,4})?",
+					"contentName": "meta.embedded.block.markdown",
+					"patterns": [
+						{
+							"include": "#page-svelte-block"
+						},
+						{
+							"include": "text.html.markdown"
+						}
+					]
 				}
 			]
 		}

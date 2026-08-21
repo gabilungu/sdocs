@@ -131,7 +131,86 @@ function assertWrappedOpener(tokens: Tokens, source: string) {
 	expect(scopeOf(li('[/component]'), 'component'), '[/component] after wrapped opener').toContain('.sdoc');
 }
 
+const UPPERCASE_BLOCKS = MULTI_BLOCK.replace(/\[(\/?)(component|example)\b/g, (_, close, tag) =>
+	`[${close}${tag.toUpperCase()}`,
+).replace(/\[\/(COMPONENT|EXAMPLE)\]/g, '[/$1]');
+
+const TEXT_BLOCKS = `[SHOWCASE title="Forms / Button"]
+
+	[NOTES]
+		- bug: Focus ring lands 1px off.
+		- Just a remark.
+	[/NOTES]
+
+	[TODO]
+		- [x] Ship it
+		- [ ] Document it
+	[/TODO]
+
+	[PROSE]
+		A **button** triggers an action.
+	[/PROSE]
+
+	[COMPONENTS]
+		[COMPONENT component={Button}]
+			<Button />
+		[/COMPONENT]
+	[/COMPONENTS]
+
+[/SHOWCASE]
+
+[DOC title="Guide"]
+
+	See [notes](/language/overview#notes) for the details.
+
+[/DOC]
+`;
+
 describe('sdoc grammar (Oniguruma engine, as in VS Code)', () => {
+	// The blocks added in 0.0.139, and the collision that shaped them: a line
+	// starting `[notes](…)` is a markdown link, not a block opener, so the tags
+	// are matched uppercase and alone on their line.
+	it('scopes the text blocks without eating a markdown link', async () => {
+		const hl = await createHighlighter({
+			themes: ['github-dark'],
+			langs: [
+				'javascript', 'typescript', 'css', 'svelte', 'markdown', 'html',
+				{ ...grammar, name: 'sdoc', embeddedLangs: ['svelte', 'typescript', 'javascript', 'css', 'markdown'] },
+			],
+		});
+		const { tokens } = hl.codeToTokens(TEXT_BLOCKS, { lang: 'sdoc', theme: 'github-dark' });
+		const lines = TEXT_BLOCKS.split('\n');
+		for (const tag of ['[NOTES]', '[TODO]', '[PROSE]', '[COMPONENTS]', '[/COMPONENTS]']) {
+			const color = colorOf(tokens as Tokens, lines, tag);
+			expect(color, tag).not.toBe('MISSING');
+			expect(color, tag).not.toBe(PLAIN);
+		}
+		// The link is prose: its scope is markdown's, never an sdoc tag's.
+		const li = lines.findIndex((l) => l.includes('[notes]('));
+		const scopes = (tokens[li] ?? []).flatMap(
+			(t) => t.explanation?.flatMap((e) => e.scopes.map((sc) => sc.scopeName)) ?? [],
+		);
+		expect(scopes.some((sc) => sc.includes('keyword.control.block.sdoc'))).toBe(false);
+		hl.dispose();
+	});
+
+	// Both casings scope identically: the formatter rewrites files to uppercase,
+	// and lowercase stays legal indefinitely, so neither may lose highlighting.
+	it('scopes uppercase [COMPONENT] and [EXAMPLE] exactly like lowercase', async () => {
+		const hl = await createHighlighter({
+			themes: ['github-dark'],
+			langs: [
+				'javascript', 'typescript', 'css', 'svelte', 'markdown', 'html',
+				{ ...grammar, name: 'sdoc', embeddedLangs: ['svelte', 'typescript', 'javascript', 'css', 'markdown'] },
+			],
+		});
+		const upper = hl.codeToTokens(UPPERCASE_BLOCKS, { lang: 'sdoc', theme: 'github-dark' });
+		const lower = hl.codeToTokens(MULTI_BLOCK, { lang: 'sdoc', theme: 'github-dark' });
+		const colors = (t: Tokens) => t.map((line) => line.map((tok) => tok.color?.toLowerCase()));
+		expect(colors(upper.tokens as Tokens)).toEqual(colors(lower.tokens as Tokens));
+		hl.dispose();
+	});
+
 	it('keeps sdoc scopes alive across multiple blocks and entities', async () => {
 		const hl = await createHighlighter({
 			themes: ['github-dark'],

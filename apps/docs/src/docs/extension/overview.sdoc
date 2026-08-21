@@ -39,7 +39,7 @@
 
 	Right-click any `.svelte` file in the explorer (or run **sdocs: New Component
 	Doc** from the palette) to scaffold a matching `.sdoc` next to it, pre-filled
-	with the component import and a `[SHOWCASE]` block wrapping a `[component]`. If the
+	with the component import and a `[SHOWCASE]` block wrapping a `[COMPONENT]`. If the
 	doc already exists, it opens instead.
 
 [/DOC]

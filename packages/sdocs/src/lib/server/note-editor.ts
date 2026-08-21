@@ -1,14 +1,14 @@
 /**
- * Rewriting an opener's `notes` attribute in `.sdoc` source.
+ * Rewriting a `[NOTES]` or `[TODO]` block in `.sdoc` source.
  *
- * The dev server lets a reader add and edit notes from the Explorer, which
- * means editing the file they are reading. The edit is deliberately the
- * smallest one that can be made: the attribute's own span is replaced and
- * nothing else in the file is re-serialized, so a document keeps its
- * formatting, its comments, and every byte the author put there.
+ * The dev server lets a reader add notes and tick todos from the Explorer,
+ * which means editing the file they are reading. The edit is deliberately the
+ * smallest one that can be made: a note edit replaces the block's own span and
+ * a tick rewrites one character, so a document keeps its formatting, its
+ * comments, and every byte the author put there.
  *
  * Kept apart from the middleware that calls it so the interesting half — find
- * the opener, splice the attribute — is a pure function of source text.
+ * the block, splice the text — is a pure function of source text.
  */
 
 import { scanSdoc, type Attrs, type Entity, type SubBlock } from '../language/scanner.js';
@@ -24,6 +24,9 @@ export interface NoteTarget {
 }
 
 export class NoteTargetError extends Error {}
+
+/** The text blocks that can be written back from the Explorer. */
+type EditableBlock = 'notes' | 'todo';
 
 /**
  * A `[NOTES]` block, or '' when there is nothing to write.
@@ -63,9 +66,14 @@ interface Located {
 	bodyIndent: string;
 }
 
-const NESTED_NOTES_RE = /^[ \t]*\[NOTES\][ \t]*$/im;
+const nestedOpenerRe = (tag: string) => new RegExp(`^[ \\t]*\\[${tag}\\][ \\t]*$`, 'im');
 
-function locate(source: string, entities: Entity[], target: NoteTarget): Located {
+function locate(
+	source: string,
+	entities: Entity[],
+	target: NoteTarget,
+	kind: EditableBlock = 'notes',
+): Located {
 	const entity = entities.find((e) => slugifyTitle(titleOf(e.attrs)) === target.entitySlug);
 	if (!entity) {
 		throw new NoteTargetError(`No entity with the slug "${target.entitySlug}" in this file.`);
@@ -73,10 +81,10 @@ function locate(source: string, entities: Entity[], target: NoteTarget): Located
 	const indentOf = (offset: number) => lineIndent(source, offset);
 
 	if (!target.exampleTitle) {
-		const notes = entity.blocks.find((b: SubBlock) => b.kind === 'notes');
+		const block = entity.blocks.find((b: SubBlock) => b.kind === kind);
 		return {
 			openerSpan: entity.openerSpan,
-			notesSpan: notes ? notes.span : null,
+			notesSpan: block ? block.span : null,
 			bodyIndent: `${indentOf(entity.openerSpan.start)}\t`,
 		};
 	}
@@ -89,17 +97,19 @@ function locate(source: string, entities: Entity[], target: NoteTarget): Located
 			`No [EXAMPLE] titled "${target.exampleTitle}" in "${titleOf(entity.attrs)}".`,
 		);
 	}
-	// An example's [NOTES] is inside its body, which the scanner captures whole
-	// rather than nesting — so it is found by scanning that span.
+	// An example's text blocks live inside its body, which the scanner captures
+	// whole rather than nesting — so they are found by scanning that span.
+	const tag = kind.toUpperCase();
+	const closer = `[/${tag}]`;
 	const body = source.slice(example.bodySpan.start, example.bodySpan.end);
-	const open = NESTED_NOTES_RE.exec(body);
+	const open = nestedOpenerRe(tag).exec(body);
 	let notesSpan: { start: number; end: number } | null = null;
 	if (open) {
-		const closeAt = body.toUpperCase().indexOf('[/NOTES]', open.index);
+		const closeAt = body.toUpperCase().indexOf(closer, open.index);
 		if (closeAt !== -1) {
 			notesSpan = {
 				start: example.bodySpan.start + open.index + (open[0].length - open[0].trimStart().length),
-				end: example.bodySpan.start + closeAt + '[/NOTES]'.length,
+				end: example.bodySpan.start + closeAt + closer.length,
 			};
 		}
 	}
@@ -148,4 +158,54 @@ export function writeNotes(source: string, target: NoteTarget, notes: DocNote[])
 	after = Math.min(after + 1, source.length);
 	const blank = source.slice(after).startsWith('\n') ? '' : '\n';
 	return `${source.slice(0, after)}\n${text}\n${blank}${source.slice(after)}`;
+}
+
+/**
+ * Return `source` with the todo at `path` ticked or unticked.
+ *
+ * `path` addresses the item by position at each level — `[1, 0]` is the first
+ * child of the second root item — which is what the rendered checklist knows
+ * about itself. Only the mark between the brackets is rewritten: one character
+ * in, one character out, so a tick never reflows the author's text.
+ */
+export function toggleTodo(
+	source: string,
+	target: NoteTarget,
+	path: number[],
+	done: boolean,
+): string {
+	const file = scanSdoc(source);
+	const { notesSpan } = locate(source, file.entities, target, 'todo');
+	if (!notesSpan) throw new NoteTargetError('No [TODO] block to tick.');
+
+	// The same shape the parser builds, carrying each item's mark offset
+	// instead of its text — indentation opens a level, one line is one item.
+	interface Marked {
+		at: number;
+		children: Marked[];
+	}
+	const roots: Marked[] = [];
+	const stack: { indent: number; items: Marked[] }[] = [{ indent: -1, items: roots }];
+	let offset = notesSpan.start;
+	for (const raw of source.slice(notesSpan.start, notesSpan.end).split('\n')) {
+		const lineStart = offset;
+		offset += raw.length + 1;
+		const m = /^([ \t]*)- \[([ xX])\]/.exec(raw);
+		if (!m) continue;
+		const indent = m[1].replace(/\t/g, ' ').length;
+		while (stack.length > 1 && indent <= stack[stack.length - 1].indent) stack.pop();
+		const item: Marked = { at: lineStart + m[1].length + '- ['.length, children: [] };
+		stack[stack.length - 1].items.push(item);
+		stack.push({ indent, items: item.children });
+	}
+
+	let level = roots;
+	let item: Marked | undefined;
+	for (const i of path) {
+		item = level[i];
+		if (!item) throw new NoteTargetError(`No todo at ${path.join('.')} in this [TODO] block.`);
+		level = item.children;
+	}
+	if (!item) throw new NoteTargetError('A todo path cannot be empty.');
+	return source.slice(0, item.at) + (done ? 'x' : ' ') + source.slice(item.at + 1);
 }

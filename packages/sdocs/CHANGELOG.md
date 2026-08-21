@@ -12,6 +12,22 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.169] - 2026-08-22
+
+### Fixed
+
+- **A content chunk that fails to load now says so.** A rejected import left
+  the content column empty: the page kept its title, sidebar and table of
+  contents, and the only trace was an unhandled rejection in a console nobody
+  had open. All three content views catch it and render a card naming the page
+  and the error, and a `<svelte:boundary>` catches a throw during render too.
+- **And one bad chunk no longer bricks a prerendered page.** The generated
+  boot script preloads each chunk before hydrating; an unhandled rejection
+  there aborted `boot()` before the mount call, so the page looked completely
+  right and was completely dead — no navigation, no controls, nothing. It now
+  falls back to a fresh mount, and the view's own loader reports the failure
+  visibly.
+
 ## [0.0.168] - 2026-08-22
 
 ### Fixed

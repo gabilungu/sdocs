@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.78] - 2026-08-22
+
+### Fixed
+
+- **Attribute completion works inside a wrapped opener.** It decided which
+  block the cursor was in by matching `[TAG` against the cursor's line, so on a
+  multi-line opener — where that line is `title="…"` or a bare `]` — it matched
+  nothing and offered nothing. That layout is the extension's own formatter's
+  work, applied to every opener wider than the print width, so completion
+  stopped exactly where the openers were long enough to want it. The context
+  now comes from the scanner, which reads the wrapped form correctly.
+- **Attributes already written are recognised across the whole opener**, so a
+  wrapped `title` is no longer re-offered on the tag line — and a bare flag
+  like `hide` counts as written, which the old regex never saw.
+- **A multi-line `args={{ … }}` no longer confuses the value guard.** It
+  counted quotes and braces on one line; it now asks the scanner whether the
+  cursor is inside an attribute's span.
+
 ## [0.0.77] - 2026-08-22
 
 ### Fixed

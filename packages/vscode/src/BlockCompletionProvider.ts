@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { scanSdoc, attributeRules, type AttrRule } from 'sdocs/language';
 import { importedIdentifiers } from './sdocSource';
+import { openerAt } from './blockCompletionCore';
 
 interface BlockSpec {
 	label: string;
@@ -173,24 +174,14 @@ export class BlockCompletionProvider implements vscode.CompletionItemProvider {
 			});
 		}
 
-		// Attribute names on a block opener line.
-		const opener =
-			/^\s*\[(SHOWCASE|DOC|PAGE|LAYOUT|COMPONENT|EXAMPLE|GLOSSARY|component|example)\b/.exec(line);
-		if (!opener) return undefined;
-		const rules = attributeRules(opener[1]);
-		const tagEnd = line.indexOf('[') + 1 + opener[1].length;
-		if (position.character <= tagEnd) return undefined;
-
-		// Stay out of attribute values: not inside "…" or {…} on this line.
-		const segment = before.slice(tagEnd);
-		const inString = (segment.split('"').length - 1) % 2 === 1;
-		const braceDepth =
-			(segment.match(/\{/g)?.length ?? 0) - (segment.match(/\}/g)?.length ?? 0);
-		if (inString || braceDepth > 0) return undefined;
-
-		const present = new Set(
-			Array.from(line.matchAll(/([A-Za-z_][\w-]*)\s*=/g), (m) => m[1]),
-		);
+		// Attribute names in a block opener. Which opener, and which attributes
+		// are already written, come from the scanner rather than from this one
+		// line — a wrapped opener puts the cursor on `\ttitle="…"` or a bare
+		// `]`, and every line-local test for `[TAG` fails there.
+		const ctx = openerAt(document.getText(), document.offsetAt(position));
+		if (!ctx) return undefined;
+		const rules = attributeRules(ctx.kind);
+		const present = ctx.present;
 		return Object.entries(rules)
 			.filter(([name]) => !present.has(name))
 			.map(([name, rule]) => {

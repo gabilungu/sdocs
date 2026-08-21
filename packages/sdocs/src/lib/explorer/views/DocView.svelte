@@ -7,6 +7,7 @@
 	import { Glossary } from '../../ui/Glossary/index.js';
 	import NoteControl from './NoteControl.svelte';
 	import TodoList from './TodoList.svelte';
+	import ContentError from './ContentError.svelte';
 	import { copyCode } from '../copy-code.svelte.js';
 	import CollapsiblePanel from './CollapsiblePanel.svelte';
 	import PreviewFrame from './PreviewFrame.svelte';
@@ -44,6 +45,9 @@
 
 	// [example] stages load the project's css, each in its own PreviewFrame.
 	let loaded = $state<Component | null>(null);
+	// A content chunk that never arrives used to leave the column empty and say
+	// so only as an unhandled rejection in the console.
+	let loadError = $state<unknown>(null);
 	const PageComponent = $derived(
 		(doc.contentKey ? preloaded[doc.contentKey] : undefined) ?? loaded,
 	);
@@ -53,11 +57,18 @@
 		if (doc.contentKey && preloaded[doc.contentKey]) return;
 		const load = doc.contentKey ? pageModules[doc.contentKey] : undefined;
 		loaded = null;
+		loadError = null;
 		if (!load) return;
 		let stale = false;
-		load().then((mod) => {
-			if (!stale) loaded = mod.default as Component;
-		});
+		load()
+			.then((mod) => {
+				if (!stale) loaded = mod.default as Component;
+			})
+			.catch((err) => {
+				if (stale) return;
+				console.error('[sdocs] page content failed to load:', err);
+				loadError = err;
+			});
 		return () => {
 			stale = true;
 		};
@@ -278,7 +289,14 @@
 			<!-- Content -->
 			<div class="sdocs-page-content sdocs-prose" bind:this={container} {@attach copyCode()}>
 				{#if PageComponent}
-					<PageComponent __sdocsExample={exampleFrame} __sdocsGlossary={glossaryBlock} />
+					<svelte:boundary>
+						<PageComponent __sdocsExample={exampleFrame} __sdocsGlossary={glossaryBlock} />
+						{#snippet failed(error)}
+							<ContentError {error} kind="render" title={displayTitle(meta.title)} />
+						{/snippet}
+					</svelte:boundary>
+				{:else if loadError}
+					<ContentError error={loadError} kind="load" title={displayTitle(meta.title)} />
 				{/if}
 			</div>
 		</div>

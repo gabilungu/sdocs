@@ -286,7 +286,7 @@ const props = ${explorerPropsJs(config, basePath, mcp, dev)};
 async function boot() {
 	initRouter(props.routing, props.basePath);
 	const target = document.getElementById('app');
-	const prerendered = target.firstElementChild !== null;
+	let prerendered = target.firstElementChild !== null;
 	const preloaded = {};
 	if (prerendered) {
 		const map = buildSections(docs, {
@@ -299,9 +299,22 @@ async function boot() {
 		const doc = resolveRoute(map, getRoute())?.doc;
 		const keys = [doc?.contentKey, ...(doc?.prose ?? []).map((p) => p.key)].filter(Boolean);
 		for (const key of keys) {
-			if (pageModules[key]) preloaded[key] = (await pageModules[key]()).default;
+			if (!pageModules[key]) continue;
+			try {
+				preloaded[key] = (await pageModules[key]()).default;
+			} catch (err) {
+				// A chunk that will not load cannot be hydrated against, and an
+				// unhandled rejection here used to abort boot() before the mount
+				// call below — leaving a page that looked completely right and was
+				// completely dead. Fall back to a fresh mount: the view's own
+				// loader then fails visibly, with a card that says so.
+				console.error('[sdocs] preload failed for ' + key + ', mounting fresh:', err);
+				prerendered = false;
+				break;
+			}
 		}
 	}
+	if (!prerendered) target.replaceChildren();
 	(prerendered ? hydrate : mount)(Explorer, { target, props: { ...props, preloaded } });
 }
 

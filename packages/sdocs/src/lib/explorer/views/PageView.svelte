@@ -3,6 +3,8 @@
 	import type { DocEntry } from '../../types.js';
 	import { capSidePadding, isNarrow } from '../viewport.svelte.js';
 	import { Note } from '../../ui/Note/index.js';
+	import ContentError from './ContentError.svelte';
+	import { displayTitle } from '../tree-builder.js';
 
 	interface Props {
 		doc: DocEntry;
@@ -26,15 +28,25 @@
 		(doc.contentKey ? preloaded[doc.contentKey] : undefined) ?? loaded,
 	);
 
+	// A content chunk that never arrives used to render as nothing at all.
+	let loadError = $state<unknown>(null);
+
 	$effect(() => {
 		if (doc.contentKey && preloaded[doc.contentKey]) return;
 		const load = doc.contentKey ? pageModules[doc.contentKey] : undefined;
 		loaded = null;
+		loadError = null;
 		if (!load) return;
 		let stale = false;
-		load().then((mod) => {
-			if (!stale) loaded = mod.default as Component;
-		});
+		load()
+			.then((mod) => {
+				if (!stale) loaded = mod.default as Component;
+			})
+			.catch((err) => {
+				if (stale) return;
+				console.error('[sdocs] page content failed to load:', err);
+				loadError = err;
+			});
 		return () => {
 			stale = true;
 		};
@@ -67,7 +79,14 @@
 			</div>
 		{/if}
 		{#if PageComponent}
-			<PageComponent />
+			<svelte:boundary>
+				<PageComponent />
+				{#snippet failed(error)}
+					<ContentError {error} kind="render" title={displayTitle(doc.meta.title)} />
+				{/snippet}
+			</svelte:boundary>
+		{:else if loadError}
+			<ContentError error={loadError} kind="load" title={displayTitle(doc.meta.title)} />
 		{/if}
 	</div>
 </div>

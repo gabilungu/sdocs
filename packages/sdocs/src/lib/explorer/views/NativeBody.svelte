@@ -8,6 +8,7 @@
 -->
 <script lang="ts">
 	import type { Component } from 'svelte';
+	import ContentError from './ContentError.svelte';
 
 	interface Props {
 		/** Key into `pageModules` / `preloaded`; nothing renders without one. */
@@ -21,15 +22,25 @@
 	let loaded = $state<Component | null>(null);
 	const Body = $derived((key ? preloaded[key] : undefined) ?? loaded);
 
+	// A prose block whose chunk never arrives used to render as nothing.
+	let loadError = $state<unknown>(null);
+
 	$effect(() => {
 		if (key && preloaded[key]) return;
 		const load = key ? pageModules[key] : undefined;
 		loaded = null;
+		loadError = null;
 		if (!load) return;
 		let stale = false;
-		load().then((mod) => {
-			if (!stale) loaded = mod.default as Component;
-		});
+		load()
+			.then((mod) => {
+				if (!stale) loaded = mod.default as Component;
+			})
+			.catch((err) => {
+				if (stale) return;
+				console.error('[sdocs] prose block failed to load:', err);
+				loadError = err;
+			});
 		return () => {
 			stale = true;
 		};
@@ -37,5 +48,12 @@
 </script>
 
 {#if Body}
-	<Body />
+	<svelte:boundary>
+		<Body />
+		{#snippet failed(error)}
+			<ContentError {error} kind="render" />
+		{/snippet}
+	</svelte:boundary>
+{:else if loadError}
+	<ContentError error={loadError} kind="load" />
 {/if}

@@ -68,6 +68,67 @@ describe('tags and synonyms', () => {
 	});
 });
 
+describe('example code panel', () => {
+	const parse = (opener: string) =>
+		parseSdoc(
+			[
+				'<script>',
+				"\timport Badge from './Badge.svelte';",
+				'</script>',
+				'',
+				'[SHOWCASE title="Badge"]',
+				`\t[${opener}]`,
+				'\t\t<Badge />',
+				'\t[/example]',
+				'[/SHOWCASE]',
+			].join('\n'),
+		);
+	const example = (doc: ReturnType<typeof parseSdoc>) =>
+		(doc.entities[0] as ShowcaseEntity).examples[0];
+
+	it('shows the code by default', () => {
+		const doc = parse('example title="One"');
+		expect(doc.diagnostics).toEqual([]);
+		expect(example(doc).showCode).toBe(true);
+	});
+
+	it('hides it on code="false"', () => {
+		const doc = parse('example title="One" code="false"');
+		expect(doc.diagnostics).toEqual([]);
+		expect(example(doc).showCode).toBe(false);
+	});
+
+	it('accepts code="true" as the default said out loud', () => {
+		const doc = parse('example title="One" code="true"');
+		expect(doc.diagnostics).toEqual([]);
+		expect(example(doc).showCode).toBe(true);
+	});
+
+	it('reports a value that is neither, rather than reading it as false', () => {
+		// A typo that silently hid the code would look like a decision.
+		const doc = parse('example title="One" code="flase"');
+		expect(doc.diagnostics.map((d) => d.code)).toEqual(['example-code']);
+		expect(example(doc).showCode).toBe(true);
+	});
+
+	it('is not an attribute of [component]', () => {
+		const doc = parseSdoc(
+			[
+				'<script>',
+				"\timport Badge from './Badge.svelte';",
+				'</script>',
+				'',
+				'[SHOWCASE title="Badge"]',
+				'\t[component component={Badge} code="false"]',
+				'\t\t<Badge />',
+				'\t[/component]',
+				'[/SHOWCASE]',
+			].join('\n'),
+		);
+		expect(doc.diagnostics.map((d) => d.code)).toEqual(['unknown-attr']);
+	});
+});
+
 describe('notes', () => {
 	const entity = (opener: string) =>
 		parseSdoc([`[DOC ${opener}]`, '\tHello.', '[/DOC]'].join('\n'));

@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.138] - 2026-08-21
+
+### Added
+
+- **`code="false"` on `[example]`** hides its code panel — for a `[DOC]` where
+  an example illustrates the prose rather than showing how it is built. Shown
+  by default, and honoured everywhere an example's code appears: mid-prose in a
+  `[DOC]`, in a `[SHOWCASE]`'s example list, and on the example's own route.
+
+  A value that is neither `"true"` nor `"false"` is an error. `[DOC]`'s older
+  `toc` reads anything that isn't `"true"` as false, which makes `toc="flase"`
+  a silent instruction; a typo that quietly hid your code would look like a
+  decision, so this one says so instead.
+
+### Changed
+
+- **`list_docs` says what it now returns.** It has been reporting each
+  component's `synonyms`, each example's `tags`, and the `notes` on either
+  since 0.0.136, but its tool description still advertised only entities,
+  components and routes — so an agent reading the tool list had no reason to
+  expect them.
+
+
 ## [0.0.137] - 2026-08-21
 
 ### Added

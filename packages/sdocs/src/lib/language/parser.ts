@@ -80,6 +80,8 @@ export interface ExampleBlock {
 	tags: string[];
 	/** Standing remarks from notes={[…]}; empty when the opener has none */
 	notes: DocNote[];
+	/** `code="false"` hides this example's code panel; true by default. */
+	showCode: boolean;
 	sizing: Sizing;
 	/** Normalized full body — block script/style included (display/formatting form) */
 	body: string;
@@ -495,6 +497,7 @@ const SUB_BLOCK_ATTR_RULES: Record<string, Record<string, AttrRule>> = {
 		title: { required: true, kind: 'string', hint: 'title="…"', code: 'example-title-required' },
 		description: { required: false, kind: 'string', hint: 'description="…"' },
 		tags: { required: false, kind: 'string', hint: 'tags="user menu, badge"' },
+		code: { required: false, kind: 'string', hint: 'code="false"' },
 		...NOTE_ATTR_RULES,
 		...SIZING_ATTR_RULES,
 		...STAGE_LAYOUT_ATTR_RULES,
@@ -652,6 +655,26 @@ function notesAttr(attrs: Attrs, diagnostics: ScanError[]): DocNote[] {
 	const attr = attrs['notes'];
 	if (!attr || attr.kind !== 'expression') return [];
 	return parseNotesLiteral(attr.raw, attr.valueSpan, diagnostics);
+}
+
+/**
+ * `code="false"` on an `[example]` — whether its code panel renders.
+ *
+ * Anything but `true` or `false` is reported rather than read as one of them.
+ * `[DOC]`'s older `toc` takes any value and treats everything that isn't
+ * `"true"` as false, which turns `toc="flase"` into a silent instruction;
+ * there is no reason to add a second attribute that behaves that way.
+ */
+function showCodeAttr(attrs: Attrs, span: Span, diagnostics: ScanError[]): boolean {
+	const raw = stringAttr(attrs, 'code');
+	if (raw === null) return true;
+	if (raw === 'true' || raw === 'false') return raw === 'true';
+	diagnostics.push({
+		code: 'example-code',
+		message: `code="${raw}" in [example] must be "true" or "false".`,
+		span: attrs['code']?.valueSpan ?? span,
+	});
+	return true;
 }
 
 /** A comma-separated list attribute (`tags`, `synonyms`) — the words as
@@ -826,6 +849,7 @@ function parseExample(
 		description: stringAttr(block.attrs, 'description'),
 		tags: listAttr(block.attrs, 'tags'),
 		notes: notesAttr(block.attrs, diagnostics),
+		showCode: showCodeAttr(block.attrs, block.openerSpan, diagnostics),
 		sizing: sizingOf(block.attrs),
 		body: normalizeBody(block.body),
 		bodySpan: block.bodySpan,

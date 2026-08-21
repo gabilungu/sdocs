@@ -32,6 +32,8 @@ export interface PlannedSnippet {
 	tags?: string[];
 	/** An example's notes={[…]}. Absent on other roles. */
 	notes?: DocNote[];
+	/** False when the example says `code="false"`. Absent on other roles. */
+	showCode?: boolean;
 	/** A preview's synonyms="…" — the component's other names. Absent on
 	 * other roles. */
 	synonyms?: string[];
@@ -81,6 +83,7 @@ export function planEntitySnippets(entity: SdocEntity): PlannedSnippet[] {
 			role: 'example' as const,
 			tags: e.tags ?? [],
 			notes: e.notes ?? [],
+			showCode: e.showCode ?? true,
 			...blockParts(e),
 		};
 	};
@@ -120,6 +123,7 @@ interface ExampleLike {
 	title: string;
 	tags?: string[];
 	notes?: DocNote[];
+	showCode?: boolean;
 	body: string;
 	markup: string;
 	script: { content: string } | null;

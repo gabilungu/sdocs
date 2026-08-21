@@ -525,6 +525,8 @@ export function sdocsPlugin(
 				...(p.tags?.length ? { tags: p.tags } : {}),
 				...(p.synonyms?.length ? { synonyms: p.synonyms } : {}),
 				...(p.notes?.length ? { notes: p.notes } : {}),
+				// Only the exception travels; showing the code is the default.
+				...(p.showCode === false ? { showCode: false } : {}),
 				componentName: p.componentName ?? null,
 				stageId: stageId(stageIdentity(filePath, entity.slug, p.slug)),
 			}));

@@ -163,7 +163,10 @@ const TOOLS = [
 			'include globs match, each with its entities (kind, title) and the ' +
 			'components its previews document, plus the site route each entity ' +
 			'serves at (and one per example) — open those with a browser to smoke ' +
-			'test. Use it to see what exists before writing docs.',
+			'test. Entries also carry what the author wrote about them: a ' +
+			"component's `synonyms`, an example's `tags`, and the `notes` on " +
+			'either, so the map says which pages are marked deprecated or broken ' +
+			'without opening them. Use it to see what exists before writing docs.',
 		inputSchema: { type: 'object', properties: {} },
 	},
 	{

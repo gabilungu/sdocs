@@ -391,11 +391,13 @@
 			() => (focusedWidth = defaultStageWidth),
 			'focused',
 		)}
-		<div class="sdocs-panels">
-			<CollapsiblePanel title="Code" defaultExpanded={false} flush>
-				<div class="sdocs-code-block">{@html focusedSnippet.highlightedHtml ?? ''}</div>
-			</CollapsiblePanel>
-		</div>
+		{#if focusedSnippet.showCode !== false}
+			<div class="sdocs-panels">
+				<CollapsiblePanel title="Code" defaultExpanded={false} flush>
+					<div class="sdocs-code-block">{@html focusedSnippet.highlightedHtml ?? ''}</div>
+				</CollapsiblePanel>
+			</div>
+		{/if}
 	{:else}
 		<!-- Full component view -->
 		<div class="sdocs-view-header">
@@ -652,11 +654,13 @@
 						},
 						example.slug,
 					)}
-					<div class="sdocs-panels">
-						<CollapsiblePanel title="Code" defaultExpanded={false} flush>
-							<div class="sdocs-code-block">{@html example.highlightedHtml ?? ''}</div>
-						</CollapsiblePanel>
-					</div>
+					{#if example.showCode !== false}
+						<div class="sdocs-panels">
+							<CollapsiblePanel title="Code" defaultExpanded={false} flush>
+								<div class="sdocs-code-block">{@html example.highlightedHtml ?? ''}</div>
+							</CollapsiblePanel>
+						</div>
+					{/if}
 				</div>
 			{/each}
 		{/if}

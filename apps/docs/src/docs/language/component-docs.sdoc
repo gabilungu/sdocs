@@ -139,6 +139,19 @@
 	text under the heading, and `notes` adds alerts under it (see
 	[notes](/language/overview#notes)).
 
+	`code="false"` hides the example's code panel — useful in a
+	[`[DOC]`](/language/doc-pages), where an example often illustrates the prose
+	rather than showing how it is built:
+
+	```sdoc
+	[example title="In a user menu" code="false"]
+		<Avatar /><Badge count={3} />
+	[/example]
+	```
+
+	The panel shows by default, and a value that is neither `"true"` nor
+	`"false"` is an error rather than a silent no.
+
 	Examples belong to the page, not to a tab: they render below the preview
 	area and stay visible whichever tab is active. The same block also works
 	inside a [`[DOC]`](/language/doc-pages) — there it renders in place,

@@ -350,6 +350,9 @@ export interface ExtractedSnippet {
 	synonyms?: string[];
 	/** An `[example]`'s notes={[…]}, shown under its title. */
 	notes?: DocNote[];
+	/** False when the `[example]` opener says `code="false"` — its code panel
+	 * is not rendered. Absent means it is. */
+	showCode?: boolean;
 	highlightedHtml?: string;
 	/** Preview URL for iframe (added by virtual module) */
 	previewUrl?: string;

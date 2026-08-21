@@ -475,6 +475,10 @@ Renders **exactly what you wrote**; controls never touch it. Requires a `title`
 `description`. Examples render below the previews and stay visible on every tab;
 the same block also works inside a `[DOC]`, mid-prose.
 
+`code="false"` (optional) hides the example's code panel — for a `[DOC]` that
+wants the rendered thing and not its source. Shown by default; anything but
+`"true"` or `"false"` is an error rather than a silent no.
+
 `tags="user menu, badge"` (optional) marks what an example shows — the parts it
 puts on screen, or the context it belongs to. Same comma-separated list as
 `synonyms`, rendered as quiet chips under the description, and searched by

@@ -171,9 +171,11 @@
 						}}
 					/>
 				</div>
-				<CollapsiblePanel title="Code" defaultExpanded={false} flush>
-					<div class="sdocs-code-block">{@html example.highlightedHtml ?? ''}</div>
-				</CollapsiblePanel>
+				{#if example.showCode !== false}
+					<CollapsiblePanel title="Code" defaultExpanded={false} flush>
+						<div class="sdocs-code-block">{@html example.highlightedHtml ?? ''}</div>
+					</CollapsiblePanel>
+				{/if}
 			</div>
 		</div>
 	{/if}

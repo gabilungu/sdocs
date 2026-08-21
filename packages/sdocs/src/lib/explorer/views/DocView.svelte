@@ -4,6 +4,7 @@
 	import type { DocEntry } from '../../types.js';
 	import { Icon } from '../../ui/Icon/index.js';
 	import { Note } from '../../ui/Note/index.js';
+	import { Glossary } from '../../ui/Glossary/index.js';
 	import NoteControl from './NoteControl.svelte';
 	import TodoList from './TodoList.svelte';
 	import { copyCode } from '../copy-code.svelte.js';
@@ -141,6 +142,23 @@
 	const viewPadding = $derived(narrow ? capSidePadding(doc.padding) : doc.padding);
 </script>
 
+<!-- Resolves a {@render __sdocsGlossary?.(i)} marker the parser left in the
+     prose, so a glossary renders exactly where it was written — the same
+     mechanism an [EXAMPLE] mid-prose already uses. -->
+{#snippet glossaryBlock(index: number)}
+	{@const glossary = doc.glossaries?.[index]}
+	{#if glossary}
+		<div class="sdocs-glossary-block">
+			<Glossary
+				terms={glossary.terms}
+				title={glossary.title}
+				subtitle={glossary.subtitle}
+				search={glossary.search}
+			/>
+		</div>
+	{/if}
+{/snippet}
+
 {#snippet exampleFrame(index: number)}
 	{@const example = doc.examples?.[index]}
 	{#if example}
@@ -260,7 +278,7 @@
 			<!-- Content -->
 			<div class="sdocs-page-content sdocs-prose" bind:this={container} {@attach copyCode()}>
 				{#if PageComponent}
-					<PageComponent __sdocsExample={exampleFrame} />
+					<PageComponent __sdocsExample={exampleFrame} __sdocsGlossary={glossaryBlock} />
 				{/if}
 			</div>
 		</div>
@@ -345,6 +363,9 @@
 	}
 
 	/* ── Page prose: the docs app's own typography ── */
+	.sdocs-glossary-block {
+		margin: 1.2em 0;
+	}
 	.sdocs-page-example {
 		display: flex;
 		flex-direction: column;

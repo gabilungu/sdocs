@@ -17,7 +17,14 @@ import {
 	type TagBlock,
 } from './scanner.js';
 import { declaredBindings, scrubScriptText } from './script-scan.js';
-import type { ComponentStatus, DocNote, NoteType, TodoItem } from '../types.js';
+import type {
+	ComponentStatus,
+	DocNote,
+	GlossaryBlock,
+	GlossaryTerm,
+	NoteType,
+	TodoItem,
+} from '../types.js';
 import { NOTE_TYPES } from '../note-order.js';
 
 export type { TodoItem };
@@ -119,7 +126,8 @@ export interface ExampleBlock {
 export type FlowItem =
 	| { kind: 'components'; indices: number[] }
 	| { kind: 'example'; index: number }
-	| { kind: 'prose'; index: number };
+	| { kind: 'prose'; index: number }
+	| { kind: 'glossary'; index: number };
 
 export interface ShowcaseEntity {
 	kind: 'SHOWCASE';
@@ -137,6 +145,8 @@ export interface ShowcaseEntity {
 	prose: string[];
 	/** What the entity shows, in the order it was written. */
 	flow: FlowItem[];
+	/** [GLOSSARY] blocks, in source order. */
+	glossaries: GlossaryBlock[];
 	description: string | null;
 	sizing: Sizing;
 	/** Entity-level <script> — shared by every block of this entity */
@@ -163,6 +173,9 @@ export interface DocEntity {
 	todos: TodoItem[];
 	/** Markdown from [PROSE] blocks, in source order; empty when there are none */
 	prose: string[];
+	/** [GLOSSARY] blocks, in source order — spliced into the body where they
+	 * were written, the way examples are. */
+	glossaries: GlossaryBlock[];
 	sizing: Sizing;
 	/** Entity-level <script> — shared by every block of this entity */
 	script: TagBlock | null;
@@ -524,6 +537,11 @@ const SUB_BLOCK_ATTR_RULES: Record<string, Record<string, AttrRule>> = {
 		...SIZING_ATTR_RULES,
 		...STAGE_LAYOUT_ATTR_RULES,
 	},
+	glossary: {
+		title: { required: false, kind: 'string', hint: 'title="Terms"' },
+		subtitle: { required: false, kind: 'string', hint: 'subtitle="…"' },
+		search: { required: false, kind: 'bare', hint: 'search' },
+	},
 	example: {
 		title: { required: true, kind: 'string', hint: 'title="…"', code: 'example-title-required' },
 		description: { required: false, kind: 'string', hint: 'description="…"' },
@@ -623,6 +641,60 @@ export const COMPONENT_STATUSES: readonly ComponentStatus[] = [
 // The type allows digits, not just letters: `a11y` is one of them, and a
 // letters-only pattern silently read it as an untyped note whose text began
 // "a11y:" — no diagnostic, just a grey note where a red one belonged.
+/** `- Term: definition`. The first colon splits; a term may not contain one. */
+const GLOSSARY_LINE_RE = /^-\s+([^:]+):\s*(.*)$/;
+
+/**
+ * One `[GLOSSARY]` — its attributes, and its `- Term: definition` lines.
+ *
+ * A line that is not a definition is reported rather than dropped: a glossary
+ * whose entries silently vanish is worse than one that refuses to build.
+ */
+function parseGlossary(block: SubBlock, diagnostics: ScanError[]): GlossaryBlock {
+	checkAttrs('[GLOSSARY]', block.attrs, SUB_BLOCK_ATTR_RULES.glossary, block.openerSpan, diagnostics);
+	const terms: GlossaryTerm[] = [];
+	const seen = new Set<string>();
+	for (const raw of normalizeBody(block.body).split('\n')) {
+		if (raw.trim() === '') continue;
+		const m = GLOSSARY_LINE_RE.exec(raw.trim());
+		if (!m) {
+			diagnostics.push({
+				code: 'glossary-line',
+				message: `Every [GLOSSARY] line is "- Term: what it means": ${raw.trim()}`,
+				span: block.bodySpan,
+			});
+			continue;
+		}
+		const term = m[1].trim();
+		const definition = m[2].trim();
+		if (!definition) {
+			diagnostics.push({
+				code: 'glossary-line',
+				message: `"${term}" has no definition — write "- ${term}: what it means".`,
+				span: block.bodySpan,
+			});
+			continue;
+		}
+		const key = term.toLowerCase();
+		if (seen.has(key)) {
+			diagnostics.push({
+				code: 'duplicate-term',
+				message: `"${term}" is defined twice in this [GLOSSARY] — merge them.`,
+				span: block.bodySpan,
+			});
+			continue;
+		}
+		seen.add(key);
+		terms.push({ term, definition });
+	}
+	return {
+		title: stringAttr(block.attrs, 'title'),
+		subtitle: stringAttr(block.attrs, 'subtitle'),
+		search: bareAttr(block.attrs, 'search'),
+		terms,
+	};
+}
+
 const NOTE_LINE_RE = /^-\s+(?:([a-z][a-z0-9]*):\s*)?(.*)$/;
 
 /**
@@ -1076,6 +1148,7 @@ function parseShowcase(
 	const previewLabels = new Set<string>();
 	const text = textBlocks('[SHOWCASE]', diagnostics);
 	const flow: FlowItem[] = [];
+	const glossaries: GlossaryBlock[] = [];
 	/** The one tab strip, added to the flow where the first [COMPONENT] was
 	 * written. Every [COMPONENT] in the entity joins it: they share a stage,
 	 * a code panel and an API table, so there is only ever one. */
@@ -1137,6 +1210,9 @@ function parseShowcase(
 			flow.push({ kind: 'example', index: examples.length });
 			examples.push(parseExample(block, exampleTitles, 'SHOWCASE', outerImports, diagnostics));
 			exampleSpans.push(block.openerSpan);
+		} else if (block.kind === 'glossary') {
+			flow.push({ kind: 'glossary', index: glossaries.length });
+			glossaries.push(parseGlossary(block, diagnostics));
 		} else {
 			if (block.group != null) {
 				diagnostics.push({
@@ -1164,6 +1240,7 @@ function parseShowcase(
 		todos,
 		prose,
 		flow,
+		glossaries,
 		description: stringAttr(entity.attrs, 'description'),
 		sizing: sizingOf(entity.attrs),
 		script: entity.script,
@@ -1185,10 +1262,12 @@ function spliceExampleMarkers(entity: Entity): string {
 	if (entity.blocks.length === 0) return entity.body;
 	let out = '';
 	let from = 0;
-	// Examples leave a marker the doc renderer resolves; a text block leaves
-	// nothing — it is rendered from the entity, not from the prose flow — so
-	// its lines simply come out.
+	// Examples and glossaries leave a marker the doc renderer resolves, so they
+	// render where they were written — mid-prose, in the flow. A text block
+	// leaves nothing: it is rendered from the entity, not from the prose flow,
+	// so its lines simply come out.
 	let exampleIndex = 0;
+	let glossaryIndex = 0;
 	entity.blocks.forEach((block) => {
 		const before = entity.body.slice(from, block.span.start - entity.bodySpan.start);
 		const indent = before.slice(before.lastIndexOf('\n') + 1);
@@ -1196,6 +1275,9 @@ function spliceExampleMarkers(entity: Entity): string {
 		if (block.kind === 'example') {
 			out += `${indent}{@render __sdocsExample?.(${exampleIndex})}`;
 			exampleIndex++;
+		} else if (block.kind === 'glossary') {
+			out += `${indent}{@render __sdocsGlossary?.(${glossaryIndex})}`;
+			glossaryIndex++;
 		}
 		from = block.span.end - entity.bodySpan.start;
 	});
@@ -1217,7 +1299,12 @@ function parseDoc(
 	const exampleSpans: Span[] = [];
 	const exampleTitles = new Set<string>();
 	const text = textBlocks('[DOC]', diagnostics, false);
+	const glossaries: GlossaryBlock[] = [];
 	for (const block of entity.blocks) {
+		if (block.kind === 'glossary') {
+			glossaries.push(parseGlossary(block, diagnostics));
+			continue;
+		}
 		if (block.kind !== 'example') {
 			text.take(block);
 			continue;
@@ -1236,6 +1323,7 @@ function parseDoc(
 		notes: text.result.notes,
 		todos: text.result.todos,
 		prose: [],
+		glossaries,
 		sizing: sizingOf(entity.attrs),
 		script: entity.script,
 		style: entity.style,

@@ -157,6 +157,10 @@ const TEXT_BLOCKS = `[SHOWCASE title="Forms / Button"]
 		[/COMPONENT]
 	[/COMPONENTS]
 
+	[GLOSSARY title="Terms" search]
+		- Stage: the isolated frame a preview renders in.
+	[/GLOSSARY]
+
 [/SHOWCASE]
 
 [DOC title="Guide"]
@@ -180,7 +184,7 @@ describe('sdoc grammar (Oniguruma engine, as in VS Code)', () => {
 		});
 		const { tokens } = hl.codeToTokens(TEXT_BLOCKS, { lang: 'sdoc', theme: 'github-dark' });
 		const lines = TEXT_BLOCKS.split('\n');
-		for (const tag of ['[NOTES]', '[TODO]', '[PROSE]', '[COMPONENTS]', '[/COMPONENTS]']) {
+		for (const tag of ['[NOTES]', '[TODO]', '[PROSE]', '[COMPONENTS]', '[/COMPONENTS]', '[/GLOSSARY]']) {
 			const color = colorOf(tokens as Tokens, lines, tag);
 			expect(color, tag).not.toBe('MISSING');
 			expect(color, tag).not.toBe(PLAIN);

@@ -12,6 +12,38 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.145] - 2026-08-21
+
+### Added
+
+- **`[GLOSSARY]`** — a titled list of terms, rendered where it is written:
+
+  ```sdoc
+  [GLOSSARY title="Terms" subtitle="Words this page uses" search]
+  	- Stage: the isolated frame a preview renders in.
+  	- Measure: the width of a line of text, in characters.
+  [/GLOSSARY]
+  ```
+
+  `title` sets the heading, `subtitle` a line under it, and `search` — a bare
+  flag — shows a filter box over the terms. Search is **off by default**: a
+  filter over four terms is furniture, and only the author knows whether their
+  list is four terms or forty.
+
+  As many per entity as you like, so a page can carry both "Terms" and
+  "Abbreviations". In a `[SHOWCASE]` it flows with everything else in source
+  order; in a `[DOC]` it sits **mid-prose**, exactly where written, through the
+  same marker splice an `[EXAMPLE]` in a doc body already uses.
+
+  The definition is inline markdown, and the first colon splits the line — so a
+  term may not contain one. A line that is not a definition is an error rather
+  than a dropped entry, and so is the same term twice.
+
+  It is the one text block matched **uppercase only**. The others carry no
+  attributes, which is what lets them use the "uppercase and alone on the line"
+  rule that keeps `[notes](…)` a markdown link; a tag carrying a `title` cannot,
+  so the casing does that job by itself.
+
 ## [0.0.144] - 2026-08-21
 
 ### Changed

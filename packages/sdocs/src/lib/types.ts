@@ -287,6 +287,33 @@ export interface DocNote {
 	type: NoteType | null;
 }
 
+/** One `- Term: definition` line of a `[GLOSSARY]`. */
+export interface GlossaryTerm {
+	/** The word being defined. */
+	term: string;
+	/** What it means — inline markdown, rendered. */
+	definition: string;
+}
+
+/**
+ * One `[GLOSSARY]` block: a titled list of terms, rendered where it was
+ * written.
+ *
+ * Unlike the other text blocks it carries attributes, which is why its tag is
+ * matched uppercase-only — an attribute-bearing tag cannot use the
+ * "nothing else on the line" rule that keeps `[notes](…)` a markdown link.
+ */
+export interface GlossaryBlock {
+	/** Heading above the list; absent renders no heading. */
+	title: string | null;
+	/** A line under the title; absent renders nothing. */
+	subtitle: string | null;
+	/** Show a filter box over the terms. Off unless the author asks: a
+	 * search over four terms is furniture, not a feature. */
+	search: boolean;
+	terms: GlossaryTerm[];
+}
+
 /** One line of a `[TODO]` block, with whatever is nested under it. */
 export interface TodoItem {
 	/** The item's text — inline markdown, rendered. */
@@ -305,7 +332,8 @@ export interface TodoItem {
 export type FlowItem =
 	| { kind: 'components'; indices: number[] }
 	| { kind: 'example'; index: number }
-	| { kind: 'prose'; index: number };
+	| { kind: 'prose'; index: number }
+	| { kind: 'glossary'; index: number };
 
 /** One [PROSE] block of a [SHOWCASE], compiled as its own component. */
 export interface ProseBlock {
@@ -497,6 +525,10 @@ export interface DocEntry {
 	prose: ProseBlock[];
 	/** What a [SHOWCASE] shows, in source order. Absent on other kinds. */
 	flow?: FlowItem[];
+	/** The entity's [GLOSSARY] blocks, in source order. In a [DOC] these are
+	 * spliced into the prose at the position they were written, the way an
+	 * example is. */
+	glossaries?: GlossaryBlock[];
 	/** Explicit route leaf from slug="…"; the slugified title segment otherwise */
 	routeSlug?: string;
 	/** `hide` flag: routable but never listed in a sidebar */

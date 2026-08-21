@@ -125,6 +125,26 @@ const TAG_SHOWCASE: Record<string, string> = {
 		'',
 		`[Todo reference](${SITE}/language/overview#todo)`,
 	].join('\n'),
+	GLOSSARY: [
+		'**`[GLOSSARY]`** — a titled list of terms',
+		'',
+		'One `- Term: what it means` per line, rendered where it is written. In a `[SHOWCASE]` it flows with the other blocks; in a `[DOC]` it sits mid-prose, the way an `[EXAMPLE]` does.',
+		'',
+		'```sdoc',
+		'[GLOSSARY title="Terms" subtitle="Words this page uses" search]',
+		'\t- Stage: the isolated frame a preview renders in.',
+		'\t- Measure: the width of a line of text, in characters.',
+		'[/GLOSSARY]',
+		'```',
+		'',
+		'- `title` — heading above the list. Optional; without one no heading renders.',
+		'- `subtitle` — a line under the title. Inline markdown renders.',
+		'- `search` — a bare flag: show a filter box over the terms. **Off by default**, because a filter over four terms is furniture.',
+		'',
+		'As many per entity as you like — a page can carry both "Terms" and "Abbreviations". Unlike the other text blocks its tag is matched **uppercase only**, since a tag carrying attributes cannot use the rule that keeps `[glossary](…)` a markdown link.',
+		'',
+		`[Language reference](${SITE}/language/overview)`,
+	].join('\n'),
 	PROSE: [
 		'**`[PROSE]`** — markdown between the blocks',
 		'',
@@ -158,7 +178,7 @@ export function sdocTagHover(source: string, position: Position): Hover | null {
 	// rather than /i: the text blocks are uppercase-only, so `[notes](…)` in
 	// prose stays a markdown link instead of hovering as a block.
 	const re =
-		/\[\/?(SHOWCASE|DOC|PAGE|LAYOUT|COMPONENTS|COMPONENT|EXAMPLE|NOTES|TODO|PROSE|component|example)\b\]?/g;
+		/\[\/?(SHOWCASE|DOC|PAGE|LAYOUT|COMPONENTS|COMPONENT|EXAMPLE|GLOSSARY|NOTES|TODO|PROSE|component|example)\b\]?/g;
 	for (let m = re.exec(line); m; m = re.exec(line)) {
 		const start = m.index;
 		const end = m.index + m[0].length;

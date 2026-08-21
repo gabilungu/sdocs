@@ -315,3 +315,129 @@ it('reads a note type containing digits', () => {
 		{ note: 'The icon-only variant has no accessible name.', type: 'a11y' },
 	]);
 });
+
+/**
+ * `[GLOSSARY]` is the first block that is text *and* takes attributes, which
+ * is why it is matched uppercase-only: the "nothing else on the line" rule
+ * that keeps `[notes](…)` a markdown link cannot apply to a tag with a title
+ * on it.
+ */
+describe('[GLOSSARY]', () => {
+	const showcase = (body: string) =>
+		parseSdoc(`[SHOWCASE title="Nav / Tabs"]\n${body}\n[/SHOWCASE]\n`);
+
+	const BLOCK = [
+		'\t[GLOSSARY title="Terms" subtitle="What they mean" search]',
+		'\t\t- Stage: the isolated frame a preview renders in.',
+		'\t\t- Measure: the width of a line of text, in `characters`.',
+		'\t[/GLOSSARY]',
+	].join('\n');
+
+	it('reads its attributes and its terms', () => {
+		const doc = showcase(BLOCK);
+		expect(doc.diagnostics).toEqual([]);
+		const entity = doc.entities[0] as ShowcaseEntity;
+		expect(entity.glossaries).toEqual([
+			{
+				title: 'Terms',
+				subtitle: 'What they mean',
+				search: true,
+				terms: [
+					{ term: 'Stage', definition: 'the isolated frame a preview renders in.' },
+					{ term: 'Measure', definition: 'the width of a line of text, in `characters`.' },
+				],
+			},
+		]);
+	});
+
+	// Search is opt-in: a filter over four terms is furniture.
+	it('leaves search off unless asked', () => {
+		const doc = showcase('\t[GLOSSARY]\n\t\t- A: first.\n\t[/GLOSSARY]');
+		const [glossary] = (doc.entities[0] as ShowcaseEntity).glossaries;
+		expect(glossary.search).toBe(false);
+		expect(glossary.title).toBeNull();
+		expect(glossary.subtitle).toBeNull();
+	});
+
+	it('takes its place in the flow, between prose and examples', () => {
+		const doc = showcase(
+			[
+				'\t[PROSE]',
+				'\t\tBefore.',
+				'\t[/PROSE]',
+				BLOCK,
+				'\t[EXAMPLE title="After"]',
+				'\t\t<X />',
+				'\t[/EXAMPLE]',
+			].join('\n'),
+		);
+		expect((doc.entities[0] as ShowcaseEntity).flow).toEqual([
+			{ kind: 'prose', index: 0 },
+			{ kind: 'glossary', index: 0 },
+			{ kind: 'example', index: 0 },
+		]);
+	});
+
+	// In a [DOC] the body is prose, so a glossary is spliced where it was
+	// written and resolved by a marker — exactly how an [EXAMPLE] works there.
+	it('splices a marker into a [DOC] body, where it was written', () => {
+		const doc = parseSdoc(
+			[
+				'[DOC title="Guides / Intro"]',
+				'',
+				'\tBefore the list.',
+				'',
+				'\t[GLOSSARY title="Terms"]',
+				'\t\t- Stage: the isolated frame.',
+				'\t[/GLOSSARY]',
+				'',
+				'\tAfter the list.',
+				'',
+				'[/DOC]',
+			].join('\n'),
+		);
+		expect(doc.diagnostics).toEqual([]);
+		const entity = doc.entities[0];
+		expect(entity.kind).toBe('DOC');
+		if (entity.kind !== 'DOC') return;
+		expect(entity.glossaries).toHaveLength(1);
+		expect(entity.body).toContain('{@render __sdocsGlossary?.(0)}');
+		// The marker sits between the prose either side of it, not appended.
+		const at = entity.body.indexOf('{@render __sdocsGlossary?.(0)}');
+		expect(entity.body.indexOf('Before the list.')).toBeLessThan(at);
+		expect(entity.body.indexOf('After the list.')).toBeGreaterThan(at);
+	});
+
+	it('refuses a line that is not a definition, and an empty one', () => {
+		expect(
+			showcase('\t[GLOSSARY]\n\t\t- Just a phrase with no colon\n\t[/GLOSSARY]').diagnostics.map(
+				(d) => d.code,
+			),
+		).toEqual(['glossary-line']);
+		expect(
+			showcase('\t[GLOSSARY]\n\t\t- Stage:\n\t[/GLOSSARY]').diagnostics.map((d) => d.code),
+		).toEqual(['glossary-line']);
+	});
+
+	it('refuses the same term twice', () => {
+		const doc = showcase('\t[GLOSSARY]\n\t\t- Stage: one.\n\t\t- stage: two.\n\t[/GLOSSARY]');
+		expect(doc.diagnostics.map((d) => d.code)).toEqual(['duplicate-term']);
+	});
+
+	// The reason the tag is uppercase-only, in one test.
+	it('leaves a lowercase markdown link alone', () => {
+		const doc = parseSdoc(
+			[
+				'[DOC title="Guides / Intro"]',
+				'',
+				'\t[glossary](/language/glossary) explains the terms.',
+				'',
+				'[/DOC]',
+			].join('\n'),
+		);
+		expect(doc.diagnostics).toEqual([]);
+		const entity = doc.entities[0];
+		expect(entity.kind === 'DOC' && entity.glossaries).toEqual([]);
+		expect(entity.kind === 'DOC' && entity.body).toContain('[glossary](/language/glossary)');
+	});
+});

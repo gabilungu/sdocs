@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.70] - 2026-08-21
+
+### Added
+
+- **`[GLOSSARY]` from sdocs 0.0.145** — completion, hover, and syntax
+  highlighting, with `title`, `subtitle` and `search` in the attribute list.
+  Offered inside both `[SHOWCASE]` and `[DOC]`, since it renders in either.
+
+### Changed
+
+- **The formatter leaves a `[GLOSSARY]` body as written**, like `[NOTES]` and
+  `[TODO]`: its lines are a grammar of their own, not Svelte to reformat.
+
 ## [0.0.69] - 2026-08-21
 
 ### Changed

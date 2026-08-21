@@ -9,6 +9,7 @@
 	} from '../../types.js';
 	import { Icon } from '../../ui/Icon/index.js';
 	import { Note } from '../../ui/Note/index.js';
+	import { Glossary } from '../../ui/Glossary/index.js';
 	import NoteControl from './NoteControl.svelte';
 	import TodoList from './TodoList.svelte';
 	import NativeBody from './NativeBody.svelte';
@@ -800,6 +801,18 @@
 						<NativeBody key={block.key} {pageModules} {preloaded} />
 					</div>
 				{/if}
+			{:else if item.kind === 'glossary'}
+				{@const glossary = doc.glossaries?.[item.index]}
+				{#if glossary}
+					<div class="sdocs-glossary-block">
+						<Glossary
+							terms={glossary.terms}
+							title={glossary.title}
+							subtitle={glossary.subtitle}
+							search={glossary.search}
+						/>
+					</div>
+				{/if}
 			{:else if item.kind === 'components'}
 				{@render componentsBlock()}
 			{:else}
@@ -1084,6 +1097,11 @@
 	   exactly its text, and the block then sets the gap to what follows it —
 	   the tab strip was sitting flush against the last paragraph. */
 	.sdocs-prose-block {
+		margin-bottom: 22px;
+	}
+	/* Held to the content column and spaced like the prose it sits among. */
+	.sdocs-glossary-block {
+		max-width: var(--sdocs-content-max, 1200px);
 		margin-bottom: 22px;
 	}
 	.sdocs-prose-block > :global(:first-child) {

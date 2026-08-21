@@ -677,6 +677,7 @@ export function sdocsPlugin(
 					entry.prose.push({ key: pageKey(filePath, entity.slug, snippet.slug) });
 				}
 				entry.flow = entity.flow;
+				entry.glossaries = entity.glossaries;
 
 				entry.examples = snippets.filter((s) => s.role === 'example');
 				entity.examples.forEach((example, i) => {
@@ -701,6 +702,7 @@ export function sdocsPlugin(
 				entry.contentX = entity.sizing.contentX ?? config.content.doc.contentX;
 				entry.bodyTitle = rendered.bodyTitle;
 				entry.contentKey = pageKey(filePath, entity.slug);
+				entry.glossaries = entity.glossaries;
 
 				entry.examples = snippets.filter((s) => s.role === 'example');
 				entity.examples.forEach((example, i) => {
@@ -777,6 +779,7 @@ export function sdocsPlugin(
 			contentKey: e.contentKey,
 			prose: e.prose,
 			flow: e.flow,
+			glossaries: e.glossaries,
 			routeSlug: e.routeSlug,
 			hide: e.hide,
 		}));

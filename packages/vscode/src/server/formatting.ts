@@ -175,7 +175,10 @@ export async function formatSdoc(
 	const pushBlockBodies = (blocks: SdocFile['entities'][number]['blocks']) => {
 		for (const block of blocks) {
 			if (block.bodySpan.end <= block.bodySpan.start) continue;
-			if (block.kind === 'notes' || block.kind === 'todo') continue;
+			// Line-grammar bodies are left exactly as authored: a todo's nesting
+			// *is* its indentation, and a note or a glossary term is one line
+			// whose shape the Svelte formatter has no business rewriting.
+			if (block.kind === 'notes' || block.kind === 'todo' || block.kind === 'glossary') continue;
 			const indent = block.group == null ? oneLevel : oneLevel + oneLevel;
 			bodies.push({ span: block.bodySpan, indent, markdown: block.kind === 'prose' });
 		}

@@ -480,7 +480,8 @@ ${stylesTag}<div id="sdocs-preview" style="${stageStyle}">
  * Generate the Svelte component for a [DOC] or [PAGE] body, rendered natively
  * inside the Explorer (sdocs styling — the project's css never loads here).
  * DOC prose arrives as rendered markdown with islands verbatim, and
- * `{@render __sdocsExample?.(i)}` markers render the example stages the
+ * `{@render __sdocsExample?.(i)}` and `{@render __sdocsGlossary?.(i)}`
+ * markers render the example stages and glossaries the
  * Explorer passes in as a snippet prop; a PAGE body is plain Svelte.
  */
 export function generatePageComponent(
@@ -495,7 +496,7 @@ export function generatePageComponent(
 	// lang="ts" so lifted imports may carry type-only syntax
 	return `<script lang="ts">
 	${importBlock}
-	let { __sdocsExample } = $props();
+	let { __sdocsExample, __sdocsGlossary } = $props();
 </script>
 
 <div class="sdocs-page-body">

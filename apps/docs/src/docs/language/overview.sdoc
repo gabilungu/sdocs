@@ -106,13 +106,22 @@
 	- Svelte code is valid only **inside** blocks. Body text outside any block is
 	  an error.
 
+	[GLOSSARY title="Terms used on this page" subtitle="Each is defined once, here." search]
+		- Entity: one `[SHOWCASE]`, `[DOC]`, `[PAGE]` or `[LAYOUT]` — each is a route.
+		- Block: something written inside an entity, like `[COMPONENT]` or `[NOTES]`.
+		- Stage: the isolated frame a preview renders in, with the project's own css.
+		- Flow: what an entity shows, in the order it was written.
+		- Text block: a block whose body is prose or a list rather than Svelte.
+	[/GLOSSARY]
+
 	## Text blocks
 
-	Three blocks carry text rather than markup, and every entity that takes them
-	takes them the same way. They are UPPERCASE and alone on their line — no
-	attributes, nothing else — which is what keeps a line that opens with a
+	Four blocks carry text rather than markup. Three of them — `[NOTES]`,
+	`[TODO]` and `[PROSE]` — are UPPERCASE and alone on their line, with no
+	attributes and nothing else, which is what keeps a line opening with a
 	markdown link (`[notes](/language/overview#text-blocks)`) from scanning as a
-	block opener.
+	block opener. The fourth, `[GLOSSARY]`, takes attributes and so is matched
+	uppercase-only instead.
 
 	### `[NOTES]`
 
@@ -201,6 +210,36 @@
 
 	Indentation is meaning here rather than layout — it is what nests one item
 	under another — so the formatter leaves a `[TODO]` body exactly as written.
+
+	### `[GLOSSARY]`
+
+	A titled list of terms, rendered where it is written. As many per entity as
+	you like — a page can carry both "Terms" and "Abbreviations".
+
+	```sdoc
+	[GLOSSARY title="Terms" subtitle="Words this page uses" search]
+		- Stage: the isolated frame a preview renders in.
+		- Measure: the width of a line of text, in characters.
+	[/GLOSSARY]
+	```
+
+	`title` sets the heading, `subtitle` a line under it, and `search` — a bare
+	flag — shows a filter box over the terms. Search is **off by default**: a
+	filter over four terms is furniture, and only the author knows whether the
+	list is four terms or forty.
+
+	The definition is inline markdown. The first colon splits the line, so a
+	term may not contain one; a line that isn't a definition is an error rather
+	than a silently dropped entry, and so is the same term twice.
+
+	In a `[SHOWCASE]` it flows with everything else in source order. In a
+	[`[DOC]`](/language/doc-pages) it sits **mid-prose**, exactly where you
+	wrote it — the same splice an `[EXAMPLE]` in a doc body already uses.
+
+	Its tag is the one text block matched **uppercase only**. The others take no
+	attributes, which is what lets them use the "nothing else on the line" rule;
+	a tag carrying a `title` can't, so the casing keeps
+	`[glossary](/some/link)` a markdown link instead of a block opener.
 
 	### `[PROSE]`
 

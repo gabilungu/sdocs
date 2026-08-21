@@ -616,6 +616,35 @@ Indentation is meaning here, not layout: it is what nests one item under
 another. The formatter leaves a `[TODO]` body exactly as written for that
 reason.
 
+## `[GLOSSARY]` — a titled list of terms
+
+One `- Term: what it means` per line, rendered where it is written. As many per
+entity as you like — a page can carry both "Terms" and "Abbreviations".
+
+```sdoc
+[GLOSSARY title="Terms" subtitle="Words this page uses" search]
+	- Stage: the isolated frame a preview renders in, with the project's css.
+	- Measure: the width of a line of text, in characters.
+[/GLOSSARY]
+```
+
+- `title` — heading above the list. Without one, no heading renders.
+- `subtitle` — a line under the title; inline markdown renders.
+- `search` — a bare flag showing a filter box over the terms. **Off by
+  default**: a filter over four terms is furniture, and only the author knows
+  whether the list is four terms or forty.
+- The definition is inline markdown. The first colon splits the line, so a term
+  may not contain one. A line that is not a definition is an error rather than
+  a dropped entry, and so is the same term twice.
+
+In a `[SHOWCASE]` it flows with everything else, in source order. In a `[DOC]`
+it sits **mid-prose**, exactly where written — the same splice an `[EXAMPLE]`
+in a doc body already uses.
+
+Its tag is matched **uppercase only**, unlike `[COMPONENT]` and `[EXAMPLE]`: a
+tag carrying attributes cannot use the "nothing else on the line" rule that
+keeps `[glossary](/some/link)` a markdown link, so the casing does that job.
+
 ## `[PROSE]` — markdown between the blocks
 
 A `[SHOWCASE]` is not only a component and its examples — it can explain

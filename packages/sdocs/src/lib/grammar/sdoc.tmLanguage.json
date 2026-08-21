@@ -271,6 +271,9 @@
 					"include": "#prose"
 				},
 				{
+					"include": "#glossary"
+				},
+				{
 					"include": "#preview"
 				},
 				{
@@ -317,12 +320,15 @@
 					"include": "#text-block"
 				},
 				{
+					"include": "#glossary"
+				},
+				{
 					"include": "#page-example"
 				},
 				{
 					"comment": "The begin consumes the same optional indent as the while: after a fence or example closes, the loop re-begins on the next content line, and a begin line skips the while \u2014 without the indent here markdown would see the raw tab and open an indented code block.",
 					"begin": "(^|\\G)(?:\\t|[ ]{1,4})?",
-					"while": "(^|\\G)(?!\\s*\\[/DOC\\]\\s*$)(?!\\s*(?:\\[(?i:example)\\b|\\[(?:NOTES|TODO)\\]\\s*$|`{3,}|~{3,}))(?:\\t|[ ]{1,4})?",
+					"while": "(^|\\G)(?!\\s*\\[/DOC\\]\\s*$)(?!\\s*(?:\\[(?i:example)\\b|\\[GLOSSARY\\b|\\[(?:NOTES|TODO)\\]\\s*$|`{3,}|~{3,}))(?:\\t|[ ]{1,4})?",
 					"contentName": "meta.embedded.block.markdown",
 					"patterns": [
 						{
@@ -1067,6 +1073,56 @@
 							"include": "text.html.markdown"
 						}
 					]
+				}
+			]
+		},
+		"glossary": {
+			"name": "meta.block.glossary.sdoc",
+			"begin": "^\\s*(\\[)(GLOSSARY)\\b(.*)$",
+			"beginCaptures": {
+				"1": {
+					"name": "punctuation.definition.tag.begin.sdoc"
+				},
+				"2": {
+					"name": "keyword.control.block.sdoc"
+				},
+				"3": {
+					"patterns": [
+						{
+							"include": "#attributes"
+						}
+					]
+				}
+			},
+			"end": "^\\s*(\\[/)(GLOSSARY)(\\])\\s*$",
+			"endCaptures": {
+				"1": {
+					"name": "punctuation.definition.tag.begin.sdoc"
+				},
+				"2": {
+					"name": "keyword.control.block.sdoc"
+				},
+				"3": {
+					"name": "punctuation.definition.tag.end.sdoc"
+				}
+			},
+			"patterns": [
+				{
+					"include": "#opener-continuation"
+				},
+				{
+					"match": "^\\s*(-)\\s+([^:\\n]+)(:)",
+					"captures": {
+						"1": {
+							"name": "punctuation.definition.list.begin.markdown"
+						},
+						"2": {
+							"name": "entity.name.type.sdoc"
+						},
+						"3": {
+							"name": "punctuation.separator.sdoc"
+						}
+					}
 				}
 			]
 		}

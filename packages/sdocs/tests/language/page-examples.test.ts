@@ -141,7 +141,7 @@ describe('generatePageComponent', () => {
 			'<h1>Hi</h1>\n{@render __sdocsExample?.(0)}',
 		);
 		expect(out).toContain("import Button from '/abs/Button.svelte';");
-		expect(out).toContain('let { __sdocsExample } = $props();');
+		expect(out).toContain('let { __sdocsExample, __sdocsGlossary } = $props();');
 		expect(out).toContain('<div class="sdocs-page-body">');
 		expect(out).toContain('{@render __sdocsExample?.(0)}');
 	});

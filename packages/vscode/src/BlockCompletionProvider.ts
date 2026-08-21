@@ -61,6 +61,11 @@ const SUB_BLOCKS: BlockSpec[] = [
 		insert: 'TODO]\n\t- [ ] $0\n[/TODO]',
 	},
 	{
+		label: 'GLOSSARY',
+		detail: 'A titled list of terms, rendered where it is written',
+		insert: 'GLOSSARY title="$1"]\n\t- ${2:Term}: $0\n[/GLOSSARY]',
+	},
+	{
 		label: 'PROSE',
 		detail: 'Markdown between the blocks — the capabilities of a [DOC] body',
 		insert: 'PROSE]\n\t$0\n[/PROSE]',
@@ -71,8 +76,8 @@ const SUB_BLOCKS: BlockSpec[] = [
  * [PROSE] nor the component blocks; a [LAYOUT] and a [PAGE] take none of them
  * yet — their bodies capture no blocks. */
 const SUB_BLOCKS_BY_ENTITY: Record<string, string[]> = {
-	SHOWCASE: ['COMPONENT', 'COMPONENTS', 'EXAMPLE', 'NOTES', 'TODO', 'PROSE'],
-	DOC: ['EXAMPLE', 'NOTES', 'TODO'],
+	SHOWCASE: ['COMPONENT', 'COMPONENTS', 'EXAMPLE', 'GLOSSARY', 'NOTES', 'TODO', 'PROSE'],
+	DOC: ['EXAMPLE', 'GLOSSARY', 'NOTES', 'TODO'],
 };
 
 /** Human descriptions for attributes, keyed by name. The set of attributes a
@@ -93,6 +98,8 @@ const ATTR_SHOWCASE: Record<string, string> = {
 	toc: '`toc="false"` hides the table of contents for this page.',
 	slug: 'Overrides the URL segment for this entity (lowercase letters, digits, hyphens). Defaults to the slugified last title segment.',
 	hide: 'Keeps this entity routable but out of every sidebar — for pages reached by link only (a home page, say).',
+	subtitle: 'A line under a `[GLOSSARY]` title — inline markdown renders.',
+	search: 'A bare flag on `[GLOSSARY]`: show a filter box over the terms. Off by default, because a filter over four terms is furniture.',
 	code: '`code="false"` hides this example\'s code panel — for a `[DOC]` that wants the rendered thing, not its source. Shown by default.',
 	tags: 'What this example shows, comma-separated: `tags="user menu, badge"`. Rendered as quiet badges, and searched by the MCP `search_docs` tool.',
 	synonyms:
@@ -167,7 +174,8 @@ export class BlockCompletionProvider implements vscode.CompletionItemProvider {
 		}
 
 		// Attribute names on a block opener line.
-		const opener = /^\s*\[(SHOWCASE|DOC|PAGE|LAYOUT|COMPONENT|EXAMPLE|component|example)\b/.exec(line);
+		const opener =
+			/^\s*\[(SHOWCASE|DOC|PAGE|LAYOUT|COMPONENT|EXAMPLE|GLOSSARY|component|example)\b/.exec(line);
 		if (!opener) return undefined;
 		const rules = attributeRules(opener[1]);
 		const tagEnd = line.indexOf('[') + 1 + opener[1].length;

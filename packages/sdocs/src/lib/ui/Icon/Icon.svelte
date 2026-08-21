@@ -5,6 +5,7 @@
 	import faPencilSvg from './icons/fa/pencil.svg?raw';
 	import faScrewdriverWrenchSvg from './icons/fa/screwdriver-wrench.svg?raw';
 	import faEyeSvg from './icons/fa/eye.svg?raw';
+	import faMagnifyingGlassSvg from './icons/fa/magnifying-glass.svg?raw';
 	import faFlaskSvg from './icons/fa/flask.svg?raw';
 	import faBanSvg from './icons/fa/ban.svg?raw';
 	import faCircleCheckSvg from './icons/fa/circle-check.svg?raw';
@@ -48,6 +49,7 @@
 		'fa-pencil': faPencilSvg,
 		'fa-screwdriver-wrench': faScrewdriverWrenchSvg,
 		'fa-eye': faEyeSvg,
+		'fa-magnifying-glass': faMagnifyingGlassSvg,
 		'fa-flask': faFlaskSvg,
 		'fa-ban': faBanSvg,
 		'fa-circle-check': faCircleCheckSvg,

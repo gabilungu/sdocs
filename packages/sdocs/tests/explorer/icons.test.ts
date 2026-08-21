@@ -53,7 +53,11 @@ describe('the icon registry', () => {
 	// Mixing them is deliberate, and the prefix is what keeps it legible.
 	it('namespaces the Font Awesome icons, and takes them only from the free set', () => {
 		const fa = [...icons].filter(([name]) => name.startsWith('fa-'));
-		expect(fa.length).toBe(12);
+		// Derived rather than a fixed number: the count changes whenever a glyph
+		// is chosen differently, and a magic number just becomes a chore.
+		const onDisk = readdirSync(resolve(root, 'ui/Icon/icons/fa')).filter((f) => f.endsWith('.svg'));
+		expect(fa.length).toBe(onDisk.length);
+		expect(fa.length).toBeGreaterThan(5);
 		for (const [name, path] of fa) {
 			expect(path, name).toContain('icons/fa/');
 			const svg = readFileSync(resolve(root, 'ui/Icon', path), 'utf-8');

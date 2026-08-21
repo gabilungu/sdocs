@@ -23,7 +23,7 @@ export interface Span {
 }
 
 export type EntityKind = 'SHOWCASE' | 'DOC' | 'PAGE' | 'LAYOUT';
-export type SubBlockKind = 'preview' | 'example' | 'prose' | 'notes' | 'todo';
+export type SubBlockKind = 'preview' | 'example' | 'prose' | 'notes' | 'todo' | 'glossary';
 
 export const ENTITY_KINDS: readonly EntityKind[] = ['SHOWCASE', 'DOC', 'PAGE', 'LAYOUT'];
 export const SUB_BLOCK_KINDS: readonly SubBlockKind[] = [
@@ -32,6 +32,7 @@ export const SUB_BLOCK_KINDS: readonly SubBlockKind[] = [
 	'prose',
 	'notes',
 	'todo',
+	'glossary',
 ];
 
 /** Blocks whose body is prose or a list rather than a Svelte fragment: they
@@ -44,6 +45,7 @@ export const TEXT_BLOCK_KINDS: readonly SubBlockKind[] = ['prose', 'notes', 'tod
 export const SUB_BLOCK_TAGS: readonly string[] = [
 	'COMPONENT',
 	'EXAMPLE',
+	'GLOSSARY',
 	'PROSE',
 	'NOTES',
 	'TODO',
@@ -51,6 +53,18 @@ export const SUB_BLOCK_TAGS: readonly string[] = [
 const SUB_BLOCK_TAG_KINDS: Record<string, SubBlockKind> = {
 	component: 'preview',
 	example: 'example',
+};
+
+/**
+ * Attribute-bearing blocks added after 0.0.139, matched **uppercase only**.
+ *
+ * `[COMPONENT]` and `[EXAMPLE]` take either casing because they existed in
+ * lowercase and old files are never rewritten. Nothing added since has that
+ * debt, and the stricter rule buys something: a line opening
+ * `[glossary](/language/glossary)` is a markdown link, and stays one.
+ */
+const UPPERCASE_SUB_BLOCK_TAG_KINDS: Record<string, SubBlockKind> = {
+	GLOSSARY: 'glossary',
 };
 
 const TEXT_BLOCK_TAG_KINDS: Record<string, SubBlockKind> = {
@@ -98,7 +112,7 @@ export function textBlockCloser(kind: SubBlockKind): string {
  * deprecation window.
  */
 export function subBlockKindOf(name: string): SubBlockKind | null {
-	return SUB_BLOCK_TAG_KINDS[name.toLowerCase()] ?? null;
+	return UPPERCASE_SUB_BLOCK_TAG_KINDS[name] ?? SUB_BLOCK_TAG_KINDS[name.toLowerCase()] ?? null;
 }
 
 export interface AttrValue {
@@ -863,7 +877,7 @@ export function scanSdoc(source: string): SdocFile {
 					code: token.closer ? 'stray-closer' : 'unknown-tag',
 					message: token.closer
 						? `Unexpected closer [/${token.name}] inside [SHOWCASE].`
-						: `Unknown block [${token.name}] inside [SHOWCASE] — expected [COMPONENT], [COMPONENTS], [EXAMPLE], [NOTES], [TODO] or [PROSE].`,
+						: `Unknown block [${token.name}] inside [SHOWCASE] — expected [COMPONENT], [COMPONENTS], [EXAMPLE], [GLOSSARY], [NOTES], [TODO] or [PROSE].`,
 					span,
 				});
 				i++;
@@ -1017,8 +1031,11 @@ export function scanSdoc(source: string): SdocFile {
 				i = captured.nextLi;
 				continue;
 			}
+			// [EXAMPLE] and [GLOSSARY] are the two blocks that render *in* a doc's
+			// prose rather than beside it: the parser splices a marker where each
+			// was written, and the compiled page resolves it there.
 			const docKind = token && !token.closer ? subBlockKindOf(token.name) : null;
-			if (token && docKind && docKind === 'example') {
+			if (token && (docKind === 'example' || docKind === 'glossary')) {
 				const opener = scanOpener(i, token.name.length);
 				if (!opener) return lines.length;
 				const closer = `[/${token.name}]`;

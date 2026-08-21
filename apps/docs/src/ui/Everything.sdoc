@@ -87,6 +87,19 @@
 
 	[/COMPONENTS]
 
+	[GLOSSARY title="Terms" subtitle="Words this page uses, defined once." search]
+		- Stage: the isolated frame a preview renders in, carrying the project's own css.
+		- Measure: the width of a line of text, counted in characters — capped at ~70 here.
+		- Entity: one `[SHOWCASE]`, `[DOC]`, `[PAGE]` or `[LAYOUT]`; each is a route.
+		- Flow: what an entity shows, in the order it was written.
+		- Silhouette: the outline of a glyph, which is all that survives at 13px.
+	[/GLOSSARY]
+
+	[GLOSSARY title="Abbreviations"]
+		- a11y: accessibility — thirteen letters between the a and the y.
+		- wip: work in progress.
+	[/GLOSSARY]
+
 	[PROSE]
 		### Prose after the components
 

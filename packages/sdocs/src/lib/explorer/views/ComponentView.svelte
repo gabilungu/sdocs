@@ -1025,6 +1025,12 @@
 	.sdocs-view-header :global(.Note) {
 		margin: 10px 0;
 	}
+	/* The header stacks on margins rather than a gap, so the todo has to bring
+	   its own — it was landing flush against the description. Top only: the
+	   header's own margin-bottom already spaces whatever follows it. */
+	.sdocs-view-header :global(.sdocs-todo) {
+		margin-top: 12px;
+	}
 	/* An example's column already spaces its rows; the note only needs to be
 	   held to the content width like its siblings. */
 	.sdocs-example > :global(.Note) {
@@ -1039,6 +1045,12 @@
 	/* A [PROSE] block sits in the page flow like a paragraph of the entity's
 	   own, so its first and last elements do not add margin to the gap the
 	   view already sets between blocks. */
+	/* Its own elements' margins are trimmed at both ends so the block occupies
+	   exactly its text, and the block then sets the gap to what follows it —
+	   the tab strip was sitting flush against the last paragraph. */
+	.sdocs-prose-block {
+		margin-bottom: 22px;
+	}
 	.sdocs-prose-block > :global(:first-child) {
 		margin-top: 0;
 	}

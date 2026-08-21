@@ -12,6 +12,23 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.141] - 2026-08-21
+
+### Fixed
+
+- **Every element on a `[DOC]` page wore the inline-code chip.** Moving the
+  prose typography into a shared stylesheet in 0.0.139 rewrote
+  `:global(:not(pre) > code)` as `:not(pre > code)` — the unwrapping stopped at
+  the first bracket and rebalanced the parens into a selector that matches
+  almost everything. Paragraphs, headings and lists all took the chip's grey
+  background and padding, which is why doc pages read as one grey slab.
+
+- **Spacing under a description and under a `[PROSE]` block.** The component
+  view stacks its rows on their own margins rather than a grid gap, and both
+  `[TODO]` and `[PROSE]` shipped with none — a todo sat flush against the
+  description above it, and the component tab strip flush against the last line
+  of prose.
+
 ## [0.0.140] - 2026-08-21
 
 ### Breaking

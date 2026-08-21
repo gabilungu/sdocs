@@ -86,6 +86,7 @@ const TAG_SHOWCASE: Record<string, string> = {
 		'A Svelte snippet rendered live on an isolated stage with the project\'s css, without controls. In `[SHOWCASE]` it renders below the previews; in `[DOC]` it renders in place, mid-prose — the way to showcase real components inside a documentation page.',
 		'',
 		'- `title` *(required)* — the example heading (and, in `[SHOWCASE]`, its sidebar sub-entry).',
+		'- `code` — `code="false"` hides this example\'s code panel; shown by default.',
 		'- `tags` — what this example shows, comma-separated: `tags="user menu, badge"`. Shown as quiet badges, and searched by the MCP `search_docs` tool.',
 		'- `notes` — standing remarks, shown as alerts under the title and as a dot in the sidebar: `notes={[{ note: "Deprecated in v3", intent: "warning" }]}`. `intent` is `danger`/`warning`/`success`/`info`; unset is grey.',
 		'- `maxWidth` / `padding` / `direction` / `gap` — stage size & flow.',

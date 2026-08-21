@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.67] - 2026-08-21
+
+### Added
+
+- **Completion and hover for `code`**, the `[example]` attribute added in sdocs
+  0.0.138 that hides an example's code panel. The attribute list comes from the
+  sdocs parser and is bundled at build time; the editor's own per-attribute
+  documentation is separate, and both places now describe it.
+
+
 ## [0.0.66] - 2026-08-21
 
 ### Added

@@ -9,6 +9,7 @@
 	} from '../../types.js';
 	import { Icon } from '../../ui/Icon/index.js';
 	import { Note } from '../../ui/Note/index.js';
+	import { nextTabIndex } from './tablist.js';
 	import { Glossary } from '../../ui/Glossary/index.js';
 	import NoteControl from './NoteControl.svelte';
 	import TodoList from './TodoList.svelte';
@@ -99,18 +100,7 @@
 	);
 
 	function onTabKeydown(event: KeyboardEvent) {
-		const last = previews.length - 1;
-		if (last < 1) return;
-		const to =
-			event.key === 'ArrowRight'
-				? (activeIndex + 1) % previews.length
-				: event.key === 'ArrowLeft'
-					? (activeIndex + last) % previews.length
-					: event.key === 'Home'
-						? 0
-						: event.key === 'End'
-							? last
-							: null;
+		const to = nextTabIndex(event.key, activeIndex, previews.length);
 		if (to === null) return;
 		event.preventDefault();
 		selectTab(to);

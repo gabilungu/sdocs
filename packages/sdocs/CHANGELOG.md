@@ -12,6 +12,30 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.171] - 2026-08-22
+
+### Added
+
+- **Tests that render components.** Nothing in the suite mounted anything
+  before: the Explorer was covered only by its server render, through the
+  prerendering the end-to-end build tests exercise — which catches "does it
+  throw", not "does it produce the right thing". Every interface bug the
+  recent audit turned up lived in that gap. happy-dom, opted into per file, no
+  runtime dependency added.
+
+  What it cannot do, stated so nobody reaches for it and is disappointed:
+  happy-dom applies no CSS and computes no layout, so anything about position,
+  overlap or size still needs a real browser.
+
+### Changed
+
+- **The tablist's keyboard rules moved out of the component.** They are the
+  part with edge cases — wrapping past either end, Home and End, leaving every
+  other key alone — and they lived in a handler that needs a whole document,
+  component metadata and a live iframe to reach. Behaviour is unchanged, and
+  now checked both ways: against the rules directly, and against a running
+  dev server.
+
 ## [0.0.170] - 2026-08-22
 
 ### Fixed

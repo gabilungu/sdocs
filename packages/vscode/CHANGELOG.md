@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.77] - 2026-08-22
+
+### Fixed
+
+- **Text blocks nested in an `[EXAMPLE]`, and wrapped `[DOC]`/`[PAGE]`
+  openers, are highlighted.** Both were gaps in the shared grammar; see the
+  sdocs 0.0.168 notes. The wrapped-opener one is the extension marking its own
+  homework — the formatter writes that shape, and the grammar had no rule for
+  it.
+- **An unterminated attribute quote reports on the quote**, once, instead of
+  four squiggles elsewhere and a file that stops parsing after it.
+
 ## [0.0.76] - 2026-08-21
 
 ### Changed

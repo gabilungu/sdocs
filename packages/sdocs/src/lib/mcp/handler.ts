@@ -815,11 +815,16 @@ const fileLocks = new Map<string, Promise<unknown>>();
 function withFileLock<T>(path: string, run: () => Promise<T>): Promise<T> {
 	const prior = fileLocks.get(path) ?? Promise.resolve();
 	const next = prior.then(run, run);
-	// Keep the chain going but never let a rejection poison the next caller.
-	fileLocks.set(
-		path,
-		next.catch(() => undefined),
-	);
+	// The stored link never rejects, so one failed write cannot stall the queue
+	// behind it; the caller still gets the real error, from `next`.
+	let link: Promise<unknown>;
+	// And it drops itself once nothing is queued behind it — otherwise the map
+	// keeps one settled promise per file the server has ever touched.
+	const release = () => {
+		if (fileLocks.get(path) === link) fileLocks.delete(path);
+	};
+	link = next.then(release, release);
+	fileLocks.set(path, link);
 	return next;
 }
 

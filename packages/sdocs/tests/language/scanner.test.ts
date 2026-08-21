@@ -779,3 +779,65 @@ describe('fence markers are not interchangeable (review regression)', () => {
 		expect(file.entities.map((e) => e.kind)).toEqual(['DOC']);
 	});
 });
+
+/**
+ * A quoted attribute value stops at the line break.
+ *
+ * The search for the closing quote used to run to end of file, so a missing
+ * `"` was closed by the next one anywhere in the document — usually the one on
+ * a later entity's opener. Everything between became the value: the blocks in
+ * that range vanished, the opener's span stretched across them, and the four
+ * diagnostics that came out were all downstream of a mistake none of them
+ * pointed at.
+ *
+ * `script-scan.ts` has always had this rule for `'`/`"` strings in a script.
+ * The attribute scanner is the one place that opted out of it, and out of the
+ * recovery policy `recoverOpenerEnd` exists for.
+ */
+describe('an unterminated attribute value', () => {
+	const BROKEN = [
+		'[SHOWCASE title="Button]',
+		'',
+		'\t[EXAMPLE title="Primary"]',
+		'\t\t<b>x</b>',
+		'\t[/EXAMPLE]',
+		'',
+		'[/SHOWCASE]',
+		'',
+	].join('\n');
+
+	it('reports once, on the opening quote', () => {
+		const file = scanSdoc(BROKEN);
+		expect(file.errors).toHaveLength(1);
+		const [err] = file.errors;
+		expect(err.code).toBe('unterminated-attr-string');
+		// Offset 16 is the `"` itself — not the attribute name, and not a span
+		// running to the end of the file, which is what it used to report.
+		expect(BROKEN[err.span.start]).toBe('"');
+		expect(err.span.end - err.span.start).toBe(1);
+	});
+
+	it('recovers the rest of the document', () => {
+		const file = scanSdoc(BROKEN);
+		expect(file.entities).toHaveLength(1);
+		// The `]` still on that line closes the opener, so the title reads as
+		// written rather than carrying the bracket.
+		expect(file.entities[0].attrs.title?.raw).toBe('Button');
+		// And the block inside it is still there — it used to be swallowed.
+		expect(file.entities[0].blocks).toHaveLength(1);
+	});
+
+	it('still accepts a value that closes on its own line', () => {
+		const file = scanSdoc('[SHOWCASE title="Forms / Button"]\n[/SHOWCASE]\n');
+		expect(file.errors).toEqual([]);
+		expect(file.entities[0].attrs.title?.raw).toBe('Forms / Button');
+	});
+
+	it('does not mistake a later quote for the closer', () => {
+		// The `"` four lines down used to close this value.
+		const file = scanSdoc(
+			'[SHOWCASE title="First]\n\n[/SHOWCASE]\n\n[DOC title="Second"]\n\ttext\n[/DOC]\n',
+		);
+		expect(file.entities.map((e) => e.attrs.title?.raw)).toEqual(['First', 'Second']);
+	});
+});

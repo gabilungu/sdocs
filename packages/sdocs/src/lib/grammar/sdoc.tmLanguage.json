@@ -17,7 +17,7 @@
 			]
 		},
 		"L:meta.tag.start.svelte - (string, comment, meta.embedded)": {
-			"comment": "CSS-custom-property component props (--background=\"\u2026\" / --x={\u2026}) color like their sibling attributes instead of Svelte's property-name scope \u2014 visual parity inside .sdoc bodies. The whole attribute is consumed atomically so the value keeps its own scopes.",
+			"comment": "CSS-custom-property component props (--background=\"…\" / --x={…}) color like their sibling attributes instead of Svelte's property-name scope — visual parity inside .sdoc bodies. The whole attribute is consumed atomically so the value keeps its own scopes.",
 			"patterns": [
 				{
 					"match": "(--[\\w-]+)(=)(\")((?:[^\"\\\\]|\\\\.)*)(\")",
@@ -283,20 +283,13 @@
 		},
 		"doc": {
 			"name": "meta.block.doc.sdoc",
-			"begin": "^\\s*(\\[)(DOC)\\b(.*)$",
+			"begin": "^\\s*(\\[)(DOC)\\b",
 			"beginCaptures": {
 				"1": {
 					"name": "punctuation.definition.tag.begin.sdoc"
 				},
 				"2": {
 					"name": "keyword.control.entity.sdoc"
-				},
-				"3": {
-					"patterns": [
-						{
-							"include": "#attributes"
-						}
-					]
 				}
 			},
 			"end": "^\\s*(\\[/)(DOC)(\\])\\s*$",
@@ -313,6 +306,21 @@
 			},
 			"patterns": [
 				{
+					"comment": "The opener's attribute list, single-line or wrapped. \\G pins it to the tag that just matched, so it can only open here and never mid-body; it closes on the ]. The ^(?=\\s*\\[) alternative is the recovery hatch — a half-typed opener must not swallow the body or shield the entity end.",
+					"begin": "\\G",
+					"end": "(\\])|^(?=\\s*\\[)",
+					"endCaptures": {
+						"1": {
+							"name": "punctuation.definition.tag.end.sdoc"
+						}
+					},
+					"patterns": [
+						{
+							"include": "#attributes"
+						}
+					]
+				},
+				{
 					"comment": "Fenced code and [example] regions are direct begin/end children of the DOC region, not children of the markdown while-loop below: a while condition is re-checked on every line no matter what is stacked above it, so a [/DOC] line inside a fence would pop the loop and let the DOC end match. The loop yields on fence-opener and [example] lines instead; begin/end children shield the DOC end until they close, so [/DOC] inside a fence stays fence content and [/example] still closes an example.",
 					"include": "text.html.markdown#fenced_code_block"
 				},
@@ -326,7 +334,7 @@
 					"include": "#page-example"
 				},
 				{
-					"comment": "The begin consumes the same optional indent as the while: after a fence or example closes, the loop re-begins on the next content line, and a begin line skips the while \u2014 without the indent here markdown would see the raw tab and open an indented code block.",
+					"comment": "The begin consumes the same optional indent as the while: after a fence or example closes, the loop re-begins on the next content line, and a begin line skips the while — without the indent here markdown would see the raw tab and open an indented code block.",
 					"begin": "(^|\\G)(?:\\t|[ ]{1,4})?",
 					"while": "(^|\\G)(?!\\s*\\[/DOC\\]\\s*$)(?!\\s*(?:\\[(?i:example)\\b|\\[GLOSSARY\\b|\\[(?:NOTES|TODO)\\]\\s*$|`{3,}|~{3,}))(?:\\t|[ ]{1,4})?",
 					"contentName": "meta.embedded.block.markdown",
@@ -352,20 +360,13 @@
 		},
 		"page": {
 			"name": "meta.block.page.sdoc",
-			"begin": "^\\s*(\\[)(PAGE)\\b(.*)$",
+			"begin": "^\\s*(\\[)(PAGE)\\b",
 			"beginCaptures": {
 				"1": {
 					"name": "punctuation.definition.tag.begin.sdoc"
 				},
 				"2": {
 					"name": "keyword.control.entity.sdoc"
-				},
-				"3": {
-					"patterns": [
-						{
-							"include": "#attributes"
-						}
-					]
 				}
 			},
 			"end": "^\\s*(\\[/)(PAGE)(\\])\\s*$",
@@ -381,6 +382,21 @@
 				}
 			},
 			"patterns": [
+				{
+					"comment": "The opener's attribute list, single-line or wrapped. \\G pins it to the tag that just matched, so it can only open here and never mid-body; it closes on the ]. The ^(?=\\s*\\[) alternative is the recovery hatch — a half-typed opener must not swallow the body or shield the entity end.",
+					"begin": "\\G",
+					"end": "(\\])|^(?=\\s*\\[)",
+					"endCaptures": {
+						"1": {
+							"name": "punctuation.definition.tag.end.sdoc"
+						}
+					},
+					"patterns": [
+						{
+							"include": "#attributes"
+						}
+					]
+				},
 				{
 					"begin": "(^|\\G)",
 					"while": "(^|\\G)(?!\\s*\\[/PAGE\\]\\s*$)",
@@ -614,8 +630,14 @@
 			},
 			"patterns": [
 				{
+					"include": "#text-block"
+				},
+				{
+					"include": "#prose"
+				},
+				{
 					"begin": "(^|\\G)",
-					"while": "(^|\\G)(?!\\s*\\[/(?i:example)\\]\\s*$)",
+					"while": "(^|\\G)(?!\\s*\\[(?:NOTES|TODO|PROSE)\\]\\s*$)(?!\\s*\\[/(?i:example)\\]\\s*$)",
 					"patterns": [
 						{
 							"include": "#opener-continuation"
@@ -637,7 +659,7 @@
 			]
 		},
 		"opener-continuation": {
-			"comment": "Attribute lines and the closing ] of a multi-line (wrapped) opener. Every rule is a single whole-line (^\u2026$) match \u2014 no begin/end region \u2014 so nothing can span into the next line and desync a Svelte block body. The anchored shape also means Svelte text/script never matches.",
+			"comment": "Attribute lines and the closing ] of a multi-line (wrapped) opener. Every rule is a single whole-line (^…$) match — no begin/end region — so nothing can span into the next line and desync a Svelte block body. The anchored shape also means Svelte text/script never matches.",
 			"patterns": [
 				{
 					"comment": "Standalone closing ] of a multi-line opener.",
@@ -837,8 +859,14 @@
 			},
 			"patterns": [
 				{
+					"include": "#text-block"
+				},
+				{
+					"include": "#prose"
+				},
+				{
 					"begin": "(^|\\G)",
-					"while": "(^|\\G)(?!\\s*\\[/(?i:example)\\]\\s*$)",
+					"while": "(^|\\G)(?!\\s*\\[(?:NOTES|TODO|PROSE)\\]\\s*$)(?!\\s*\\[/(?i:example)\\]\\s*$)",
 					"patterns": [
 						{
 							"include": "#block-script-ts"

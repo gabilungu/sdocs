@@ -1,7 +1,9 @@
 [DOC title="@explorer/Features / Interactive Controls"]
 
 
-	The `Default` snippet of a component doc gets a live controls panel. Each control is chosen automatically based on the prop's TypeScript type.
+	Each `[COMPONENT]` block gets a live controls panel, and the tab you are on
+	is the one it drives. Every control is chosen from the prop's TypeScript
+	type — you write the type once and the panel follows.
 
 	## Control types
 
@@ -37,7 +39,9 @@
 	- All members must be string literals wrapped in quotes (`'sm'`, `"md"`).
 	- Members may be written across lines — the leading-pipe style Prettier
 	  wraps long unions into parses the same as a single line.
-	- Mixed unions (`'sm' | number`) are not supported and fall back to read-only display.
+	- A mixed union falls back to a text box rather than a select, and it is a
+	  text box rather than a read-only row whenever the type mentions `string`
+	  at all — `'sm' | string` is typable, `'sm' | number` is not.
 
 	## Number union → select
 
@@ -73,9 +77,12 @@
 
 	- `{color}` → color picker
 	- `{dimension}` → number input with a `px` unit suffix
-	- Anything else (or no `@cssvar`) → plain text input
+	- Any other `{type}` → plain text input
 
-	CSS variables found in `var()` usages are always extracted. The `@cssvar` annotation is only needed to upgrade the control type and provide a description.
+	The annotation is what puts a variable in the panel at all — a `var()` in
+	the component's `<style>` is not enough on its own, because a component
+	references far more variables than a consumer is meant to override. What
+	`var()` does supply is the default.
 
 	See [prop extraction](/explorer/features/prop-extraction) for the full extraction rules.
 
@@ -101,27 +108,34 @@
 	  a disabled *Please select…* entry.
 	- An empty string is a **real value**, not unset: clearing an input keeps
 	  the prop set to `""` (and the code shows `name=""`).
-	- Every set control gets a small **✕** after it. On an optional prop it
-	  unsets the prop entirely — the attribute leaves the code and the component
-	  falls back to its own default. On a required prop it resets the value to
-	  the documented default instead.
+	- Every set control gets a small **✕** after it: it unsets the prop, the
+	  attribute leaves the code, and the component falls back to its own
+	  default. A prop with no default to fall back to has nothing to unset to,
+	  and gets no ✕.
 	- The same ✕ appears on a changed CSS custom property and returns it to its
 	  `var()` fallback — an unchanged var is never applied to the preview, so
 	  component defaults can't leak into nested components.
 
 	## Reset
 
-	The Props section has a **Reset** button that restores all controls to the preview's `args` (and CSS vars back to their `var()` defaults).
+	A **Reset** button restores every control to the preview's `args`, and CSS
+	variables to their `var()` defaults. It sits in the **Props** header, or in
+	the **CSS Props** header on a component that has editable variables and no
+	props of its own.
 
 	## Unsupported types
 
-	Props with types sdocs can't classify (e.g. `Record<string, unknown>`, imported interfaces, complex generics) show up in the controls panel as read-only rows — the name and type, but no editor.
+	A prop whose type sdocs cannot classify — an imported interface, a complex
+	generic, a union of object shapes — shows up in the panel as a read-only
+	row: the name and the type, but no editor. A type merely *containing*
+	`string` is typable, though, so `Record<string, unknown>` gets a text box
+	rather than a read-only row.
 
 	This is intentional: rather than guessing and misrendering, sdocs surfaces the prop so you know it exists but skips the control.
 
 	## See also
 
 	- [Prop extraction](/explorer/features/prop-extraction) — how sdocs parses your component
-	- [Writing component docs](/language/component-docs) — the `Default` snippet and `args`
+	- [Writing component docs](/language/component-docs) — `[COMPONENT]` and `args`
 
 [/DOC]

@@ -282,15 +282,37 @@ function scanOpenerAttrs(
 		}
 		i++; // '='
 		if (source[i] === '"') {
+			const quoteStart = i;
 			const valueStart = i + 1;
+			const newline = source.indexOf('\n', valueStart);
+			const lineEnd = newline === -1 ? source.length : newline;
 			const close = source.indexOf('"', valueStart);
-			if (close === -1) {
+			// A quoted value never crosses a line break. Searching to end of file
+			// meant the next `"` anywhere in the document closed it — usually the
+			// one on some later entity's opener — so the value swallowed every
+			// line between, the blocks inside that range disappeared, and the
+			// four diagnostics that came out were all downstream of a mistake
+			// none of them pointed at. Anchoring the report on the opening quote
+			// is what turns it back into a one-line fix.
+			if (close === -1 || close > lineEnd) {
 				errors.push({
-					code: 'attr-syntax',
-					message: `Unterminated string value for attribute "${name}".`,
-					span: { start: nameStart, end: source.length },
+					code: 'unterminated-attr-string',
+					message: `Unterminated string value for attribute "${name}" — a quoted value must close with '"' on the same line.`,
+					span: { start: quoteStart, end: quoteStart + 1 },
 				});
-				return -1;
+				// The same recovery the stray-character branch uses: end the opener
+				// at the `]` still on this line, or at the line break. The document
+				// keeps parsing, so the diagnostic is the only loss.
+				const end = recoverOpenerEnd(source, valueStart);
+				const rawEnd = source[end - 1] === ']' ? end - 1 : end;
+				const raw = source.slice(valueStart, rawEnd).replace(/\s+$/, '');
+				addAttr(attrs, errors, name, {
+					kind: 'string',
+					raw,
+					span: { start: nameStart, end: valueStart + raw.length },
+					valueSpan: { start: valueStart, end: valueStart + raw.length },
+				});
+				return end;
 			}
 			addAttr(attrs, errors, name, {
 				kind: 'string',

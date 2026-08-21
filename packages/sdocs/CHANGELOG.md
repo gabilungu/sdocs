@@ -12,6 +12,39 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.168] - 2026-08-22
+
+### Fixed
+
+- **An unterminated attribute quote no longer swallows the file.** The search
+  for the closing `"` ran to end of file, so a missing one was closed by the
+  next quote anywhere in the document — usually a later entity's opener. Every
+  line between became the value, the blocks inside that range disappeared, and
+  the four diagnostics that came out were all downstream of a mistake none of
+  them pointed at. A quoted value now ends at the line break, the report sits
+  on the opening quote, and the document keeps parsing.
+- **`[NOTES]`, `[TODO]` and `[PROSE]` inside an `[EXAMPLE]` are highlighted.**
+  They work at entity level and always have; nested one level down they fell
+  through to the Svelte rule, whose text region carries no scope, so they
+  rendered as plain markup in the editor, the Explorer's code panels and the
+  docs site alike.
+- **Wrapped `[DOC]` and `[PAGE]` openers are highlighted.** Their opener
+  matched with a single-line pattern, so the attribute lines of a multi-line
+  opener — the shape the extension's own formatter writes for anything wider
+  than the print width — belonged to no rule. `[SHOWCASE]`, `[LAYOUT]`,
+  `[COMPONENT]`, `[EXAMPLE]` and `[GLOSSARY]` already handled it.
+- **The MCP write lock releases its entries.** It kept one settled promise per
+  file the server had ever written to.
+
+### Changed
+
+- **The Interactive Controls page matches the code again.** Eight corrections,
+  including a `Default` snippet that has not existed since the block format
+  landed, and a statement that CSS variables are extracted from `var()` with
+  `@cssvar` as an optional upgrade — the reverse of the rule, on a page that
+  stated the correct version four paragraphs later.
+- **`llms.txt` lists the per-command CLI options** it had been missing.
+
 ## [0.0.167] - 2026-08-21
 
 ### Fixed

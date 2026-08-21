@@ -184,7 +184,13 @@ describe('sdoc grammar (Oniguruma engine, as in VS Code)', () => {
 				{ ...grammar, name: 'sdoc', embeddedLangs: ['svelte', 'typescript', 'javascript', 'css', 'markdown'] },
 			],
 		});
-		const { tokens } = hl.codeToTokens(TEXT_BLOCKS, { lang: 'sdoc', theme: 'github-dark' });
+		const { tokens } = hl.codeToTokens(TEXT_BLOCKS, {
+			lang: 'sdoc',
+			theme: 'github-dark',
+			// The link assertion below reads scopes, and shiki only attaches them
+			// when asked — without this it compared an empty list and always passed.
+			includeExplanation: true,
+		});
 		const lines = TEXT_BLOCKS.split('\n');
 		for (const tag of ['[NOTES]', '[TODO]', '[PROSE]', '[COMPONENTS]', '[/COMPONENTS]', '[/GLOSSARY]']) {
 			const color = colorOf(tokens as Tokens, lines, tag);
@@ -766,5 +772,109 @@ describe('the grammar keeps its place over the whole docs corpus', () => {
 		hl.dispose();
 		expect(checked).toBeGreaterThan(20);
 		expect(unscoped).toEqual([]);
+	});
+});
+
+/**
+ * Text blocks nested inside an [EXAMPLE] body, and wrapped entity openers.
+ *
+ * Both were the same shape of gap: a rule that exists and works at one level
+ * was simply not reachable from another. `[NOTES]` inside an example fell
+ * through to `source.svelte`, whose text region carries no name, so the block
+ * rendered as plain markup. And `[DOC` / `[PAGE` matched their opener with a
+ * single-line `(.*)$`, so the attribute lines of a wrapped opener — the shape
+ * the extension's own formatter writes — belonged to nothing.
+ */
+const NESTED_TEXT_BLOCKS = `[SHOWCASE title="Forms / Button"]
+
+	[EXAMPLE title="Ghost"]
+		[NOTES]
+			- warning: Not final.
+		[/NOTES]
+		[TODO]
+			- [ ] Add a dark-mode case
+		[/TODO]
+		[PROSE]
+			A **caption**.
+		[/PROSE]
+		<Button variant="ghost" />
+	[/EXAMPLE]
+
+[/SHOWCASE]
+`;
+
+const WRAPPED_ENTITIES = `[DOC
+	title="Guide"
+	slug="guide"
+]
+
+	## Heading
+
+[/DOC]
+
+[PAGE
+	title="Welcome"
+	maxWidth="880px"
+]
+
+	<h1>Hi</h1>
+
+[/PAGE]
+`;
+
+describe('scopes that were unreachable from one level down', () => {
+	it('scopes a [NOTES]/[TODO]/[PROSE] block inside an [EXAMPLE]', async () => {
+		const hl = await createHighlighter({
+			themes: ['github-dark'],
+			langs: [
+				'javascript', 'typescript', 'css', 'svelte', 'markdown', 'html',
+				{ ...grammar, name: 'sdoc', embeddedLangs: ['svelte', 'typescript', 'javascript', 'css', 'markdown'] },
+			],
+		});
+		const { tokens } = hl.codeToTokens(NESTED_TEXT_BLOCKS, {
+			lang: 'sdoc',
+			theme: 'github-dark',
+			includeExplanation: true,
+		});
+		const lines = NESTED_TEXT_BLOCKS.split('\n');
+		for (const tag of ['[NOTES]', '[/NOTES]', '[TODO]', '[/TODO]', '[PROSE]', '[/PROSE]']) {
+			const li = lines.findIndex((l) => l.trim() === tag);
+			const scopes = (tokens[li] ?? []).flatMap(
+				(t) => t.explanation?.flatMap((e) => e.scopes.map((s) => s.scopeName)) ?? [],
+			);
+			expect(scopes.some((s) => s.includes('keyword.control.block.sdoc')), tag).toBe(true);
+		}
+		// The markup after the blocks is still Svelte, and the example still closes.
+		const closer = lines.findIndex((l) => l.trim() === '[/EXAMPLE]');
+		expect(colorOf(tokens as Tokens, lines, '[/EXAMPLE]'), '[/EXAMPLE]').not.toBe(PLAIN);
+		expect(closer).toBeGreaterThan(0);
+		hl.dispose();
+	});
+
+	it('scopes the attribute lines of a wrapped [DOC] and [PAGE] opener', async () => {
+		const hl = await createHighlighter({
+			themes: ['github-dark'],
+			langs: [
+				'javascript', 'typescript', 'css', 'svelte', 'markdown', 'html',
+				{ ...grammar, name: 'sdoc', embeddedLangs: ['svelte', 'typescript', 'javascript', 'css', 'markdown'] },
+			],
+		});
+		const { tokens } = hl.codeToTokens(WRAPPED_ENTITIES, {
+			lang: 'sdoc',
+			theme: 'github-dark',
+			includeExplanation: true,
+		});
+		const lines = WRAPPED_ENTITIES.split('\n');
+		for (const attr of ['title="Guide"', 'slug="guide"', 'title="Welcome"', 'maxWidth="880px"']) {
+			const li = lines.findIndex((l) => l.trim() === attr);
+			const scopes = (tokens[li] ?? []).flatMap(
+				(t) => t.explanation?.flatMap((e) => e.scopes.map((s) => s.scopeName)) ?? [],
+			);
+			expect(scopes.some((s) => s.includes('entity.other.attribute-name.sdoc')), attr).toBe(true);
+		}
+		// The bodies still work: the heading is markdown, and both entities close.
+		expect(colorOf(tokens as Tokens, lines, '[/DOC]'), '[/DOC]').not.toBe(PLAIN);
+		expect(colorOf(tokens as Tokens, lines, '[/PAGE]'), '[/PAGE]').not.toBe(PLAIN);
+		hl.dispose();
 	});
 });

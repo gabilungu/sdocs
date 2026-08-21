@@ -114,12 +114,33 @@
 	> export default { outDir: 'docs-dist' };
 	> ```
 
-	Site-structure errors — an unknown
-	`@section`, two entities on one route, an unresolvable `home` — fail the
-	build with a non-zero exit, so a broken structure can't deploy. So does a
-	`component={…}` reference that resolves to no component file: the same
-	error [`sdocs check`](#sdocs-check) reports, on the same terms. The dev
-	server only warns about it, so a doc can be fixed while it runs.
+	`build` runs [`sdocs check`](#sdocs-check)'s work first, so anything that
+	command reports as an error fails the build with a non-zero exit and a
+	broken site can't deploy: site-structure errors (an unknown `@section`, two
+	entities on one route, an unresolvable `home`), grammar errors, a
+	`component={…}` reference that resolves to no component file, and a stage
+	that doesn't compile.
+
+	Compiling up front is also what makes the message readable. Vite compiles
+	the stages too and would catch the same errors, but it knows each one only
+	as a virtual module, so what it prints is a base64 id and a line number
+	from generated code:
+
+	```
+	/@sdocs/iframe/c3JjL0J1dHRvbi5zZG9j…/button.svelte (81:2)
+	```
+
+	Checked first, the same mistake reads:
+
+	```
+	error  src/Button.sdoc:14 › Forms / Button › Button
+	  Expected 'if', 'each', 'await', 'key' or 'snippet'
+	```
+
+	The dev server only warns about an unresolved `component={…}`, so a doc can
+	be fixed while it runs. A stage that fails to compile in dev still shows
+	Vite's own overlay, virtual id and all — run `sdocs check` to get the
+	`.sdoc` line.
 
 	Every route is **prerendered**: its `index.html` contains the page's real
 	HTML (sidebar, prose, a per-route `<title>`, the showcase description as

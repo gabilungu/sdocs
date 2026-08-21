@@ -12,6 +12,31 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.170] - 2026-08-22
+
+### Fixed
+
+- **A stage that fails to compile now names the `.sdoc` file and line.** The
+  build handed the stages to Vite, which knows each one only as a virtual
+  module — so a mistake in a `[COMPONENT]` body was reported as
+  `/@sdocs/iframe/c3JjL0J1dHRvbi5zZG9j…/button.svelte (81:2)` with a frame from
+  generated code, and nothing in it named a file you could open. `build` now
+  compiles every stage first, the way `sdocs check` does, and fails with
+  `src/Button.sdoc:14 › Forms / Button › Button`. It costs about 7% of build
+  time.
+- **And the line it names is right when the block has a `<script>`.** The
+  mapping anchored on the start of the block's body, but a block script is
+  lifted out before the markup is embedded — so every line came back short by
+  the length of that script. A five-line `<script>` reported line 9 for a
+  mistake on line 14.
+
+### Known limitation
+
+- A stage that fails to compile in `sdocs dev` still shows Vite's own error
+  overlay, virtual id and all. Rewriting that means wrapping
+  `vite-plugin-svelte`'s transform hook, which couples sdocs to another
+  plugin's internals; `sdocs check` gives the mapped location in the meantime.
+
 ## [0.0.169] - 2026-08-22
 
 ### Fixed

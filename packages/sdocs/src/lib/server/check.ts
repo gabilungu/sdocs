@@ -62,6 +62,30 @@ function lineOf(text: string, offset: number): number {
 }
 
 /**
+ * The .sdoc line the embedded markup starts on.
+ *
+ * Found by content rather than by offset arithmetic: `normalizeBody` strips a
+ * common indent, so the embedded text and the source line differ in leading
+ * whitespace but not in what they say. Searching within the block's own span
+ * keeps a line that happens to repeat elsewhere in the file out of it.
+ */
+function sdocMarkupLine(
+	source: string,
+	firstLine: string,
+	bodyStart: number,
+	bodyEnd: number,
+): number | undefined {
+	const needle = firstLine.trim();
+	if (!needle) return undefined;
+	const lines = source.slice(0, bodyEnd).split('\n');
+	const from = lineOf(source, bodyStart);
+	for (let i = from; i < lines.length; i++) {
+		if (lines[i].trim() === needle) return i;
+	}
+	return undefined;
+}
+
+/**
  * Map a line in generated component source back to the .sdoc.
  *
  * The generator embeds the block body verbatim, and `normalizeBody` only
@@ -78,10 +102,18 @@ function mapLine(
 	bodyStart: number,
 	bodyEnd: number,
 ): number | undefined {
-	const at = generated.indexOf(embedded.split('\n')[0]);
-	if (at === -1 || !embedded.trim()) return undefined;
+	const firstLine = embedded.split('\n').find((l) => l.trim() !== '');
+	if (!firstLine || !embedded.trim()) return undefined;
+	const at = generated.indexOf(firstLine);
+	if (at === -1) return undefined;
 	const genBodyLine = lineOf(generated, at);
-	const sdocBodyLine = lineOf(source, bodyStart);
+	// Anchor on where the MARKUP starts in the .sdoc, not where the body does.
+	// A block with its own <script> has that script lifted out before the
+	// markup is embedded, so anchoring on the body put every line off by the
+	// length of the script — a stage with a five-line <script> reported line 9
+	// for a mistake on line 14.
+	const sdocBodyLine = sdocMarkupLine(source, firstLine, bodyStart, bodyEnd);
+	if (sdocBodyLine === undefined) return undefined;
 	const mapped = generatedLine - genBodyLine + sdocBodyLine;
 	const lastLine = lineOf(source, bodyEnd);
 	if (mapped < sdocBodyLine || mapped > lastLine) return undefined;
@@ -341,4 +373,15 @@ export async function checkDocFiles(files: string[], cwd: string): Promise<Check
 		checked: { files: files.length, stages },
 		problems,
 	};
+}
+
+/**
+ * One problem, the way `sdocs check` prints it: where it is, then the message
+ * indented under it — compile messages are often several lines, because they
+ * carry the compiler's own frame.
+ */
+export function formatProblem(p: CheckProblem): string {
+	const where = [p.file + (p.line ? `:${p.line}` : ''), p.entity, p.stage].filter(Boolean).join(' › ');
+	const label = p.severity === 'error' ? 'error' : 'warning';
+	return [`${label}  ${where}`, ...p.message.split('\n').map((l) => `  ${l}`)].join('\n');
 }

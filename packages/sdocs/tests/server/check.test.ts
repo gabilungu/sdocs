@@ -315,3 +315,72 @@ describe('grammar errors reach the build', () => {
 		expect(await collectGrammarErrors(await loadConfig(root), root)).toEqual([]);
 	});
 });
+
+/**
+ * Which .sdoc line a stage's compile error lands on.
+ *
+ * The generated component embeds the block's markup verbatim, so the offset
+ * between generated and authored lines is constant — but the anchor has to be
+ * where the MARKUP starts, not where the body does. A block with its own
+ * `<script>` has that script lifted out before the markup is embedded, so
+ * anchoring on the body shifted every line by the script's length: a five-line
+ * `<script>` reported line 9 for a mistake on line 14.
+ */
+describe('compile errors map back to the .sdoc line', () => {
+	const lineOfError = async (doc: string) => {
+		const root = mkdtempSync(join(tmpdir(), 'sdocs-mapline-'));
+		writeFileSync(join(root, 'W.svelte'), '<script>let{label="x"}=$props()</script>\n<b>{label}</b>\n');
+		writeFileSync(join(root, 'W.sdoc'), doc);
+		const res = await checkDocFile(join(root, 'W.sdoc'), root);
+		return res.problems.find((p) => p.severity === 'error')?.line;
+	};
+
+	it('with no block script', async () => {
+		const doc = [
+			'<script lang="ts">',
+			"\timport W from './W.svelte';",
+			'</script>',
+			'',
+			'[SHOWCASE title="W"]',
+			'',
+			'\t[COMPONENT component={W}]',
+			'\t\t<p>before</p>',
+			'\t\t{#foo}',           // line 9
+			'\t[/COMPONENT]',
+			'',
+			'[/SHOWCASE]',
+			'',
+		].join('\n');
+		expect(await lineOfError(doc)).toBe(9);
+	});
+
+	it('with a block script above the markup', async () => {
+		const doc = [
+			'<script lang="ts">',
+			"\timport W from './W.svelte';",
+			'</script>',
+			'',
+			'[SHOWCASE title="W"]',
+			'',
+			'\t[COMPONENT component={W}]',
+			'\t\t<script>',
+			'\t\t\tlet n = 1;',
+			'\t\t\tlet m = 2;',
+			'\t\t\tlet o = 3;',
+			'\t\t</script>',
+			'\t\t<p>before {n}{m}{o}</p>',
+			'\t\t{#foo}',           // line 14
+			'\t[/COMPONENT]',
+			'',
+			'[/SHOWCASE]',
+			'',
+		].join('\n');
+		// Anchored on the body this came back as 9 — the script's five lines.
+		expect(await lineOfError(doc)).toBe(14);
+	});
+
+	it('in a [PAGE] body', async () => {
+		const doc = ['[PAGE title="Welcome"]', '', '\t<h1>Hi</h1>', '', '\t{#foo}', '', '[/PAGE]', ''].join('\n');
+		expect(await lineOfError(doc)).toBe(5);
+	});
+});

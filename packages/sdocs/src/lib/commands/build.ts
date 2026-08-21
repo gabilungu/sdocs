@@ -6,6 +6,8 @@ import { loadConfig, normalizeBase } from '../server/config.js';
 import { sdocsPlugin } from '../vite.js';
 import { generateBuildFiles, cleanBuildFiles } from '../server/app-gen.js';
 import { buildSiteMap, collectGrammarErrors } from '../server/site-map.js';
+import { checkDocFiles, formatProblem } from '../server/check.js';
+import { discoverDocFiles } from '../server/discovery.js';
 import { sdocsWarningFilter } from '../server/snippet-compiler.js';
 import { displayTitle, type SectionMap } from '../explorer/tree-builder.js';
 import type { ResolvedSdocsConfig } from '../types.js';
@@ -52,6 +54,23 @@ export async function buildCommand(opts?: { base?: string; outDir?: string }): P
 		console.error(`[sdocs] ${grammar.length} grammar error(s):`);
 		for (const e of grammar) console.error(`  ✗ ${e}`);
 		console.error('[sdocs] `sdocs check` reports these with more context.');
+		process.exit(1);
+	}
+
+	// Then compile every stage, the way `check` does, BEFORE handing anything to
+	// Vite. Vite compiles these too and would catch the same errors — but it
+	// only knows the stage as a virtual module with a base64 id, so what it
+	// prints is `/@sdocs/iframe/c3JjL0J1dHRvbi5zZG9j…/button.svelte (81:2)` and
+	// a frame from generated code the author never wrote. This path maps back
+	// to the `.sdoc` file and line, so the error names something you can open.
+	const stages = await checkDocFiles(
+		await discoverDocFiles(config.include, cwd),
+		cwd,
+	);
+	const stageErrors = stages.problems.filter((p) => p.severity === 'error');
+	if (stageErrors.length > 0) {
+		console.error(`[sdocs] ${stageErrors.length} stage(s) failed to compile:`);
+		for (const p of stageErrors) console.error(`\n${formatProblem(p)}`);
 		process.exit(1);
 	}
 

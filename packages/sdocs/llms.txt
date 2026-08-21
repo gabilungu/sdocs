@@ -107,8 +107,14 @@ component's source, reloading on change.
 `sdocs build` prerenders every route to a real `index.html` (with a per-route
 `<title>` and meta description) that hydrates on load, plus a `404.html`
 fallback — deep links work with no rewrite rules on any static host (GitHub
-Pages, Netlify, Vercel, S3). Site-structure errors (unknown `@section`, two
-entities on one route, unresolvable `home`) fail the build. Pass `--base` when
+Pages, Netlify, Vercel, S3). `build` runs `check`'s work first, so everything
+that command calls an error fails the build: site-structure errors (unknown
+`@section`, two entities on one route, unresolvable `home`), grammar errors, an
+unresolved `component={…}`, and a stage that does not compile. Checking first is
+also what makes the message readable — Vite would report a stage error against
+the virtual module (`/@sdocs/iframe/<base64>/x.svelte (81:2)`), while this path
+names the `.sdoc` file and line. A stage error in `dev` still shows Vite's
+overlay with the virtual id; run `sdocs check` for the mapped location. Pass `--base` when
 serving under a sub-path (a GitHub *project* Pages site lives at `/<repo>/`):
 
 ```bash

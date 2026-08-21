@@ -1,7 +1,7 @@
 import { resolve } from 'node:path';
 import { loadConfig } from '../server/config.js';
 import { discoverDocFiles } from '../server/discovery.js';
-import { checkDocFiles } from '../server/check.js';
+import { checkDocFiles, formatProblem } from '../server/check.js';
 import { buildSiteMap } from '../server/site-map.js';
 
 /**
@@ -35,16 +35,7 @@ export async function checkCommand(): Promise<void> {
 		console.log(`  ${e.message}`);
 	}
 
-	for (const p of result.problems) {
-		const where = [p.file + (p.line ? `:${p.line}` : ''), p.entity, p.stage]
-			.filter(Boolean)
-			.join(' › ');
-		const label = p.severity === 'error' ? 'error' : 'warning';
-		// One line per problem, message indented under it — compile messages
-		// are often multi-line (the compiler's own frame).
-		console.log(`\n${label}  ${where}`);
-		for (const line of p.message.split('\n')) console.log(`  ${line}`);
-	}
+	for (const p of result.problems) console.log(`\n${formatProblem(p)}`);
 
 	const compileErrors = result.problems.filter((p) => p.severity === 'error').length;
 	const errors = compileErrors + map.errors.length;

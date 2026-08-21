@@ -310,7 +310,7 @@
 		border: none;
 		border-radius: 4px;
 		background: var(--color-base-100);
-		color: var(--color-base-400);
+		color: var(--color-base-600);
 		font-family: var(--mono, ui-monospace, monospace);
 		font-size: 10px;
 		line-height: 1.5;

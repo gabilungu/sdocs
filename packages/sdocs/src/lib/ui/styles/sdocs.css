@@ -108,9 +108,15 @@
 	--color-base-300: var(--color-zinc-700);
 	--color-base-350: var(--color-zinc-650);
 	--color-base-400: var(--color-zinc-600);
-	--color-base-450: var(--color-zinc-550);
-	--color-base-500: var(--color-zinc-500);
-	--color-base-550: var(--color-zinc-450);
+	--color-base-450: var(--color-zinc-500);
+	/* The mirror pivots here, and a straight mirror puts the same mid-grey on
+	   both grounds — which does not work, because contrast is not symmetric.
+	   zinc-500 reads at 4.8:1 on white and 4.35:1 on near-black, and base-500
+	   is the secondary-text step: descriptions, API notes, glossary subtitles,
+	   the inactive preview tab. Half a step lighter clears 4.5 for all of
+	   them. */
+	--color-base-500: var(--color-zinc-450);
+	--color-base-550: var(--color-zinc-400);
 	--color-base-600: var(--color-zinc-400);
 	--color-base-650: var(--color-zinc-350);
 	--color-base-700: var(--color-zinc-300);
@@ -380,8 +386,13 @@
 .sdocs-prose p {
 	margin: 0.7em 0;
 }
+/* `action` is an aliased ramp and inverts with the theme, so one step covers
+   both grounds — unlike the raw `blue`/`red` ramps below, which do not, and
+   which each need saying twice. At action-500 a link sat at 3.4:1 on the
+   tinted chip an inline `code` carries, which is the shape most of these
+   links have. */
 .sdocs-prose a {
-	color: var(--color-action-500, var(--color-base-900));
+	color: var(--color-action-600, var(--color-base-900));
 	text-decoration: underline;
 	text-underline-offset: 2px;
 }
@@ -473,26 +484,45 @@
 	border-radius: 0 6px 6px 0;
 	background: color-mix(in srgb, var(--sdocs-alert-color) 6%, transparent);
 }
+/* The label is text and needs 4.5:1; the rule beside it is not, and 3:1 is
+   enough there. One token each, so the border keeps the weight it was drawn
+   with instead of darkening to satisfy a rule that isn't about it. */
 .sdocs-prose .sdocs-alert-label {
 	font-size: 13px;
 	font-weight: 650;
-	color: var(--sdocs-alert-color);
+	color: var(--sdocs-alert-text, var(--sdocs-alert-color));
 	margin: 0.25em 0 0;
+}
+.sdocs-app[data-sdocs-theme='dark'] {
+	--sdocs-required-color: var(--color-red-400);
+}
+.sdocs-app[data-sdocs-theme='dark'] .sdocs-prose .sdocs-alert-label {
+	color: var(--sdocs-alert-text-dark, var(--sdocs-alert-color));
 }
 .sdocs-prose .sdocs-alert-note {
 	--sdocs-alert-color: var(--color-blue-500);
+	--sdocs-alert-text: var(--color-blue-600);
+	--sdocs-alert-text-dark: var(--color-blue-400);
 }
 .sdocs-prose .sdocs-alert-tip {
 	--sdocs-alert-color: var(--color-green-500);
+	--sdocs-alert-text: var(--color-green-600);
+	--sdocs-alert-text-dark: var(--color-green-400);
 }
 .sdocs-prose .sdocs-alert-important {
 	--sdocs-alert-color: var(--color-purple-500);
+	--sdocs-alert-text: var(--color-purple-600);
+	--sdocs-alert-text-dark: var(--color-purple-400);
 }
 .sdocs-prose .sdocs-alert-warning {
 	--sdocs-alert-color: var(--color-amber-500);
+	--sdocs-alert-text: var(--color-amber-600);
+	--sdocs-alert-text-dark: var(--color-amber-400);
 }
 .sdocs-prose .sdocs-alert-caution {
 	--sdocs-alert-color: var(--color-red-500);
+	--sdocs-alert-text: var(--color-red-600);
+	--sdocs-alert-text-dark: var(--color-red-400);
 }
 
 /* ── Example stages in the page flow ── */

@@ -435,7 +435,7 @@
 		font-weight: 600;
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
-		color: var(--color-base-400);
+		color: var(--color-base-600);
 		margin: 0 0 8px;
 	}
 	.sdocs-toc-list {
@@ -450,7 +450,7 @@
 		display: block;
 		padding: 4px 0;
 		font-size: 13px;
-		color: var(--color-base-500);
+		color: var(--color-base-600);
 		text-decoration: none;
 		background: none;
 		border: none;
@@ -459,9 +459,15 @@
 		width: 100%;
 		transition: color 0.15s;
 	}
+	/* base-600 is zinc-600 on white and zinc-400 on the dark ground, and the
+	   second of those lands at 4.0:1 — the mirror is not symmetric, so the
+	   outline takes one more step in the dark. */
+	:global(.sdocs-app[data-sdocs-theme='dark']) .sdocs-toc-link {
+		color: var(--color-base-700);
+	}
 	.sdocs-toc-link:hover,
 	.sdocs-toc-link.is-active {
-		color: var(--color-action-500);
+		color: var(--color-action-600);
 	}
 
 	@media (max-width: 860px) {

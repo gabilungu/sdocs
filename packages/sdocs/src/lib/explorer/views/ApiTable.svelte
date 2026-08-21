@@ -124,7 +124,10 @@
 		overflow-wrap: break-word;
 	}
 	.sdocs-api-required {
-		color: var(--color-red-500);
+		/* Its own token, so the dark theme can move it without this rule
+		   knowing: red-600 reads on white and is too dark on the dark ground,
+		   and the accent ramps do not flip with the theme the way base does. */
+		color: var(--sdocs-required-color, var(--color-red-600));
 	}
 	.sdocs-api-middle {
 		display: flex;
@@ -149,7 +152,7 @@
 		min-width: 0;
 	}
 	.sdocs-api-empty {
-		color: var(--color-base-300);
+		color: var(--color-base-500);
 	}
 	.sdocs-api-control {
 		min-width: 0;

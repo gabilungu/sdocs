@@ -1301,7 +1301,7 @@
 		background: var(--color-base-100);
 		font-size: 10px;
 		line-height: 1.8;
-		color: var(--color-base-500);
+		color: var(--color-base-600);
 	}
 	/* A component's other names carry more weight than one example's tags. */
 	.sdocs-meta-chip.is-md {

@@ -570,7 +570,7 @@
 		padding: 0 12px;
 		font-size: 13px;
 		font-weight: 500;
-		color: var(--color-base-500);
+		color: var(--color-base-600);
 		text-decoration: none;
 		border-bottom: 2px solid transparent;
 		white-space: nowrap;
@@ -579,7 +579,10 @@
 		color: var(--color-base-900);
 	}
 	.sdocs-topbar-tab.is-active {
-		color: var(--color-action-500);
+		/* The label is text at 4.5:1; the underline beneath it is not, and keeps
+		   the accent it was drawn in — 3:1 is the bar a non-text indicator has
+		   to clear, and it does. */
+		color: var(--color-action-600);
 		border-bottom-color: var(--color-action-500);
 	}
 	.sdocs-topbar-actions {

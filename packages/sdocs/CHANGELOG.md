@@ -12,6 +12,26 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.167] - 2026-08-21
+
+### Fixed
+
+- **Every piece of interface text now meets WCAG AA contrast, in both
+  themes.** Measured across the site rather than eyeballed: eleven elements
+  failed, from 1.5:1 on the API table's "no value" dash to 3.4:1 on prose
+  links. Two causes underneath. The dark ramp mirrors the light one about a
+  mid-grey pivot, and a mirror is not symmetric — the same zinc-500 reads at
+  4.8:1 on white and 4.35:1 on near-black, which put every secondary-text
+  element in the dark theme just under the bar. And the accent ramps split
+  into two kinds: `action` inverts with the theme, raw `blue`/`red` do not, so
+  a step that reads in one theme can be invisible in the other. Where a colour
+  serves both a label and a rule beside it, they now take separate tokens: the
+  text clears 4.5:1 and the border keeps the weight it was drawn with, which
+  is all 3:1 asks of it.
+
+  Not changed: syntax-highlighting comments sit at 3.05:1, but that is the
+  GitHub code theme's own palette, and swapping it is a different decision.
+
 ## [0.0.166] - 2026-08-21
 
 ### Fixed

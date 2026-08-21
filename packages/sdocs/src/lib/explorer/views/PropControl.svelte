@@ -130,7 +130,7 @@
 		border: none;
 		border-radius: 4px;
 		background: none;
-		color: var(--color-base-400);
+		color: var(--color-base-600);
 		font-size: 14px;
 		line-height: 1;
 		cursor: pointer;

@@ -12,6 +12,19 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.166] - 2026-08-21
+
+### Fixed
+
+- **The CSS custom property docs described the opposite of what the code
+  does.** Four places said every `var(--x)` in a component's `<style>` is
+  extracted, with `@cssvar` as an optional upgrade. It is the other way round:
+  the annotation is what makes a variable part of the documented API, and the
+  `var()` fallback only supplies its default. Following the old text produced
+  an empty CSS table and no explanation.
+- **The kebab menu and the not-found page are documented**, having shipped
+  without a mention.
+
 ## [0.0.165] - 2026-08-21
 
 ### Fixed

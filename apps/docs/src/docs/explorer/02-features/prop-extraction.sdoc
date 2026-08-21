@@ -12,7 +12,7 @@
 	| **Snippets** | Props typed as `Snippet` or `Snippet<[…]>` |
 	| **Methods** | `export function foo() { … }` |
 	| **States** | `export const x = $state(…)` / `$derived(…)` |
-	| **CSS custom properties** | `var(--name)` usages in `<style>` + `@cssvar` annotations |
+	| **CSS custom properties** | `@cssvar` annotations (defaults filled in from `var()` fallbacks) |
 
 	Each appears as its own section on the component's doc page. Sections with no
 	entries are omitted, so a component's page shows only the categories it actually
@@ -179,10 +179,34 @@
 
 	## CSS custom properties
 
-	sdocs scans the `<style>` block for `var(--name, default?)` usages. It picks up:
+	A CSS variable is part of the documented API when you say so, with an
+	`@cssvar` annotation in a JSDoc block inside the `<script>` — one per line:
 
-	- The variable name
-	- The default value from the second `var()` argument (if provided)
+	```svelte
+	<script lang="ts">
+	  /**
+	   * @cssvar {color} --bg - Button background
+	   * @cssvar {dimension} --radius - Corner radius
+	   */
+	</script>
+	```
+
+	`{type}` picks the control (`color` a swatch, `dimension` a number and
+	unit, anything else a text box), the description runs to the end of the
+	line, and an optional trailing `(default: …)` sets the default.
+
+	Annotation is deliberate rather than automatic. A component's `<style>`
+	usually references far more variables than a consumer is meant to
+	override — the design system's own tokens, internal wiring, one-offs — and
+	a table listing all of them documents the implementation instead of the
+	API. The annotated ones are the contract.
+
+	### Where the default comes from
+
+	sdocs fills in the default from the style itself, so the annotation rarely
+	needs one: a `--x: value` declaration on the component's root wins, and
+	otherwise the fallback in `var(--x, fallback)`, when every use of the
+	variable agrees.
 
 	```css
 	.button {
@@ -191,28 +215,10 @@
 	}
 	```
 
-	This extracts two CSS vars: `--bg` (default `#333`) and `--padding` (default `8px 16px`).
-
-	### `@cssvar` annotations
-
-	The default comes from the style itself: a `--x: value` declaration on the
-	component's root wins; otherwise the `var(--x, fallback)` fallback, when
-	every use agrees. When different properties use *different* fallbacks for
-	the same var, the Default column shows **Mixed** — hover it for the
-	per-property breakdown.
-
-	To give a CSS var a type and description — and upgrade its control in the panel — add `@cssvar` annotations in a JSDoc block inside the `<script>`, one per line:
-
-	```svelte
-	<script lang="ts">
-	  /**
-	   * @cssvar {color} --bg - Button background (default: #333)
-	   * @cssvar {dimension} --radius - Corner radius (default: 4px)
-	   */
-	</script>
-	```
-
-	The description runs to the end of the line; an optional trailing `(default: …)` sets the default shown in the docs (merged with any default found in `var()` usages).
+	An annotated `--bg` shows `#333` here without repeating it. When different
+	properties use *different* fallbacks for the same variable, the Default
+	column shows **Mixed** — hover it for the per-property breakdown. A
+	`(default: …)` on the annotation overrides all of this.
 
 	The supported types are `color` (→ color picker) and `dimension` (→ number + px unit). See [interactive controls](/explorer/features/interactive-controls).
 

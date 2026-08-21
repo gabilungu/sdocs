@@ -97,9 +97,17 @@
 	The root route shows the entity the config's
 	[`home`](/explorer/configuration#home) path points at, otherwise the
 	built-in **About** page (project logo, doc counts, and the sdocs version).
-	About is always reachable at `/about`. The logo/title always links to the
-	root. An entity marked `hide` keeps its route but never appears in a
-	sidebar — useful for link-only pages.
+	About is always reachable at `/about`, and the changelog of the sdocs that
+	built the site at `/changelog` — both are in the **⋮** menu at the right of
+	the top bar, beside the theme toggle and fullscreen. Neither route can be
+	claimed by an entity; a title that would land on one is a build error
+	rather than a page that silently never appears.
+
+	An address that matches no entity gets a not-found page naming it, with a
+	way back into each section. On a static build it carries a real 404 status.
+
+	The logo/title always links to the root. An entity marked `hide` keeps its
+	route but never appears in a sidebar — useful for link-only pages.
 
 	## Fullscreen mode
 

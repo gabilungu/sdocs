@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.76] - 2026-08-21
+
+### Changed
+
+- **`.sdoc` problems are reported as errors, not warnings.** Every diagnostic
+  the extension raises stops a build — a parse error, a `component={X}` naming
+  nothing in scope, a title claiming a section that was never declared — and
+  reporting them in yellow reads as "this still works". The severity now
+  matches what `sdocs build` will do with it.
+
 ## [0.0.75] - 2026-08-21
 
 ### Fixed

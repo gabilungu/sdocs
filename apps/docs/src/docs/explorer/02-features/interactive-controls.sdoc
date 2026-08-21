@@ -89,7 +89,7 @@
 	[/COMPONENT]
 	```
 
-	For CSS custom properties, set defaults via the `var()` fallback in your component's `<style>` block (`var(--bg, #333)`) — sdocs picks these up automatically.
+	A CSS custom property gets a control once it carries an [`@cssvar`](/explorer/features/prop-extraction#css-custom-properties) annotation; its default is read from the `var()` fallback in the component's `<style>` (`var(--bg, #333)`), so it rarely needs writing twice.
 
 	## Set vs unset
 

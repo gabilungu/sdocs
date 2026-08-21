@@ -44,6 +44,14 @@ export class SdocDiagnostics implements vscode.Disposable {
 		);
 	}
 
+	/**
+	 * Severity mirrors what `sdocs build` does with the problem, and every
+	 * diagnostic raised here stops a build: a parse error, a `component={X}`
+	 * naming nothing in scope, a title claiming a section that was never
+	 * declared. They were all reported as warnings, which reads as "this still
+	 * works" — the yellow squiggle you finish the thought and move past, and
+	 * then CI is red for a reason you were shown an hour ago.
+	 */
 	private refresh(doc: vscode.TextDocument) {
 		this.timers.delete(doc.uri.toString());
 		const text = doc.getText();
@@ -56,7 +64,7 @@ export class SdocDiagnostics implements vscode.Disposable {
 				new vscode.Diagnostic(
 					rangeAt(doc, d.span.start, Math.max(1, d.span.end - d.span.start)),
 					`sdocs: ${d.message}`,
-					vscode.DiagnosticSeverity.Warning,
+					vscode.DiagnosticSeverity.Error,
 				),
 			);
 		}
@@ -87,7 +95,7 @@ export class SdocDiagnostics implements vscode.Disposable {
 						new vscode.Diagnostic(
 							rangeAt(doc, attr.valueSpan.start + lead, name.length),
 							`sdocs: \`${name}\` is not imported or declared in this file's <script> or this block's.`,
-							vscode.DiagnosticSeverity.Warning,
+							vscode.DiagnosticSeverity.Error,
 						),
 					);
 				}
@@ -111,7 +119,7 @@ export class SdocDiagnostics implements vscode.Disposable {
 							new vscode.Diagnostic(
 								rangeAt(doc, attr.valueSpan.start, Math.max(1, raw.length)),
 								`sdocs: no @section prefix, and no "docs" section is declared (sections: ${list}).`,
-								vscode.DiagnosticSeverity.Warning,
+								vscode.DiagnosticSeverity.Error,
 							),
 						);
 					}
@@ -125,7 +133,7 @@ export class SdocDiagnostics implements vscode.Disposable {
 						new vscode.Diagnostic(
 							rangeAt(doc, attr.valueSpan.start + m[1].length - 1, ref.length + 1),
 							`sdocs: unknown section "@${ref}" (sections: ${list}).`,
-							vscode.DiagnosticSeverity.Warning,
+							vscode.DiagnosticSeverity.Error,
 						),
 					);
 				}

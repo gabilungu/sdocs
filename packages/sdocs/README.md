@@ -237,7 +237,7 @@ sdocs automatically extracts from your Svelte components:
 | **Snippets** | Props typed as `Snippet` or `Snippet<[...]>` |
 | **Methods** | Exported functions |
 | **State** | Exported `$state` / `$derived` values |
-| **CSS Custom Properties** | `var(--name)` usages in `<style>` |
+| **CSS Custom Properties** | `@cssvar` annotations (defaults from `var()` fallbacks) |
 
 JSDoc comments on props are picked up as descriptions.
 

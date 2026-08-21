@@ -879,7 +879,7 @@ public API. What's extracted, and from where:
 | Snippets | props typed `Snippet` or `Snippet<[…]>` (the parameter tuple is preserved) |
 | Methods | `export function foo() { … }` |
 | States | `export const x = $state(…)` / `$derived(…)` |
-| CSS custom properties | `var(--name, default?)` usages in the `<style>` block + `@cssvar` annotations |
+| CSS custom properties | `@cssvar` annotations (defaults filled in from `var()` fallbacks) |
 
 Rules that make the tables (and interactive controls) come out right:
 
@@ -900,12 +900,14 @@ Rules that make the tables (and interactive controls) come out right:
   `/** @type {{ label?: string }} */` on the `$props()` declaration, or
   `@typedef {Object} Props` + `@property {string} [label] - Description` (the
   bracketed name marks it optional; this form carries descriptions too).
-- **CSS custom properties**: every `var(--x, fallback)` in the `<style>` block
-  is extracted. The default shown is the root `--x: value` declaration if the
-  component sets one, else the `var()` fallback when every use agrees — uses
-  that disagree show **Mixed** (hover for the per-property breakdown). Add a
-  `@cssvar` annotation in a JSDoc block inside the `<script>` to give a var a
-  type and description:
+- **CSS custom properties**: a var is documented when it carries a `@cssvar`
+  annotation in a JSDoc block inside the `<script>` — nothing is extracted from
+  the `<style>` on its own, because a component references far more vars than a
+  consumer is meant to override. The default is filled in from the style: the
+  root `--x: value` declaration if the component sets one, else the
+  `var(--x, fallback)` fallback when every use agrees — uses that disagree show
+  **Mixed** (hover for the per-property breakdown). The annotation gives the
+  var its type and description:
   `@cssvar {color} --bg - Surface background (default: var(--base-0))`.
   Types `color` (colour picker) and `dimension` (number + px) get specialised
   controls; other tokens (`shorthand`, `length`, `string`) fall back to a text

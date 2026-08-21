@@ -12,6 +12,29 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.154] - 2026-08-21
+
+### Fixed
+
+- **The Marketplace README still taught `[preview]`.** 0.0.149 fixed the npm
+  README and missed its twin, so the extension's front page kept teaching a tag
+  the parser rejects. Its syntax-highlighting and formatting sections were
+  stale too — the formatter does rewrite `[DOC]` prose as markdown and does
+  capitalize block tags, both of which it claimed never to do.
+
+- **`list_docs` reports the running sdocs version.** The authoring guide tells
+  agents to compare it against the version their guide describes and call
+  `get_changelog` when they differ — advice that could not be followed, because
+  the version appeared in no tool's output.
+
+- **A skip link.** Twenty-eight tab stops separated a fresh page from the first
+  control in the content — the section tabs, then every row of the sidebar —
+  paid on every page by anyone navigating with a keyboard.
+
+- **The README and the Explorer's MCP dialog listed 5 of 14 tools**, which
+  under-sold the server to the one audience most able to use it. Both now list
+  all fourteen, marking which four write to your source.
+
 ## [0.0.153] - 2026-08-21
 
 ### Fixed

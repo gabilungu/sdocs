@@ -17,7 +17,8 @@ false errors on the block syntax:
 - **Diagnostics** — live TypeScript and Svelte errors and warnings, reported
   at the authored line.
 - **Syntax highlighting** — a TextMate grammar for the block format:
-  `[SHOWCASE]`/`[DOC]`/`[PAGE]`/`[LAYOUT]` entities, `[preview]`/`[example]`
+  `[SHOWCASE]`/`[DOC]`/`[PAGE]`/`[LAYOUT]` entities, `[COMPONENT]`,
+  `[COMPONENTS]`, `[EXAMPLE]`, `[GLOSSARY]`, `[NOTES]`, `[TODO]` and `[PROSE]`
   blocks, Svelte-style attributes, with embedded TypeScript, Svelte, CSS,
   and markdown coloring. ` ```sdoc ` fences highlight in markdown files too,
   and entity blocks fold.
@@ -25,7 +26,11 @@ false errors on the block syntax:
   every Svelte block body through prettier independently, reassembled at the
   block's indentation, honoring the project's `.prettierrc` (width, tabs). A
   block opener wider than `printWidth` wraps to one attribute per line;
-  shorter ones stay inline. Attributes and `[DOC]` prose are never rewritten.
+  shorter ones stay inline. `[DOC]` and `[PROSE]` bodies format as markdown;
+  `[NOTES]`, `[TODO]` and `[GLOSSARY]` bodies are left exactly as written,
+  because a todo's nesting *is* its indentation. Block tags are capitalized to
+  their canonical spelling — lowercase `[component]`/`[example]` keep working
+  either way.
 - **Block completions** — each block's attributes with documentation, and
   imported-component suggestions inside `component={…}`.
 - **Block lint** — the same parser the sdocs build runs: unclosed blocks,

@@ -40,12 +40,32 @@ npx sdocs mcp      # Serve the sdocs MCP server on stdio (authoring tools for ag
 
 `sdocs mcp` serves an [MCP](https://modelcontextprotocol.io) server so agent
 tooling works against the real parser and extractor instead of guessing at the
-format: `validate_sdoc` (parse `.sdoc` text, return diagnostics),
-`scaffold_component_doc` (a starter doc from a component's extracted props),
-`get_authoring_guide` (the full format reference — also on the web as
-[llms.txt](https://gabilungu.github.io/sdocs/llms.txt)), `list_docs` (the
-project's docs and the components they document), and `get_component_api` (a
-component's full extracted API). Register it as a stdio server in any MCP
+format. Fourteen tools — ten that read, four that write:
+
+| Read | |
+|---|---|
+| `validate_sdoc` | parse `.sdoc` text, return diagnostics |
+| `get_authoring_guide` | the format reference, whole or by section — also on the web as [llms.txt](https://gabilungu.github.io/sdocs/llms.txt) |
+| `get_changelog` | this install's changelog, breaking changes first |
+| `list_docs` | the project's docs, their routes, notes, todos, glossary terms and component statuses — and the running sdocs version |
+| `search_docs` | find a page by any name it goes under, or sweep by note type |
+| `check_docs` | compile every stage and report what breaks |
+| `check_coverage` | which components have a `[COMPONENT]` preview |
+| `resolve_visual_target` | a stage's preview-only route, for screenshots |
+| `get_component_api` | a component's full extracted API and its `@component` description |
+| `scaffold_component_doc` | a starter doc from a component's extracted props |
+
+| Write | |
+|---|---|
+| `set_notes` | replace a `[NOTES]` block |
+| `set_status` | set a `[COMPONENT]`'s lifecycle status |
+| `set_todos` | replace a `[TODO]` checklist |
+| `toggle_todo` | tick one item |
+
+Each write rewrites the smallest span that will do, so formatting survives, and
+refuses any path the project's `include` globs do not match.
+
+Register it as a stdio server in any MCP
 client — e.g. `claude mcp add sdocs -- npx -y sdocs mcp` — or, while
 `sdocs dev` runs, point a local client at `http://localhost:3000/mcp`. The
 [VS Code extension](https://marketplace.visualstudio.com/items?itemName=gabilungu.sdocs)

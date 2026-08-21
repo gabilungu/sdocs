@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.71] - 2026-08-21
+
+### Fixed
+
+- **The Marketplace README taught `[preview]`**, a block removed 53 releases
+  ago, and described the highlighting and formatting as they were before
+  0.0.139 — claiming the formatter never rewrites `[DOC]` prose or touches
+  tags, when it does both.
+
 ## [0.0.70] - 2026-08-21
 
 ### Added

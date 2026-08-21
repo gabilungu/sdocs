@@ -367,6 +367,10 @@
 />
 
 <div class="sdocs-app">
+	<!-- Thirty-one tab stops separate a fresh page from the first control in
+	     the content: the section tabs, then every row of the sidebar. Anyone
+	     navigating by keyboard pays that on every single page. -->
+	<a class="sdocs-skip-link" href="#sdocs-main">Skip to content</a>
 	{#if sectionMap.errors.length > 0}
 		<ErrorScreen errors={sectionMap.errors} />
 	{:else}
@@ -426,6 +430,8 @@
 		<!-- With the drawer over it, the content behind is out of reach for the
 		     pointer (the scrim) and for the keyboard (inert) alike. -->
 		<main
+			id="sdocs-main"
+			tabindex="-1"
 			class="sdocs-main"
 			class:sdocs-main-fullscreen={fullscreen}
 			class:sdocs-main-flush={resolved?.doc.kind === 'layout'}
@@ -461,6 +467,37 @@
 </div>
 
 <style>
+	/* Off-screen until focused, which is the whole trick: it costs a sighted
+	   reader nothing and saves a keyboard user thirty tab presses. */
+	.sdocs-skip-link {
+		position: absolute;
+		top: 8px;
+		left: 8px;
+		z-index: 100;
+		padding: 8px 14px;
+		border-radius: 6px;
+		background: var(--color-base-0);
+		border: 1px solid var(--color-base-300);
+		font-size: 13px;
+		color: var(--color-base-900);
+		text-decoration: none;
+		transform: translateY(calc(-100% - 16px));
+	}
+
+	/* `:focus`, not `:focus-visible`. A skip link is only ever reached by
+	   keyboard, and it has to appear the moment it takes focus — including
+	   when focus arrives programmatically, which the focus-visible heuristic
+	   does not count. */
+	.sdocs-skip-link:focus {
+		transform: none;
+	}
+
+	@media (prefers-reduced-motion: no-preference) {
+		.sdocs-skip-link {
+			transition: transform 120ms ease;
+		}
+	}
+
 	.sdocs-app {
 		/* The top bar's height, shared: the drawer hangs off the bottom of it. */
 		--sdocs-topbar-h: 48px;

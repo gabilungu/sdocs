@@ -295,7 +295,10 @@ const TOOLS = [
 	{
 		name: 'list_docs',
 		description:
-			"Map the current project's documentation: every .sdoc file the config's " +
+			"Map the current project's documentation, and report the sdocs version " +
+			'that is running (compare it with the version your authoring guide ' +
+			'describes; call get_changelog when they differ). Lists every .sdoc ' +
+			"file the config's " +
 			'include globs match, each with its entities (kind, title) and the ' +
 			'components its previews document, plus the site route each entity ' +
 			'serves at (and one per example) — open those with a browser to smoke ' +
@@ -885,6 +888,11 @@ async function listDocs() {
 
 	return toolResult({
 		project: cwd,
+		// The sdocs that is actually running. The authoring guide tells agents to
+		// compare it against the version the guide describes and call
+		// get_changelog when they differ — which was impossible while this was
+		// not reported anywhere.
+		sdocsVersion: packageVersion(),
 		include: config.include,
 		count: files.length,
 		// The vocabulary for a stage page's ?axis-<id>= parameters. Without it a

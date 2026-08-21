@@ -165,12 +165,23 @@
 	let mcpUrl = $state('');
 	let copied = $state('');
 	const MCP_STDIO = 'npx sdocs mcp';
+	/** Every tool the server serves. It listed five of fourteen, which
+	 * under-sold the thing to the one audience most able to use it. */
 	const MCP_TOOLS = [
 		['validate_sdoc', 'parse .sdoc text, return diagnostics and entities'],
+		['get_authoring_guide', 'the format reference, whole or one section'],
+		['get_changelog', 'this install’s changelog, breaking changes first'],
+		['list_docs', 'the project’s docs, routes, notes, todos, glossary and statuses'],
+		['search_docs', 'find a page by any name it goes under, or sweep by note type'],
+		['check_docs', 'compile every stage and report what breaks'],
+		['check_coverage', 'which components have a [COMPONENT] preview'],
+		['resolve_visual_target', 'a stage’s preview-only route, for screenshots'],
+		['get_component_api', 'a component’s full extracted API and description'],
 		['scaffold_component_doc', 'a starter .sdoc from a component’s extracted props'],
-		['get_authoring_guide', 'the full format reference (also at /llms.txt on the sdocs site)'],
-		['list_docs', 'this project’s .sdoc files and the components they document'],
-		['get_component_api', 'a component’s full extracted API'],
+		['set_notes', 'replace a [NOTES] block — writes to your source'],
+		['set_status', 'set a [COMPONENT]’s lifecycle status — writes to your source'],
+		['set_todos', 'replace a [TODO] checklist — writes to your source'],
+		['toggle_todo', 'tick one todo item — writes to your source'],
 	];
 
 	/** The kebab: About, and MCP when the config leaves it on. Closing on an

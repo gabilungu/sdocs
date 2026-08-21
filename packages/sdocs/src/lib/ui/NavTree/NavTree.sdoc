@@ -6,7 +6,7 @@
 
 [SHOWCASE title="NavTree" description="A composable tree navigation with Item and Group subcomponents."]
 
-	[preview component={NavTreeRoot}]
+	[component component={NavTreeRoot}]
 		<NavTree>
 			<NavTree.Group label="Components">
 				<NavTree.Item label="UI" expanded>
@@ -75,7 +75,7 @@
 				</NavTree.Item>
 			</NavTree.Group>
 		</NavTree>
-	[/preview]
+	[/component]
 
 	[example title="WithSlots"]
 		<NavTree>

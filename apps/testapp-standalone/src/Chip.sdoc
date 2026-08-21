@@ -4,9 +4,9 @@
 
 [SHOWCASE title="Chip" description="A pill-shaped tag using a host-only dependency (clsx)."]
 
-	[preview component={Chip} args={{ label: 'Hello', active: false }}]
+	[component component={Chip} args={{ label: 'Hello', active: false }}]
 		<Chip {...args} />
-	[/preview]
+	[/component]
 
 	[example title="Active"]
 		<Chip label="On" active />

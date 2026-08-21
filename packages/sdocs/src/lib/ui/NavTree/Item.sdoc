@@ -6,7 +6,7 @@
 
 [SHOWCASE title="NavTree / NavTree.Item" description="A tree node that acts as a leaf (link/button) or expandable folder when children are provided. Supports left and right snippet slots for custom content."]
 
-	[preview component={Item} args={{ label: 'Label' }}]
+	[component component={Item} args={{ label: 'Label' }}]
 		<NavTree>
 			<Item {...args} >
 			<Item {...args} >
@@ -18,7 +18,7 @@
 
 			</Item>
 		</NavTree>
-	[/preview]
+	[/component]
 
 	[example title="LeftSlot"]
 		<NavTree>

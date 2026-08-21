@@ -4,8 +4,8 @@
 
 [SHOWCASE title="UI / Control / Dimension" description="A dimension input control for CSS values (px)."]
 
-	[preview component={Dimension} args={{ label: 'Width', value: '120px' }}]
+	[component component={Dimension} args={{ label: 'Width', value: '120px' }}]
 		<Dimension {...args} onchange={(v) => console.log('changed:', v)} />
-	[/preview]
+	[/component]
 
 [/SHOWCASE]

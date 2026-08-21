@@ -4,9 +4,9 @@
 
 [SHOWCASE title="UI / Button" description="A flexible button component."]
 
-	[preview component={Button} args={{ label: 'Click me', variant: 'primary', size: 'md', disabled: false }}]
+	[component component={Button} args={{ label: 'Click me', variant: 'primary', size: 'md', disabled: false }}]
 		<Button {...args} />
-	[/preview]
+	[/component]
 
 	[example title="Secondary"]
 		<Button label="Secondary" variant="secondary" />

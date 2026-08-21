@@ -6,7 +6,7 @@
 
 [SHOWCASE title="NavTree / NavTree.Group" description="A collapsible section header with uppercase label. Used to organize items into named categories."]
 
-	[preview component={Group}]
+	[component component={Group}]
 		<NavTree>
 			<Group label="Components">
 				<Item label="Button" href="#/button" />
@@ -14,7 +14,7 @@
 				<Item label="Card" href="#/card" />
 			</Group>
 		</NavTree>
-	[/preview]
+	[/component]
 
 	[example title="Collapsed"]
 		<NavTree>

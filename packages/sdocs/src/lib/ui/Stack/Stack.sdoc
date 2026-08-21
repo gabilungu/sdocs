@@ -5,13 +5,13 @@
 
 [SHOWCASE title="Stack" description="A flex container with configurable direction, gap, alignment, and styling."]
 
-	[preview component={Stack}]
+	[component component={Stack}]
 		<Stack>
 			<Button>One</Button>
 			<Button>Two</Button>
 			<Button>Three</Button>
 		</Stack>
-	[/preview]
+	[/component]
 
 	[example title="Column"]
 		<Stack --gap="8px">

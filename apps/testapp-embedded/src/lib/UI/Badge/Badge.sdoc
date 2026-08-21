@@ -2,13 +2,13 @@
 	import Badge from './Badge.svelte';
 </script>
 
-[SHOWCASE title="UI / Badge" description="A plain-JS badge documented through JSDoc."]
+[SHOWCASE title="UI / Badge" notes={[{ note: 'Documented through JSDoc rather than TypeScript.', intent: 'success' }]} description="A plain-JS badge documented through JSDoc."]
 
-	[preview component={Badge} args={{ label: 'New', tone: 'info', pill: false }}]
+	[component component={Badge} args={{ label: 'New', tone: 'info', pill: false }}]
 		<Badge {...args} />
-	[/preview]
+	[/component]
 
-	[example title="Success"]
+	[example title="Success" notes={[{ note: 'This example is here to fail loudly if the tone colours regress.', intent: 'danger' }]}]
 		<Badge label="Done" tone="success" />
 	[/example]
 

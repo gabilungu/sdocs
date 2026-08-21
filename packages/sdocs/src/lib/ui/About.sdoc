@@ -17,7 +17,7 @@
 	## Getting Started
 
 	Create a `.sdoc` file next to your component and add a `[SHOWCASE]` block
-	with a `[preview]` naming the component.
+	with a `[component]` naming the component.
 
 	## Entities
 

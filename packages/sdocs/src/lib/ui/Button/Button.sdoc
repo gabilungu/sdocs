@@ -5,9 +5,9 @@
 
 [SHOWCASE title="Button" description="A flexible button with optional left and right snippet slots for icons or badges."]
 
-	[preview component={Button}]
+	[component component={Button}]
 		<Button {...args}>Click me</Button>
-	[/preview]
+	[/component]
 
 	[example title="WithLeftIcon"]
 		<Button onclick={() => alert('Settings')}>

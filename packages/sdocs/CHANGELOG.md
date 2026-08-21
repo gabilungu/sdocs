@@ -12,6 +12,42 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.151] - 2026-08-21
+
+### Fixed
+
+- **The component tab strip implements the tablist pattern it advertised.**
+  It declared `role="tablist"`, `role="tab"` and `aria-selected` — so a screen
+  reader announced a tabs widget — while arrow keys did nothing, every tab was
+  in the tab order, and no `role="tabpanel"` existed anywhere for the tabs to
+  point at. Announcing a pattern and not implementing it is worse than plain
+  buttons, which at least behave as described.
+
+  Left/Right wrap, Home and End jump to the ends, focus follows selection
+  through a roving tabindex, and everything below the strip — description,
+  stage, code panels, API tables — is now the labelled panel the selected tab
+  controls.
+
+- **The top-bar icon buttons have accessible names.** They carried a `title`,
+  but a glyph as a button's only content becomes its accessible name and beats
+  the title — so they announced as "☽", "⛶", "⋮" and "✕". The glyphs are
+  `aria-hidden` now, behind a real label.
+
+- **`[TODO]` checkboxes announce their item.** Under `sdocs dev` the label
+  wraps only the box (the text is its own control), so each announced as a bare
+  "checkbox, unchecked" with no indication of what it ticked.
+
+- **The note editor keeps the focus contract `aria-modal` promises.** It
+  claimed the page behind it was inert while leaving focus wherever it was, so
+  Tab walked straight out of the dialog into the page, and closing dropped
+  focus on `<body>`. Focus now moves in on open, stays inside, and returns to
+  whatever opened it.
+
+- **Five text colours that failed WCAG AA.** Measured against the page: the
+  "Examples" heading at 2.72:1, entity descriptions at 4.35, and the `[TODO]`
+  text, label and count at 4.12 — all under the 4.5:1 floor for text that size.
+  They are 8.01 and 7.59 now.
+
 ## [0.0.150] - 2026-08-21
 
 ### Fixed

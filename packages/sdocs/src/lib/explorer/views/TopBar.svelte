@@ -361,15 +361,21 @@
 		<!-- Theme and fullscreen stay as buttons: they get used. About and MCP
 		     are read-once actions, and the two slots they were spending are
 		     what crowds the section tabs into their compact mode. -->
-		<button class="sdocs-topbar-btn" onclick={() => onThemeChange?.(theme === 'light' ? 'dark' : 'light')} title="{themeLabels[theme]} theme">
-			{themeIcons[theme]}
+		<button
+			class="sdocs-topbar-btn"
+			onclick={() => onThemeChange?.(theme === 'light' ? 'dark' : 'light')}
+			title="{themeLabels[theme]} theme"
+			aria-label="Switch to the {themeLabels[theme].toLowerCase()} theme"
+		>
+			<span aria-hidden="true">{themeIcons[theme]}</span>
 		</button>
 		<button
 			class="sdocs-topbar-btn sdocs-fullscreen-btn"
 			onclick={() => onToggleFullscreen?.()}
 			title="Fullscreen"
+			aria-label="Enter fullscreen"
 		>
-			&#x26F6;
+			<span aria-hidden="true">&#x26F6;</span>
 		</button>
 		<div class="sdocs-menu-wrap">
 			<button
@@ -378,9 +384,10 @@
 				aria-haspopup="menu"
 				aria-expanded={menuOpen}
 				title="More"
+				aria-label="More — about sdocs, changelog"
 				onclick={() => (menuOpen = !menuOpen)}
 			>
-				&#8942;
+				<span aria-hidden="true">&#8942;</span>
 			</button>
 			{#if menuOpen}
 				<div class="sdocs-menu" role="menu" bind:this={menuEl}>
@@ -436,7 +443,14 @@
 		<div class="sdocs-mcp-body">
 			<div class="sdocs-mcp-head">
 				<h2>MCP server</h2>
-				<button class="sdocs-topbar-btn" onclick={() => mcpDialog?.close()} title="Close">✕</button>
+				<button
+					class="sdocs-topbar-btn"
+					onclick={() => mcpDialog?.close()}
+					title="Close"
+					aria-label="Close"
+				>
+					<span aria-hidden="true">✕</span>
+				</button>
 			</div>
 			<p class="sdocs-mcp-lead">
 				This dev server also serves the sdocs MCP server — authoring tools an

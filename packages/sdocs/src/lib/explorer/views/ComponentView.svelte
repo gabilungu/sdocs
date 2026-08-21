@@ -81,6 +81,45 @@
 		previews.length > 0 ? previews[Math.min(activeIndex, previews.length - 1)] : undefined,
 	);
 
+	/**
+	 * The tablist keyboard pattern.
+	 *
+	 * `role="tablist"` is a promise: a screen reader announces "tab 2 of 7" and
+	 * the reader reaches for the arrow keys. It went unimplemented, so the
+	 * announcement was a lie — worse than plain buttons, which at least behave
+	 * the way they are described.
+	 *
+	 * Selection follows focus, which is the right choice here: switching a tab
+	 * is instant and has no side effect worth confirming.
+	 */
+	const PANEL_ID = 'sdocs-preview-panel';
+	const tabId = (slug: string) => `sdocs-tab-${slug}`;
+	const activeTabId = $derived(
+		activePreview ? tabId(activePreview.snippet.slug) : undefined,
+	);
+
+	function onTabKeydown(event: KeyboardEvent) {
+		const last = previews.length - 1;
+		if (last < 1) return;
+		const to =
+			event.key === 'ArrowRight'
+				? (activeIndex + 1) % previews.length
+				: event.key === 'ArrowLeft'
+					? (activeIndex + last) % previews.length
+					: event.key === 'Home'
+						? 0
+						: event.key === 'End'
+							? last
+							: null;
+		if (to === null) return;
+		event.preventDefault();
+		selectTab(to);
+		// Focus follows selection, or the roving tabindex leaves focus on a tab
+		// that is no longer the selected one.
+		const strip = (event.currentTarget as HTMLElement).parentElement;
+		(strip?.querySelectorAll('.sdocs-preview-tab')[to] as HTMLElement | undefined)?.focus();
+	}
+
 	const cd = $derived(activePreview?.componentData ?? null);
 
 	const componentName = $derived(
@@ -542,16 +581,24 @@
 			     strip when there is one component makes that information appear
 			     and disappear with the count. -->
 			{#if previews.length > 0}
-				<div class="sdocs-preview-tabs" role="tablist">
+				<div
+					class="sdocs-preview-tabs"
+					role="tablist"
+					aria-label="Components"
+				>
 					{#each previews as preview, i (preview.snippet.slug)}
 						<button
 							class="sdocs-preview-tab"
 							class:active={i === activeIndex}
 							class:is-only={previews.length === 1}
+							id={tabId(preview.snippet.slug)}
 							role="tab"
 							aria-selected={i === activeIndex}
+							aria-controls={PANEL_ID}
+							{...{ tabindex: i === activeIndex ? 0 : -1 }}
 							disabled={previews.length === 1}
 							onclick={() => selectTab(i)}
+							onkeydown={onTabKeydown}
 						>
 							{preview.label}
 							{#if preview.snippet.status}
@@ -570,6 +617,11 @@
 				</div>
 			{/if}
 
+			<!-- Everything below belongs to the selected tab — description, stage,
+			     code panels, API tables — so it is the one region the tab
+			     controls. A tablist that points at nothing tells a screen reader
+			     a tab was selected and leaves it with nowhere to go. -->
+			<div id={PANEL_ID} role="tabpanel" aria-labelledby={activeTabId} tabindex="-1">
 			<!-- Both descriptions, most specific first: what this preview says
 			     about itself, then what the component says about itself wherever
 			     it appears. Prose between the tabs and the stage, never part of
@@ -752,6 +804,7 @@
 					<ApiTable rows={stateRows} defaultLabel="Current value" />
 				</section>
 			{/if}
+			</div>
 		{/snippet}
 
 		{#snippet exampleBlock(example: ExtractedSnippet)}
@@ -1124,7 +1177,8 @@
 	.sdocs-view-description {
 		font-size: 14px;
 		line-height: 1.5;
-		color: var(--color-base-500);
+		/* 4.35:1 on base-500 — just under the 4.5:1 floor. */
+		color: var(--color-base-600);
 		margin: 6px 0 0;
 	}
 	.sdocs-panels {
@@ -1146,10 +1200,12 @@
 		margin: 24px 0;
 	}
 	.sdocs-section-title {
-		/* Same treatment as a sidebar group label. */
+		/* Same treatment as a sidebar group label. Measured at 2.72:1 against the
+		   page on base-400 — an 11px label needs 4.5:1, so it sits two steps
+		   darker. */
 		font-size: 11px;
 		font-weight: 600;
-		color: var(--color-base-400);
+		color: var(--color-base-600);
 		letter-spacing: 0.05em;
 		text-transform: uppercase;
 		margin: 32px 0 16px;

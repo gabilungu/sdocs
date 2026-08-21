@@ -61,6 +61,47 @@
 			saving = false;
 		}
 	}
+	/**
+	 * The focus contract `aria-modal="true"` promises.
+	 *
+	 * It claimed the rest of the page was inert while leaving focus wherever it
+	 * was — so Tab walked out of the dialog and into the page behind it, and
+	 * closing dropped focus on `<body>`. Three things: move focus in on open,
+	 * keep Tab inside, and hand it back to whatever opened the dialog.
+	 */
+	let dialog: HTMLElement | undefined = $state();
+	const opener = typeof document !== 'undefined' ? (document.activeElement as HTMLElement | null) : null;
+
+	$effect(() => {
+		if (!dialog) return;
+		focusable(dialog)[0]?.focus();
+		return () => opener?.focus?.();
+	});
+
+	/** Tabbable descendants, in DOM order. */
+	function focusable(root: HTMLElement): HTMLElement[] {
+		return [
+			...root.querySelectorAll<HTMLElement>(
+				'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])',
+			),
+		].filter((el) => el.offsetParent !== null);
+	}
+
+	function trapTab(event: KeyboardEvent) {
+		if (event.key !== 'Tab' || !dialog) return;
+		const items = focusable(dialog);
+		if (!items.length) return;
+		const first = items[0];
+		const last = items[items.length - 1];
+		const active = document.activeElement;
+		if (event.shiftKey && (active === first || !dialog.contains(active))) {
+			event.preventDefault();
+			last.focus();
+		} else if (!event.shiftKey && active === last) {
+			event.preventDefault();
+			first.focus();
+		}
+	}
 </script>
 
 <svelte:window
@@ -77,7 +118,15 @@
 		if (e.target === e.currentTarget) onclose();
 	}}
 >
-	<div class="sdocs-note-editor" role="dialog" aria-modal="true" aria-label="Notes for {label}">
+	<div
+		bind:this={dialog}
+		class="sdocs-note-editor"
+		role="dialog"
+		aria-modal="true"
+		aria-label="Notes for {label}"
+		tabindex="-1"
+		onkeydown={trapTab}
+	>
 		<header class="sdocs-note-editor-head">
 			<h2>Notes</h2>
 			<span class="sdocs-note-editor-target" title={label}>{label}</span>

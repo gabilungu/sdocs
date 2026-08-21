@@ -110,13 +110,16 @@
 				<div class="sdocs-todo-line">
 					<!-- The box is its own label so the text beside it can be a
 					     control of its own in dev; in a build the whole row is
-					     the label, since there is nothing else to click. -->
+					     the label, since there is nothing else to click. In dev
+					     the wrapper holds no text, so the box carries the item as
+					     an aria-label or it announces as a bare "checkbox". -->
 					<label class="sdocs-todo-box">
 						<input
 							type="checkbox"
 							{checked}
 							disabled={!dev}
 							onchange={(e) => toggle(here, e.currentTarget.checked)}
+							aria-label={item.text}
 						/>
 						{#if !dev}
 							<span class="sdocs-todo-text">{@html renderInlineMarkdown(item.text)}</span>
@@ -197,13 +200,13 @@
 		font-weight: 600;
 		letter-spacing: 0.06em;
 		text-transform: uppercase;
-		color: var(--color-base-500);
+		color: var(--color-base-600);
 	}
 
 	.sdocs-todo-count {
 		font-size: 11px;
 		font-variant-numeric: tabular-nums;
-		color: var(--color-base-500);
+		color: var(--color-base-600);
 	}
 
 	.sdocs-todo-list {
@@ -271,7 +274,7 @@
 	}
 
 	.is-done > .sdocs-todo-line .sdocs-todo-text {
-		color: var(--color-base-500);
+		color: var(--color-base-600);
 		text-decoration: line-through;
 	}
 

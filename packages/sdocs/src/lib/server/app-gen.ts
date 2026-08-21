@@ -94,7 +94,7 @@ function getExplorerSourceDir(): string {
  * tree. A module added here that nothing imports is dead weight; one missing
  * is a "Failed to resolve import" the moment a staged app boots.
  */
-const SHARED_MODULES = ['note-order.js'];
+const SHARED_MODULES = ['note-order.js', 'slug.js'];
 
 /** Copy the Explorer app plus the ui/ tree it imports (styles, fonts,
  * components), the grammar the client highlighter loads for sdoc fences, and

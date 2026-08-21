@@ -13,7 +13,7 @@ import type { Token } from 'marked';
 import { highlight } from './highlighter.js';
 import { segmentPageBody } from '../language/page-islands.js';
 import type { TocHeading } from '../types.js';
-import { foldAccents } from '../explorer/tree-builder.js';
+import { slugifySegment } from '../slug.js';
 
 export interface RenderedPage {
 	html: string;
@@ -23,16 +23,10 @@ export interface RenderedPage {
 	bodyTitle?: string;
 }
 
-function slugify(text: string): string {
-	return (
-		// Same folding as route segments, so an anchor to "Setări" is #setari.
-		foldAccents(text)
-			.toLowerCase()
-			.replace(/[^\w\s-]/g, '')
-			.trim()
-			.replace(/[\s_]+/g, '-') || 'section'
-	);
-}
+// Same rule as route segments, so an anchor to "Setări" is #setari and one to
+// "Кнопки" is #кнопки rather than the #section every non-Latin heading on the
+// page used to share.
+const slugify = (text: string) => slugifySegment(text, 'section');
 
 /** Make markup Svelte-inert: braces never interpolate. */
 function escapeBraces(html: string): string {

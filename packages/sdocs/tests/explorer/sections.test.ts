@@ -383,9 +383,12 @@ describe('slugifySegment folds accents instead of dropping them', () => {
 		expect(slugifySegment('NavTree')).toBe('navtree');
 	});
 
-	it('still falls back when a script has no ASCII base to fold to', () => {
-		expect(slugifySegment('Компоненты')).toBe('item');
-		expect(slugifySegment('コンポーネント')).toBe('item');
+	it('keeps the letters of a script that has no ASCII base', () => {
+		// These used to fall back to 'item', which made every non-Latin title
+		// on a site collide with every other. The router percent-encodes on
+		// the way out and decodes on the way in, so they address their pages.
+		expect(slugifySegment('Компоненты')).toBe('компоненты');
+		expect(slugifySegment('コンポーネント')).toBe('コンポーネント');
 	});
 });
 

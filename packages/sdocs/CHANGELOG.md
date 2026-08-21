@@ -12,6 +12,26 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.164] - 2026-08-21
+
+### Fixed
+
+- **Titles in non-Latin scripts get addresses of their own.** Cyrillic, CJK,
+  Greek and Arabic titles were stripped to nothing and fell back to a
+  constant — `untitled` for entity addresses, `item` for routes, `section` for
+  heading anchors — so a site written in Russian had one reachable page and a
+  duplicate-address error for every other. Those letters are kept now:
+  `[DOC title="Кнопка"]` lives at `/кнопка` with an entity address to match.
+  Latin folding is unchanged (`Setări` → `setari`), and no existing route
+  moves.
+- **A dakuten is no longer treated as an accent.** It was being stripped along
+  with Latin diacritics, which turns ボ into ホ — `ボタン` slugged as `hotan`.
+  Folding now applies only where it lands on the Latin alphabet.
+- **One slug rule instead of three.** Route segments, heading anchors and
+  entity addresses each had their own copy, which is how they came to disagree
+  about scripts, about runs of punctuation (`Weird -- Title` was `weird-title`
+  in one and `weird----title` in another), and about what to do with nothing.
+
 ## [0.0.163] - 2026-08-21
 
 ### Fixed

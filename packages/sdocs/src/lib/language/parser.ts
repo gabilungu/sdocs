@@ -27,6 +27,8 @@ import type {
 } from '../types.js';
 import { NOTE_TYPES } from '../note-order.js';
 
+import { slugifySegment } from '../slug.js';
+
 export type { TodoItem };
 
 export type ArgValue = string | number | boolean | null;
@@ -284,14 +286,16 @@ export function normalizeBody(raw: string): string {
 		.replace(/^\n+|\n+$/g, '');
 }
 
-/** Slug used for entity addressing: relPath + '#' + slug. */
+/**
+ * Slug used for entity addressing: relPath + '#' + slug.
+ *
+ * The same rule the routes use. It was ASCII-only, which meant every title in
+ * a script without one — Cyrillic, CJK, Arabic — collapsed to 'untitled', and
+ * a second such entity in the file was a duplicate-address error. The routes
+ * had already been taught to keep those letters; this had not.
+ */
 export function slugifyTitle(title: string): string {
-	return (
-		title
-			.toLowerCase()
-			.replace(/[^a-z0-9]+/g, '-')
-			.replace(/^-+|-+$/g, '') || 'untitled'
-	);
+	return slugifySegment(title, 'untitled');
 }
 
 /** URL-safe slug for an example snippet. The 'x-' prefix keeps example slugs

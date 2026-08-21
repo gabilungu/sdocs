@@ -1,5 +1,5 @@
 import { writeFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { findConfigFile } from '../server/config.js';
 
@@ -54,6 +54,25 @@ export default {
 };
 `;
 
+/**
+ * `sdocs.config.js` in an ES-module project, `sdocs.config.mjs` otherwise.
+ *
+ * The config is written with `export default`, and in a CommonJS project Node
+ * reads a `.js` file as a script — so the file sdocs just scaffolded fails to
+ * load with "Unexpected token 'export'", pointing at a file whose syntax is
+ * fine. `.mjs` is read as a module whatever the package says.
+ */
+function configFileName(cwd: string): string {
+	try {
+		const pkg = JSON.parse(readFileSync(resolve(cwd, 'package.json'), 'utf-8'));
+		if (pkg.type === 'module') return 'sdocs.config.js';
+	} catch {
+		// No package.json, or an unreadable one. Node treats a bare .js as
+		// CommonJS, so .mjs is the safe answer here too.
+	}
+	return 'sdocs.config.mjs';
+}
+
 export async function initCommand(): Promise<void> {
 	const cwd = process.cwd();
 
@@ -63,7 +82,7 @@ export async function initCommand(): Promise<void> {
 		return;
 	}
 
-	const configPath = resolve(cwd, 'sdocs.config.js');
-	await writeFile(configPath, DEFAULT_CONFIG);
-	console.log('[sdocs] Created sdocs.config.js');
+	const name = configFileName(cwd);
+	await writeFile(resolve(cwd, name), DEFAULT_CONFIG);
+	console.log(`[sdocs] Created ${name}`);
 }

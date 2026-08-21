@@ -1,6 +1,6 @@
-import { basename } from 'node:path';
+import { basename, dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type {
 	SdocsConfig,
@@ -166,6 +166,36 @@ export function resolveAndFinalize(
  * of `node:internal/modules/esm/*` — and the name of the file it failed to
  * read appears in none of them.
  */
+/**
+ * The nearest package.json's `type`, or null when there isn't one.
+ *
+ * Walks up from `from`, the way Node resolves a module's type — a config in a
+ * workspace package inherits from that package, not from the repo root.
+ */
+function nearestPackageType(from: string): string | null {
+	let dir = dirname(from);
+	for (;;) {
+		const pkg = resolve(dir, 'package.json');
+		if (existsSync(pkg)) {
+			try {
+				return (JSON.parse(readFileSync(pkg, 'utf-8')).type as string) ?? 'commonjs';
+			} catch {
+				return null;
+			}
+		}
+		const up = dirname(dir);
+		if (up === dir) return null;
+		dir = up;
+	}
+}
+
+/** An ESM config in a CommonJS package: the file is fine, the extension isn't. */
+function isCommonJsModuleMismatch(configPath: string, detail: string): boolean {
+	if (!/\.(js|cjs)$/.test(configPath)) return false;
+	if (!/Unexpected token 'export'|Cannot use import statement/i.test(detail)) return false;
+	return nearestPackageType(configPath) !== 'module';
+}
+
 async function importConfig(configPath: string): Promise<SdocsConfig> {
 	try {
 		// Use dynamic import with file:// URL for ESM compatibility
@@ -174,14 +204,23 @@ async function importConfig(configPath: string): Promise<SdocsConfig> {
 	} catch (err) {
 		const name = basename(configPath);
 		const detail = err instanceof Error ? err.message : String(err);
+		// A CommonJS project reading a .js config that uses `export default`.
+		// This is checked FIRST because Node reports it as a SyntaxError —
+		// "Unexpected token 'export'" — and the file's syntax is fine; it is
+		// the module type that is wrong, and the fix is a rename, not an edit.
+		if (isCommonJsModuleMismatch(configPath, detail)) {
+			throw new ConfigError(
+				`${name} uses \`export default\`, but this project is CommonJS, so Node reads it as a script.\n` +
+					`  Rename it to sdocs.config.mjs, or add "type": "module" to package.json.`,
+				configPath,
+			);
+		}
 		// `instanceof` is unreliable here: the error crosses a dynamic-import
 		// boundary and may not be the same SyntaxError constructor this realm
 		// sees. The name survives.
 		if (err instanceof Error && err.name === 'SyntaxError') {
 			throw new ConfigError(`${name} has a syntax error: ${detail}`, configPath);
 		}
-		// A CommonJS project (no "type": "module", a .js config using `export
-		// default`) fails here too, and the fix is a rename rather than an edit.
 		if (/module is not defined|Cannot use import statement|require is not defined/i.test(detail)) {
 			throw new ConfigError(
 				`${name} could not be loaded as an ES module: ${detail}\n` +

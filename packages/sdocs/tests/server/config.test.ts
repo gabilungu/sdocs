@@ -478,3 +478,34 @@ describe('outDir', () => {
 		expect(resolveAndFinalize({ outDir: 'docs-dist' }, '/proj').outDir).toBe('docs-dist');
 	});
 });
+
+/**
+ * `sdocs init` writes a config that uses `export default`. In a CommonJS
+ * project Node reads a `.js` file as a script, so the file sdocs had just
+ * scaffolded failed to load — and the error, "Unexpected token 'export'",
+ * blamed the syntax of a file whose syntax was fine.
+ *
+ * The mismatch itself only exists in real Node: Vitest's module runner
+ * transpiles ESM whatever the package says, so the misdiagnosis cannot be
+ * reproduced here. That half is covered end-to-end in `tests/e2e/cli.test.ts`,
+ * which runs the real binary. What is checkable here is that a config which
+ * *does* load still loads.
+ */
+describe('a config in a CommonJS project', () => {
+	const project = (pkg: string, name: string) => {
+		const dir = mkdtempSync(join(tmpdir(), 'sdocs-cjs-'));
+		writeFileSync(join(dir, 'package.json'), pkg);
+		writeFileSync(join(dir, name), 'export default { include: ["./*.sdoc"] };\n');
+		return dir;
+	};
+
+	it('loads an .mjs config there without complaint', async () => {
+		const dir = project('{"name":"a","type":"commonjs"}', 'sdocs.config.mjs');
+		await expect(loadConfig(dir)).resolves.toBeTruthy();
+	});
+
+	it('loads a .js config in an ES-module project', async () => {
+		const dir = project('{"name":"a","type":"module"}', 'sdocs.config.js');
+		await expect(loadConfig(dir)).resolves.toBeTruthy();
+	});
+});

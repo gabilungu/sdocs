@@ -7,7 +7,7 @@
 
 	| Command | Description |
 	|---|---|
-	| `npx sdocs init` | Scaffold a `sdocs.config.js` file in the current directory |
+	| `npx sdocs init` | Scaffold a config file in the current directory |
 	| `npx sdocs dev` | Start the dev server with live reload |
 	| `npx sdocs run` | Same as `dev` — works without installing sdocs (see below) |
 	| `npx sdocs build` | Build a static documentation site to `dist/` |
@@ -48,8 +48,8 @@
 
 	## `sdocs init`
 
-	Creates a starter `sdocs.config.js` with every option commented out (the
-	defaults work without any of them):
+	Creates a starter config with every option commented out (the defaults work
+	without any of them):
 
 	```js
 	/** @type {import('sdocs').SdocsConfig} */
@@ -59,9 +59,16 @@
 	  // open: false,
 	  // css: './src/styles/global.css',
 	  // title: 'sdocs',
-	  // sidebar: { ... },
+	  // logo: 'sdocs',
+	  // axes: [{ id: 'scheme', label: 'Theme', values: ['light', 'dark'] }],
+	  // sections: [{ slug: 'guides', title: 'Guides' }],
+	  // home: 'guides/getting-started',
 	};
 	```
+
+	The file is `sdocs.config.js` in a project whose `package.json` says
+	`"type": "module"`, and `sdocs.config.mjs` otherwise — the config is an ES
+	module, and Node reads a bare `.js` as a CommonJS script.
 
 	No-op if a config file already exists.
 

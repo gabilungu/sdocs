@@ -17,6 +17,12 @@
 	stripping; on older Node it throws. Since `.ts` is checked first, prefer `.js`
 	or `.mjs` unless your Node supports it.
 
+	The config is an ES module — it ends in `export default`. A `.js` file is
+	read as one only when the nearest `package.json` says `"type": "module"`;
+	without that, Node reads it as a CommonJS script and the `export` is a
+	syntax error. `.mjs` is read as a module either way, which is why
+	`sdocs init` writes `sdocs.config.mjs` unless the project is already ESM.
+
 	## Full schema
 
 	```ts

@@ -12,6 +12,21 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.159] - 2026-08-21
+
+### Fixed
+
+- **`sdocs init` scaffolds a config that loads.** The config it writes uses
+  `export default`, and Node reads a `.js` file as a CommonJS script unless
+  the project's `package.json` says `"type": "module"` — so in every other
+  project the file sdocs had just written failed on `Unexpected token
+  'export'`. It now writes `sdocs.config.mjs` there, and `sdocs.config.js`
+  only where that works.
+- **And when one lands there anyway, the message says why.** That failure
+  arrives as a `SyntaxError`, so it was reported as "sdocs.config.js has a
+  syntax error" — blaming a file whose syntax is fine. It now names the module
+  type as the problem and the rename as the fix.
+
 ## [0.0.158] - 2026-08-21
 
 ### Changed

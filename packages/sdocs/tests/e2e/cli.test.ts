@@ -588,3 +588,67 @@ describe('prerendering content that looks like substitution syntax', () => {
 		expect(page).toContain("A plan costs $$5, and $&amp; and $' are common in shell scripts.");
 	});
 });
+
+/**
+ * The scaffolded config uses `export default`, so in a CommonJS project a
+ * `.js` file is read as a script and fails with "Unexpected token 'export'" —
+ * blaming the syntax of a file sdocs had just written correctly. This needs a
+ * real Node process: Vitest's module runner transpiles ESM regardless of what
+ * the package.json says, so the mismatch cannot happen in-process.
+ */
+describe('scaffolding into a CommonJS project', () => {
+	const scaffold = (pkg: string | null) => {
+		const dir = realpathSync(mkdtempSync(join(tmpdir(), 'sdocs-init-')));
+		tempDirs.push(dir);
+		mkdirSync(join(dir, 'src'), { recursive: true });
+		if (pkg !== null) writeFileSync(join(dir, 'package.json'), pkg);
+		writeFileSync(join(dir, 'src/A.sdoc'), '[DOC title="Alpha"]\n\n\tText.\n\n[/DOC]\n');
+		const init = spawnSync(process.execPath, [BIN, 'init'], {
+			cwd: dir,
+			encoding: 'utf-8',
+			timeout: 60_000,
+		});
+		const check = spawnSync(process.execPath, [BIN, 'check'], {
+			cwd: dir,
+			encoding: 'utf-8',
+			timeout: 60_000,
+		});
+		return { dir, init: init.stdout ?? '', check: `${check.stdout ?? ''}${check.stderr ?? ''}` };
+	};
+
+	it('writes .mjs, which loads', { timeout: 60_000 }, () => {
+		const r = scaffold('{"name":"a","private":true,"type":"commonjs"}');
+		expect(r.init).toContain('sdocs.config.mjs');
+		expect(r.check).toContain('All good');
+	});
+
+	it('writes .js in an ES-module project', { timeout: 60_000 }, () => {
+		const r = scaffold('{"name":"a","private":true,"type":"module"}');
+		expect(r.init).toContain('sdocs.config.js');
+		expect(r.check).toContain('All good');
+	});
+
+	it('assumes CommonJS when there is no package.json', { timeout: 60_000 }, () => {
+		// Node does, so sdocs must: a bare .js would be read as a script.
+		const r = scaffold(null);
+		expect(r.init).toContain('sdocs.config.mjs');
+		expect(r.check).toContain('All good');
+	});
+
+	it('names the real problem when a .js config lands in a CommonJS project', { timeout: 60_000 }, () => {
+		const dir = realpathSync(mkdtempSync(join(tmpdir(), 'sdocs-init-')));
+		tempDirs.push(dir);
+		writeFileSync(join(dir, 'package.json'), '{"name":"a","private":true,"type":"commonjs"}');
+		writeFileSync(join(dir, 'sdocs.config.js'), 'export default { include: ["./*.sdoc"] };\n');
+		const res = spawnSync(process.execPath, [BIN, 'check'], {
+			cwd: dir,
+			encoding: 'utf-8',
+			timeout: 60_000,
+		});
+		const out = `${res.stdout ?? ''}${res.stderr ?? ''}`;
+		expect(out).toContain('CommonJS');
+		expect(out).toContain('sdocs.config.mjs');
+		// Not a syntax complaint: the file's syntax is fine.
+		expect(out).not.toContain('has a syntax error');
+	});
+});

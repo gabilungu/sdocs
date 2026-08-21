@@ -325,21 +325,12 @@
 	 * `$derived`, and deliberately not computed from `doc` at read time.
 	 *
 	 * `TwoPaneSplit` takes its width through a function binding
-	 * (`bind:leftWidth={get, set}`), so Svelte calls the getter reactively —
-	 * including once more after this view is torn down during a fast route
-	 * change. `doc` is a prop backed by the parent's `$derived`, so a getter
-	 * that reached `doc.maxWidth` was reading a destroyed derived: Svelte's
-	 * `derived_inert`, eight warnings per rapid navigation. Reading local state
-	 * cannot go stale that way.
+	 * (`bind:leftWidth={get, set}`), so Svelte calls the getter reactively and
+	 * everything the getter touches becomes a dependency of the split. One
+	 * local signal keeps that graph the size of the thing being read; reaching
+	 * through `doc` would hang the whole entity off a width.
 	 */
 	let stageDefaultWidth = $state('calc(100% - 10px)');
-	// KNOWN, UNRESOLVED: navigating between routes faster than ~200ms apart
-	// still logs eight `derived_inert` warnings, traced into this component's
-	// example stages. Removing every derived read from the width getters, from
-	// the slug lookups and from the height lookup each failed to silence it, so
-	// the read is somewhere else — most likely a prop backed by the parent's
-	// `resolved` derived, read while TwoPaneSplit's effect tree is being torn
-	// down. Dev-only, and no stale value has been observed on screen.
 
 	function defaultStageWidth(): string {
 		return stageDefaultWidth;
@@ -854,12 +845,9 @@
 
 		{#snippet exampleBlock(example: ExtractedSnippet)}
 			<!-- The slug is frozen here rather than read inside the closures
-			     below. `example` comes from the `exampleSnippets` derived, and
-			     TwoPaneSplit calls these getters from its own effect — which can
-			     run once more after this view is torn down mid-navigation.
-			     Reading a derived there is Svelte's `derived_inert`, eight
-			     warnings per fast route change. A captured string cannot go
-			     stale. -->
+			     below: they are called from TwoPaneSplit's own effect, and a
+			     captured string keeps `exampleSnippets` out of that effect's
+			     dependencies. -->
 			{@const slug = example.slug}
 			<div class="sdocs-example">
 				<h3 class="sdocs-example-title">

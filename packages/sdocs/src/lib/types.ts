@@ -12,6 +12,10 @@ export interface SdocsConfig {
 	 * files for previews. Standalone CLI flows (`sdocs dev`/`build`); when
 	 * embedding the Vite plugin, use the host app's own public directory. */
 	static?: string;
+	/** Where `sdocs build` writes the site. Default `'dist'`. The build empties
+	 * this directory first, so point it somewhere of its own when the project
+	 * already builds something to `dist/`. */
+	outDir?: string;
 	/** Header title text. Default: 'sdocs' */
 	title?: string;
 	/** Header logo: 'sdocs' for the built-in mascot, an image URL, or false to hide. Default: 'sdocs' */
@@ -218,6 +222,7 @@ export interface ResolvedSdocsConfig {
 	open: boolean;
 	css: string | Record<string, string> | null;
 	static: string | null;
+	outDir: string;
 	title: string;
 	logo: string | false;
 	/** Favicon href for the built page; the built-in sdocs icon by default. */

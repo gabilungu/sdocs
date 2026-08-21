@@ -12,6 +12,40 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.155] - 2026-08-21
+
+### Added
+
+- **`outDir` — where `sdocs build` writes.** Defaults to `dist/`, as before.
+
+### Fixed
+
+- **`build` no longer empties a directory it does not own.** The output
+  directory is emptied before every build, which for a component library
+  documenting itself meant `dist/` — its own published bundle — disappearing on
+  the first `sdocs build`. The build now stops when the target holds files
+  sdocs did not put there, names the offending files, and points at `outDir`.
+  Directories sdocs built before are stamped and rebuild without a word.
+- **A code fence inside a blockquote is code again.** CommonMark allows it and
+  GitHub callouts depend on it, but the fence walker only recognised an opener
+  after whitespace — so `> ```js` stayed prose and the JavaScript inside it was
+  compiled as Svelte, failing the whole page over an object literal. All three
+  walkers (scanner, islands, projection) now share one stepper that understands
+  the blockquote prefix, and a quoted fence ends with its blockquote rather
+  than swallowing the rest of the document.
+- **Two MCP writes to one file no longer lose an edit.** Every write tool is
+  read-modify-write; fired concurrently at the same `.sdoc` — `set_status` and
+  `set_notes` on one component, say — both read the original and the second
+  overwrote the first, while both reported `changed: true`. Writes to a given
+  file now run one at a time.
+- **`sdocs preview` serves the base the site was built with.** A site built
+  with `--base "/repo/"` previewed as a blank page, the server answering `/`
+  while the page asked for `/repo/assets/…`. Preview now reads the base back
+  out of the built `index.html`.
+- **A broken `sdocs.config.js` says what is broken.** A syntax error in the
+  config surfaced as a bare module-loader stack; it now names the file and the
+  problem.
+
 ## [0.0.154] - 2026-08-21
 
 ### Fixed

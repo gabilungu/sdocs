@@ -1,6 +1,7 @@
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { existsSync, readdirSync } from 'node:fs';
 import { loadConfig, normalizeBase } from '../server/config.js';
 import { sdocsPlugin } from '../vite.js';
 import { generateBuildFiles, cleanBuildFiles } from '../server/app-gen.js';
@@ -20,6 +21,10 @@ export async function buildCommand(opts?: { base?: string }): Promise<void> {
 	const svelte = await loadSveltePlugin(cwd);
 	const { build } = await loadVite(cwd);
 	const config = await loadConfig(cwd);
+
+	// Before any work: refuse an output directory that is not ours to empty.
+	const outDir = resolve(cwd, config.outDir);
+	assertSafeToEmpty(outDir, config.outDir);
 	// A --base flag overrides the config (lets CI derive it from the repo name).
 	if (opts?.base !== undefined) config.base = normalizeBase(opts.base);
 
@@ -72,7 +77,7 @@ export async function buildCommand(opts?: { base?: string }): Promise<void> {
 			// not to validate. ('esbuild' isn't an option: rolldown-vite doesn't
 			// bundle it.) JS is still minified; the CSS gain isn't worth the risk.
 			build: {
-				outDir: resolve(cwd, 'dist'),
+				outDir,
 				emptyOutDir: true,
 				cssMinify: false,
 				rollupOptions: {
@@ -91,7 +96,13 @@ export async function buildCommand(opts?: { base?: string }): Promise<void> {
 			console.log(`[sdocs] Prerendered ${count} route page(s)`);
 		}
 
-		console.log(`[sdocs] Build complete → dist/`);
+		// Stamp the output, so the next build knows this directory is its own.
+		await writeFile(
+			resolve(outDir, BUILD_STAMP),
+			'This directory is written by `sdocs build`, which empties it first.\n',
+			'utf-8',
+		);
+		console.log(`[sdocs] Build complete → ${config.outDir}/`);
 	} finally {
 		await cleanBuildFiles(sdocsDir);
 	}
@@ -150,6 +161,37 @@ async function buildPrerenderer(
 const escapeHtml = (s: string) =>
 	s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
+/**
+ * A file sdocs leaves in its own output, so the next build can tell its own
+ * directory from somebody else's.
+ */
+const BUILD_STAMP = '.sdocs-build';
+
+/**
+ * Refuse to empty an output directory sdocs did not create.
+ *
+ * `emptyOutDir` deletes everything in the target, and the default target is
+ * `dist/` — which in a component library is where the library's own build
+ * lives. Deleting that on the first `sdocs build` would be a rotten surprise,
+ * and there was no opt-out and no warning.
+ *
+ * A directory is safe when it does not exist, is empty, or carries the stamp
+ * from a previous sdocs build. Anything else stops the build with the fix.
+ */
+function assertSafeToEmpty(outDir: string, asWritten: string): void {
+	if (!existsSync(outDir)) return;
+	const entries = readdirSync(outDir);
+	if (entries.length === 0 || entries.includes(BUILD_STAMP)) return;
+	console.error(
+		`[sdocs] ${asWritten}/ already has files in it, and they were not put there by sdocs.\n` +
+			`  Building would delete them. Point sdocs somewhere of its own:\n\n` +
+			`    // sdocs.config.js\n` +
+			`    export default { outDir: 'docs-dist' };\n\n` +
+			`  Or empty ${asWritten}/ yourself if its contents are disposable.`,
+	);
+	process.exit(1);
+}
+
 /** The site's section/route map, derived from the doc files exactly as the
  * Explorer derives it — one validation, two consumers. */
 async function buildSiteMap(config: ResolvedSdocsConfig, cwd: string) {
@@ -205,7 +247,8 @@ async function emitRoutePages(
 	config: ResolvedSdocsConfig,
 	renderRoute: RenderRoute,
 ): Promise<number> {
-	const shell = await readFile(resolve(cwd, 'dist/index.html'), 'utf-8');
+	const outDir = resolve(cwd, config.outDir);
+	const shell = await readFile(resolve(outDir, 'index.html'), 'utf-8');
 
 	const pageFor = (key: string | null): string => {
 		// Tab/tab-title text: "Page – Site" for routes, the site title at the root.
@@ -243,14 +286,14 @@ async function emitRoutePages(
 	};
 
 	// The root route renders the home target (or the About screen).
-	await writeFile(resolve(cwd, 'dist/index.html'), pageFor(null));
+	await writeFile(resolve(outDir, 'index.html'), pageFor(null));
 
 	// Every doc route, plus the two pages sdocs always serves. Without their
 	// own directory a static host answers /changelog with the 404 shell, which
 	// boots the app but lands the reader on the home screen instead.
 	const keys = [...map.routes.keys(), 'about', 'changelog'];
 	for (const key of keys) {
-		const dir = resolve(cwd, 'dist', key);
+		const dir = resolve(outDir, key);
 		await mkdir(dir, { recursive: true });
 		await writeFile(resolve(dir, 'index.html'), pageFor(key));
 	}
@@ -258,6 +301,6 @@ async function emitRoutePages(
 	// unmatched path, so an unknown deep link still loads the shell and lands
 	// on the home/about screen instead of a bare 404. It stays a bare shell —
 	// prerendering some other page's content there would mislead crawlers.
-	await writeFile(resolve(cwd, 'dist/404.html'), shell);
+	await writeFile(resolve(outDir, '404.html'), shell);
 	return keys.length + 1;
 }

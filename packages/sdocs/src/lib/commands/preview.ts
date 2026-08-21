@@ -29,10 +29,10 @@ export async function previewCommand(): Promise<void> {
 	const cwd = process.cwd();
 	const { preview } = await loadVite(cwd);
 	const config = await loadConfig(cwd);
-	const distDir = resolve(cwd, 'dist');
+	const distDir = resolve(cwd, config.outDir);
 
 	if (!existsSync(distDir)) {
-		console.error('[sdocs] No dist/ folder found. Run `sdocs build` first.');
+		console.error(`[sdocs] No ${config.outDir}/ folder found. Run \`sdocs build\` first.`);
 		process.exit(1);
 	}
 

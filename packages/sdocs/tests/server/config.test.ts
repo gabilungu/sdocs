@@ -462,3 +462,19 @@ describe('a config that will not load', () => {
 		await expect(loadConfig(dir)).resolves.toMatchObject({ title: 'Fine' });
 	});
 });
+
+/**
+ * `sdocs build` empties its output directory, and the default is `dist/` —
+ * which in a component library is where the library's own build lives.
+ * Deleting that on someone's first build would be a rotten surprise, so the
+ * output directory is configurable and the build refuses one it did not make.
+ */
+describe('outDir', () => {
+	it('defaults to dist', () => {
+		expect(resolveAndFinalize({}, '/proj').outDir).toBe('dist');
+	});
+
+	it('takes an override', () => {
+		expect(resolveAndFinalize({ outDir: 'docs-dist' }, '/proj').outDir).toBe('docs-dist');
+	});
+});

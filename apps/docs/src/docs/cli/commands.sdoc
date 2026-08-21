@@ -81,11 +81,15 @@
 
 	Builds a static site to `dist/`.
 
-	> [!WARNING]
-	> `build` **empties `dist/` first**, and the output directory is not
-	> configurable. If your project already builds something else to `dist/` —
-	> a component library's own bundle, most often — run sdocs from a
-	> subdirectory or point your library's build elsewhere.
+	> [!IMPORTANT]
+	> `build` **empties its output directory first**. If `dist/` already holds
+	> files sdocs did not put there — a component library's own bundle, most
+	> often — the build stops and tells you, rather than deleting them. Point
+	> sdocs somewhere of its own with `outDir`:
+	>
+	> ```js
+	> export default { outDir: 'docs-dist' };
+	> ```
 
 	Site-structure errors — an unknown
 	`@section`, two entities on one route, an unresolvable `home` — fail the

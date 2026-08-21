@@ -289,7 +289,9 @@ interface SdocsConfig {
 	components?: string | string[];      // component globs for coverage. Default: include with .sdoc → .svelte
 	axes?: { id: string; label?: string; values: string[] }[]; // design-system dimensions the reader can switch. Default []
 	scale?: { min?: number; max?: number; default?: number; step?: number; var?: string; label?: string; presets?: { label: string; value: number }[] }; // a top-bar slider setting a CSS custom property on every stage
-	static?: string;                     // static assets folder, served at site root
+	static?: string;                     
+	outDir?: string;                     // where `sdocs build` writes. Default 'dist'. The build
+	                                     // empties it, and refuses one it did not create.// static assets folder, served at site root
 	content?: {                          // per-entity-kind sizing/stage defaults (see below)
 		doc?:      { maxWidth?: string; padding?: string; toc?: boolean; contentX?: string };
 		page?:     { maxWidth?: string; padding?: string; contentX?: string };

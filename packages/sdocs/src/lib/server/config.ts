@@ -33,6 +33,7 @@ const DEFAULTS: ResolvedSdocsConfig = {
 	mcp: true,
 	components: [],
 	axes: [],
+	outDir: 'dist',
 	scale: null,
 	content: {
 		doc: { maxWidth: '1200px', padding: '32px', toc: true, contentX: 'left' },
@@ -392,6 +393,7 @@ export function resolveConfig(userConfig: SdocsConfig | ResolvedSdocsConfig): Re
 		open: userConfig.open ?? DEFAULTS.open,
 		css: normalizeCss(userConfig.css),
 		static: userConfig.static ?? DEFAULTS.static,
+		outDir: userConfig.outDir ?? DEFAULTS.outDir,
 		title: title ?? DEFAULTS.title,
 		logo: logo ?? DEFAULTS.logo,
 		favicon: userConfig.favicon ?? DEFAULTS.favicon,

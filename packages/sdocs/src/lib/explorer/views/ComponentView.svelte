@@ -4,6 +4,7 @@
 	import { Icon } from '../../ui/Icon/index.js';
 	import { Note } from '../../ui/Note/index.js';
 	import NoteControl from './NoteControl.svelte';
+	import HeightHandle from './HeightHandle.svelte';
 	import { highlightSvelte } from '../highlighter.js';
 	import CollapsiblePanel from './CollapsiblePanel.svelte';
 	import TwoPaneSplit from '../../ui/TwoPaneSplit/TwoPaneSplit.svelte';
@@ -197,10 +198,14 @@
 	let focusedWidth = $state<number | string>('100%');
 	// Per-example drag overrides; an example without one sits at the default.
 	let exampleOverrides = $state<Record<string, number | string>>({});
+	/** Stage heights the reader dragged to, by stage key; absent means the
+	 * stage still sizes itself to its content. */
+	let stageHeights = $state<Record<string, number>>({});
 	$effect(() => {
 		previewWidth = defaultStageWidth;
 		focusedWidth = defaultStageWidth;
 		exampleOverrides = {};
+		stageHeights = {};
 	});
 
 	const hasEditableControls = $derived(
@@ -299,15 +304,35 @@
 	get: () => number | string,
 	set: (v: number | string) => void,
 	reset: () => void,
+	key: string,
 )}
+	{#snippet heightHandle()}
+		<!-- Rendered inside the pane rather than beside the split: the pane is
+		     already the width the horizontal handle set, so the bar tracks it
+		     for free — and it sits flush under the frame instead of below the
+		     stage's bottom margin. A [LAYOUT] has none of this; it is the
+		     viewport's height by definition. -->
+		<HeightHandle
+			height={stageHeights[key] ?? null}
+			onchange={(h) => (stageHeights[key] = h)}
+			onreset={() => {
+				const next = { ...stageHeights };
+				delete next[key];
+				stageHeights = next;
+			}}
+		/>
+	{/snippet}
 	<div class="sdocs-preview-split">
 		{#if narrow}
-			<div class="sdocs-preview-pane">{@render content()}</div>
+			<div class="sdocs-preview-pane">{@render content()}{@render heightHandle()}</div>
 		{:else}
 			{@const w = get()}
 			<TwoPaneSplit bind:leftWidth={get, set} leftMinWidth={1} handleBarWidth={10} height="auto">
 				{#snippet left()}
-					<div class="sdocs-preview-pane">{@render content()}</div>
+					<!-- Inside the pane, right after the frame: the pane is
+					     `height: 100%`, so a handle beside it lets the pane
+					     stretch past the frame and the bar stops hugging it. -->
+					<div class="sdocs-preview-pane">{@render content()}{@render heightHandle()}</div>
 				{/snippet}
 				{#snippet right()}
 					<div class="sdocs-resize-canvas" style:background-image={`url(${diagonalsUrl})`}></div>
@@ -351,7 +376,12 @@
 		<!-- The example IS the page — its stage rides the same resizable split. -->
 		{#snippet focusedContent()}
 			<div class="sdocs-preview-wrapper">
-				<PreviewFrame src={focusedSnippet.previewUrl ?? ''} {activeStylesheet} stage={focusedSnippet} />
+				<PreviewFrame
+					src={focusedSnippet.previewUrl ?? ''}
+					{activeStylesheet}
+					stage={focusedSnippet}
+					height={stageHeights['focused'] ?? null}
+				/>
 			</div>
 		{/snippet}
 		{@render stage(
@@ -359,6 +389,7 @@
 			() => focusedWidth,
 			(v) => (focusedWidth = v),
 			() => (focusedWidth = defaultStageWidth),
+			'focused',
 		)}
 		<div class="sdocs-panels">
 			<CollapsiblePanel title="Code" defaultExpanded={false} flush>
@@ -425,6 +456,7 @@
 							props={propValues}
 							cssVars={appliedCss}
 							{activeStylesheet}
+							height={stageHeights[activePreview.snippet.slug] ?? null}
 							onStateValues={(values) => (liveStateValues = values)}
 							onready={resolveVarColors}
 						/>
@@ -436,6 +468,7 @@
 				() => previewWidth,
 				(v) => (previewWidth = v),
 				() => (previewWidth = defaultStageWidth),
+				activePreview.snippet.slug,
 			)}
 
 			<div class="sdocs-panels">
@@ -600,7 +633,12 @@
 					{/if}
 					{#snippet exampleContent()}
 						<div class="sdocs-preview-wrapper">
-							<PreviewFrame src={example.previewUrl ?? ''} {activeStylesheet} stage={example} />
+							<PreviewFrame
+								src={example.previewUrl ?? ''}
+								{activeStylesheet}
+								stage={example}
+								height={stageHeights[example.slug] ?? null}
+							/>
 						</div>
 					{/snippet}
 					{@render stage(
@@ -612,6 +650,7 @@
 							delete next[example.slug];
 							exampleOverrides = next;
 						},
+						example.slug,
 					)}
 					<div class="sdocs-panels">
 						<CollapsiblePanel title="Code" defaultExpanded={false} flush>

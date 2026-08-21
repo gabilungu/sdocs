@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.137] - 2026-08-21
+
+### Added
+
+- **Stages resize vertically.** A drag bar under every `[component]` preview
+  and every `[example]` sets the height of its iframe — for a dropdown that
+  opens downward, a list meant to scroll, a component whose empty state is two
+  lines and whose full state is forty. Drag it, or tab to it and use the arrow
+  keys; the px readout beside the grip hands the stage back to sizing itself.
+
+  A stage normally grows to whatever it reports, capped at 800px. A dragged
+  height overrides both, and the frame starts scrolling — dragged shorter than
+  its content, it would otherwise just lose the rest.
+
+  The bar lives inside the resizable pane, so it spans exactly the stage and
+  narrows with the horizontal handle rather than tracking a second copy of that
+  width. Like the width handle it stays invisible until hovered, and like the
+  width overrides the height is per visit, not remembered.
+
+  Not on `[LAYOUT]`, which is the height of the viewport by definition, nor on
+  `[PAGE]`, which is ordinary page flow.
+
+
 ## [0.0.136] - 2026-08-21
 
 ### Fixed

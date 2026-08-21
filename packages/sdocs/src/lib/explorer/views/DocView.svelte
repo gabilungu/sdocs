@@ -7,6 +7,7 @@
 	import NoteControl from './NoteControl.svelte';
 	import CollapsiblePanel from './CollapsiblePanel.svelte';
 	import PreviewFrame from './PreviewFrame.svelte';
+	import HeightHandle from './HeightHandle.svelte';
 	import { displayTitle } from '../tree-builder.js';
 	import { capSidePadding, isNarrow } from '../viewport.svelte.js';
 
@@ -30,6 +31,14 @@
 
 	// The page body compiles to its own component (prose + islands + example
 	// markers); it renders here, natively — sdocs styling, no iframe. Only the
+	/** Stage heights the reader dragged to, by example slug; absent means the
+	 * stage still sizes itself to its content. */
+	let stageHeights = $state<Record<string, number>>({});
+	$effect(() => {
+		void doc.entitySlug;
+		stageHeights = {};
+	});
+
 	// [example] stages load the project's css, each in its own PreviewFrame.
 	let loaded = $state<Component | null>(null);
 	const PageComponent = $derived(
@@ -145,7 +154,22 @@
 			{/if}
 			<div class="sdocs-panels">
 				<div class="sdocs-preview-wrapper">
-					<PreviewFrame src={example.previewUrl ?? ''} {activeStylesheet} stage={example} />
+					<PreviewFrame
+						src={example.previewUrl ?? ''}
+						{activeStylesheet}
+						stage={example}
+						height={stageHeights[example.slug] ?? null}
+					/>
+					<!-- Inside the wrapper, flush against the frame it resizes. -->
+					<HeightHandle
+						height={stageHeights[example.slug] ?? null}
+						onchange={(h) => (stageHeights[example.slug] = h)}
+						onreset={() => {
+							const next = { ...stageHeights };
+							delete next[example.slug];
+							stageHeights = next;
+						}}
+					/>
 				</div>
 				<CollapsiblePanel title="Code" defaultExpanded={false} flush>
 					<div class="sdocs-code-block">{@html example.highlightedHtml ?? ''}</div>

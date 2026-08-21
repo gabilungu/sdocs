@@ -10,6 +10,10 @@
 		cssVars?: Record<string, string>;
 		activeStylesheet?: string;
 		fullHeight?: boolean;
+		/** A height the reader dragged to, in px. Overrides the height the stage
+		 * reports for itself, and lets the frame scroll when it is shorter than
+		 * what it holds. */
+		height?: number | null;
 		/** Called with the preview component's exported state values whenever they change */
 		onStateValues?: (values: Record<string, unknown>) => void;
 		/** Called once the iframe reports ready (theme css loaded) */
@@ -24,7 +28,7 @@
 		} | null;
 	}
 
-	let { src, props = {}, cssVars = {}, activeStylesheet, fullHeight = false, onStateValues, onready, stage = null }: Props = $props();
+	let { src, props = {}, cssVars = {}, activeStylesheet, fullHeight = false, height = null, onStateValues, onready, stage = null }: Props = $props();
 
 	const stageKind = $derived(stage?.role === 'preview' ? 'component' : stage?.role);
 	// "Button — Sizes preview": a showcase holds many frames, and an
@@ -126,8 +130,13 @@
 	// scrolls inside the frame like a browser window, so ignore the reported
 	// content height there.
 	const frameHeight = $derived(
-		fullHeight ? undefined : contentHeight ? `${contentHeight}px` : undefined
+		fullHeight ? undefined : height ? `${height}px` : contentHeight ? `${contentHeight}px` : undefined
 	);
+
+	// A dragged height is a fixed one: shorter than the content, the frame has
+	// to scroll or the rest is simply lost. The 800px ceiling on the automatic
+	// height goes too — the reader has said how tall they want it.
+	const scrollable = $derived(fullHeight || height !== null);
 
 	onMount(() => {
 		function onMessage(e: MessageEvent) {
@@ -233,8 +242,9 @@
 		src={resolvedSrc}
 		title={frameTitle}
 		class="sdocs-iframe"
-		scrolling={fullHeight ? 'auto' : 'no'}
+		scrolling={scrollable ? 'auto' : 'no'}
 		style:height={frameHeight}
+		style:max-height={height ? 'none' : undefined}
 		data-sdocs-stage-id={stage?.stageId}
 		data-sdocs-stage-kind={stageKind}
 	></iframe>

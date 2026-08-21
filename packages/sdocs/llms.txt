@@ -74,7 +74,7 @@ npx sdocs dev      # dev server at http://localhost:3000
 | `npx sdocs run` | Same as `dev`, but works without installing sdocs |
 | `npx sdocs build` | Build a static site to `dist/` |
 | `npx sdocs preview` | Serve the built `dist/` locally |
-| `npx sdocs check` | Compile every doc stage and report what breaks (exits 1 on error) |
+| `npx sdocs check` | Compile every doc stage, validate the site structure, report what breaks (exits 1 on error) |
 | `npx sdocs coverage` | Report which components have a `[COMPONENT]` preview |
 | `npx sdocs mcp` | Serve the sdocs MCP server on stdio (authoring tools for agents) |
 
@@ -98,14 +98,15 @@ serving under a sub-path (a GitHub *project* Pages site lives at `/<repo>/`):
 npx sdocs build --base "/my-repo/"
 ```
 
-`sdocs check` compiles every stage without starting a server or writing a
-build, printing each problem with its file, entity, and stage, and exiting 1
-when anything errors — the CI gate for "do all the docs still work?". The MCP
-`check_docs` tool runs the same check.
+`sdocs check` compiles every stage and validates the site structure without
+starting a server or writing a build, printing each problem with its file,
+entity, and stage, and exiting 1 when anything errors — the CI gate for "do all
+the docs still work?". The MCP `check_docs` tool runs the same check.
 
-A build fails on site-structure errors (unknown `@section`, two entities on one
-route, an unresolvable `home`) and on a `component={…}` reference that resolves
-to no component file — the same error `check` reports. The dev server only warns
+`check` and `build` both fail on site-structure errors (unknown `@section`, two
+entities on one route, an unresolvable `home`) and on a `component={…}`
+reference that resolves to no component file — one map, read the same way, so
+`check` never passes a site `build` would refuse. The dev server only warns
 about the latter, so the doc can be fixed while it runs.
 
 Because `run`/`build` need no local install, CI can build a docs site from a
@@ -187,9 +188,12 @@ Explorer uses:
   and layout bodies) the way the dev server does and report what breaks:
   Svelte compile errors, relative imports that resolve to no file, and grammar
   diagnostics — with the file, entity, stage, and a `.sdoc` line where it maps
-  cleanly. `validate_sdoc` only checks the grammar; this catches what
-  otherwise appears only when the route is opened. Omit `file` to check the
-  whole project. It does not type-check and cannot see runtime-only failures.
+  cleanly — plus site-structure errors when checking the whole project.
+  `validate_sdoc` only checks the grammar; this catches what otherwise appears
+  only when the route is opened. Omit `file` to check the whole project. It
+  does not type-check and cannot see runtime-only failures: a stage whose
+  `<script>` throws compiles cleanly, and the throw surfaces in the preview
+  frame instead.
 - `check_coverage {}` — documentation coverage: which components under the
   `components` globs have a `[COMPONENT]` preview and which don't, plus
   components documented from more than one file, references that resolve to

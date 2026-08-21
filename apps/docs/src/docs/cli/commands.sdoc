@@ -12,7 +12,7 @@
 	| `npx sdocs run` | Same as `dev` — works without installing sdocs (see below) |
 	| `npx sdocs build` | Build a static documentation site to `dist/` |
 	| `npx sdocs preview` | Preview the built site locally |
-	| `npx sdocs check` | Compile every doc stage and report what breaks |
+	| `npx sdocs check` | Compile every doc stage, validate the site structure, report what breaks |
 	| `npx sdocs coverage` | Report which components have a `[COMPONENT]` preview |
 	| `npx sdocs mcp` | Serve the sdocs MCP server on stdio — authoring tools for agents |
 
@@ -150,7 +150,11 @@
 	- **grammar diagnostics** from the parser,
 	- **`component={…}` references that resolve to no component file** — the
 	  preview still renders, but its API tables and controls silently don't, so
-	  it's an error here and a [build](#sdocs-build) failure too.
+	  it's an error here and a [build](#sdocs-build) failure too,
+	- **site-structure errors** — a title claiming a section the config never
+	  declared, two entities landing on one route, a `home` that resolves to
+	  nothing. These are the same checks [`sdocs build`](#sdocs-build) refuses
+	  to deploy past, run without building.
 
 	Each problem prints its file (with a line where it maps back cleanly), the
 	entity, and the stage:
@@ -168,8 +172,9 @@
 
 	It exits **1** when anything errors, so CI can gate on it — no server, no
 	build output. It doesn't type-check, and it can't see failures that only
-	happen at runtime. The [MCP server](#sdocs-mcp)'s `check_docs` tool runs
-	the same check.
+	happen at runtime: a stage whose `<script>` throws compiles cleanly, and
+	the throw shows up in the preview frame when someone opens the page. The
+	[MCP server](#sdocs-mcp)'s `check_docs` tool runs the same check.
 
 	## `sdocs coverage`
 

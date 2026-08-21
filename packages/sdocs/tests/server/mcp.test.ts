@@ -922,3 +922,62 @@ describe('concurrent writes to one file', () => {
 		expect(out).toContain('- tip: Both edits must survive.');
 	});
 });
+
+/**
+ * `check_docs` compiled stages but never looked at the site structure, so an
+ * agent could be told the docs were fine and then watch `sdocs build` refuse
+ * to deploy them. Both read the same map now.
+ */
+describe('check_docs and site structure', () => {
+	const project = (config: string, doc: string) => {
+		const dir = mkdtempSync(join(tmpdir(), 'sdocs-mcp-structure-'));
+		writeFileSync(join(dir, 'sdocs.config.js'), config);
+		writeFileSync(join(dir, 'A.sdoc'), doc);
+		return dir;
+	};
+
+	const check = async (dir: string, args: Record<string, unknown> = {}) => {
+		const prev = process.cwd();
+		process.chdir(dir);
+		try {
+			const res = await callTool('check_docs', args);
+			return JSON.parse(res.content[0].text) as {
+				ok: boolean;
+				structureErrors?: { message: string }[];
+			};
+		} finally {
+			process.chdir(prev);
+		}
+	};
+
+	it('fails on a title claiming an undeclared section', async () => {
+		const dir = project(
+			"export default { include: ['./*.sdoc'], sections: [{ slug: 'guides' }] };\n",
+			'[DOC title="@nope/Alpha"]\n\n\tText.\n\n[/DOC]\n',
+		);
+		const out = await check(dir);
+		expect(out.ok).toBe(false);
+		expect(JSON.stringify(out.structureErrors)).toContain('@nope');
+	});
+
+	it('passes a sound structure', async () => {
+		const dir = project(
+			"export default { include: ['./*.sdoc'] };\n",
+			'[DOC title="Alpha"]\n\n\tText.\n\n[/DOC]\n',
+		);
+		const out = await check(dir);
+		expect(out.ok).toBe(true);
+		expect(out.structureErrors).toBeUndefined();
+	});
+
+	it('skips the structure check when asked about one file', async () => {
+		// Structure is a whole-project property: judging it from a single file
+		// would report every other file's entities as missing.
+		const dir = project(
+			"export default { include: ['./*.sdoc'], sections: [{ slug: 'guides' }] };\n",
+			'[DOC title="@nope/Alpha"]\n\n\tText.\n\n[/DOC]\n',
+		);
+		const out = await check(dir, { file: 'A.sdoc' });
+		expect(out.structureErrors).toBeUndefined();
+	});
+});

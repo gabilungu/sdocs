@@ -49,7 +49,7 @@ format. Fourteen tools — ten that read, four that write:
 | `get_changelog` | this install's changelog, breaking changes first |
 | `list_docs` | the project's docs, their routes, notes, todos, glossary terms and component statuses — and the running sdocs version |
 | `search_docs` | find a page by any name it goes under, or sweep by note type |
-| `check_docs` | compile every stage and report what breaks |
+| `check_docs` | compile every stage, validate the site structure, report what breaks |
 | `check_coverage` | which components have a `[COMPONENT]` preview |
 | `resolve_visual_target` | a stage's preview-only route, for screenshots |
 | `get_component_api` | a component's full extracted API and its `@component` description |

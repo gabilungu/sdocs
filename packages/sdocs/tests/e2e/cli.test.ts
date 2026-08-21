@@ -514,32 +514,32 @@ describe('option handling', () => {
 		return { code: res.status, out: `${res.stdout ?? ''}${res.stderr ?? ''}` };
 	};
 
-	it('rejects a misspelled option and names what the command accepts', () => {
+	it('rejects a misspelled option and names what the command accepts', { timeout: 60_000 }, () => {
 		const { code, out } = run(['build', '--bse', '/repo/']);
 		expect(code).toBe(1);
 		expect(out).toContain('--bse');
 		expect(out).toContain('--base');
 	});
 
-	it('rejects an option on a command that takes none', () => {
+	it('rejects an option on a command that takes none', { timeout: 60_000 }, () => {
 		const { code, out } = run(['check', '--port', '3000']);
 		expect(code).toBe(1);
 		expect(out).toContain('takes no options');
 	});
 
-	it('rejects a --port that is not a port', () => {
+	it('rejects a --port that is not a port', { timeout: 60_000 }, () => {
 		const { code, out } = run(['dev', '--port', 'abc']);
 		expect(code).toBe(1);
 		expect(out).toContain('--port');
 	});
 
-	it('does not read a valid option value as an option', () => {
+	it('does not read a valid option value as an option', { timeout: 60_000 }, () => {
 		// `--base /repo/` must not trip the unknown-option check on "/repo/",
 		// and must not be confused by the `=` form either.
 		expect(run(['build', '--base=/repo/', '--out-dir']).out).not.toContain('Unknown option');
 	});
 
-	it('lists the new options in --help', () => {
+	it('lists the new options in --help', { timeout: 60_000 }, () => {
 		const { out } = run(['--help']);
 		expect(out).toContain('--port');
 		expect(out).toContain('--out-dir');
@@ -554,7 +554,7 @@ describe('option handling', () => {
  * `$&` pulled in.
  */
 describe('prerendering content that looks like substitution syntax', () => {
-	it('writes it through verbatim', () => {
+	it('writes it through verbatim', { timeout: 180_000 }, () => {
 		const dir = realpathSync(mkdtempSync(join(tmpdir(), 'sdocs-dollar-')));
 		tempDirs.push(dir);
 		mkdirSync(join(dir, 'src'), { recursive: true });

@@ -28,6 +28,7 @@ import { buildPreviewUrl, previewUrl } from '../server/snippet-compiler.js';
 import { describeStages } from '../server/preview-runtime.js';
 import { resolveStageLayout } from '../server/stage-layout.js';
 import { VISUAL_TESTING_GUIDE } from './visual-guide.js';
+import { buildSiteMap } from '../server/site-map.js';
 import { checkDocFiles } from '../server/check.js';
 import { measureCoverage } from '../server/coverage.js';
 import type { DocEntry, ParsedProp } from '../types.js';
@@ -348,9 +349,12 @@ const TOOLS = [
 			'Compile every documentation stage the way the dev server does — every ' +
 			'preview, example, page, and layout body — and report what breaks: ' +
 			'Svelte compile errors, relative imports that resolve to no file, and ' +
-			'grammar diagnostics. This is the check `validate_sdoc` cannot do: it ' +
-			'catches problems that otherwise appear only when the route is opened. ' +
-			'Run it over the whole project (no arguments) or one file. It does not ' +
+			'grammar diagnostics. Over the whole project it also validates the site ' +
+			'structure — an unknown @section, two entities on one route, a home ' +
+			'that resolves to nothing — which is what `sdocs build` refuses to ' +
+			'deploy past. This is the check `validate_sdoc` cannot do: it catches ' +
+			'problems that otherwise appear only when the route is opened. Run it ' +
+			'over the whole project (no arguments) or one file. It does not ' +
 			'type-check, and cannot see runtime-only failures.',
 		inputSchema: {
 			type: 'object',
@@ -1430,14 +1434,21 @@ async function checkDocs(params: Record<string, unknown>) {
 	}
 	const result = await checkDocFiles(files, cwd);
 	const errors = result.problems.filter((p) => p.severity === 'error');
+	// Site structure is a whole-project property — an unknown @section or a
+	// route collision needs every file to be visible — so it is checked only
+	// when no single file was asked for. Same map `build` refuses to deploy
+	// past, so an agent that gets `ok` here has a site that builds.
+	const structure = typeof file === 'string' && file ? [] : (await buildSiteMap(config, cwd)).errors;
+	const ok = result.ok && structure.length === 0;
 	return toolResult({
-		ok: result.ok,
+		ok,
 		checked: result.checked,
-		errorCount: errors.length,
+		errorCount: errors.length + structure.length,
 		warningCount: result.problems.length - errors.length,
 		problems: result.problems,
-		note: result.ok
-			? 'Every stage compiles. This does not type-check, and cannot see runtime-only failures.'
+		...(structure.length ? { structureErrors: structure } : {}),
+		note: ok
+			? 'Every stage compiles and the site structure is sound. This does not type-check, and cannot see runtime-only failures.'
 			: 'Fix the errors and run check_docs again.',
 	});
 }

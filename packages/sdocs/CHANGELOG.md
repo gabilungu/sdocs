@@ -12,6 +12,24 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.158] - 2026-08-21
+
+### Changed
+
+- **`sdocs check` validates the site structure too.** An unknown `@section`,
+  two entities on one route, or a `home` that resolves to nothing all fail
+  `sdocs build` — but `check`, the command CI is told to gate on, compiled the
+  stages and never looked at the structure. It passed sites that could not be
+  built. Both now read the same map, as does the MCP `check_docs` tool over a
+  whole project.
+
+### Fixed
+
+- **0.0.156 and 0.0.157 never reached npm.** Two new end-to-end tests spawn
+  real builds and ran past Vitest's five-second default on CI, so the test gate
+  failed and the publish with it. Both carry explicit timeouts now, like every
+  other test in that file.
+
 ## [0.0.157] - 2026-08-21
 
 ### Fixed

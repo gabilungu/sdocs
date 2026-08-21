@@ -5,12 +5,10 @@ import { existsSync, readdirSync } from 'node:fs';
 import { loadConfig, normalizeBase } from '../server/config.js';
 import { sdocsPlugin } from '../vite.js';
 import { generateBuildFiles, cleanBuildFiles } from '../server/app-gen.js';
+import { buildSiteMap } from '../server/site-map.js';
 import { sdocsWarningFilter } from '../server/snippet-compiler.js';
-import { discoverDocFiles } from '../server/discovery.js';
-import { parseSdoc } from '../language/index.js';
-import { planEntitySnippets } from '../server/doc-model.js';
-import { buildSections, displayTitle, type SectionMap } from '../explorer/tree-builder.js';
-import type { DocEntry, ResolvedSdocsConfig } from '../types.js';
+import { displayTitle, type SectionMap } from '../explorer/tree-builder.js';
+import type { ResolvedSdocsConfig } from '../types.js';
 import { loadSveltePlugin, loadVite, svelteDedupe } from '../server/svelte-toolchain.js';
 
 type RenderRoute = (segments: string[]) => { head: string; body: string };
@@ -194,51 +192,6 @@ function assertSafeToEmpty(outDir: string, asWritten: string): void {
 			`  Or empty ${asWritten}/ yourself if its contents are disposable.`,
 	);
 	process.exit(1);
-}
-
-/** The site's section/route map, derived from the doc files exactly as the
- * Explorer derives it — one validation, two consumers. */
-async function buildSiteMap(config: ResolvedSdocsConfig, cwd: string) {
-	const files = await discoverDocFiles(config.include, cwd);
-	const stubs: DocEntry[] = [];
-	for (const filePath of files) {
-		const doc = parseSdoc(await readFile(filePath, 'utf-8'));
-		for (const entity of doc.entities) {
-			stubs.push({
-				kind:
-					entity.kind === 'SHOWCASE'
-						? 'component'
-						: entity.kind === 'DOC'
-							? 'doc'
-							: entity.kind === 'PAGE'
-								? 'page'
-								: 'layout',
-				filePath,
-				entitySlug: entity.slug,
-				meta: {
-					title: entity.title,
-					...(entity.kind === 'SHOWCASE' && entity.description
-						? { description: entity.description }
-						: {}),
-				},
-				previews: [],
-				prose: [],
-				examples:
-					entity.kind === 'SHOWCASE'
-						? planEntitySnippets(entity)
-								.filter((s) => s.role === 'example')
-								.map((s) => ({ name: s.name, slug: s.slug, role: s.role, body: '' }))
-						: [],
-				content: null,
-				routeSlug: entity.routeSlug ?? undefined,
-				hide: entity.hide,
-			});
-		}
-	}
-	return buildSections(stubs, {
-		sections: config.sectionsDeclared ? config.sections : undefined,
-		home: config.home,
-	});
 }
 
 /** Write each route's index.html: the built shell with the route's rendered

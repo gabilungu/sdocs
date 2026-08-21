@@ -3,6 +3,8 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { checkDocFile, checkDocFiles } from '../../src/lib/server/check.js';
+import { buildSiteMap } from '../../src/lib/server/site-map.js';
+import { loadConfig } from '../../src/lib/server/config.js';
 
 /** A component the fixtures can import for real. */
 const THING = `<script lang="ts">
@@ -220,5 +222,48 @@ describe('checkDocFiles', () => {
 		expect(result.ok).toBe(false);
 		expect(result.checked.files).toBe(2);
 		expect(result.problems.some((p) => p.file === 'BadImport.sdoc')).toBe(true);
+	});
+});
+
+/**
+ * `sdocs check` is the command CI is told to run, and it used to see only half
+ * the problems: it compiled every stage but never built the section map, so an
+ * unknown `@section`, two entities on one route, or a `home` pointing nowhere
+ * passed `check` and then failed `build`. Both now read the same map.
+ */
+describe('site structure', () => {
+	const project = (config: string, files: Record<string, string>) => {
+		const root = mkdtempSync(join(tmpdir(), 'sdocs-structure-'));
+		writeFileSync(join(root, 'sdocs.config.js'), config);
+		for (const [name, body] of Object.entries(files)) {
+			writeFileSync(join(root, name), body);
+		}
+		return root;
+	};
+
+	it('reports a title claiming a section that was never declared', async () => {
+		const root = project(
+			"export default { include: ['./*.sdoc'], sections: [{ slug: 'guides' }] };\n",
+			{ 'A.sdoc': '[DOC title="@nope/Alpha"]\n\n\tText.\n\n[/DOC]\n' },
+		);
+		const map = await buildSiteMap(await loadConfig(root), root);
+		expect(map.errors.map((e) => e.message).join('\n')).toContain('@nope');
+	});
+
+	it('reports a home that resolves to no entity', async () => {
+		const root = project(
+			"export default { include: ['./*.sdoc'], home: 'nowhere' };\n",
+			{ 'A.sdoc': '[DOC title="Alpha"]\n\n\tText.\n\n[/DOC]\n' },
+		);
+		const map = await buildSiteMap(await loadConfig(root), root);
+		expect(map.errors.map((e) => e.message).join('\n')).toContain('home');
+	});
+
+	it('says nothing about a structure that is sound', async () => {
+		const root = project("export default { include: ['./*.sdoc'], home: 'alpha' };\n", {
+			'A.sdoc': '[DOC title="Alpha"]\n\n\tText.\n\n[/DOC]\n',
+		});
+		const map = await buildSiteMap(await loadConfig(root), root);
+		expect(map.errors).toEqual([]);
 	});
 });

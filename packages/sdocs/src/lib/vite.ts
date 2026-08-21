@@ -1,7 +1,8 @@
 import type { Plugin, ViteDevServer } from 'vite';
 import { readFile, writeFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { dirname, resolve as resolvePath } from 'node:path';
 import { loadRawConfig, resolveAndFinalize } from './server/config.js';
 import { discoverDocFiles, globBase } from './server/discovery.js';
 import { parseComponent } from './server/prop-parser.js';
@@ -57,6 +58,9 @@ const TODO_ENDPOINT = '/__sdocs/todo';
 const PREVIEW_PREFIX = '/@sdocs/preview/';
 const MOUNT_PREFIX = '/@sdocs/mount/';
 const PAGE_PREFIX = '/@sdocs/page/';
+/** The rendered changelog, its own module so the route code-splits it out of
+ * the payload — it is long, and most readers never open it. */
+const CHANGELOG_ID = '/@sdocs/changelog.js';
 
 interface PlannedPreview {
 	jsFileName: string;
@@ -65,6 +69,18 @@ interface PlannedPreview {
 
 /** Every iframe-served snippet of an entry, in order. DOC and PAGE content
  * renders natively in the Explorer (via pageModules), never as an iframe. */
+/** This package's own CHANGELOG.md — `dist/vite.js` sits one below the root,
+ * and the source tree two. Missing is not fatal: a site simply shows nothing
+ * on the changelog route rather than failing to build. */
+function readPackageChangelog(): string {
+	const here = dirname(fileURLToPath(import.meta.url));
+	for (const up of ['..', '../..']) {
+		const candidate = resolvePath(here, up, 'CHANGELOG.md');
+		if (existsSync(candidate)) return readFileSync(candidate, 'utf-8');
+	}
+	return '# Changelog\n\nThis install did not ship one.';
+}
+
 /** Key for a natively-rendered body in the `pageModules` map. */
 function pageKey(docFilePath: string, entitySlug: string, slug = 'content'): string {
 	return `${encodeEntityId(docFilePath, entitySlug)}/${slug}`;
@@ -394,13 +410,14 @@ export function sdocsPlugin(
 			if (id.startsWith(IFRAME_PREFIX)) return '\0' + id;
 			if (id.startsWith(MOUNT_PREFIX)) return '\0' + id;
 			if (id.startsWith(PAGE_PREFIX)) return '\0' + id;
+			if (id === CHANGELOG_ID) return '\0' + id;
 			// `sdocs/ui` from doc-file scripts (e.g. CodeBlock in a [PAGE]) must
 			// resolve even in standalone projects where sdocs isn't installed —
 			// point it at this package's own copy.
 			if (id === 'sdocs/ui') return fileURLToPath(new URL('./ui/index.js', import.meta.url));
 		},
 
-		load(id) {
+		async load(id) {
 			if (id === RESOLVED_VIRTUAL_ID) {
 				return generateVirtualModule();
 			}
@@ -451,6 +468,15 @@ export function sdocsPlugin(
 					snippet.stage,
 					{ blockScript, styles: styles || undefined, args: stageArgs },
 				);
+			}
+
+			// The sdocs changelog, rendered once and served as a string module.
+			// Shipped with the build rather than fetched: a docs site is often
+			// read where github is not reachable, and a version of the log that
+			// matches the version that built the site is the useful one.
+			if (id === '\0' + CHANGELOG_ID) {
+				const rendered = await renderPageMarkdown(readPackageChangelog());
+				return `export default ${JSON.stringify(applyBaseToHtml(rendered.html, base))};`;
 			}
 
 			// Virtual native content component for a DOC or PAGE entity
@@ -802,7 +828,7 @@ export function sdocsPlugin(
 			))
 			.join('\n');
 
-		return `export const docs = ${JSON.stringify(data)};\nexport const cssNames = ${JSON.stringify(cssNames)};\nexport const axes = ${JSON.stringify(config.axes)};\nexport const scale = ${JSON.stringify(config.scale)};\nexport const pageModules = {\n${pageImports}\n};\nexport default docs;`;
+		return `export const docs = ${JSON.stringify(data)};\nexport const cssNames = ${JSON.stringify(cssNames)};\nexport const axes = ${JSON.stringify(config.axes)};\nexport const scale = ${JSON.stringify(config.scale)};\nexport const pageModules = {\n${pageImports}\n};\nexport const loadChangelog = () => import(${JSON.stringify(CHANGELOG_ID)});\nexport default docs;`;
 	}
 
 	// ─── HMR helpers ───

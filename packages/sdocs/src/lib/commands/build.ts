@@ -213,6 +213,8 @@ async function emitRoutePages(
 		let description: string | undefined;
 		if (key === 'about') {
 			title = `About – ${config.title}`;
+		} else if (key === 'changelog') {
+			title = `Changelog – ${config.title}`;
 		} else if (key !== null) {
 			const target = map.routes.get(key);
 			if (target) {
@@ -243,8 +245,10 @@ async function emitRoutePages(
 	// The root route renders the home target (or the About screen).
 	await writeFile(resolve(cwd, 'dist/index.html'), pageFor(null));
 
-	// Every doc route, plus the always-present /about page.
-	const keys = [...map.routes.keys(), 'about'];
+	// Every doc route, plus the two pages sdocs always serves. Without their
+	// own directory a static host answers /changelog with the 404 shell, which
+	// boots the app but lands the reader on the home screen instead.
+	const keys = [...map.routes.keys(), 'about', 'changelog'];
 	for (const key of keys) {
 		const dir = resolve(cwd, 'dist', key);
 		await mkdir(dir, { recursive: true });

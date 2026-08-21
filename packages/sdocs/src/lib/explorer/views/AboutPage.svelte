@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { DocEntry } from '../../types.js';
 	import { Icon } from '../../ui/Icon/index.js';
+	import { routeHref } from '../router.svelte.js';
 
 	interface Props {
 		docs: DocEntry[];
@@ -53,6 +54,9 @@
 		Built with
 		<a class="sdocs-home-link" href="https://github.com/gabilungu/sdocs">sdocs</a>{#if sdocsVersion}
 			<span class="sdocs-home-version">v{sdocsVersion}</span>{/if}.
+		<!-- A real link, so middle-click and open-in-new-tab work and history
+		     mode routes it client-side like any other internal anchor. -->
+		<a class="sdocs-home-link" href={routeHref(['changelog'])}>What's changed</a>
 	</p>
 </div>
 

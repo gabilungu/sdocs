@@ -254,6 +254,7 @@ function explorerPropsJs(
 	docs,
 	cssNames,
 	pageModules,
+	loadChangelog,
 	title: ${JSON.stringify(config.title)},
 	logo: ${JSON.stringify(config.logo)},
 	sections: ${JSON.stringify(config.sectionsDeclared ? config.sections : [])},
@@ -275,7 +276,7 @@ function explorerPropsJs(
  * so it matches the server HTML. A bare shell (dev) simply mounts. */
 function generateEntryJs(config: ResolvedSdocsConfig, basePath: string, mcp = false, dev = false): string {
 	return `import { mount, hydrate } from 'svelte';
-import { docs, cssNames, pageModules } from 'virtual:sdocs';
+import { docs, cssNames, pageModules, loadChangelog } from 'virtual:sdocs';
 import Explorer from './explorer/Explorer.svelte';
 import { initRouter, getRoute } from './explorer/router.svelte.js';
 import { buildSections, resolveRoute } from './explorer/tree-builder.js';
@@ -312,7 +313,7 @@ boot();`;
  * component resolved up front (effects never run server-side). */
 function generateServerEntryJs(config: ResolvedSdocsConfig, basePath: string): string {
 	return `import { render } from 'svelte/server';
-import { docs, cssNames, pageModules } from 'virtual:sdocs';
+import { docs, cssNames, pageModules, loadChangelog } from 'virtual:sdocs';
 import Explorer from './explorer/Explorer.svelte';
 import { setServerRoute } from './explorer/router.svelte.js';
 

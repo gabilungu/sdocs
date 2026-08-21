@@ -12,6 +12,29 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.147] - 2026-08-21
+
+### Added
+
+- **A `/changelog` route**, beside `/about`. It shows the changelog of the
+  sdocs that built the site, rendered at build time and shipped with it —
+  not fetched from GitHub, because a docs site is often read offline or behind
+  a firewall, and the log that matches the version in your hands is the useful
+  one. Reached from the About page and the top bar's menu.
+
+  Code-split into its own chunk, so a reader who never opens it never
+  downloads it, and prerendered like `/about` so a static host serves it
+  directly instead of falling back to the 404 shell.
+
+### Fixed
+
+- **A fenced code block inside a list item was never syntax-highlighted.**
+  Fences were collected by a flat loop over top-level tokens, while headings
+  and alerts used a recursive walk — so a fence under a bullet, or inside a
+  blockquote, rendered as plain `<pre><code>`. Nothing reported it; the code
+  was simply grey. This affected every `[DOC]` and `[PROSE]` body, not just
+  the changelog that surfaced it.
+
 ## [0.0.146] - 2026-08-21
 
 ### Added

@@ -9,6 +9,7 @@
 	import PageView from './views/PageView.svelte';
 	import LayoutView from './views/LayoutView.svelte';
 	import AboutPage from './views/AboutPage.svelte';
+	import ChangelogPage from './views/ChangelogPage.svelte';
 	import ErrorScreen from './views/ErrorScreen.svelte';
 	import { onMount, setContext, type Component } from 'svelte';
 	import { initLayoutWidth } from './layout-width.svelte.js';
@@ -31,6 +32,9 @@
 		previewBase?: string;
 		/** Native doc/page components from `virtual:sdocs`, keyed by contentKey. */
 		pageModules?: Record<string, () => Promise<{ default: unknown }>>;
+		/** Loads the rendered sdocs changelog for the /changelog route. Lazy on
+		 * purpose: it is long, and most readers never open it. */
+		loadChangelog?: () => Promise<{ default: string }>;
 		/** Already-resolved content components (prerendering + hydration boot). */
 		preloaded?: Record<string, Component>;
 		/** The site's sections, in top-bar order (titles reference their slugs) */
@@ -67,6 +71,7 @@
 		cssNames = [],
 		previewBase = '',
 		pageModules = {},
+		loadChangelog,
 		preloaded = {},
 		sections,
 		home = null,
@@ -284,8 +289,14 @@
 	// The About page (mascot + stats + sdocs version) lives at /about and is
 	// the landing page whenever the config sets no `home`.
 	const isAboutRoute = $derived(currentRoute.length === 1 && currentRoute[0] === 'about');
+	// The changelog sits beside it, on its own route and reached from About.
+	const isChangelogRoute = $derived(
+		currentRoute.length === 1 && currentRoute[0] === 'changelog',
+	);
 	// The root route resolves to the configured home entity (or null → About).
-	const resolved = $derived(isAboutRoute ? null : resolveRoute(sectionMap, currentRoute));
+	const resolved = $derived(
+		isAboutRoute || isChangelogRoute ? null : resolveRoute(sectionMap, currentRoute),
+	);
 	// The tab the current route sits in. With declared sections that's the
 	// route's first segment; the implicit lone `docs` section is active on any
 	// doc route. Home/About highlight no tab.
@@ -438,7 +449,11 @@
 					/>
 				{/if}
 			{:else}
-				<AboutPage {docs} title={headerTitle} logo={headerLogo} {sdocsVersion} />
+				{#if isChangelogRoute}
+					<ChangelogPage {sdocsVersion} load={loadChangelog} />
+				{:else}
+					<AboutPage {docs} title={headerTitle} logo={headerLogo} {sdocsVersion} />
+				{/if}
 			{/if}
 		</main>
 	</div>

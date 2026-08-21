@@ -172,6 +172,11 @@ async function renderProse(source: string, state: ProseState): Promise<string> {
 		if (para.tokens.length === 0) token.tokens.shift();
 	};
 
+	/** Every fence in the document, nested ones included — a fence inside a
+	 * list item is still a fence, and it went unhighlighted for as long as this
+	 * only looked at top-level tokens. */
+	const fences: Token[] = [];
+
 	const walk = (list: Token[]) => {
 		for (const token of list) {
 			if (token.type === 'heading') {
@@ -189,6 +194,7 @@ async function renderProse(source: string, state: ProseState): Promise<string> {
 				}
 			}
 			if (token.type === 'blockquote') detectAlert(token);
+			if (token.type === 'code') fences.push(token);
 			if ('tokens' in token && token.tokens) walk(token.tokens);
 			if ('items' in token && token.items) walk(token.items as Token[]);
 		}
@@ -196,14 +202,13 @@ async function renderProse(source: string, state: ProseState): Promise<string> {
 	walk(tokens);
 
 	// Highlight fences up front (the renderer hooks below must be sync)
-	for (const token of tokens) {
-		if (token.type === 'code') {
-			const lang = (token.lang ?? '').trim().split(/\s+/)[0] || 'text';
-			try {
-				fenceHtml.set(token, escapeBraces(await highlight(token.text, lang)));
-			} catch {
-				fenceHtml.set(token, `<pre><code>${escapeBraces(escapeHtml(token.text))}</code></pre>`);
-			}
+	for (const token of fences) {
+		const code = token as Token & { text: string; lang?: string };
+		const lang = (code.lang ?? '').trim().split(/\s+/)[0] || 'text';
+		try {
+			fenceHtml.set(token, escapeBraces(await highlight(code.text, lang)));
+		} catch {
+			fenceHtml.set(token, `<pre><code>${escapeBraces(escapeHtml(code.text))}</code></pre>`);
 		}
 	}
 

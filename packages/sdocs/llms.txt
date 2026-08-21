@@ -251,6 +251,19 @@ Two ways to connect:
   `mcp: false` in `sdocs.config.js` (the explicit `sdocs mcp` command still
   works).
 
+## Built-in routes
+
+Two routes exist in every site, alongside the ones your entities create:
+
+- `/about` — the mascot, what the project contains, and the sdocs version that
+  built the site. Also the landing page when the config sets no `home`.
+- `/changelog` — the changelog of the sdocs that built the site, rendered at
+  build time and shipped with it. Not fetched from GitHub: a docs site is often
+  read offline or behind a firewall, and the log that matches the version in
+  your hands is the useful one. Reached from the About page and from the top
+  bar's menu, and code-split, so a reader who never opens it never downloads
+  it.
+
 ## Configuration
 
 sdocs reads `sdocs.config.js` (or `.ts`/`.mjs`) from the project root — checked

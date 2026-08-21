@@ -398,6 +398,17 @@
 					>
 						About sdocs
 					</a>
+					<a
+						class="sdocs-menu-item"
+						role="menuitem"
+						href={routeHref(['changelog'])}
+						onclick={() => {
+							menuOpen = false;
+							onCloseNav?.();
+						}}
+					>
+						What's changed
+					</a>
 					{#if mcp}
 						<button
 							class="sdocs-menu-item"

@@ -243,3 +243,25 @@ describe('sdoc fences', () => {
 		expect(html.match(/style="color:/g)!.length).toBeGreaterThan(1);
 	});
 });
+
+/**
+ * A fence inside a list item is still a fence.
+ *
+ * Fences were collected by a flat loop over top-level tokens while headings
+ * and alerts used a recursive walk, so anything nested — a fence under a
+ * bullet, inside a blockquote — rendered as plain `<pre><code>` with no
+ * highlighting at all. Nothing reported it; the code was simply grey.
+ */
+it('highlights a fence nested inside a list item', async () => {
+	const { html } = await renderPageMarkdown(
+		['- A bullet with code under it:', '', '  ```svelte', '  <Button />', '  ```', ''].join('\n'),
+	);
+	expect(html).toContain('shiki');
+	// And it is inside the list, not lifted out of it.
+	expect(html.indexOf('<li>')).toBeLessThan(html.indexOf('shiki'));
+});
+
+it('still highlights a fence at the top level', async () => {
+	const { html } = await renderPageMarkdown(['```svelte', '<Button />', '```', ''].join('\n'));
+	expect(html).toContain('shiki');
+});

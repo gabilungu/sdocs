@@ -53,6 +53,94 @@ function authoringGuide(): string {
 	return readFileSync(resolve(packageRoot(), 'llms.txt'), 'utf-8');
 }
 
+/** The guide's `## ` headings, in order — the sections a caller may ask for. */
+function guideSections(guide: string): { title: string; start: number; end: number }[] {
+	const out: { title: string; start: number; end: number }[] = [];
+	const re = /^## (.+)$/gm;
+	let m: RegExpExecArray | null;
+	while ((m = re.exec(guide))) {
+		if (out.length) out[out.length - 1].end = m.index;
+		out.push({ title: m[1].trim(), start: m.index, end: guide.length });
+	}
+	return out;
+}
+
+/**
+ * One section of the guide, or the whole thing.
+ *
+ * The guide is 40k characters; an agent that needs to know how one block is
+ * written should not have to read all of it. Matching is a case-insensitive
+ * substring of the heading, so `prose` finds "`[PROSE]` — markdown between the
+ * blocks" without the caller knowing how it is punctuated. A section that
+ * matches nothing returns the list of headings rather than an error: the reply
+ * is the answer to "what are the sections?" either way.
+ */
+function guideSection(section: string): string {
+	const guide = authoringGuide();
+	const sections = guideSections(guide);
+	const needle = section.trim().toLowerCase();
+	const hits = sections.filter((s) => s.title.toLowerCase().includes(needle));
+	if (hits.length === 0) {
+		return (
+			`No section matches "${section}". The guide's sections are:\n\n` +
+			sections.map((s) => `- ${s.title}`).join('\n')
+		);
+	}
+	return hits.map((s) => guide.slice(s.start, s.end).trimEnd()).join('\n\n');
+}
+
+function changelog(): string {
+	try {
+		return readFileSync(resolve(packageRoot(), 'CHANGELOG.md'), 'utf-8');
+	} catch {
+		return '';
+	}
+}
+
+/**
+ * The changelog, or only what landed after `since`.
+ *
+ * This is the migration path, and deliberately not a separate `get_migration`
+ * tool: two tools covering the same question would be a coin flip for the
+ * agent about which to call. Breaking changes are listed first, gathered from
+ * the `### Breaking` sections the changelog reserves for exactly this — an
+ * agent asking what changed needs those before anything else.
+ */
+function changelogSince(since?: string): string {
+	const text = changelog();
+	if (!text) return 'This install carries no CHANGELOG.md.';
+	if (!since) return text;
+
+	// Releases are `## [x.y.z] - date`, newest first. Everything above the
+	// requested version is what came after it.
+	const marker = new RegExp(`^## \\[${since.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\]`, 'm');
+	const at = marker.exec(text);
+	if (!at) {
+		return (
+			`No release "${since}" in the changelog — returning all of it.\n\n` + text
+		);
+	}
+	const head = text.slice(0, at.index).trimEnd();
+	const releases = head.match(/^## \[[^\]]+\]/gm) ?? [];
+	if (releases.length === 0) {
+		return `Nothing has been released since ${since}; this install is up to date with it.`;
+	}
+
+	// Breaking changes first: the reason to call this tool at all.
+	const breaking = head
+		.split(/^## /m)
+		.slice(1)
+		.flatMap((block) => {
+			const version = block.match(/^\[([^\]]+)\]/)?.[1];
+			const section = block.match(/^### Breaking\n([\s\S]*?)(?=^### |\Z)/m)?.[1];
+			return version && section ? [`## ${version}\n\n${section.trim()}`] : [];
+		});
+	const preamble = breaking.length
+		? `# Breaking changes since ${since}\n\n${breaking.join('\n\n')}\n\n---\n\n`
+		: `Nothing breaking since ${since}.\n\n---\n\n`;
+	return preamble + head;
+}
+
 // --- JSON-RPC / MCP plumbing ------------------------------------------------
 
 export interface JsonRpcMessage {
@@ -81,7 +169,11 @@ const VISUAL_URI = 'sdocs://visual-testing-guide';
 const INSTRUCTIONS =
 	'sdocs authoring tools. Before writing .sdoc documentation, read the ' +
 	'authoring guide (the get_authoring_guide tool, or the sdocs://authoring-guide ' +
-	'resource). Validate every .sdoc you produce with validate_sdoc and fix its ' +
+	'resource) — pass a section to it when you only need one part of the format. ' +
+	'If the sdocs version this project runs differs from the one you know, call ' +
+	'get_changelog with that version first: it leads with the breaking changes, ' +
+	'and the .sdoc format does change between them. ' +
+	'Validate every .sdoc you produce with validate_sdoc and fix its ' +
 	'diagnostics. scaffold_component_doc generates a starter doc from a .svelte ' +
 	"component's extracted props. To learn the current project, list_docs maps " +
 	'its .sdoc files and the components they document, and get_component_api ' +
@@ -152,9 +244,44 @@ const TOOLS = [
 	{
 		name: 'get_authoring_guide',
 		description:
-			'The complete sdocs authoring guide: setup, configuration, the CLI, and ' +
-			'the full .sdoc format reference. Read it before writing .sdoc files.',
-		inputSchema: { type: 'object', properties: {} },
+			'The sdocs authoring guide: setup, configuration, the CLI, and the full ' +
+			'.sdoc format reference. Read it before writing .sdoc files. The whole ' +
+			'guide is around 40k characters, so pass `section` when you only need ' +
+			'one part of it — "prose", "NOTES", "SHOWCASE", "config". Matching is a ' +
+			'case-insensitive substring of the section heading, and a section that ' +
+			'matches nothing comes back as the list of headings to choose from.',
+		inputSchema: {
+			type: 'object',
+			properties: {
+				section: {
+					type: 'string',
+					description:
+						'Return one section instead of the whole guide — a substring of ' +
+						'its heading, matched case-insensitively.',
+				},
+			},
+		},
+	},
+	{
+		name: 'get_changelog',
+		description:
+			"This install's CHANGELOG.md — and the migration path with it. Pass " +
+			'`since` with a version and the reply leads with every breaking change ' +
+			'released after it, then the full entries. Call it whenever the sdocs ' +
+			'version a project has installed differs from the one you last read the ' +
+			'guide for, before writing any .sdoc: the format does change, and the ' +
+			'breaking sections say exactly what to rewrite.',
+		inputSchema: {
+			type: 'object',
+			properties: {
+				since: {
+					type: 'string',
+					description:
+						'A released version, e.g. "0.0.138". Everything after it is ' +
+						'returned, breaking changes first.',
+				},
+			},
+		},
 	},
 	{
 		name: 'list_docs',
@@ -1125,8 +1252,15 @@ async function dispatch(method: string, params: Record<string, unknown>): Promis
 					return validateSdoc(args);
 				case 'scaffold_component_doc':
 					return scaffoldComponentDoc(args);
-				case 'get_authoring_guide':
-					return { content: [{ type: 'text', text: authoringGuide() }] };
+				case 'get_authoring_guide': {
+					const section = typeof args.section === 'string' ? args.section : '';
+					const text = section ? guideSection(section) : authoringGuide();
+					return { content: [{ type: 'text', text }] };
+				}
+				case 'get_changelog': {
+					const since = typeof args.since === 'string' ? args.since : undefined;
+					return { content: [{ type: 'text', text: changelogSince(since) }] };
+				}
 				case 'list_docs':
 					return listDocs();
 				case 'search_docs':

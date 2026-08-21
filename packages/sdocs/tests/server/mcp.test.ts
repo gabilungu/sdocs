@@ -67,13 +67,14 @@ describe('MCP handler', () => {
 		expect((await rpc('nope/nope')).error?.code).toBe(-32601);
 	});
 
-	it('lists the nine tools', async () => {
+	it('lists the ten tools', async () => {
 		const { result } = await rpc('tools/list');
 		const names = (result as { tools: { name: string }[] }).tools.map((t) => t.name);
 		expect(names).toEqual([
 			'validate_sdoc',
 			'scaffold_component_doc',
 			'get_authoring_guide',
+			'get_changelog',
 			'list_docs',
 			'search_docs',
 			'check_docs',
@@ -656,5 +657,51 @@ describe('validate_sdoc reports where a title will be served', () => {
 	it('honours an explicit slug override on the leaf', async () => {
 		const [entity] = await routesOf('[SHOWCASE title="IconButton" slug="icon-button"]\n[/SHOWCASE]');
 		expect(entity.route).toBe('/icon-button');
+	});
+});
+
+/**
+ * The guide is ~40k characters. An agent that needs to know how one block is
+ * written should not have to read all of it — and one that arrives at a
+ * project on a newer sdocs needs the breaking changes before it writes
+ * anything.
+ */
+describe('get_authoring_guide({ section }) and get_changelog({ since })', () => {
+	const textOf = async (name: string, args: Record<string, unknown> = {}) =>
+		(await callTool(name, args)).content[0].text;
+
+	it('returns one section, far smaller than the whole guide', async () => {
+		const whole = await textOf('get_authoring_guide');
+		const section = await textOf('get_authoring_guide', { section: 'PROSE' });
+		expect(section).toContain('[PROSE]');
+		expect(section.length).toBeLessThan(whole.length / 5);
+		// It is a section, not a slice: it starts at a heading and stops at one.
+		expect(section.startsWith('## ')).toBe(true);
+		expect(section.split('\n## ').length).toBe(1);
+	});
+
+	it('matches a heading loosely, so the caller need not know its punctuation', async () => {
+		expect(await textOf('get_authoring_guide', { section: 'notes' })).toContain('[NOTES]');
+	});
+
+	// The reply to a miss is the answer to "what sections are there?", which is
+	// the question behind the miss.
+	it('answers an unknown section with the list of headings', async () => {
+		const reply = await textOf('get_authoring_guide', { section: 'nothing-like-this' });
+		expect(reply).toContain('No section matches');
+		expect(reply).toContain('- Configuration');
+	});
+
+	it('leads with breaking changes when asked what changed since a version', async () => {
+		const reply = await textOf('get_changelog', { since: '0.0.137' });
+		expect(reply.startsWith('# Breaking changes since 0.0.137')).toBe(true);
+		expect(reply).toContain('[NOTES]');
+		// The full entries follow the summary.
+		expect(reply).toContain('### Added');
+	});
+
+	it('returns the whole changelog with no version, and says so for an unknown one', async () => {
+		expect(await textOf('get_changelog')).toContain('# Changelog');
+		expect(await textOf('get_changelog', { since: '9.9.9' })).toContain('No release "9.9.9"');
 	});
 });

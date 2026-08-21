@@ -81,6 +81,22 @@ a breaking change written under any other heading is one an agent will miss.
   then they arrived unstyled: a key cap read as ordinary prose, a caption as a
   stray paragraph.
 
+- **`get_authoring_guide({ section })`** returns one chapter instead of all
+  ~40k characters of the guide. An agent that needs to know how one block is
+  written was reading the whole thing; the `[PROSE]` section is 1.3k. Matching
+  is a case-insensitive substring of the heading, and a section that matches
+  nothing comes back as the list of headings — which is the answer to the
+  question behind the miss.
+
+- **`get_changelog({ since })`** — this install's changelog, leading with every
+  breaking change released after `since`. **This is the migration path.** A
+  separate `get_migration` would be a coin flip for the agent about which to
+  call, and could only earn its place if it could find breaking changes — which
+  is what the `### Breaking` convention this file now follows makes possible.
+
+  The authoring guide and the server instructions both say to call it when the
+  version a project runs differs from the one the agent knows.
+
 - **`[TODO]`** — a checklist, nested to any depth by indentation, once per
   entity and once per `[EXAMPLE]`. It always renders when present, and under
   `sdocs dev` the boxes are live: ticking one writes back into the `.sdoc`,

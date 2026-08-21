@@ -129,8 +129,21 @@ Explorer uses:
 - `scaffold_component_doc { componentPath, title? }` — extract a `.svelte`
   component's props and return a starter `.sdoc` (control defaults derived
   from the props) plus the suggested file path; it never writes files.
-- `get_authoring_guide {}` — this guide. Also exposed as the
+- `get_authoring_guide { section? }` — this guide. It runs to about 40k
+  characters, so pass `section` when you only need one part of it:
+  `section: 'prose'` returns the `[PROSE]` chapter alone, matching a
+  case-insensitive substring of the heading. A section that matches nothing
+  comes back as the list of headings. Also exposed as the
   `sdocs://authoring-guide` resource.
+- `get_changelog { since? }` — this install's `CHANGELOG.md`. With `since`, the
+  reply leads with every **breaking** change released after that version, then
+  the full entries.
+
+  **Call it whenever the project's installed sdocs is newer than the version
+  this guide describes.** `list_docs` reports the running version; a `.sdoc`
+  written against an older format may not parse. This is the migration path —
+  there is no separate migration tool, because the breaking sections of the
+  changelog are what a migration would say.
 - `list_docs {}` — map the project's documentation: every `.sdoc` file the
   config's `include` globs match, each with its entities (kind, title), the
   **route** each one serves at (plus a route per example), and the components

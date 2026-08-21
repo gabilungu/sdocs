@@ -186,7 +186,16 @@
 	  suggested file path. It never writes files — the client does.
 	- **`get_authoring_guide`** — the full authoring guide (also served as the
 	  `sdocs://authoring-guide` resource, and on the web as
-	  [/llms.txt](/llms.txt)).
+	  [/llms.txt](/llms.txt)). It runs to about 40k characters, so a `section`
+	  narrows it to one chapter: `section: 'prose'` matches a case-insensitive
+	  substring of the heading, and a section that matches nothing comes back as
+	  the list of headings.
+	- **`get_changelog`** — this install's changelog. With a `since` version the
+	  reply leads with every **breaking** change released after it, then the full
+	  entries. This is the migration path: an agent whose knowledge of the format
+	  predates the installed version calls it before writing anything, and there
+	  is no separate migration tool because the changelog's breaking sections are
+	  what one would say.
 	- **`list_docs`** — map the project's documentation: every `.sdoc` file the
 	  config's `include` globs match, each with its entities, the route each one
 	  serves at (plus a route per example), and the components its previews

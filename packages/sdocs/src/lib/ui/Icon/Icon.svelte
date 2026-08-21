@@ -4,7 +4,7 @@
 	// strokes: a status glyph is content, and reads better solid at 13px.
 	import faPencilSvg from './icons/fa/pencil.svg?raw';
 	import faScrewdriverWrenchSvg from './icons/fa/screwdriver-wrench.svg?raw';
-	import faMagnifyingGlassSvg from './icons/fa/magnifying-glass.svg?raw';
+	import faEyeSvg from './icons/fa/eye.svg?raw';
 	import faFlaskSvg from './icons/fa/flask.svg?raw';
 	import faBanSvg from './icons/fa/ban.svg?raw';
 	import faCircleCheckSvg from './icons/fa/circle-check.svg?raw';
@@ -47,7 +47,7 @@
 	const icons: Record<string, string> = {
 		'fa-pencil': faPencilSvg,
 		'fa-screwdriver-wrench': faScrewdriverWrenchSvg,
-		'fa-magnifying-glass': faMagnifyingGlassSvg,
+		'fa-eye': faEyeSvg,
 		'fa-flask': faFlaskSvg,
 		'fa-ban': faBanSvg,
 		'fa-circle-check': faCircleCheckSvg,

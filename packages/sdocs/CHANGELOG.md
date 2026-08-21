@@ -12,6 +12,17 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.144] - 2026-08-21
+
+### Changed
+
+- **`review` is an eye, not a magnifying glass.** A magnifier means *search*
+  everywhere in software, and the Explorer has a search box in its own sidebar
+  — so the glyph read as "search this component" rather than "under review". An
+  icon that already means something else in the same window means that other
+  thing. An eye is what "review" literally is, and nothing else in sdocs uses
+  one.
+
 ## [0.0.143] - 2026-08-21
 
 ### Changed

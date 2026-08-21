@@ -105,11 +105,16 @@
 	 * a circle holding a dot and a half-filled circle all read as "a coloured
 	 * dot", and only a tick and a cross survive because those shapes are
 	 * over-learned. An outline that differs at a glance is the whole job.
+	 *
+	 * `review` is an eye rather than a magnifier for a second reason: a
+	 * magnifying glass means *search* everywhere in software, and this app has
+	 * a search box in its own sidebar. An icon that already means something
+	 * else in the same window means that other thing.
 	 */
 	const STATUS: Record<ComponentStatus, { icon: string; label: string }> = {
 		draft: { icon: 'fa-pencil', label: 'Draft — sketched, not real yet' },
 		wip: { icon: 'fa-screwdriver-wrench', label: 'Work in progress — being built' },
-		review: { icon: 'fa-magnifying-glass', label: 'In review — built, awaiting sign-off' },
+		review: { icon: 'fa-eye', label: 'In review — built, awaiting sign-off' },
 		experimental: { icon: 'fa-flask', label: 'Experimental — usable, but the API may change' },
 		ready: { icon: 'fa-circle-check', label: 'Ready — done, use it' },
 		deprecated: { icon: 'fa-ban', label: 'Deprecated — on the way out' },

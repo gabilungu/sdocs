@@ -498,8 +498,20 @@ const TOOLS = [
 				example: { type: 'string', description: 'An [EXAMPLE] title, to edit its checklist' },
 				todos: {
 					type: 'array',
-					description: 'The checklist the block should end up with',
-					items: { type: 'object' },
+					description: 'The checklist the block should end up with; [] removes it',
+					items: {
+						type: 'object',
+						properties: {
+							text: { type: 'string', description: 'The item, as inline markdown' },
+							done: { type: 'boolean', description: 'Ticked. Default false.' },
+							children: {
+								type: 'array',
+								description: 'Items nested under this one; any depth',
+								items: { type: 'object' },
+							},
+						},
+						required: ['text'],
+					},
 				},
 			},
 			required: ['file', 'entity', 'todos'],
@@ -1498,10 +1510,34 @@ async function dispatch(method: string, params: Record<string, unknown>): Promis
 					return { content: [{ type: 'text', text }] };
 				}
 				case 'set_notes': {
-					const notes = Array.isArray(args.notes) ? args.notes : [];
+					// Rejected, not coerced. `notes` missing or the wrong shape used
+					// to fall through to [] — which means "delete the block" — and
+					// report changed:true, so a malformed call silently destroyed
+					// content it was meant to add to.
+					if (!Array.isArray(args.notes)) {
+						return invalidParams('notes must be an array — pass [] to remove the block');
+					}
+					const notes: DocNote[] = [];
+					for (const raw of args.notes) {
+						if (!raw || typeof raw !== 'object') {
+							return invalidParams('every note must be an object like { note, type? }');
+						}
+						const entry = raw as Record<string, unknown>;
+						// One note is one line: a newline would split it in two, and a
+						// newline in `type` would inject arbitrary block structure.
+						const note = String(entry.note ?? '').replace(/\r?\n/g, ' ').trim();
+						if (!note) return invalidParams('every note needs non-empty text');
+						const type = entry.type == null ? null : String(entry.type).trim();
+						if (type && !(NOTE_TYPES as readonly string[]).includes(type)) {
+							return invalidParams(
+								`note type "${type}" is not one of ${NOTE_TYPES.join(', ')} — omit it for a plain remark`,
+							);
+						}
+						notes.push({ note, type: (type || null) as DocNote['type'] });
+					}
 					const example = typeof args.example === 'string' ? args.example : null;
 					return editDoc(args, (source, entitySlug) =>
-						writeNotes(source, { entitySlug, exampleTitle: example }, notes as never),
+						writeNotes(source, { entitySlug, exampleTitle: example }, notes),
 					);
 				}
 				case 'set_status': {
@@ -1516,7 +1552,10 @@ async function dispatch(method: string, params: Record<string, unknown>): Promis
 					);
 				}
 				case 'set_todos': {
-					const todos = Array.isArray(args.todos) ? args.todos : [];
+					if (!Array.isArray(args.todos)) {
+						return invalidParams('todos must be an array — pass [] to remove the block');
+					}
+					const todos = args.todos;
 					const example = typeof args.example === 'string' ? args.example : null;
 					return editDoc(args, (source, entitySlug) =>
 						writeTodos(source, { entitySlug, exampleTitle: example }, normalizeTodos(todos)),

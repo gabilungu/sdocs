@@ -161,9 +161,14 @@
 	says `deprecated`.
 
 	Each note renders as an alert directly under the entity's title, in the
-	order written. A [`[LAYOUT]`](/language/layout-docs) shows no title, so its
-	notes ride over the top of the layout, each with a dismiss button that
-	uncovers the layout when the reader is done with it.
+	order written.
+
+	Only a `[SHOWCASE]`, a [`[DOC]`](/language/doc-pages) and their `[EXAMPLE]`
+	blocks hold text blocks. A [`[PAGE]`](/language/svelte-pages) or
+	[`[LAYOUT]`](/language/layout-docs) body is captured whole as Svelte markup,
+	so a block written in one is never read back — it would render as literal
+	text on the page. sdocs reports that (`block-in-body`) rather than letting
+	it through.
 
 	In the sidebar they become one dot in the entity's row: **filled** when the
 	worst of them is on that page, **hollow** when it belongs to something
@@ -268,8 +273,8 @@
 	### Writing notes from the Explorer
 
 	Under `sdocs dev` a small note button sits at the end of every entity and
-	example title; on a `[LAYOUT]` or a `[PAGE]`, which show no title, it hides
-	in the top-right corner until the pointer finds it. It opens an editor for
+	example title that can carry notes — a `[SHOWCASE]`, a `[DOC]`, or one of
+	their examples. It opens an editor for
 	that block's notes — add one, reword one, change a type, drop one — and
 	**Save writes straight back into the `.sdoc` file**, which Vite reloads.
 

@@ -21,7 +21,7 @@
 	};
 	```
 
-	The plugin reads the same [`sdocs.config.js`](/explorer/configuration) if present; options passed here override it. In embedded mode only `include` and `css` matter — UI options like `title` and `sidebarConfig` are props on the `Explorer` component (below), and `port`/`open` apply only to the standalone CLI.
+	The plugin reads the same [`sdocs.config.js`](/explorer/configuration) if present; options passed here override it. In embedded mode only `include` and `css` matter — UI options like `title` and `sections` are props on the `Explorer` component (below), and `port`/`open` apply only to the standalone CLI.
 
 	The plugin:
 
@@ -36,7 +36,7 @@
 	<!-- src/routes/docs/+page.svelte -->
 	<script>
 	  import Explorer from 'sdocs/explorer';
-	  import { docs, cssNames, axes, scale } from 'virtual:sdocs';
+	  import { docs, cssNames, axes, scale, pageModules } from 'virtual:sdocs';
 	</script>
 
 	<Explorer
@@ -44,13 +44,16 @@
 	  {cssNames}
 	  {axes}
 	  {scale}
+	  {pageModules}
 	  title="My Design System"
-	  sidebarConfig={{
-	    order: { root: ['Components', '*'] },
-	    open: ['Components'],
-	  }}
+	  sections={[{ slug: 'components', title: 'Components', order: ['Button'] }]}
 	/>
 	```
+
+	> [!IMPORTANT]
+	> `pageModules` is not optional. A `[DOC]` or `[PAGE]` body compiles to its
+	> own component and is loaded through that map, so an Explorer mounted
+	> without it renders every one of those pages **blank, with no error**.
 
 	Your docs are now available at whatever route you mounted the page on (e.g. `/docs`).
 
@@ -64,6 +67,7 @@
 	  export const cssNames: string[];
 	  export const axes: Required<AxisConfig>[];
 	  export const scale: Required<ScaleConfig> | null;
+	  export const pageModules: Record<string, () => Promise<{ default: unknown }>>;
 	  export default docs;
 	}
 	```
@@ -76,6 +80,7 @@
 	|---|---|---|
 	| `docs` | `DocEntry[]` | All discovered doc entries. Comes from `virtual:sdocs`. |
 	| `cssNames` | `string[]` | Stylesheet names if using named CSS. Comes from `virtual:sdocs`. |
+	| `pageModules` | `Record<string, () => Promise<…>>` | **Required for `[DOC]`/`[PAGE]` pages.** Their bodies compile to components loaded through this map; without it they render blank. Comes from `virtual:sdocs`. |
 	| `scale` | `ScaleConfig \| null` | The [scale slider](/explorer/features/theming#a-continuous-knob). Comes from `virtual:sdocs`. |
 	| `axes` | `AxisConfig[]` | [Customization axes](/explorer/features/theming#customization-axes) — the top bar's dropdowns. Comes from `virtual:sdocs`. |
 	| `title` | `string` | Header title text. Default: `'sdocs'`. |

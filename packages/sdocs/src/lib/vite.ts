@@ -7,6 +7,7 @@ import { loadRawConfig, resolveAndFinalize } from './server/config.js';
 import { discoverDocFiles, globBase } from './server/discovery.js';
 import { parseComponent } from './server/prop-parser.js';
 import { writeNotes, writeTodos, toggleTodo, NoteTargetError } from './server/note-editor.js';
+import { isLocalOrigin } from './mcp/http.js';
 import { parseSdoc, offsetToPosition } from './language/index.js';
 import {
 	planEntitySnippets,
@@ -183,9 +184,23 @@ export function sdocsPlugin(
 					res.end(JSON.stringify({ error: message }));
 				};
 				if (req.method !== 'POST') return fail(405, 'Use POST.');
+				// These endpoints edit files on disk, so a page on another origin
+				// must not be able to reach them through the browser. The /mcp
+				// route has carried this guard since it shipped; these did not.
+				const origin = req.headers.origin;
+				if (typeof origin === 'string' && origin && !isLocalOrigin(origin)) {
+					return fail(403, 'Cross-origin requests are not accepted here.');
+				}
 				try {
 					const chunks: Buffer[] = [];
-					for await (const chunk of req) chunks.push(chunk as Buffer);
+					let size = 0;
+					for await (const chunk of req) {
+						// A doc edit is kilobytes. Anything past a megabyte is not one,
+						// and buffering it unbounded is how a dev server falls over.
+						size += (chunk as Buffer).length;
+						if (size > 1_000_000) return fail(413, 'That edit is too large.');
+						chunks.push(chunk as Buffer);
+					}
 					const body = JSON.parse(Buffer.concat(chunks).toString('utf-8'));
 					const filePath = String(body.file ?? '');
 					const known = [...docEntries.values()].some((e) => e.filePath === filePath);

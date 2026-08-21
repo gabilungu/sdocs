@@ -963,6 +963,32 @@ function parsePreview(
 const NESTED_BLOCK_RE = /^[ \t]*\[(NOTES|TODO|PROSE)\][ \t]*$/i;
 
 /**
+ * Report a `[NOTES]`, `[TODO]`, `[PROSE]` or `[GLOSSARY]` written in a body
+ * that cannot hold one.
+ *
+ * A `[PAGE]` or `[LAYOUT]` body is captured whole as Svelte markup, so a block
+ * written there is not parsed — it just becomes text on the rendered page. It
+ * produced no diagnostic until 0.0.149, which made the failure invisible: the
+ * docs advertised the feature, the Explorer offered a button for it, and the
+ * result was the raw block text in the middle of someone's page.
+ */
+function reportTextBlocksInBody(kind: string, entity: Entity, diagnostics: ScanError[]): void {
+	const lines = entity.body.split('\n');
+	let offset = entity.bodySpan.start;
+	for (const raw of lines) {
+		const m = /^[ \t]*\[(NOTES|TODO|PROSE|GLOSSARY)\b/.exec(raw);
+		if (m) {
+			diagnostics.push({
+				code: 'block-in-body',
+				message: `[${m[1].toUpperCase()}] is not read inside a [${kind}] — its body is Svelte markup, so this renders as literal text.`,
+				span: { start: offset, end: offset + raw.length },
+			});
+		}
+		offset += raw.length + 1;
+	}
+}
+
+/**
  * Split an `[EXAMPLE]` body into its nested text blocks and the markup that
  * actually gets staged.
  *
@@ -1371,14 +1397,17 @@ export function parseSdoc(source: string): SdocDocument {
 				diagnostics,
 				kind === 'PAGE' ? { stage: false, page: true } : STAGE_ONLY,
 			);
+			reportTextBlocksInBody(kind, entity, diagnostics);
 			typed = {
 				kind,
 				title,
 				slug: slugifyTitle(title),
 				routeSlug: routeSlugAttr(entity.attrs, diagnostics),
 				hide: bareAttr(entity.attrs, 'hide'),
-				// [PAGE] takes none of them. [LAYOUT] takes notes and todos, but
-				// its body captures no blocks yet — see the scanner.
+				// Neither kind captures blocks: the scanner takes a [PAGE] or
+				// [LAYOUT] body whole, as Svelte markup. Anything block-shaped in
+				// there is reported rather than dropped — it used to pass silently
+				// and render as literal text in the middle of the page.
 				notes: [],
 				todos: [],
 				prose: [],

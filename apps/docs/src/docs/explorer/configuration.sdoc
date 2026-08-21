@@ -252,7 +252,7 @@
 	- **Type:** `string`
 	- **Default:** `'/'`
 
-	It's normalized to a leading and trailing slash (`gabi` → `/gabi/`) and
+	It's normalized to a leading and trailing slash (`my-project` → `/my-project/`) and
 	applies to `sdocs build` only; `sdocs dev` always serves at the root. Asset
 	URLs and history routes are prefixed with it. A GitHub **project** Pages
 	site is served at `https://<owner>.github.io/<repo>/`, so set
@@ -260,7 +260,7 @@
 	the repo name in CI):
 
 	```js
-	base: '/gabi/'
+	base: '/my-project/'
 	```
 
 	`sdocs build` also writes a `404.html` (a copy of the shell), so an unknown

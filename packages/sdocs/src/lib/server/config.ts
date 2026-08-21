@@ -316,7 +316,7 @@ function normalizeHome(home: string | null | undefined): string | null {
 	return home.replace(/^\/+|\/+$/g, '');
 }
 
-/** A public base path always has a leading and trailing slash: '/gabi/'. */
+/** A public base path always has a leading and trailing slash: '/my-project/'. */
 export function normalizeBase(base: string | undefined): string {
 	if (!base || base === '/') return '/';
 	return `/${base.replace(/^\/+|\/+$/g, '')}/`;

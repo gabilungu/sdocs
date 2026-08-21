@@ -6,6 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { writeNotes } from '../../src/lib/server/note-editor.js';
 import {
 	COMPONENT_STATUSES,
 	parseSdoc,
@@ -439,5 +440,62 @@ describe('[GLOSSARY]', () => {
 		const entity = doc.entities[0];
 		expect(entity.kind === 'DOC' && entity.glossaries).toEqual([]);
 		expect(entity.kind === 'DOC' && entity.body).toContain('[glossary](/language/glossary)');
+	});
+});
+
+/**
+ * A `[PAGE]` or `[LAYOUT]` body is captured whole as Svelte markup, so a text
+ * block written in one is never read back. Until 0.0.149 that passed silently:
+ * no diagnostic, notes dropped, and the raw `[NOTES] - bug: …` lines rendered
+ * as text in the middle of the page — while the docs advertised the feature
+ * and the Explorer offered a button for it.
+ */
+describe('text blocks in a body that cannot hold them', () => {
+	const wrap = (kind: string) =>
+		parseSdoc(
+			[
+				`[${kind} title="Dashboard"]`,
+				'',
+				'\t[NOTES]',
+				'\t\t- bug: The grid breaks under 400px.',
+				'\t[/NOTES]',
+				'',
+				'\t<div class="grid">Hello</div>',
+				'',
+				`[/${kind}]`,
+			].join('\n'),
+		);
+
+	it.each([['PAGE'], ['LAYOUT']])('reports a [NOTES] written in a [%s]', (kind) => {
+		const doc = wrap(kind);
+		expect(doc.diagnostics.map((d) => d.code)).toContain('block-in-body');
+		expect(doc.diagnostics[0].message).toContain('renders as literal text');
+	});
+
+	it('names the block that was written', () => {
+		const doc = parseSdoc(
+			['[PAGE title="X"]', '', '\t[TODO]', '\t\t- [ ] a', '\t[/TODO]', '', '[/PAGE]'].join('\n'),
+		);
+		expect(doc.diagnostics[0].message).toContain('[TODO]');
+	});
+
+	// The editor is the other half: both the Explorer's button and the MCP
+	// tools reach the file through it, so one guard closes both.
+	it('refuses to write a block into a [PAGE] or [LAYOUT]', () => {
+		for (const kind of ['PAGE', 'LAYOUT']) {
+			const source = `[${kind} title="Dashboard"]\n\n\t<div>Hi</div>\n\n[/${kind}]\n`;
+			expect(() =>
+				writeNotes(source, { entitySlug: 'dashboard' }, [{ note: 'nope', type: 'bug' }]),
+			).toThrow(/cannot hold/);
+		}
+	});
+
+	it('still writes into a [SHOWCASE] and a [DOC]', () => {
+		for (const kind of ['SHOWCASE', 'DOC']) {
+			const source = `[${kind} title="Dashboard"]\n\n[/${kind}]\n`;
+			expect(
+				writeNotes(source, { entitySlug: 'dashboard' }, [{ note: 'fine', type: 'tip' }]),
+			).toContain('- tip: fine');
+		}
 	});
 });

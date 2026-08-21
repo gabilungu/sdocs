@@ -82,19 +82,15 @@ The plugin discovers `.sdoc` files and exposes them via a `virtual:sdocs` module
 <!-- src/routes/docs/+page.svelte -->
 <script>
   import Explorer from 'sdocs/explorer';
-  import { docs, cssNames } from 'virtual:sdocs';
+  import { docs, cssNames, pageModules } from 'virtual:sdocs';
 </script>
 
-<Explorer
-  {docs}
-  {cssNames}
-  logo="My Design System"
-  sidebarConfig={{
-    order: { root: ['Components', '*'] },
-    open: ['Components'],
-  }}
-/>
+<Explorer {docs} {cssNames} {pageModules} title="My Design System" />
 ```
+
+`pageModules` is not optional: `[DOC]` and `[PAGE]` bodies compile to their own
+components and are loaded through it, so an Explorer mounted without it renders
+those pages blank with no error.
 
 **3. Add the virtual module type declaration** (optional, for TypeScript)
 
@@ -125,25 +121,29 @@ one file can hold several.
 
 [SHOWCASE title="Components / Button" description="A flexible button component."]
 
-	[preview component={Button} args={{ label: 'Click me', disabled: false }}]
+	[COMPONENT component={Button} status="ready" args={{ label: 'Click me', disabled: false }}]
 		<Button {...args} />
-	[/preview]
+	[/COMPONENT]
 
-	[example title="With icon"]
+	[EXAMPLE title="With icon"]
 		<Button><Icon name="settings" /> Settings</Button>
-	[/example]
+	[/EXAMPLE]
 
 [/SHOWCASE]
 ```
 
-- **`[preview]`** — a live showcase with interactive controls.
+- **`[COMPONENT]`** — a live showcase with interactive controls.
   `component={X}` names the previewed component (its props, events,
   snippets, methods, state, and CSS custom properties are extracted
-  automatically) and `args` sets the control defaults. A `[SHOWCASE]` block can
-  hold several previews — they render as tabs, each fully live.
-- **`[example]`** — frozen showcases rendered exactly as written, shown
+  automatically) and `args` sets the control defaults. `status` is optional:
+  `draft`, `wip`, `review`, `experimental`, `ready` or `deprecated`, shown as a
+  glyph on the component's tab. Two or more `[COMPONENT]` blocks share one tab
+  strip and must sit inside a `[COMPONENTS]` wrapper.
+- **`[EXAMPLE]`** — frozen showcases rendered exactly as written, shown
   below the preview area. Each needs a unique `title`.
 - **`title`** — slash-separated path for sidebar navigation.
+- Blocks are UPPERCASE. `[COMPONENT]` and `[EXAMPLE]` are also accepted in
+  lowercase for files written before 0.0.139.
 
 ### Doc pages — `[DOC]`
 
@@ -249,19 +249,17 @@ export default {
   // Open browser on start
   open: true,
 
-  // Sidebar logo text
-  logo: 'My Design System',
+  // Header title and logo
+  title: 'My Design System',
 
   // CSS loaded in preview iframes
   css: './src/styles/global.css',
 
-  // Sidebar ordering
-  sidebar: {
-    order: {
-      root: ['Components', '*', 'Documentation'],
-    },
-    open: ['Components'],
-  },
+  // Top-bar sections, each with its own sidebar order
+  sections: [
+    { slug: 'components', title: 'Components', order: ['Button', 'Input'] },
+    { slug: 'guides', title: 'Guides' },
+  ],
 };
 ```
 
@@ -301,17 +299,20 @@ Reach for **axes** instead when variants multiply — three palettes × two dens
 
 ### Sidebar Ordering
 
-Control the order of items in the sidebar with `sidebar.order`. Use `'*'` as a wildcard for remaining items in alphabetical order:
+Sidebar order is per **section**, set by that section's `order` array. Listed
+items come first, in the order given; everything else follows alphabetically,
+so there is no wildcard to write:
 
 ```js
-sidebar: {
-  order: {
-    root: ['Getting Started', 'Components', '*'],
-    Components: ['Button', 'Input', '*'],
-  },
-  open: ['Components'],
-}
+sections: [
+  { slug: 'components', title: 'Components', order: ['Button', 'Input'] },
+  { slug: 'guides', title: 'Guides', order: ['Getting Started'] },
+]
 ```
+
+Entities join a section through their title's `@slug/` prefix —
+`title="@components/Forms / Button"`. An `order` entry names the route path
+relative to its section.
 
 ## Package Exports
 

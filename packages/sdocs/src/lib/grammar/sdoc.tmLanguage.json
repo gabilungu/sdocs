@@ -1015,7 +1015,7 @@
 			},
 			"patterns": [
 				{
-					"match": "^\\s*(-)\\s+(?:(\\[[ xX]\\])|((?:bug|deprecated|wip|ready):))?",
+					"match": "^\\s*(-)\\s+(?:(\\[[ xX]\\])|((?:bug|a11y|warning|perf|tip|info):))?",
 					"captures": {
 						"1": {
 							"name": "punctuation.definition.list.begin.markdown"

@@ -65,7 +65,12 @@ export function mcpHttpHandler() {
 	};
 }
 
-function isLocalOrigin(origin: string): boolean {
+/**
+ * A same-machine Origin. The dev server's write endpoints share this with the
+ * MCP route: both accept requests that edit the user's source, so both need
+ * the same DNS-rebinding guard.
+ */
+export function isLocalOrigin(origin: string): boolean {
 	try {
 		const host = new URL(origin).hostname;
 		return host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '[::1]';

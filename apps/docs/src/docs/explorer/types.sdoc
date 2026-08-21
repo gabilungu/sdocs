@@ -24,7 +24,10 @@
 
 	## `SdocsConfig`
 
-	User-facing config type. All fields optional.
+	The user-facing config type — every field optional. This is the shape
+	`sdocs.config.js` is checked against; see the
+	[configuration reference](/explorer/configuration) for what each field means
+	and what it defaults to.
 
 	```ts
 	interface SdocsConfig {
@@ -32,43 +35,37 @@
 	  port?: number;
 	  open?: boolean;
 	  css?: string | Record<string, string>;
+	  static?: string;
 	  title?: string;
 	  logo?: string | false;
-	  sections?: string[];
-	  defaultSection?: string;
+	  favicon?: string;
+	  sections?: ({ slug: string; title?: string; order?: string[] } | { type: 'divider' })[];
+	  home?: string;
 	  routing?: 'history' | 'hash';
-	  sidebar?: {
-	    order?: Record<string, string[]>;
-	    open?: string[];
+	  base?: string;
+	  mcp?: boolean;
+	  components?: string | string[];
+	  axes?: { id: string; label?: string; values: string[] }[];
+	  scale?: { min?: number; max?: number; default?: number; step?: number; var?: string; label?: string };
+	  content?: {
+	    doc?: ContentSizing & { toc?: boolean; contentX?: string };
+	    page?: ContentSizing & { contentX?: string };
+	    showcase?: ContentSizing & { direction?: string; gap?: string; background?: string; minHeight?: string; contentX?: string; contentY?: string };
+	    layout?: ContentSizing & { background?: string; minHeight?: string };
 	  };
 	}
 	```
 
-	See the [configuration reference](/explorer/configuration) for field semantics.
+	Sidebar order lives on the **section** that owns it — `sections[].order` —
+	rather than in a config key of its own. There is no top-level `sidebar`
+	option.
 
 	## `ResolvedSdocsConfig`
 
-	Same as `SdocsConfig` but with all defaults applied — every field is required.
-
-	```ts
-	interface ResolvedSdocsConfig {
-	  include: string[];
-	  port: number;
-	  open: boolean;
-	  css: string | Record<string, string> | null;
-	  title: string;
-	  logo: string | false;
-	  sections: string[];
-	  defaultSection: string;
-	  routing: 'history' | 'hash' | null;
-	  sidebar: {
-	    order: Record<string, string[]>;
-	    open: string[];
-	  };
-	}
-	```
-
-	Returned internally after loading the config file.
+	What the loader returns: the same shape with every default applied, so
+	nothing downstream has to re-derive one. `include` is always an array,
+	`css` is `null` rather than absent when unset, and `content` carries a
+	complete sizing block for all four entity kinds.
 
 	## `SdocMeta`
 

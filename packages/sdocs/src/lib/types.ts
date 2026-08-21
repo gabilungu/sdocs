@@ -30,7 +30,7 @@ export interface SdocsConfig {
 	 * needs the server to fall back to the shell), 'hash' for #/ URLs
 	 * (default when embedding — works under any host routing). */
 	routing?: 'history' | 'hash';
-	/** Public base path the built site is served under, e.g. '/gabi/' for a
+	/** Public base path the built site is served under, e.g. '/my-project/' for a
 	 * GitHub project Pages site. Applies to `sdocs build` only — `sdocs dev`
 	 * always serves at the root. Default: '/'. */
 	base?: string;

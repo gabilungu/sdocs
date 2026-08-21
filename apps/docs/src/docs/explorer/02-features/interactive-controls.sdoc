@@ -84,7 +84,7 @@
 	Initial control values come from the preview's `args`:
 
 	```sdoc
-	[component component={Button} args={{ label: 'Click me', size: 'md', disabled: false }}]
+	[COMPONENT component={Button} args={{ label: 'Click me', size: 'md', disabled: false }}]
 		<Button {...args} />
 	[/COMPONENT]
 	```

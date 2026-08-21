@@ -79,7 +79,15 @@
 
 	## `sdocs build`
 
-	Builds a static site to `dist/`. Site-structure errors — an unknown
+	Builds a static site to `dist/`.
+
+	> [!WARNING]
+	> `build` **empties `dist/` first**, and the output directory is not
+	> configurable. If your project already builds something else to `dist/` —
+	> a component library's own bundle, most often — run sdocs from a
+	> subdirectory or point your library's build elsewhere.
+
+	Site-structure errors — an unknown
 	`@section`, two entities on one route, an unresolvable `home` — fail the
 	build with a non-zero exit, so a broken structure can't deploy. So does a
 	`component={…}` reference that resolves to no component file: the same

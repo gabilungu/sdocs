@@ -6,7 +6,6 @@
 	import { layoutWidth, setLayoutWidth, clearLayoutWidth } from '../layout-width.svelte.js';
 	import { isNarrow } from '../viewport.svelte.js';
 	import { Note } from '../../ui/Note/index.js';
-	import NoteControl from './NoteControl.svelte';
 
 	interface Props {
 		doc: DocEntry;
@@ -42,15 +41,11 @@
 </script>
 
 <div class="sdocs-layout-view">
-	<NoteControl
-		{dev}
-		variant="corner"
-		label={doc.meta.title}
-		file={doc.filePath}
-		entitySlug={doc.entitySlug}
-		notes={doc.meta?.notes ?? []}
-		todos={doc.meta?.todos ?? []}
-	/>
+	<!-- No note button here. A [LAYOUT] body is captured whole as Svelte
+	     markup, so a [NOTES] block written into it is never read back — it
+	     renders as literal text over the layout. The rendering below stays:
+	     the day the scanner captures blocks for [LAYOUT], notes arrive here
+	     with nothing else to change. -->
 	{#if notes.length > dismissed.length}
 		<div class="sdocs-layout-note">
 			{#each notes as entry, i (i)}

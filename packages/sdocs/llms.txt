@@ -570,13 +570,16 @@ One note per line, once per entity and once per `[EXAMPLE]`:
   property of the thing rather than a remark about it; the two vocabularies
   were one until 0.0.140.
 - Each renders as an alert directly under the entity's title, in the order
-  written. A `[LAYOUT]` shows no title, so its notes ride **over** the layout,
-  each with a dismiss button.
+  written.
+- **Only `[SHOWCASE]`, `[DOC]` and `[EXAMPLE]` bodies hold them.** A `[PAGE]`
+  or `[LAYOUT]` body is captured whole as Svelte markup, so a block written
+  there is never read back — it renders as literal text on the page. sdocs
+  reports it (`block-in-body`) rather than letting it through.
 
 Under `sdocs dev` the Explorer can write them: a note button at the end of every
-entity and example title (top-right corner on a `[LAYOUT]` or `[PAGE]`, which
-show no title) opens an editor, and Save rewrites the `[NOTES]` block in the
-`.sdoc` itself. Dev only — the endpoint behind it exists on no built site, and
+entity and example title opens an editor, and Save rewrites the `[NOTES]` block
+in the `.sdoc` itself. It is offered only where a block can actually live —
+`[SHOWCASE]`, `[DOC]` and their examples. Dev only — the endpoint behind it exists on no built site, and
 it refuses any file the project does not document.
 
 In the sidebar the notes become one dot on the row: **filled** when the worst of

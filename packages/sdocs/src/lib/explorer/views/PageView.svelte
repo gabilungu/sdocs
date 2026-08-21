@@ -3,7 +3,6 @@
 	import type { DocEntry } from '../../types.js';
 	import { capSidePadding, isNarrow } from '../viewport.svelte.js';
 	import { Note } from '../../ui/Note/index.js';
-	import NoteControl from './NoteControl.svelte';
 
 	interface Props {
 		doc: DocEntry;
@@ -53,15 +52,8 @@
 <div class="sdocs-svelte-page" style:padding={viewPadding}>
 	<!-- A [PAGE] shows no title either, so the button hides in the corner the
 	     way a layout's does. -->
-	<NoteControl
-		{dev}
-		variant="corner"
-		label={doc.meta.title}
-		file={doc.filePath}
-		entitySlug={doc.entitySlug}
-		notes={doc.meta?.notes ?? []}
-		todos={doc.meta?.todos ?? []}
-	/>
+	<!-- No note button here: a [PAGE] body is Svelte markup, so a [NOTES]
+	     block written into it would render as literal text on the page. -->
 	<div class="sdocs-svelte-page-inner" style:max-width={doc.maxWidth} style:margin={containerMargin}>
 		<!-- A [PAGE] renders no title of its own, so the note opens the page
 		     rather than sitting under a heading that isn't there. It stays in

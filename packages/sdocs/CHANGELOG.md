@@ -12,6 +12,68 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.149] - 2026-08-21
+
+A launch-readiness audit found the engine solid and the announcement surfaces
+stale. This is the surface.
+
+### Fixed
+
+- **Every `.sdoc` sample in the docs and READMEs parses again.** Five of the
+  fourteen whole-entity samples did not: the 0.0.139 casing sweep uppercased
+  block *closers* but left attribute-bearing *openers* lowercase, which is a
+  hard parse error — and the published Getting Started page taught it. The
+  README additionally still used `[preview]`, removed in 0.0.95.
+
+  A sample nobody parses is a sample that rots, so the bundled-docs test now
+  extracts ` ```sdoc ` fences from `.sdoc` **and** `.md` and parses them. This
+  is the second time this class of bug shipped; the first fix only read whole
+  files.
+
+- **`[NOTES]`/`[TODO]`/`[PROSE]`/`[GLOSSARY]` in a `[PAGE]` or `[LAYOUT]` are
+  reported** (`block-in-body`) instead of passing silently. Those bodies are
+  captured whole as Svelte markup, so a block written in one was never read
+  back — it rendered as literal text on the page while the note appeared
+  nowhere. The Explorer offered a button for it and `set_notes` accepted it;
+  both now refuse, guarded in the one place both paths meet.
+
+- **The MCP write tools validate instead of coercing.** `set_notes` checked no
+  note type and wrote it verbatim — newlines included, so a careless call
+  injected block structure. A missing or wrong-shaped `notes`/`todos` array
+  fell through to `[]`, which means *delete the block*, and reported
+  `changed: true`. Both are rejected now, and `set_todos` finally describes a
+  todo item in its schema.
+
+- **The dev server's write endpoints check `Origin`** and cap the body at 1MB.
+  `/__sdocs/notes` and `/__sdocs/todo` edit files on disk; their `/mcp` sibling
+  has carried the same DNS-rebinding guard since it shipped.
+
+- **The grammar highlights the current note vocabulary** — it was still
+  colouring `deprecated`/`wip`/`ready`, which the parser rejects, and missing
+  `a11y`/`warning`/`perf`/`tip`/`info`, which it accepts.
+
+- **Phantom APIs removed from the install paths.** The README documented a
+  top-level `sidebar: { order, open }` config key and a `sidebarConfig`
+  Explorer prop; neither has ever existed. Real sidebar order is
+  `sections[].order`.
+
+- **The embedded quick-start includes `pageModules`.** Without it every
+  `[DOC]` and `[PAGE]` body renders blank, with no error.
+
+- **`explorer/types.sdoc` documents the real config type.** It listed
+  `sections?: string[]`, a `defaultSection` key that does not exist and the
+  phantom `sidebar` block, while omitting `base`, `mcp`, `components`, `axes`,
+  `scale`, `static` and `favicon`.
+
+### Added
+
+- **`LICENSE`** at the repository root and in the published package. Both
+  READMEs and `package.json` declared MIT while the repo shipped no licence
+  text, which legally reads as all-rights-reserved.
+
+- **`sdocs build` documents that it empties `dist/`** first, and that the
+  output directory is not configurable.
+
 ## [0.0.148] - 2026-08-21
 
 ### Added

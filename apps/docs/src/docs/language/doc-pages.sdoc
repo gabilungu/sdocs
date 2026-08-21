@@ -31,7 +31,7 @@
 
 		Components render on a stage, in your project's own css:
 
-		[example title="Buttons" direction="row" gap="8px"]
+		[EXAMPLE title="Buttons" direction="row" gap="8px"]
 			<Button label="Save" />
 			<Button label="Delete" intent="danger" />
 		[/EXAMPLE]

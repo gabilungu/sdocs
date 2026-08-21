@@ -11,11 +11,11 @@
 
 	[SHOWCASE title="Forms / Button" description="A flexible button."]
 
-		[component component={Button} args={{ label: 'Click me', disabled: false }}]
+		[COMPONENT component={Button} args={{ label: 'Click me', disabled: false }}]
 			<Button {...args} />
 		[/COMPONENT]
 
-		[example title="Disabled"]
+		[EXAMPLE title="Disabled"]
 			<Button label="Can't touch this" disabled />
 		[/EXAMPLE]
 
@@ -150,7 +150,7 @@
 	A component is rarely known by one name. `synonyms` lists the others:
 
 	```sdoc
-	[component component={Badge} synonyms="pill, chip, tag"]
+	[COMPONENT component={Badge} synonyms="pill, chip, tag"]
 		<Badge {...args} />
 	[/COMPONENT]
 	```
@@ -239,7 +239,7 @@
 	rather than showing how it is built:
 
 	```sdoc
-	[example title="In a user menu" code="false"]
+	[EXAMPLE title="In a user menu" code="false"]
 		<Avatar /><Badge count={3} />
 	[/EXAMPLE]
 	```
@@ -258,7 +258,7 @@
 	to:
 
 	```sdoc
-	[example title="In a user menu" tags="user menu, avatar, badge"]
+	[EXAMPLE title="In a user menu" tags="user menu, avatar, badge"]
 		<Avatar /><Badge count={3} />
 	[/EXAMPLE]
 	```
@@ -276,7 +276,7 @@
 	block, and a wrapper `<div>` only fights it.
 
 	```sdoc
-	[example title="Sizes"]
+	[EXAMPLE title="Sizes"]
 		<div style="display: flex; gap: 8px; height: 500px; overflow-y: auto;">
 			<Badge text="sm" />
 			<Badge text="md" />
@@ -289,7 +289,7 @@
 	grows to fit, and scrolls on its own past 800px:
 
 	```sdoc
-	[example title="Sizes" direction="row" gap="8px"]
+	[EXAMPLE title="Sizes" direction="row" gap="8px"]
 		<Badge text="sm" />
 		<Badge text="md" />
 	[/EXAMPLE]
@@ -311,7 +311,7 @@
 	demo data can live once at the entity level.
 
 	```sdoc
-	[example title="Driven by data"]
+	[EXAMPLE title="Driven by data"]
 		<script lang="ts">
 			const items = [
 				{ label: "Introduction", href: "#intro" },

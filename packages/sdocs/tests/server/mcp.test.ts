@@ -231,18 +231,25 @@ describe('MCP handler', () => {
 			'\timport Badge from "./Badge.svelte";',
 			'</script>',
 			'',
-			`[SHOWCASE title="Display / Badge" notes={[{ note: 'Being replaced by Chip in v4.', intent: 'warning' }]}]`,
-			'\t[component component={Badge} synonyms="pill, chip, tag"]',
+			'[SHOWCASE title="Display / Badge"]',
+			'\t[NOTES]',
+			'\t\t- deprecated: Being replaced by Chip in v4.',
+			'\t[/NOTES]',
+			'\t[COMPONENT component={Badge} synonyms="pill, chip, tag"]',
 			'\t\t<Badge {...args} />',
-			'\t[/component]',
+			'\t[/COMPONENT]',
 			'',
-			'\t[example title="In a user menu" tags="user menu, avatar"]',
+			'\t[EXAMPLE title="In a user menu" tags="user menu, avatar"]',
 			'\t\t<Badge />',
-			'\t[/example]',
+			'\t[/EXAMPLE]',
 			'',
-			`\t[example title="Plain" notes={[{ note: 'Contrast is unverified here.', intent: 'danger' }, { note: 'A plain remark.' }]}]`,
+			'\t[EXAMPLE title="Plain"]',
+			'\t\t[NOTES]',
+			'\t\t\t- bug: Contrast is unverified here.',
+			'\t\t\t- A plain remark.',
+			'\t\t[/NOTES]',
 			'\t\t<Badge />',
-			'\t[/example]',
+			'\t[/EXAMPLE]',
 			'[/SHOWCASE]',
 			'',
 		].join('\n');
@@ -314,47 +321,47 @@ describe('MCP handler', () => {
 			// The notes come back with the hit — the point of finding it is to
 			// read what it says.
 			expect(found.results[0].notes).toEqual([
-				{ note: 'Being replaced by Chip in v4.', intent: 'warning' },
+				{ note: 'Being replaced by Chip in v4.', type: 'deprecated' },
 			]);
 		});
 
-		it('sweeps by intent with no query at all', async () => {
+		it('sweeps by type with no query at all', async () => {
 			const found = await inProject(async () =>
-				((await callTool('search_docs', { intent: 'danger' })).structuredContent) as Record<string, any>,
+				((await callTool('search_docs', { type: 'bug' })).structuredContent) as Record<string, any>,
 			);
 			expect(found.results).toHaveLength(1);
 			expect(found.results[0]).toMatchObject({
 				kind: 'example',
 				title: 'Display / Badge / Plain',
-				matched: ['note intent: danger'],
+				matched: ['note type: bug'],
 			});
 		});
 
-		it("finds a note written without an intent under 'none'", async () => {
+		it("finds a note written without a type under 'none'", async () => {
 			const found = await inProject(async () =>
-				((await callTool('search_docs', { intent: 'none' })).structuredContent) as Record<string, any>,
+				((await callTool('search_docs', { type: 'none' })).structuredContent) as Record<string, any>,
 			);
 			expect(found.results).toHaveLength(1);
 			expect(found.results[0].title).toBe('Display / Badge / Plain');
 		});
 
 		it('requires both when both are given', async () => {
-			const both = async (query: string, intent: string) =>
-				((await callTool('search_docs', { query, intent })).structuredContent) as Record<string, any>;
+			const both = async (query: string, type: string) =>
+				((await callTool('search_docs', { query, type })).structuredContent) as Record<string, any>;
 			// "Plain" is the example's title and a word in its own remark, and
 			// that example carries a danger note — so danger keeps it and
 			// warning (which only the entity has) does not.
-			const danger = await inProject(() => both('plain', 'danger'));
+			const danger = await inProject(() => both('plain', 'bug'));
 			expect(danger.results.map((r: { title: string }) => r.title)).toEqual([
 				'Display / Badge / Plain',
 			]);
-			const warning = await inProject(() => both('plain', 'warning'));
+			const warning = await inProject(() => both('plain', 'deprecated'));
 			expect(warning.results.map((r: { title: string }) => r.title)).toEqual([]);
 		});
 
-		it('needs a query or an intent', async () => {
+		it('needs a query or a type', async () => {
 			const { error } = await rpc('tools/call', { name: 'search_docs', arguments: {} });
-			expect(error?.message).toContain('query, an intent, or both');
+			expect(error?.message).toContain('query, a type, or both');
 		});
 
 		it('comes back empty rather than guessing', async () => {
@@ -364,15 +371,15 @@ describe('MCP handler', () => {
 
 		it('refuses a blank query with nothing else to go on', async () => {
 			const { error } = await rpc('tools/call', { name: 'search_docs', arguments: { query: '  ' } });
-			expect(error?.message).toContain('query, an intent, or both');
+			expect(error?.message).toContain('query, a type, or both');
 		});
 
-		it('refuses an intent it does not know', async () => {
+		it('refuses a type it does not know', async () => {
 			const { error } = await rpc('tools/call', {
 				name: 'search_docs',
-				arguments: { intent: 'critical' },
+				arguments: { type: 'critical' },
 			});
-			expect(error?.message).toContain('intent must be one of');
+			expect(error?.message).toContain('type must be one of');
 		});
 	});
 

@@ -16,7 +16,7 @@ import {
 	type TagBlock,
 } from './scanner.js';
 import { declaredBindings, scrubScriptText } from './script-scan.js';
-import type { DocNote, NoteIntent } from '../types.js';
+import type { DocNote, NoteType } from '../types.js';
 
 export type ArgValue = string | number | boolean | null;
 
@@ -78,8 +78,12 @@ export interface ExampleBlock {
 	 * belongs to. Shown under the description and searched by the MCP
 	 * server; empty when absent. */
 	tags: string[];
-	/** Standing remarks from notes={[…]}; empty when the opener has none */
+	/** Standing remarks from a nested [NOTES] block; empty when there is none */
 	notes: DocNote[];
+	/** The checklist from a nested [TODO] block; empty when there is none */
+	todos: TodoItem[];
+	/** Markdown from a nested [PROSE] block, rendered under the title */
+	prose: string | null;
 	/** `code="false"` hides this example's code panel; true by default. */
 	showCode: boolean;
 	sizing: Sizing;
@@ -95,6 +99,13 @@ export interface ExampleBlock {
 	span: Span;
 }
 
+/** One `- [ ] text` line of a `[TODO]` block, with whatever nests under it. */
+export interface TodoItem {
+	text: string;
+	done: boolean;
+	children: TodoItem[];
+}
+
 export interface ShowcaseEntity {
 	kind: 'SHOWCASE';
 	title: string;
@@ -103,8 +114,10 @@ export interface ShowcaseEntity {
 	routeSlug: string | null;
 	/** `hide` flag: routable but never listed in a sidebar */
 	hide: boolean;
-	/** Standing remarks from notes={[…]}; empty when the opener has none */
+	/** Standing remarks from a [NOTES] block; empty when there is none */
 	notes: DocNote[];
+	/** The checklist from a [TODO] block; empty when there is none */
+	todos: TodoItem[];
 	description: string | null;
 	sizing: Sizing;
 	/** Entity-level <script> — shared by every block of this entity */
@@ -125,8 +138,10 @@ export interface DocEntity {
 	routeSlug: string | null;
 	/** `hide` flag: routable but never listed in a sidebar */
 	hide: boolean;
-	/** Standing remarks from notes={[…]}; empty when the opener has none */
+	/** Standing remarks from a [NOTES] block; empty when there is none */
 	notes: DocNote[];
+	/** The checklist from a [TODO] block; empty when there is none */
+	todos: TodoItem[];
 	sizing: Sizing;
 	/** Entity-level <script> — shared by every block of this entity */
 	script: TagBlock | null;
@@ -152,8 +167,10 @@ export interface PageEntity {
 	routeSlug: string | null;
 	/** `hide` flag: routable but never listed in a sidebar */
 	hide: boolean;
-	/** Standing remarks from notes={[…]}; empty when the opener has none */
+	/** Standing remarks from a [NOTES] block; empty when there is none */
 	notes: DocNote[];
+	/** The checklist from a [TODO] block; empty when there is none */
+	todos: TodoItem[];
 	sizing: Sizing;
 	/** Entity-level <script> — shared by every block of this entity */
 	script: TagBlock | null;
@@ -173,8 +190,10 @@ export interface LayoutEntity {
 	routeSlug: string | null;
 	/** `hide` flag: routable but never listed in a sidebar */
 	hide: boolean;
-	/** Standing remarks from notes={[…]}; empty when the opener has none */
+	/** Standing remarks from a [NOTES] block; empty when there is none */
 	notes: DocNote[];
+	/** The checklist from a [TODO] block; empty when there is none */
+	todos: TodoItem[];
 	sizing: Sizing;
 	/** Entity-level <script> — shared by every block of this entity */
 	script: TagBlock | null;
@@ -429,16 +448,6 @@ function sizingOf(attrs: Attrs): Sizing {
 	};
 }
 
-/** Standing remarks, and how loudly each speaks. Every entity takes them, and
- * so does an [example] — the places a reader lands on. */
-const NOTE_ATTR_RULES: Record<string, AttrRule> = {
-	notes: {
-		required: false,
-		kind: 'expression',
-		hint: "notes={[{ note: 'Deprecated in v3', intent: 'warning' }]}",
-	},
-};
-
 const ROUTE_ATTR_RULES: Record<string, AttrRule> = {
 	slug: { required: false, kind: 'string', hint: 'slug="url-segment"' },
 	hide: { required: false, kind: 'bare', hint: 'hide' },
@@ -447,7 +456,6 @@ const ROUTE_ATTR_RULES: Record<string, AttrRule> = {
 const ENTITY_ATTR_RULES: Record<string, Record<string, AttrRule>> = {
 	SHOWCASE: {
 		title: { required: true, kind: 'string', hint: 'title="Group / Name"' },
-		...NOTE_ATTR_RULES,
 		description: { required: false, kind: 'string', hint: 'description="…"' },
 		...ROUTE_ATTR_RULES,
 		...SIZING_ATTR_RULES,
@@ -455,7 +463,6 @@ const ENTITY_ATTR_RULES: Record<string, Record<string, AttrRule>> = {
 	},
 	DOC: {
 		title: { required: true, kind: 'string', hint: 'title="Group / Name"' },
-		...NOTE_ATTR_RULES,
 		...ROUTE_ATTR_RULES,
 		...SIZING_ATTR_RULES,
 		// On DOC, contentX aligns the content column (with its toc), not a stage.
@@ -464,7 +471,6 @@ const ENTITY_ATTR_RULES: Record<string, Record<string, AttrRule>> = {
 	},
 	PAGE: {
 		title: { required: true, kind: 'string', hint: 'title="Name"' },
-		...NOTE_ATTR_RULES,
 		...ROUTE_ATTR_RULES,
 		...SIZING_ATTR_RULES,
 		// On PAGE, contentX places the content container inside the view.
@@ -472,7 +478,6 @@ const ENTITY_ATTR_RULES: Record<string, Record<string, AttrRule>> = {
 	},
 	LAYOUT: {
 		title: { required: true, kind: 'string', hint: 'title="Group / Name"' },
-		...NOTE_ATTR_RULES,
 		...ROUTE_ATTR_RULES,
 		...SIZING_ATTR_RULES,
 		// The page-canvas subset of the stage attributes: paint and size the
@@ -498,7 +503,6 @@ const SUB_BLOCK_ATTR_RULES: Record<string, Record<string, AttrRule>> = {
 		description: { required: false, kind: 'string', hint: 'description="…"' },
 		tags: { required: false, kind: 'string', hint: 'tags="user menu, badge"' },
 		code: { required: false, kind: 'string', hint: 'code="false"' },
-		...NOTE_ATTR_RULES,
 		...SIZING_ATTR_RULES,
 		...STAGE_LAYOUT_ATTR_RULES,
 	},
@@ -561,104 +565,107 @@ const NOTE_INTENTS = ['danger', 'warning', 'success', 'info'] as const;
 const NOTE_KEYS = ['note', 'intent'];
 
 /**
- * `notes={[{ note: '…', intent: 'warning' }]}` — the remarks on an opener, in
- * the order they should be read.
+ * The `[NOTES]` vocabulary, **worst first** — the order the sidebar rolls a
+ * subtree up by.
  *
- * Hand-parsed like `args`, and for the same reason: this is attribute source
- * text that is never evaluated, so only plain string literals are taken and
- * anything richer is reported rather than run. An unknown intent is an error
- * rather than a quiet fall back to grey — grey is a real intent of its own, so
- * a typo would read as a choice.
+ * Status only, deliberately. `a11y`, `perf` and the like are categories, not
+ * statuses, and mixing the two makes the ranking meaningless: there is no
+ * honest answer to whether an `a11y` note outranks a `bug`. Categories are
+ * what `tags` already does.
+ *
+ * A line with no type sits between `wip` and `ready`: it says "read me"
+ * without saying what about, which is more than a note whose whole content is
+ * reassurance.
  */
-export function parseNotesLiteral(
-	raw: string,
-	span: Span,
-	diagnostics: ScanError[],
-): DocNote[] {
-	const fail = (message: string): DocNote[] => {
-		diagnostics.push({ code: 'notes-literal', message, span });
-		return [];
-	};
-	let i = 0;
-	const ws = () => {
-		while (i < raw.length && /\s/.test(raw[i])) i++;
-	};
-	const stringAt = (): string | null => {
-		const rest = raw.slice(i);
-		const m = rest.match(/^'((?:[^'\\]|\\.)*)'/) ?? rest.match(/^"((?:[^"\\]|\\.)*)"/);
-		if (!m) return null;
-		i += m[0].length;
-		return m[1].replace(/\\(.)/g, '$1');
-	};
+export const NOTE_TYPES: readonly NoteType[] = ['bug', 'deprecated', 'wip', 'ready'];
+export const NOTE_TYPE_ORDER: (NoteType | null)[] = [
+	'bug',
+	'deprecated',
+	'wip',
+	null,
+	'ready',
+];
 
-	ws();
-	if (raw[i] !== '[') {
-		return fail("notes must be an array: notes={[{ note: '…', intent: 'warning' }]}.");
-	}
-	i++;
+const NOTE_LINE_RE = /^-\s+(?:([a-z]+):\s*)?(.*)$/;
+
+/**
+ * A `[NOTES]` body: one `- type: text` line per note, or `- text` for a plain
+ * remark. Blank lines are skipped; anything else is reported, because a line
+ * that silently rendered as nothing would look like the block had eaten it.
+ */
+function parseNoteLines(block: SubBlock, diagnostics: ScanError[]): DocNote[] {
 	const notes: DocNote[] = [];
-	ws();
-	while (i < raw.length && raw[i] !== ']') {
-		if (raw[i] !== '{') return fail('Every entry in notes must be an object literal.');
-		i++;
-		let text: string | null = null;
-		let intent: NoteIntent | null = null;
-		ws();
-		while (i < raw.length && raw[i] !== '}') {
-			const keyMatch = raw.slice(i).match(/^([A-Za-z_$][A-Za-z0-9_$]*|'[^']*'|"[^"]*")\s*:/);
-			if (!keyMatch) return fail('notes keys must be plain names: note and intent.');
-			const key = keyMatch[1].replace(/^['"]|['"]$/g, '');
-			if (!NOTE_KEYS.includes(key)) {
-				return fail(`Unknown key "${key}" in notes — expected ${NOTE_KEYS.join(' or ')}.`);
-			}
-			i += keyMatch[0].length;
-			ws();
-			const value = stringAt();
-			if (value === null) return fail(`notes ${key} must be a quoted string.`);
-			if (key === 'note') {
-				text = value;
-			} else if (value !== '') {
-				if (!(NOTE_INTENTS as readonly string[]).includes(value)) {
-					return fail(`notes intent "${value}" must be one of ${NOTE_INTENTS.join(', ')}.`);
-				}
-				intent = value as NoteIntent;
-			}
-			ws();
-			if (raw[i] === ',') {
-				i++;
-				ws();
-			} else if (raw[i] !== '}') {
-				return fail('notes entries must be separated by commas.');
-			}
+	for (const raw of normalizeBody(block.body).split('\n')) {
+		const line = raw.trim();
+		if (line === '') continue;
+		const m = NOTE_LINE_RE.exec(line);
+		if (!m) {
+			diagnostics.push({
+				code: 'note-line',
+				message: `Every [NOTES] line is "- text" or "- type: text": ${line}`,
+				span: block.bodySpan,
+			});
+			continue;
 		}
-		if (raw[i] !== '}') return fail('A notes entry is missing its closing "}".');
-		i++;
-		if (text === null) return fail("Every note needs a note: notes={[{ note: '…' }]}.");
-		notes.push({ note: text, intent });
-		ws();
-		if (raw[i] === ',') {
-			i++;
-			ws();
-		} else if (raw[i] !== ']') {
-			return fail('notes entries must be separated by commas.');
+		const [, rawType, text] = m;
+		if (rawType && !(NOTE_TYPES as readonly string[]).includes(rawType)) {
+			diagnostics.push({
+				code: 'note-type',
+				message: `Unknown note type "${rawType}" — expected ${NOTE_TYPES.join(', ')}.`,
+				span: block.bodySpan,
+			});
+			continue;
 		}
+		if (text.trim() === '') {
+			diagnostics.push({
+				code: 'note-line',
+				message: 'A note with no text says nothing — write one or drop the line.',
+				span: block.bodySpan,
+			});
+			continue;
+		}
+		notes.push({ note: text.trim(), type: (rawType as NoteType) ?? null });
 	}
-	if (raw[i] !== ']') return fail('notes array is missing its closing "]".');
-	i++;
-	ws();
-	if (i !== raw.length) return fail('Unexpected text after the notes array.');
 	return notes;
 }
 
-/** The `notes` attribute of an opener, or none. */
-function notesAttr(attrs: Attrs, diagnostics: ScanError[]): DocNote[] {
-	const attr = attrs['notes'];
-	if (!attr || attr.kind !== 'expression') return [];
-	return parseNotesLiteral(attr.raw, attr.valueSpan, diagnostics);
+const TODO_LINE_RE = /^(\s*)-\s+\[([ xX])\]\s*(.*)$/;
+
+/**
+ * A `[TODO]` body: markdown task lines, nested by indentation to any depth.
+ *
+ * Indentation decides parenthood, so the tree is whatever the author's
+ * indentation says — no depth cap.
+ */
+function parseTodoItems(block: SubBlock, diagnostics: ScanError[]): TodoItem[] {
+	const roots: TodoItem[] = [];
+	// Each entry is the indent width that opened a level, and its item list.
+	const stack: { indent: number; items: TodoItem[] }[] = [{ indent: -1, items: roots }];
+	for (const raw of normalizeBody(block.body).split('\n')) {
+		if (raw.trim() === '') continue;
+		const m = TODO_LINE_RE.exec(raw);
+		if (!m) {
+			diagnostics.push({
+				code: 'todo-line',
+				message: `Every [TODO] line is "- [ ] text" or "- [x] text": ${raw.trim()}`,
+				span: block.bodySpan,
+			});
+			continue;
+		}
+		const [, indentText, mark, text] = m;
+		// Tabs and spaces both indent; a tab counts as one level like a tab does
+		// everywhere else in the format.
+		const indent = indentText.replace(/\t/g, ' ').length;
+		while (stack.length > 1 && indent <= stack[stack.length - 1].indent) stack.pop();
+		const item: TodoItem = { text: text.trim(), done: mark.toLowerCase() === 'x', children: [] };
+		stack[stack.length - 1].items.push(item);
+		stack.push({ indent, items: item.children });
+	}
+	return roots;
 }
 
 /**
- * `code="false"` on an `[example]` — whether its code panel renders.
+ * `code="false"` on an `[EXAMPLE]` — whether its code panel renders.
  *
  * Anything but `true` or `false` is reported rather than read as one of them.
  * `[DOC]`'s older `toc` takes any value and treats everything that isn't
@@ -671,7 +678,7 @@ function showCodeAttr(attrs: Attrs, span: Span, diagnostics: ScanError[]): boole
 	if (raw === 'true' || raw === 'false') return raw === 'true';
 	diagnostics.push({
 		code: 'example-code',
-		message: `code="${raw}" in [example] must be "true" or "false".`,
+		message: `code="${raw}" in [EXAMPLE] must be "true" or "false".`,
 		span: attrs['code']?.valueSpan ?? span,
 	});
 	return true;
@@ -826,6 +833,47 @@ function parsePreview(
 	};
 }
 
+const NESTED_BLOCK_RE = /^[ \t]*\[(NOTES|TODO|PROSE)\][ \t]*$/i;
+
+/**
+ * Split an `[EXAMPLE]` body into its nested text blocks and the markup that
+ * actually gets staged.
+ *
+ * Done here on the captured body rather than by nesting the scanner: an
+ * example's body is already one string, and these blocks are line-delimited
+ * with no attributes, so finding them is a line scan. The markup that remains
+ * is what compiles — a `[NOTES]` block left in it would be staged as markup
+ * and fail to compile.
+ */
+function splitNestedBlocks(body: string): { blocks: Map<string, string>; markup: string } {
+	const blocks = new Map<string, string>();
+	const kept: string[] = [];
+	const lines = body.split('\n');
+	let i = 0;
+	while (i < lines.length) {
+		const m = NESTED_BLOCK_RE.exec(lines[i]);
+		if (!m) {
+			kept.push(lines[i]);
+			i++;
+			continue;
+		}
+		const tag = m[1].toUpperCase();
+		const closer = new RegExp(`^[ \\t]*\\[/${tag}\\][ \\t]*$`, 'i');
+		let j = i + 1;
+		const inner: string[] = [];
+		while (j < lines.length && !closer.test(lines[j])) inner.push(lines[j++]);
+		// An unclosed one keeps its lines as markup; the scanner reports it.
+		if (j >= lines.length) {
+			kept.push(lines[i]);
+			i++;
+			continue;
+		}
+		if (!blocks.has(tag)) blocks.set(tag, inner.join('\n'));
+		i = j + 1;
+	}
+	return { blocks, markup: kept.join('\n') };
+}
+
 function parseExample(
 	block: SubBlock,
 	seenTitles: Set<string>,
@@ -844,18 +892,28 @@ function parseExample(
 		});
 	}
 	seenTitles.add(title);
+	// The nested text blocks come out of the body before anything is staged:
+	// what remains is the markup that compiles.
+	const nested = splitNestedBlocks(block.body);
+	const nestedMarkup = splitNestedBlocks(block.markup);
+	const asBlock = (text: string): SubBlock => ({ ...block, body: text });
+	const notesBody = nested.blocks.get('NOTES');
+	const todoBody = nested.blocks.get('TODO');
+	const proseBody = nested.blocks.get('PROSE');
 	return {
 		title,
 		description: stringAttr(block.attrs, 'description'),
 		tags: listAttr(block.attrs, 'tags'),
-		notes: notesAttr(block.attrs, diagnostics),
+		notes: notesBody === undefined ? [] : parseNoteLines(asBlock(notesBody), diagnostics),
+		todos: todoBody === undefined ? [] : parseTodoItems(asBlock(todoBody), diagnostics),
+		prose: proseBody === undefined ? null : normalizeBody(proseBody),
 		showCode: showCodeAttr(block.attrs, block.openerSpan, diagnostics),
 		sizing: sizingOf(block.attrs),
-		body: normalizeBody(block.body),
+		body: normalizeBody(nested.markup),
 		bodySpan: block.bodySpan,
 		script: block.script,
 		style: block.style,
-		markup: normalizeBody(block.markup),
+		markup: normalizeBody(nestedMarkup.markup),
 		span: block.span,
 	};
 }
@@ -897,6 +955,43 @@ function checkSnippetSlugCollisions(
 	});
 }
 
+/**
+ * Collects the once-per-entity text blocks — `[NOTES]`, `[TODO]`, `[PROSE]`.
+ *
+ * Shared because every entity that takes them takes them the same way, and
+ * because "once" has to be enforced somewhere that sees all of them: a second
+ * block is reported rather than silently winning or losing.
+ */
+function textBlocks(owner: string, diagnostics: ScanError[]) {
+	const seen = new Map<string, true>();
+	let notes: DocNote[] = [];
+	let todos: TodoItem[] = [];
+	const prose: SubBlock[] = [];
+	return {
+		take(block: SubBlock) {
+			if (block.kind === 'prose') {
+				prose.push(block);
+				return;
+			}
+			const tag = block.kind === 'notes' ? 'NOTES' : 'TODO';
+			if (seen.has(tag)) {
+				diagnostics.push({
+					code: 'duplicate-block',
+					message: `Only one [${tag}] per ${owner} — merge them.`,
+					span: block.openerSpan,
+				});
+				return;
+			}
+			seen.set(tag, true);
+			if (block.kind === 'notes') notes = parseNoteLines(block, diagnostics);
+			else todos = parseTodoItems(block, diagnostics);
+		},
+		get result() {
+			return { notes, todos, prose };
+		},
+	};
+}
+
 function parseShowcase(
 	entity: Entity,
 	fileImports: Map<string, Span>,
@@ -910,6 +1005,7 @@ function parseShowcase(
 	const exampleSpans: Span[] = [];
 	const exampleTitles = new Set<string>();
 	const previewLabels = new Set<string>();
+	const text = textBlocks('[SHOWCASE]', diagnostics);
 
 	for (const block of entity.blocks) {
 		if (block.kind === 'preview') {
@@ -923,21 +1019,25 @@ function parseShowcase(
 			}
 			previewLabels.add(preview.label);
 			previews.push(preview);
-		} else {
+		} else if (block.kind === 'example') {
 			examples.push(parseExample(block, exampleTitles, 'SHOWCASE', outerImports, diagnostics));
 			exampleSpans.push(block.openerSpan);
+		} else {
+			text.take(block);
 		}
 	}
 	checkSnippetSlugCollisions(previews, examples, exampleSpans, diagnostics);
 
 	const title = stringAttr(entity.attrs, 'title') ?? '';
+	const { notes, todos } = text.result;
 	return {
 		kind: 'SHOWCASE',
 		title,
 		slug: slugifyTitle(title),
 		routeSlug: routeSlugAttr(entity.attrs, diagnostics),
 		hide: bareAttr(entity.attrs, 'hide'),
-		notes: notesAttr(entity.attrs, diagnostics),
+		notes,
+		todos,
 		description: stringAttr(entity.attrs, 'description'),
 		sizing: sizingOf(entity.attrs),
 		script: entity.script,
@@ -959,11 +1059,18 @@ function spliceExampleMarkers(entity: Entity): string {
 	if (entity.blocks.length === 0) return entity.body;
 	let out = '';
 	let from = 0;
-	entity.blocks.forEach((block, i) => {
+	// Examples leave a marker the doc renderer resolves; a text block leaves
+	// nothing — it is rendered from the entity, not from the prose flow — so
+	// its lines simply come out.
+	let exampleIndex = 0;
+	entity.blocks.forEach((block) => {
 		const before = entity.body.slice(from, block.span.start - entity.bodySpan.start);
 		const indent = before.slice(before.lastIndexOf('\n') + 1);
 		out += before.slice(0, before.length - indent.length);
-		out += `${indent}{@render __sdocsExample?.(${i})}`;
+		if (block.kind === 'example') {
+			out += `${indent}{@render __sdocsExample?.(${exampleIndex})}`;
+			exampleIndex++;
+		}
 		from = block.span.end - entity.bodySpan.start;
 	});
 	out += entity.body.slice(from);
@@ -983,7 +1090,12 @@ function parseDoc(
 	const examples: ExampleBlock[] = [];
 	const exampleSpans: Span[] = [];
 	const exampleTitles = new Set<string>();
+	const text = textBlocks('[DOC]', diagnostics);
 	for (const block of entity.blocks) {
+		if (block.kind !== 'example') {
+			text.take(block);
+			continue;
+		}
 		examples.push(parseExample(block, exampleTitles, 'DOC', outerImports, diagnostics));
 		exampleSpans.push(block.openerSpan);
 	}
@@ -995,7 +1107,8 @@ function parseDoc(
 		slug: slugifyTitle(title),
 		routeSlug: routeSlugAttr(entity.attrs, diagnostics),
 		hide: bareAttr(entity.attrs, 'hide'),
-		notes: notesAttr(entity.attrs, diagnostics),
+		notes: text.result.notes,
+		todos: text.result.todos,
 		sizing: sizingOf(entity.attrs),
 		script: entity.script,
 		style: entity.style,
@@ -1049,7 +1162,10 @@ export function parseSdoc(source: string): SdocDocument {
 				slug: slugifyTitle(title),
 				routeSlug: routeSlugAttr(entity.attrs, diagnostics),
 				hide: bareAttr(entity.attrs, 'hide'),
-				notes: notesAttr(entity.attrs, diagnostics),
+				// [PAGE] takes neither block. [LAYOUT] takes both, but its body
+				// captures no blocks yet — see the scanner.
+				notes: [],
+				todos: [],
 				sizing: sizingOf(entity.attrs),
 				script: entity.script,
 				style: entity.style,

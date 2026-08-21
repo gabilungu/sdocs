@@ -246,16 +246,22 @@ export interface ResolvedSdocsConfig {
 	};
 }
 
-/** How loudly a note speaks. Absent is a note with no intent — a plain
- * remark, shown in grey. */
-export type NoteIntent = 'danger' | 'warning' | 'success' | 'info';
+/**
+ * What a note says about the thing it is attached to. Absent is a plain
+ * remark, shown in grey.
+ *
+ * Status only: `a11y`, `perf` and the like are categories, not statuses, and
+ * mixing them makes the sidebar's worst-first ranking meaningless. Categories
+ * are what `tags` does.
+ */
+export type NoteType = 'bug' | 'deprecated' | 'wip' | 'ready';
 
-/** One entry of a `notes={[…]}` array. */
+/** One line of a `[NOTES]` block. */
 export interface DocNote {
 	/** What the note says. */
 	note: string;
-	/** How loudly; absent is a plain remark, shown in grey. */
-	intent: NoteIntent | null;
+	/** Its status; absent is a plain remark, shown in grey. */
+	type: NoteType | null;
 }
 
 /** Entity metadata from a [SHOWCASE]/[DOC]/[PAGE]/[LAYOUT] opener */

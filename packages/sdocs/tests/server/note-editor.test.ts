@@ -17,13 +17,13 @@ const SHOWCASE = [
 	'',
 	'[SHOWCASE title="Display / Badge" description="A badge."]',
 	'',
-	'\t[component component={Badge}]',
+	'\t[COMPONENT component={Badge}]',
 	'\t\t<Badge />',
-	'\t[/component]',
+	'\t[/COMPONENT]',
 	'',
-	'\t[example title="Plain"]',
+	'\t[EXAMPLE title="Plain"]',
 	'\t\t<Badge />',
-	'\t[/example]',
+	'\t[/EXAMPLE]',
 	'',
 	'[/SHOWCASE]',
 	'',
@@ -37,103 +37,70 @@ function notesOf(source: string, index = 0) {
 }
 
 describe('writeNotes', () => {
-	it('adds an attribute to a single-line opener', () => {
+	it('opens a [NOTES] block under the entity opener', () => {
 		const out = writeNotes(DOC, { entitySlug: 'guides-intro' }, [
-			{ note: 'Being rewritten.', intent: 'warning' },
+			{ note: 'Being rewritten.', type: 'wip' },
 		]);
-		expect(out.split('\n')[0]).toBe(
-			`[DOC title="Guides / Intro" notes={[{ note: 'Being rewritten.', intent: 'warning' }]}]`,
-		);
-		expect(notesOf(out)).toEqual([{ note: 'Being rewritten.', intent: 'warning' }]);
+		expect(out.split('\n').slice(0, 4)).toEqual([
+			'[DOC title="Guides / Intro"]',
+			'',
+			'\t[NOTES]',
+			'\t\t- wip: Being rewritten.',
+		]);
+		expect(notesOf(out)).toEqual([{ note: 'Being rewritten.', type: 'wip' }]);
 	});
 
-	it('leaves every other byte alone', () => {
-		const out = writeNotes(DOC, { entitySlug: 'guides-intro' }, [{ note: 'Hi' }]);
-		expect(out.split('\n').slice(1)).toEqual(DOC.split('\n').slice(1));
+	it('writes a plain remark with no type', () => {
+		const out = writeNotes(DOC, { entitySlug: 'guides-intro' }, [{ note: 'Just so you know' }]);
+		expect(out).toContain('\t\t- Just so you know');
+		expect(notesOf(out)).toEqual([{ note: 'Just so you know', type: null }]);
 	});
 
-	it('replaces an attribute that is already there', () => {
+	it('replaces the block that is already there', () => {
 		const once = writeNotes(DOC, { entitySlug: 'guides-intro' }, [{ note: 'First' }]);
 		const twice = writeNotes(once, { entitySlug: 'guides-intro' }, [
-			{ note: 'Second', intent: 'danger' },
+			{ note: 'Second', type: 'bug' },
 		]);
-		expect(notesOf(twice)).toEqual([{ note: 'Second', intent: 'danger' }]);
-		expect(twice.match(/notes=/g)).toHaveLength(1);
+		expect(notesOf(twice)).toEqual([{ note: 'Second', type: 'bug' }]);
+		expect(twice.match(/\[NOTES\]/g)).toHaveLength(1);
 	});
 
-	it('removes the attribute when the last note goes', () => {
+	it('removes the block when the last note goes', () => {
 		const once = writeNotes(DOC, { entitySlug: 'guides-intro' }, [{ note: 'First' }]);
 		const gone = writeNotes(once, { entitySlug: 'guides-intro' }, []);
 		expect(gone).toBe(DOC);
 	});
 
-	it('wraps a list of several, indented from the opener', () => {
-		const out = writeNotes(DOC, { entitySlug: 'guides-intro' }, [
-			{ note: 'One', intent: 'danger' },
-			{ note: 'Two' },
-		]);
-		// The opener sits at column 0, so the entries take one tab and the
-		// bracket closes back at the opener's own indentation.
-		expect(out.split('\n').slice(0, 4)).toEqual([
-			`[DOC title="Guides / Intro" notes={[`,
-			`\t{ note: 'One', intent: 'danger' },`,
-			`\t{ note: 'Two' },`,
-			`]}]`,
-		]);
-		expect(notesOf(out)).toEqual([
-			{ note: 'One', intent: 'danger' },
-			{ note: 'Two', intent: null },
-		]);
+	it('keeps the rest of the document byte-identical', () => {
+		const out = writeNotes(DOC, { entitySlug: 'guides-intro' }, [{ note: 'Hi' }]);
+		// Everything that was there is still there, in order.
+		for (const line of DOC.split('\n').filter((l) => l.trim())) {
+			expect(out).toContain(line);
+		}
 	});
 
-	it('indents from the attribute when the opener is already wrapped', () => {
-		const wrapped = [
-			'[DOC',
-			'\ttitle="Guides / Intro"',
-			']',
-			'',
-			'\tHello.',
-			'',
-			'[/DOC]',
-			'',
-		].join('\n');
-		const out = writeNotes(wrapped, { entitySlug: 'guides-intro' }, [
-			{ note: 'One' },
-			{ note: 'Two' },
-		]);
-		expect(out.split('\n').slice(0, 6)).toEqual([
-			'[DOC',
-			'\ttitle="Guides / Intro"',
-			'\tnotes={[',
-			"\t\t{ note: 'One' },",
-			"\t\t{ note: 'Two' },",
-			'\t]}',
-		]);
-		expect(notesOf(out)).toEqual([
-			{ note: 'One', intent: null },
-			{ note: 'Two', intent: null },
-		]);
-	});
-
-	it('edits an example without touching its entity', () => {
+	it('writes an example\'s notes inside the example', () => {
 		const out = writeNotes(
 			SHOWCASE,
 			{ entitySlug: 'display-badge', exampleTitle: 'Plain' },
-			[{ note: 'Contrast unverified.', intent: 'danger' }],
+			[{ note: 'Contrast unverified.', type: 'bug' }],
 		);
 		const doc = parseSdoc(out);
 		expect(doc.diagnostics).toEqual([]);
 		const showcase = doc.entities[0] as { notes: unknown[]; examples: { notes: unknown[] }[] };
+		// The entity keeps none of its own; the example carries them.
 		expect(showcase.notes).toEqual([]);
 		expect(showcase.examples[0].notes).toEqual([
-			{ note: 'Contrast unverified.', intent: 'danger' },
+			{ note: 'Contrast unverified.', type: 'bug' },
 		]);
 	});
 
-	it('keeps quotes and backslashes intact', () => {
-		const text = `it's a \\ backslash and 'quotes'`;
-		const out = writeNotes(DOC, { entitySlug: 'guides-intro' }, [{ note: text }]);
-		expect(notesOf(out)).toEqual([{ note: text, intent: null }]);
+	it('flattens a newline rather than splitting one note into two', () => {
+		// The block is one note per line, so a pasted paragraph has to collapse.
+		const out = writeNotes(DOC, { entitySlug: 'guides-intro' }, [
+			{ note: 'First line\nsecond line' },
+		]);
+		expect(notesOf(out)).toEqual([{ note: 'First line second line', type: null }]);
 	});
 
 	it('survives a round trip through its own output', () => {
@@ -141,7 +108,7 @@ describe('writeNotes', () => {
 		for (const note of ['One', 'Two', 'Three']) {
 			source = writeNotes(source, { entitySlug: 'guides-intro' }, [{ note }]);
 		}
-		expect(notesOf(source)).toEqual([{ note: 'Three', intent: null }]);
+		expect(notesOf(source)).toEqual([{ note: 'Three', type: null }]);
 	});
 
 	it('refuses a target it cannot find', () => {

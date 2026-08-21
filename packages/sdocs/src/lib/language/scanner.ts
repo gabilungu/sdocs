@@ -23,19 +23,64 @@ export interface Span {
 }
 
 export type EntityKind = 'SHOWCASE' | 'DOC' | 'PAGE' | 'LAYOUT';
-export type SubBlockKind = 'preview' | 'example';
+export type SubBlockKind = 'preview' | 'example' | 'prose' | 'notes' | 'todo';
 
 export const ENTITY_KINDS: readonly EntityKind[] = ['SHOWCASE', 'DOC', 'PAGE', 'LAYOUT'];
-export const SUB_BLOCK_KINDS: readonly SubBlockKind[] = ['preview', 'example'];
+export const SUB_BLOCK_KINDS: readonly SubBlockKind[] = [
+	'preview',
+	'example',
+	'prose',
+	'notes',
+	'todo',
+];
+
+/** Blocks whose body is prose or a list rather than a Svelte fragment: they
+ * are never staged, never compiled, and carry no block script or style. */
+export const TEXT_BLOCK_KINDS: readonly SubBlockKind[] = ['prose', 'notes', 'todo'];
 
 /** Tag names that open sub-blocks, in their canonical (uppercase) spelling.
  * `[COMPONENT]` documents a component (its internal kind is 'preview');
  * `[EXAMPLE]` is a frozen snippet. */
-export const SUB_BLOCK_TAGS: readonly string[] = ['COMPONENT', 'EXAMPLE'];
+export const SUB_BLOCK_TAGS: readonly string[] = [
+	'COMPONENT',
+	'EXAMPLE',
+	'PROSE',
+	'NOTES',
+	'TODO',
+];
 const SUB_BLOCK_TAG_KINDS: Record<string, SubBlockKind> = {
 	component: 'preview',
 	example: 'example',
 };
+
+const TEXT_BLOCK_TAG_KINDS: Record<string, SubBlockKind> = {
+	NOTES: 'notes',
+	TODO: 'todo',
+	PROSE: 'prose',
+};
+
+/** `^[NOTES]$` and friends — uppercase, and nothing else on the line. */
+const TEXT_BLOCK_RE = /^\[(NOTES|TODO|PROSE)\]$/;
+
+/**
+ * The text block a whole line opens, or null.
+ *
+ * Stricter than the other tags in two ways, and both are the same reason: a
+ * markdown link is `[notes](…)`, which is prose that would otherwise scan as a
+ * block opener. These blocks carry **no attributes**, so a line with anything
+ * after the tag is not one of them; and they are **uppercase only**, having
+ * never existed in lowercase, so `[notes](…)` in prose stays prose.
+ */
+export function textBlockKindOf(trimmedLine: string): SubBlockKind | null {
+	const m = TEXT_BLOCK_RE.exec(trimmedLine);
+	return m ? TEXT_BLOCK_TAG_KINDS[m[1]] : null;
+}
+
+/** The closer for a text block of `kind`. */
+export function textBlockCloser(kind: SubBlockKind): string {
+	const tag = Object.entries(TEXT_BLOCK_TAG_KINDS).find(([, k]) => k === kind)?.[0];
+	return `[/${tag}]`;
+}
 
 /**
  * The kind a sub-block tag opens, or null for an unknown tag.
@@ -699,6 +744,33 @@ export function scanSdoc(source: string): SdocFile {
 				entity.span.end = tagStart + '[/SHOWCASE]'.length;
 				return i + 1;
 			}
+			const textKind = textBlockKindOf(trimmed);
+			if (textKind) {
+				const captured = captureBody(i + 1, textBlockCloser(textKind));
+				if (!captured) {
+					errors.push({
+						code: 'unclosed-block',
+						message: `Missing ${textBlockCloser(textKind)}.`,
+						span: { start: line.start, end: line.end },
+					});
+					return lines.length;
+				}
+				entity.blocks.push({
+					kind: textKind,
+					tag: trimmed.slice(1, -1),
+					attrs: {},
+					body: captured.body,
+					bodySpan: captured.bodySpan,
+					script: null,
+					style: null,
+					markup: captured.body,
+					markupSpan: captured.bodySpan,
+					openerSpan: { start: line.start + line.text.indexOf('['), end: line.end },
+					span: { start: line.start + line.text.indexOf('['), end: captured.closerSpan.end },
+				});
+				i = captured.nextLi;
+				continue;
+			}
 			if (token && !token.closer && subBlockKindOf(token.name)) {
 				const opener = scanOpener(i, token.name.length);
 				if (!opener) return lines.length;
@@ -711,9 +783,10 @@ export function scanSdoc(source: string): SdocFile {
 					});
 					return lines.length;
 				}
+				const kind = subBlockKindOf(token.name)!;
 				const sub = scanSubBlockBody(opener.nextLi, captured.nextLi - 1, token.name);
 				entity.blocks.push({
-					kind: subBlockKindOf(token.name)!,
+					kind,
 					tag: token.name,
 					attrs: opener.attrs,
 					body: captured.body,
@@ -865,10 +938,40 @@ export function scanSdoc(source: string): SdocFile {
 				return i + 1;
 			}
 			const token = tagToken(trimmed);
-			// Matched by kind, not by spelling: a DOC's examples come in either
+			// Matched by kind, not by spelling: a DOC's blocks come in either
 			// casing like everywhere else, and the closer has to be the one
-			// this opener actually used.
-			if (token && !token.closer && subBlockKindOf(token.name) === 'example') {
+			// this opener actually used. A DOC takes examples and the text
+			// blocks; only [COMPONENT] is refused, below.
+			const docTextKind = textBlockKindOf(trimmed);
+			if (docTextKind) {
+				const captured = captureBody(i + 1, textBlockCloser(docTextKind));
+				if (!captured) {
+					errors.push({
+						code: 'unclosed-block',
+						message: `Missing ${textBlockCloser(docTextKind)}.`,
+						span: { start: line.start, end: line.end },
+					});
+					return lines.length;
+				}
+				entity.blocks.push({
+					kind: docTextKind,
+					tag: trimmed.slice(1, -1),
+					attrs: {},
+					body: captured.body,
+					bodySpan: captured.bodySpan,
+					script: null,
+					style: null,
+					markup: captured.body,
+					markupSpan: captured.bodySpan,
+					openerSpan: { start: line.start + line.text.indexOf('['), end: line.end },
+					span: { start: line.start + line.text.indexOf('['), end: captured.closerSpan.end },
+				});
+				bodyEnd = captured.closerSpan.end;
+				i = captured.nextLi;
+				continue;
+			}
+			const docKind = token && !token.closer ? subBlockKindOf(token.name) : null;
+			if (token && docKind && docKind === 'example') {
 				const opener = scanOpener(i, token.name.length);
 				if (!opener) return lines.length;
 				const closer = `[/${token.name}]`;
@@ -881,9 +984,9 @@ export function scanSdoc(source: string): SdocFile {
 					});
 					return lines.length;
 				}
-				const sub = scanSubBlockBody(opener.nextLi, captured.nextLi - 1, 'example');
+				const sub = scanSubBlockBody(opener.nextLi, captured.nextLi - 1, token.name);
 				entity.blocks.push({
-					kind: 'example',
+					kind: docKind,
 					tag: token.name,
 					attrs: opener.attrs,
 					body: captured.body,

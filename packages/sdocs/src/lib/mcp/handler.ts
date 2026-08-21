@@ -107,9 +107,9 @@ const INSTRUCTIONS =
 /** Results one search_docs call returns before it starts reporting a cut. */
 const SEARCH_LIMIT = 50;
 
-/** Note severities search_docs will filter on; 'none' is a note written
- * without an intent. */
-const SEARCH_INTENTS = ['danger', 'warning', 'success', 'info', 'none'];
+/** Note types search_docs will filter on; 'none' is a note written
+ * without one. */
+const SEARCH_TYPES = ['bug', 'deprecated', 'wip', 'ready', 'none'];
 
 const TOOLS = [
 	{
@@ -178,7 +178,7 @@ const TOOLS = [
 			'Matching is a case-insensitive substring, so "butt" finds Button and ' +
 			'"menu" finds every example tagged "user menu". `intent` sweeps by ' +
 			'note severity instead — intent:"danger" lists everything marked ' +
-			'danger, with no query at all; give both and a result has to satisfy ' +
+			'as a bug, with no query at all; give both and a result has to satisfy ' +
 			'both. Each hit reports which name matched, the notes it carries, and ' +
 			'the route it serves at; pass that route to resolve_visual_target to ' +
 			'screenshot it. Use it to find the right page before reading files.',
@@ -190,11 +190,11 @@ const TOOLS = [
 					description:
 						'Text to look for in titles, component names, synonyms, tags and note text',
 				},
-				intent: {
+				type: {
 					type: 'string',
-					enum: SEARCH_INTENTS,
+					enum: SEARCH_TYPES,
 					description:
-						"Only pages carrying a note of this severity; 'none' is a note written without an intent",
+						"Only pages carrying a note of this type; 'none' is a note written without one",
 				},
 				limit: {
 					type: 'number',
@@ -575,27 +575,27 @@ async function listDocs() {
  */
 /** The intent of a note as the filter names it — an unset one is 'none'. */
 function intentName(note: DocNote): string {
-	return note.intent ?? 'none';
+	return note.type ?? 'none';
 }
 
 /** Why an intent filter kept a result, reported alongside the query's hits. */
-function intentHits(notes: DocNote[], intent: string): string[] {
-	if (!intent) return [];
+function intentHits(notes: DocNote[], type: string): string[] {
+	if (!type) return [];
 	return notes
-		.filter((n) => intentName(n) === intent)
-		.map((n) => `note intent: ${intentName(n)}`);
+		.filter((n) => intentName(n) === type)
+		.map((n) => `note type: ${intentName(n)}`);
 }
 
 async function searchDocs(params: Record<string, unknown>) {
 	const raw = typeof params.query === 'string' ? params.query.trim() : '';
-	const intent = typeof params.intent === 'string' ? params.intent.trim() : '';
+	const type = typeof params.type === 'string' ? params.type.trim() : '';
 	// One or the other is enough: a text search, a sweep of everything marked
 	// danger, or both together.
-	if (!raw && !intent) {
-		return invalidParams('search_docs needs a query, an intent, or both');
+	if (!raw && !type) {
+		return invalidParams('search_docs needs a query, a type, or both');
 	}
-	if (intent && !SEARCH_INTENTS.includes(intent)) {
-		return invalidParams(`intent must be one of ${SEARCH_INTENTS.join(', ')}`);
+	if (type && !SEARCH_TYPES.includes(type)) {
+		return invalidParams(`type must be one of ${SEARCH_TYPES.join(', ')}`);
 	}
 	const limit = typeof params.limit === 'number' && params.limit > 0 ? params.limit : SEARCH_LIMIT;
 	const needle = raw.toLowerCase();
@@ -603,7 +603,7 @@ async function searchDocs(params: Record<string, unknown>) {
 	/** With both given, a result has to satisfy both. */
 	const keep = (matched: string[], notes: DocNote[]) => {
 		if (raw && !matched.length) return false;
-		if (intent && !notes.some((n) => intentName(n) === intent)) return false;
+		if (type && !notes.some((n) => intentName(n) === type)) return false;
 		return true;
 	};
 
@@ -625,7 +625,7 @@ async function searchDocs(params: Record<string, unknown>) {
 			}
 			// Kept apart from the query's hits until the decision is made: an
 			// intent match must not stand in for the text the caller asked for.
-			const byIntent = intentHits(entity.notes, intent);
+			const byIntent = intentHits(entity.notes, type);
 			if (keep(matched, entity.notes)) {
 				results.push({
 					kind: entity.kind,
@@ -649,7 +649,7 @@ async function searchDocs(params: Record<string, unknown>) {
 				for (const note of example.notes) {
 					if (hits(note.note)) why.push(`note: ${note.note}`);
 				}
-				const whyIntent = intentHits(example.notes, intent);
+				const whyIntent = intentHits(example.notes, type);
 				if (!keep(why, example.notes)) continue;
 				results.push({
 					kind: 'example',
@@ -668,7 +668,7 @@ async function searchDocs(params: Record<string, unknown>) {
 
 	return toolResult({
 		...(raw ? { query: raw } : {}),
-		...(intent ? { intent } : {}),
+		...(type ? { type } : {}),
 		total: results.length,
 		// Say so rather than quietly serving a slice — a caller that sees 50
 		// results and no note reads it as "that is all of them".

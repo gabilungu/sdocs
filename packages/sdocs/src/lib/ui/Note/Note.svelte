@@ -1,33 +1,33 @@
 <script lang="ts">
-	import type { NoteIntent } from '../../types.js';
+	import type { NoteType } from '../../types.js';
 	import { Icon } from '../Icon/index.js';
 
 	interface Props {
 		/** The note's text. */
 		text: string;
-		/** How loudly to say it. Unset reads as a plain remark, in grey. */
-		intent?: NoteIntent | null;
+		/** What it says about the page. Unset reads as a plain remark, in grey. */
+		type?: NoteType | null;
 		/** Show a dismiss button, and report the dismissal. For a note with
 		 * nowhere of its own to sit — one laid over a layout — where staying
 		 * put would mean covering the thing it is about. */
 		onclose?: () => void;
 	}
 
-	let { text, intent = null, onclose }: Props = $props();
+	let { text, type = null, onclose }: Props = $props();
 
 	/** The glyph per intent. An unset intent still gets the information mark:
 	 * it is a remark, which is what that glyph means, only quieter. */
-	const ICONS: Record<NoteIntent, string> = {
-		danger: 'circle-alert',
-		warning: 'triangle-alert',
-		success: 'circle-check',
-		info: 'info',
+	const ICONS: Record<NoteType, string> = {
+		bug: 'circle-alert',
+		deprecated: 'triangle-alert',
+		wip: 'info',
+		ready: 'circle-check',
 	};
 
-	const icon = $derived(intent ? ICONS[intent] : 'info');
+	const icon = $derived(type ? ICONS[type] : 'info');
 </script>
 
-<div class="Note" data-intent={intent ?? 'none'} role={intent === 'danger' ? 'alert' : 'note'}>
+<div class="Note" data-type={type ?? 'none'} role={type === 'bug' ? 'alert' : 'note'}>
 	<Icon name={icon} --w="16px" --h="16px" --fill="var(--noteAccent)" />
 	<p class="Note-text">{text}</p>
 	{#if onclose}
@@ -67,22 +67,22 @@
 		line-height: 1.5;
 		color: var(--noteText);
 	}
-	.Note[data-intent='danger'] {
+	.Note[data-type='bug'] {
 		--noteAccent: var(--color-danger-500);
 		--noteBg: var(--color-danger-100);
 		--noteText: var(--color-danger-700);
 	}
-	.Note[data-intent='warning'] {
+	.Note[data-type='deprecated'] {
 		--noteAccent: var(--color-warning-500);
 		--noteBg: var(--color-warning-100);
 		--noteText: var(--color-warning-700);
 	}
-	.Note[data-intent='success'] {
+	.Note[data-type='ready'] {
 		--noteAccent: var(--color-success-500);
 		--noteBg: var(--color-success-100);
 		--noteText: var(--color-success-700);
 	}
-	.Note[data-intent='info'] {
+	.Note[data-type='wip'] {
 		--noteAccent: var(--color-action-500);
 		--noteBg: var(--color-action-100);
 		--noteText: var(--color-action-700);

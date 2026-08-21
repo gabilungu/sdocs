@@ -135,17 +135,17 @@ describe('attributeRules (shared by diagnostics and completions)', () => {
 		// [component] is the canonical tag for the same block
 		expect(attributeRules('component')).toEqual(attributeRules('preview'));
 		expect(Object.keys(attributeRules('example'))).toEqual([
-			'title', 'description', 'tags', 'code', 'notes', 'maxWidth', 'padding', 'direction', 'gap', 'contentX', 'contentY', 'background', 'minHeight',
+			'title', 'description', 'tags', 'code', 'maxWidth', 'padding', 'direction', 'gap', 'contentX', 'contentY', 'background', 'minHeight',
 		]);
 		expect(Object.keys(attributeRules('DOC'))).toEqual([
-			'title', 'notes', 'slug', 'hide', 'maxWidth', 'padding', 'contentX', 'toc',
+			'title', 'slug', 'hide', 'maxWidth', 'padding', 'contentX', 'toc',
 		]);
 		expect(Object.keys(attributeRules('PAGE'))).toEqual([
-			'title', 'notes', 'slug', 'hide', 'maxWidth', 'padding', 'contentX',
+			'title', 'slug', 'hide', 'maxWidth', 'padding', 'contentX',
 		]);
 		expect(Object.keys(attributeRules('SHOWCASE'))).toContain('gap');
 		expect(Object.keys(attributeRules('SHOWCASE'))).toContain('slug');
-		expect(Object.keys(attributeRules('LAYOUT'))).toEqual(['title', 'notes', 'slug', 'hide', 'maxWidth', 'padding', 'background', 'minHeight']);
+		expect(Object.keys(attributeRules('LAYOUT'))).toEqual(['title', 'slug', 'hide', 'maxWidth', 'padding', 'background', 'minHeight']);
 	});
 
 	it('carries value kind and required flag for each attribute', () => {

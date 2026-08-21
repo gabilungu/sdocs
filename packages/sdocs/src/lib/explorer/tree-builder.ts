@@ -2,7 +2,7 @@ import type {
 	DocEntry,
 	DocNote,
 	NormalizedSection,
-	NoteIntent,
+	NoteType,
 	SectionDivider,
 	SectionEntry,
 } from '../types.js';
@@ -36,7 +36,7 @@ export interface TreeNode {
 /** What a sidebar row says about the notes at and under it. */
 export interface NoteMark {
 	/** The worst intent found; `null` is a note written without one. */
-	intent: NoteIntent | null;
+	type: NoteType | null;
 	/** The worst one is this row's own note, rather than something inside it. */
 	own: boolean;
 }
@@ -476,10 +476,10 @@ function registerRoutes(
  * and `info`: it says "read me" without saying what about, which is more than
  * a note whose whole content is reassurance.
  */
-const NOTE_ORDER: (NoteIntent | null)[] = ['danger', 'warning', null, 'success', 'info'];
+const NOTE_ORDER: (NoteType | null)[] = ['bug', 'deprecated', 'wip', null, 'ready'];
 
-function noteRank(intent: NoteIntent | null): number {
-	const at = NOTE_ORDER.indexOf(intent);
+function noteRank(type: NoteType | null): number {
+	const at = NOTE_ORDER.indexOf(type);
 	// An intent the parser would have rejected: rank it last rather than
 	// letting `indexOf`'s -1 make it the worst thing in the tree.
 	return at === -1 ? NOTE_ORDER.length : at;
@@ -497,8 +497,8 @@ function ownNotes(node: TreeNode): DocNote[] {
 function worstOwn(notes: DocNote[]): NoteMark | null {
 	let worst: NoteMark | null = null;
 	for (const note of notes) {
-		if (!worst || noteRank(note.intent) < noteRank(worst.intent)) {
-			worst = { intent: note.intent, own: true };
+		if (!worst || noteRank(note.type) < noteRank(worst.type)) {
+			worst = { type: note.type, own: true };
 		}
 	}
 	return worst;
@@ -518,13 +518,13 @@ function markNotes(nodes: TreeNode[]): NoteMark | null {
 	for (const node of nodes) {
 		const inside = markNotes(node.children);
 		let mark = worstOwn(ownNotes(node));
-		if (inside && (!mark || noteRank(inside.intent) < noteRank(mark.intent))) {
-			mark = { intent: inside.intent, own: false };
+		if (inside && (!mark || noteRank(inside.type) < noteRank(mark.type))) {
+			mark = { type: inside.type, own: false };
 		}
 		node.mark = mark;
-		if (mark && (!worst || noteRank(mark.intent) < noteRank(worst.intent))) {
+		if (mark && (!worst || noteRank(mark.type) < noteRank(worst.type))) {
 			// Whatever it is to this row, to the row above it is something inside.
-			worst = { intent: mark.intent, own: false };
+			worst = { type: mark.type, own: false };
 		}
 	}
 	return worst;

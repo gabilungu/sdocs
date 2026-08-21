@@ -67,8 +67,8 @@ describe('displayTitle', () => {
 });
 
 describe('note marks roll up the tree', () => {
-	const noted = (title: string, intent: string | null, kind: DocEntry['kind'] = 'doc') =>
-		doc(title, kind, { meta: { title, notes: [{ note: 'x', intent }] } } as Partial<DocEntry>);
+	const noted = (title: string, type: string | null, kind: DocEntry['kind'] = 'doc') =>
+		doc(title, kind, { meta: { title, notes: [{ note: 'x', type }] } } as Partial<DocEntry>);
 
 	/** The mark on the row reached by walking `names` from the root. */
 	function markAt(tree: ReturnType<typeof buildSections>, ...names: string[]) {
@@ -83,8 +83,8 @@ describe('note marks roll up the tree', () => {
 	}
 
 	it('marks the row that carries the note as its own', () => {
-		const map = buildSections([noted('Alpha', 'danger')]);
-		expect(markAt(map, 'Alpha')).toEqual({ intent: 'danger', own: true });
+		const map = buildSections([noted('Alpha', 'bug')]);
+		expect(markAt(map, 'Alpha')).toEqual({ type: 'bug', own: true });
 	});
 
 	it('takes the worst of several notes on one row', () => {
@@ -93,14 +93,14 @@ describe('note marks roll up the tree', () => {
 				meta: {
 					title: 'Alpha',
 					notes: [
-						{ note: 'a', intent: 'info' },
-						{ note: 'b', intent: 'danger' },
-						{ note: 'c', intent: 'success' },
+						{ note: 'a', type: 'wip' },
+						{ note: 'b', type: 'bug' },
+						{ note: 'c', type: 'ready' },
 					],
 				},
 			} as Partial<DocEntry>),
 		]);
-		expect(markAt(map, 'Alpha')).toEqual({ intent: 'danger', own: true });
+		expect(markAt(map, 'Alpha')).toEqual({ type: 'bug', own: true });
 	});
 
 	it('leaves a row with nothing to say unmarked', () => {
@@ -109,20 +109,20 @@ describe('note marks roll up the tree', () => {
 
 	it('shows a parent the worst of what is inside it, hollow', () => {
 		const map = buildSections([
-			noted('Forms / Quiet', 'info'),
-			noted('Forms / Loud', 'danger'),
+			noted('Forms / Quiet', 'wip'),
+			noted('Forms / Loud', 'bug'),
 		]);
-		expect(markAt(map, 'Forms')).toEqual({ intent: 'danger', own: false });
+		expect(markAt(map, 'Forms')).toEqual({ type: 'bug', own: false });
 	});
 
-	it('ranks an intentless note above success and info', () => {
-		const map = buildSections([noted('Forms / Plain', null), noted('Forms / Good', 'success')]);
-		expect(markAt(map, 'Forms')).toEqual({ intent: null, own: false });
+	it('ranks an typeless note above success and info', () => {
+		const map = buildSections([noted('Forms / Plain', null), noted('Forms / Good', 'ready')]);
+		expect(markAt(map, 'Forms')).toEqual({ type: null, own: false });
 	});
 
 	it('ranks danger above warning', () => {
-		const map = buildSections([noted('Forms / A', 'warning'), noted('Forms / B', 'danger')]);
-		expect(markAt(map, 'Forms')).toEqual({ intent: 'danger', own: false });
+		const map = buildSections([noted('Forms / A', 'deprecated'), noted('Forms / B', 'bug')]);
+		expect(markAt(map, 'Forms')).toEqual({ type: 'bug', own: false });
 	});
 
 	it('takes the worst even when the row has a note of its own', () => {
@@ -130,26 +130,26 @@ describe('note marks roll up the tree', () => {
 		// inside it — hollow, because the danger is not on this page.
 		const map = buildSections([
 			doc('Badge', 'component', {
-				meta: { title: 'Badge', notes: [{ note: 'x', intent: 'info' }] },
+				meta: { title: 'Badge', notes: [{ note: 'x', type: 'wip' }] },
 				examples: [
-					{ name: 'Broken', slug: 'broken', role: 'example', body: '', notes: [{ note: 'y', intent: 'danger' }] },
+					{ name: 'Broken', slug: 'broken', role: 'example', body: '', notes: [{ note: 'y', type: 'bug' }] },
 				],
 			} as Partial<DocEntry>),
 		]);
-		expect(markAt(map, 'Badge')).toEqual({ intent: 'danger', own: false });
-		expect(markAt(map, 'Badge', 'Broken')).toEqual({ intent: 'danger', own: true });
+		expect(markAt(map, 'Badge')).toEqual({ type: 'bug', own: false });
+		expect(markAt(map, 'Badge', 'Broken')).toEqual({ type: 'bug', own: true });
 	});
 
 	it("keeps the row's own note when nothing inside is worse", () => {
 		const map = buildSections([
 			doc('Badge', 'component', {
-				meta: { title: 'Badge', notes: [{ note: 'x', intent: 'danger' }] },
+				meta: { title: 'Badge', notes: [{ note: 'x', type: 'bug' }] },
 				examples: [
-					{ name: 'Fine', slug: 'fine', role: 'example', body: '', notes: [{ note: 'y', intent: 'info' }] },
+					{ name: 'Fine', slug: 'fine', role: 'example', body: '', notes: [{ note: 'y', type: 'wip' }] },
 				],
 			} as Partial<DocEntry>),
 		]);
-		expect(markAt(map, 'Badge')).toEqual({ intent: 'danger', own: true });
+		expect(markAt(map, 'Badge')).toEqual({ type: 'bug', own: true });
 	});
 
 	it("does not surface a hidden entity's note on its parent", () => {
@@ -157,7 +157,7 @@ describe('note marks roll up the tree', () => {
 		const map = buildSections([
 			doc('Forms / Secret', 'doc', {
 				hide: true,
-				meta: { title: 'Forms / Secret', notes: [{ note: 'x', intent: 'danger' }] },
+				meta: { title: 'Forms / Secret', notes: [{ note: 'x', type: 'bug' }] },
 			} as Partial<DocEntry>),
 			doc('Forms / Shown'),
 		]);

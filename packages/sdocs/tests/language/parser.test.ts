@@ -130,120 +130,75 @@ describe('example code panel', () => {
 });
 
 describe('notes', () => {
-	const entity = (opener: string) =>
-		parseSdoc([`[DOC ${opener}]`, '\tHello.', '[/DOC]'].join('\n'));
+	const entity = (body: string[]) =>
+		parseSdoc(['[DOC title="X"]', ...body, '[/DOC]', ''].join('\n'));
 
-	it('reads a note and its intent', () => {
-		const doc = entity(`title="X" notes={[{ note: 'Deprecated in v3', intent: 'warning' }]}`);
-		expect(doc.diagnostics).toEqual([]);
-		expect(doc.entities[0].notes).toEqual([{ note: 'Deprecated in v3', intent: 'warning' }]);
-	});
-
-	it('reads several, in the order written', () => {
-		const doc = entity(
-			`title="X" notes={[{ note: 'One', intent: 'danger' }, { note: 'Two' }, { note: 'Three', intent: 'info' }]}`,
-		);
+	it('reads a typed note and a plain one', () => {
+		const doc = entity(['\t[NOTES]', '\t\t- wip: Being rewritten.', '\t\t- Plain.', '\t[/NOTES]']);
 		expect(doc.diagnostics).toEqual([]);
 		expect(doc.entities[0].notes).toEqual([
-			{ note: 'One', intent: 'danger' },
-			{ note: 'Two', intent: null },
-			{ note: 'Three', intent: 'info' },
+			{ note: 'Being rewritten.', type: 'wip' },
+			{ note: 'Plain.', type: null },
 		]);
 	});
 
-	it('leaves the intent null when only a note is given', () => {
-		const doc = entity(`title="X" notes={[{ note: 'Just so you know' }]}`);
+	it('is empty when there is no block', () => {
+		expect(entity(['\tHello.']).entities[0].notes).toEqual([]);
+	});
+
+	it('rejects a type it does not know', () => {
+		// Silently dropping the type would render grey — a real status of its
+		// own — so a typo would read as a deliberate choice.
+		const doc = entity(['\t[NOTES]', '\t\t- critical: Hi', '\t[/NOTES]']);
+		expect(doc.diagnostics.map((d) => d.code)).toEqual(['note-type']);
+	});
+
+	it('rejects a line that is not a note', () => {
+		const doc = entity(['\t[NOTES]', '\t\tjust prose', '\t[/NOTES]']);
+		expect(doc.diagnostics.map((d) => d.code)).toEqual(['note-line']);
+	});
+
+	it('rejects a second block rather than picking one', () => {
+		const doc = entity([
+			'\t[NOTES]', '\t\t- One', '\t[/NOTES]',
+			'\t[NOTES]', '\t\t- Two', '\t[/NOTES]',
+		]);
+		expect(doc.diagnostics.map((d) => d.code)).toEqual(['duplicate-block']);
+	});
+});
+
+describe('todos', () => {
+	const entity = (body: string[]) =>
+		parseSdoc(['[DOC title="X"]', ...body, '[/DOC]', ''].join('\n'));
+
+	it('nests by indentation, to any depth', () => {
+		const doc = entity([
+			'\t[TODO]',
+			'\t\t- [ ] one',
+			'\t\t\t- [x] two',
+			'\t\t\t\t- [ ] three',
+			'\t\t- [x] four',
+			'\t[/TODO]',
+		]);
 		expect(doc.diagnostics).toEqual([]);
-		expect(doc.entities[0].notes).toEqual([{ note: 'Just so you know', intent: null }]);
+		expect(doc.entities[0].todos).toEqual([
+			{ text: 'one', done: false, children: [
+				{ text: 'two', done: true, children: [
+					{ text: 'three', done: false, children: [] },
+				]},
+			]},
+			{ text: 'four', done: true, children: [] },
+		]);
 	});
 
-	it('is empty when there are no notes', () => {
-		expect(entity('title="X"').entities[0].notes).toEqual([]);
+	it('takes an upper-case X as done', () => {
+		const doc = entity(['\t[TODO]', '\t\t- [X] done', '\t[/TODO]']);
+		expect(doc.entities[0].todos[0].done).toBe(true);
 	});
 
-	it('takes an empty array', () => {
-		const doc = entity('title="X" notes={[]}');
-		expect(doc.diagnostics).toEqual([]);
-		expect(doc.entities[0].notes).toEqual([]);
-	});
-
-	it('rejects an intent it does not know', () => {
-		// Silently ignoring it would render grey — a real intent of its own —
-		// so a typo would read as a deliberate choice.
-		const doc = entity(`title="X" notes={[{ note: 'Hi', intent: 'critical' }]}`);
-		expect(doc.diagnostics.map((d) => d.code)).toEqual(['notes-literal']);
-		expect(doc.entities[0].notes).toEqual([]);
-	});
-
-	it('rejects an entry with no note to show', () => {
-		const doc = entity(`title="X" notes={[{ intent: 'danger' }]}`);
-		expect(doc.diagnostics.map((d) => d.code)).toEqual(['notes-literal']);
-	});
-
-	it('rejects a key it does not know', () => {
-		const doc = entity(`title="X" notes={[{ note: 'Hi', tone: 'danger' }]}`);
-		expect(doc.diagnostics.map((d) => d.code)).toEqual(['notes-literal']);
-	});
-
-	it('rejects anything that is not a plain string', () => {
-		// The attribute source is never evaluated, so a value that would need
-		// running is reported rather than run.
-		const doc = entity('title="X" notes={[{ note: someVariable }]}');
-		expect(doc.diagnostics.map((d) => d.code)).toEqual(['notes-literal']);
-	});
-
-	it('rejects a bare object instead of an array', () => {
-		const doc = entity(`title="X" notes={{ note: 'Hi' }}`);
-		expect(doc.diagnostics.map((d) => d.code)).toEqual(['notes-literal']);
-	});
-
-	it('is taken on every entity, and on an example', () => {
-		const source = [
-			'<script>',
-			"\timport Badge from './Badge.svelte';",
-			'</script>',
-			'',
-			`[SHOWCASE title="Badge" notes={[{ note: 'Showcase note', intent: 'info' }]}]`,
-			'\t[component component={Badge}]',
-			'\t\t<Badge />',
-			'\t[/component]',
-			`\t[example title="One" notes={[{ note: 'Example note', intent: 'danger' }]}]`,
-			'\t\t<Badge />',
-			'\t[/example]',
-			'[/SHOWCASE]',
-			'',
-			`[PAGE title="P" notes={[{ note: 'Page note' }]}]`,
-			'\t<p>hi</p>',
-			'[/PAGE]',
-			'',
-			`[LAYOUT title="L" notes={[{ note: 'Layout note', intent: 'success' }]}]`,
-			'\t<main>hi</main>',
-			'[/LAYOUT]',
-		].join('\n');
-		const doc = parseSdoc(source);
-		expect(doc.diagnostics).toEqual([]);
-		const showcase = doc.entities[0] as ShowcaseEntity;
-		expect(showcase.notes).toEqual([{ note: 'Showcase note', intent: 'info' }]);
-		expect(showcase.examples[0].notes).toEqual([{ note: 'Example note', intent: 'danger' }]);
-		expect(doc.entities[1].notes).toEqual([{ note: 'Page note', intent: null }]);
-		expect(doc.entities[2].notes).toEqual([{ note: 'Layout note', intent: 'success' }]);
-	});
-
-	it('is not an attribute of [component]', () => {
-		const doc = parseSdoc(
-			[
-				'<script>',
-				"\timport Badge from './Badge.svelte';",
-				'</script>',
-				'',
-				'[SHOWCASE title="Badge"]',
-				`\t[component component={Badge} notes={[{ note: 'nope' }]}]`,
-				'\t\t<Badge />',
-				'\t[/component]',
-				'[/SHOWCASE]',
-			].join('\n'),
-		);
-		expect(doc.diagnostics.map((d) => d.code)).toEqual(['unknown-attr']);
+	it('rejects a line that is not a task', () => {
+		const doc = entity(['\t[TODO]', '\t\t- no checkbox', '\t[/TODO]']);
+		expect(doc.diagnostics.map((d) => d.code)).toEqual(['todo-line']);
 	});
 });
 

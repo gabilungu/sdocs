@@ -69,7 +69,7 @@
 		{#if doc.meta?.notes?.length}
 			<div class="sdocs-page-note">
 				{#each doc.meta.notes as entry, i (i)}
-					<Note text={entry.note} intent={entry.intent} />
+					<Note text={entry.note} type={entry.type} />
 				{/each}
 			</div>
 		{/if}

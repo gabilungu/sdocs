@@ -287,7 +287,7 @@
 <!-- Every note an opener carries, in the order it was written. -->
 {#snippet notes(list: DocNote[], onclose?: (i: number) => void)}
 	{#each list as entry, i (i)}
-		<Note text={entry.note} intent={entry.intent} onclose={onclose && (() => onclose(i))} />
+		<Note text={entry.note} type={entry.type} onclose={onclose && (() => onclose(i))} />
 	{/each}
 {/snippet}
 

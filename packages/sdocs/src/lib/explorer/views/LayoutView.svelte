@@ -56,7 +56,7 @@
 				{#if !dismissed.includes(i)}
 					<Note
 						text={entry.note}
-						intent={entry.intent}
+						type={entry.type}
 						onclose={() => (dismissed = [...dismissed, i])}
 					/>
 				{/if}

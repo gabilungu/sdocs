@@ -354,7 +354,7 @@
 	<span
 		class="sdocs-note-dot"
 		class:is-own={mark.own}
-		data-intent={mark.intent ?? 'none'}
+		data-type={mark.type ?? 'none'}
 		title={mark.own ? 'Has a note' : 'Something inside has a note'}
 	></span>
 {/snippet}
@@ -501,16 +501,16 @@
 	.sdocs-note-dot.is-own {
 		background: var(--dot);
 	}
-	.sdocs-note-dot[data-intent='danger'] {
+	.sdocs-note-dot[data-type='bug'] {
 		--dot: var(--color-danger-500);
 	}
-	.sdocs-note-dot[data-intent='warning'] {
+	.sdocs-note-dot[data-type='deprecated'] {
 		--dot: var(--color-warning-500);
 	}
-	.sdocs-note-dot[data-intent='success'] {
+	.sdocs-note-dot[data-type='ready'] {
 		--dot: var(--color-success-500);
 	}
-	.sdocs-note-dot[data-intent='info'] {
+	.sdocs-note-dot[data-type='wip'] {
 		--dot: var(--color-action-500);
 	}
 

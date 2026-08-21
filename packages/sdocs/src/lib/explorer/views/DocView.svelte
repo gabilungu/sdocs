@@ -200,7 +200,7 @@
 						/>
 					</div>
 					{#each meta.notes ?? [] as entry, i (i)}
-						<Note text={entry.note} intent={entry.intent} />
+						<Note text={entry.note} type={entry.type} />
 					{/each}
 					{#if meta.description}
 						<p class="sdocs-view-description">{@html renderInlineMarkdown(meta.description)}</p>
@@ -225,7 +225,7 @@
 				     would have had, just above it. -->
 				<div class="sdocs-doc-note">
 					{#each meta.notes as entry, i (i)}
-						<Note text={entry.note} intent={entry.intent} />
+						<Note text={entry.note} type={entry.type} />
 					{/each}
 				</div>
 			{/if}

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { DocNote, NoteIntent } from '../../types.js';
+	import type { DocNote, NoteType } from '../../types.js';
 	import { Icon } from '../../ui/Icon/index.js';
 
 	interface Props {
@@ -17,7 +17,7 @@
 
 	let { label, file, entitySlug, exampleTitle = null, notes, onclose }: Props = $props();
 
-	const INTENTS: (NoteIntent | 'none')[] = ['none', 'info', 'success', 'warning', 'danger'];
+	const TYPES: (NoteType | 'none')[] = ['none', 'ready', 'wip', 'deprecated', 'bug'];
 
 	// A copy: closing the editor has to leave the page exactly as it was, and
 	// the page is rendering the very array being edited.
@@ -28,7 +28,7 @@
 	let error = $state<string | null>(null);
 
 	function add() {
-		draft = [...draft, { note: '', intent: null }];
+		draft = [...draft, { note: '', type: null }];
 	}
 
 	function remove(index: number) {
@@ -88,14 +88,14 @@
 				<div class="sdocs-note-row">
 					<select
 						class="sdocs-note-intent"
-						value={entry.intent ?? 'none'}
+						value={entry.type ?? 'none'}
 						onchange={(e) => {
 							const picked = e.currentTarget.value;
-							entry.intent = picked === 'none' ? null : (picked as NoteIntent);
+							entry.type = picked === 'none' ? null : (picked as NoteType);
 						}}
-						aria-label="Intent"
+						aria-label="Type"
 					>
-						{#each INTENTS as option (option)}
+						{#each TYPES as option (option)}
 							<option value={option}>{option}</option>
 						{/each}
 					</select>

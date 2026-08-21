@@ -25,27 +25,20 @@ export interface NoteTarget {
 
 export class NoteTargetError extends Error {}
 
-/** A single-quoted literal for the attribute source. */
-function quote(text: string): string {
-	return `'${text.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
-}
-
 /**
- * The `notes={[…]}` attribute text, or '' when there is nothing to write.
+ * A `[NOTES]` block, or '' when there is nothing to write.
  *
- * `base` is the indentation the attribute itself sits at — the opener's own
- * for an attribute written on the opener line, one tab deeper when the opener
- * is already wrapped one-attribute-per-line. A wrapped list indents from
- * there, so it lines up whichever shape it lands in.
+ * `base` is the indentation the block sits at — one level inside its entity or
+ * example. A note's text is written verbatim on one line: the block's grammar
+ * is one note per line, so a newline inside a note would split it in two.
  */
 export function serializeNotes(notes: DocNote[], base: string): string {
 	if (notes.length === 0) return '';
-	const entries = notes.map(
-		(n) => `{ note: ${quote(n.note)}${n.intent ? `, intent: ${quote(n.intent)}` : ''} }`,
-	);
-	const oneLine = `notes={[${entries.join(', ')}]}`;
-	if (base.length + oneLine.length <= 100 && entries.length === 1) return oneLine;
-	return `notes={[\n${entries.map((e) => `${base}\t${e},`).join('\n')}\n${base}]}`;
+	const lines = notes.map((n) => {
+		const text = n.note.replace(/\r?\n/g, ' ').trim();
+		return `${base}\t- ${n.type ? `${n.type}: ` : ''}${text}`;
+	});
+	return [`${base}[NOTES]`, ...lines, `${base}[/NOTES]`].join('\n');
 }
 
 /** The whitespace opening the line `offset` sits on — what the opener is
@@ -61,25 +54,60 @@ function titleOf(attrs: Attrs): string {
 }
 
 /** The entity and, optionally, the example block the target names. */
-function locate(
-	entities: Entity[],
-	target: NoteTarget,
-): { attrs: Attrs; openerSpan: { start: number; end: number } } {
+interface Located {
+	/** The opener a new [NOTES] block goes under. */
+	openerSpan: { start: number; end: number };
+	/** The [NOTES] block already there, if any. */
+	notesSpan: { start: number; end: number } | null;
+	/** What a block one level inside this opener is indented by. */
+	bodyIndent: string;
+}
+
+const NESTED_NOTES_RE = /^[ \t]*\[NOTES\][ \t]*$/im;
+
+function locate(source: string, entities: Entity[], target: NoteTarget): Located {
 	const entity = entities.find((e) => slugifyTitle(titleOf(e.attrs)) === target.entitySlug);
 	if (!entity) {
 		throw new NoteTargetError(`No entity with the slug "${target.entitySlug}" in this file.`);
 	}
-	if (!target.exampleTitle) return { attrs: entity.attrs, openerSpan: entity.openerSpan };
+	const indentOf = (offset: number) => lineIndent(source, offset);
+
+	if (!target.exampleTitle) {
+		const notes = entity.blocks.find((b: SubBlock) => b.kind === 'notes');
+		return {
+			openerSpan: entity.openerSpan,
+			notesSpan: notes ? notes.span : null,
+			bodyIndent: `${indentOf(entity.openerSpan.start)}\t`,
+		};
+	}
 
 	const example = entity.blocks.find(
-		(b: SubBlock) => b.tag === 'example' && titleOf(b.attrs) === target.exampleTitle,
+		(b: SubBlock) => b.kind === 'example' && titleOf(b.attrs) === target.exampleTitle,
 	);
 	if (!example) {
 		throw new NoteTargetError(
-			`No [example] titled "${target.exampleTitle}" in "${titleOf(entity.attrs)}".`,
+			`No [EXAMPLE] titled "${target.exampleTitle}" in "${titleOf(entity.attrs)}".`,
 		);
 	}
-	return { attrs: example.attrs, openerSpan: example.openerSpan };
+	// An example's [NOTES] is inside its body, which the scanner captures whole
+	// rather than nesting — so it is found by scanning that span.
+	const body = source.slice(example.bodySpan.start, example.bodySpan.end);
+	const open = NESTED_NOTES_RE.exec(body);
+	let notesSpan: { start: number; end: number } | null = null;
+	if (open) {
+		const closeAt = body.toUpperCase().indexOf('[/NOTES]', open.index);
+		if (closeAt !== -1) {
+			notesSpan = {
+				start: example.bodySpan.start + open.index + (open[0].length - open[0].trimStart().length),
+				end: example.bodySpan.start + closeAt + '[/NOTES]'.length,
+			};
+		}
+	}
+	return {
+		openerSpan: example.openerSpan,
+		notesSpan,
+		bodyIndent: `${indentOf(example.openerSpan.start)}\t`,
+	};
 }
 
 /**
@@ -91,38 +119,33 @@ function locate(
  */
 export function writeNotes(source: string, target: NoteTarget, notes: DocNote[]): string {
 	const file = scanSdoc(source);
-	const { attrs, openerSpan } = locate(file.entities, target);
-	const existing = attrs['notes'];
-	const indent = lineIndent(source, openerSpan.start);
-	// An opener already broken across lines carries its attributes one tab in;
-	// one written on a single line carries them at its own indentation.
-	const close = source.lastIndexOf(']', openerSpan.end - 1);
-	const wrapped = source.slice(openerSpan.start, close).includes('\n');
-	const text = serializeNotes(notes, wrapped ? `${indent}\t` : indent);
+	const { openerSpan, notesSpan, bodyIndent } = locate(source, file.entities, target);
+	const text = serializeNotes(notes, bodyIndent);
 
-	if (existing) {
+	// Replace the block that is there.
+	if (notesSpan) {
 		if (!text) {
-			// Take the space in front of it too, or removing the last attribute
-			// leaves the opener padded: `[DOC title="X" ]`.
-			let from = existing.span.start;
-			while (from > openerSpan.start && /[\t ]/.test(source[from - 1])) from--;
-			// A wrapped opener puts each attribute on its own line — the line
-			// it had goes with it.
-			if (source[from - 1] === '\n' && source[existing.span.end] === '\n') from--;
-			return source.slice(0, from) + source.slice(existing.span.end);
+			// Take the whole line, and the blank line after it if the removal
+			// would otherwise leave two in a row.
+			let from = notesSpan.start;
+			while (from > 0 && source[from - 1] !== '\n') from--;
+			let to = notesSpan.end;
+			while (to < source.length && source[to] !== '\n') to++;
+			to = Math.min(to + 1, source.length);
+			if (source.slice(to).startsWith('\n') && source.slice(0, from).endsWith('\n\n')) to++;
+			return source.slice(0, from) + source.slice(to);
 		}
-		return source.slice(0, existing.span.start) + text + source.slice(existing.span.end);
+		let from = notesSpan.start;
+		while (from > 0 && source[from - 1] !== '\n') from--;
+		return source.slice(0, from) + text + source.slice(notesSpan.end);
 	}
 	if (!text) return source;
 
-	// Just inside the opener's closing bracket, matching how the opener is
-	// already written: one more attribute on the line, or one more line.
-	const after = source.slice(close);
-	// Trailing layout between the last attribute and the bracket is replaced,
-	// not added to: the wrapped form already ends its line, and adding another
-	// newline would open a blank one in the middle of the opener.
-	const before = source.slice(0, close).replace(wrapped ? /\s*$/ : /[\t ]*$/, '');
-	return wrapped
-		? `${before}\n${indent}\t${text}\n${indent}${after}`
-		: `${before} ${text}${after}`;
+	// Otherwise open one directly under the opener, where it renders: notes sit
+	// above everything else the block holds.
+	let after = openerSpan.end;
+	while (after < source.length && source[after] !== '\n') after++;
+	after = Math.min(after + 1, source.length);
+	const blank = source.slice(after).startsWith('\n') ? '' : '\n';
+	return `${source.slice(0, after)}\n${text}\n${blank}${source.slice(after)}`;
 }

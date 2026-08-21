@@ -3,7 +3,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { checkDocFile, checkDocFiles } from '../../src/lib/server/check.js';
-import { buildSiteMap } from '../../src/lib/server/site-map.js';
+import { buildSiteMap, collectGrammarErrors } from '../../src/lib/server/site-map.js';
 import { loadConfig } from '../../src/lib/server/config.js';
 
 /** A component the fixtures can import for real. */
@@ -265,5 +265,53 @@ describe('site structure', () => {
 		});
 		const map = await buildSiteMap(await loadConfig(root), root);
 		expect(map.errors).toEqual([]);
+	});
+});
+
+/**
+ * `sdocs build` validates the structure and then lets Vite compile, so it saw
+ * only what would not compile. A note type that does not exist compiles fine
+ * and renders untyped; an attribute nobody reads compiles fine and does
+ * nothing. Both shipped, with the build reporting success — which is the whole
+ * problem, because CI usually runs `build` and not `check`.
+ */
+describe('grammar errors reach the build', () => {
+	const project = (doc: string) => {
+		const root = mkdtempSync(join(tmpdir(), 'sdocs-grammar-'));
+		writeFileSync(join(root, 'sdocs.config.js'), "export default { include: ['./*.sdoc'] };\n");
+		writeFileSync(join(root, 'Chip.svelte'), '<span>chip</span>\n');
+		writeFileSync(join(root, 'Chip.sdoc'), doc);
+		return root;
+	};
+
+	it('reports an attribute the parser does not know', async () => {
+		const root = project(
+			'[SHOWCASE title="Chip" nosuchattr="x"]\n\n\t[EXAMPLE title="A"]\n\t\t<span>x</span>\n\t[/EXAMPLE]\n\n[/SHOWCASE]\n',
+		);
+		const errors = await collectGrammarErrors(await loadConfig(root), root);
+		expect(errors.join('\n')).toContain('nosuchattr');
+	});
+
+	it('reports a note type that does not exist', async () => {
+		const root = project(
+			'[SHOWCASE title="Chip"]\n\n\t[NOTES]\n\t\t- notatype: nope\n\t[/NOTES]\n\n\t[EXAMPLE title="A"]\n\t\t<span>x</span>\n\t[/EXAMPLE]\n\n[/SHOWCASE]\n',
+		);
+		const errors = await collectGrammarErrors(await loadConfig(root), root);
+		expect(errors.join('\n')).toContain('notatype');
+	});
+
+	it('names the file and the line', async () => {
+		const root = project(
+			'[SHOWCASE title="Chip" nosuchattr="x"]\n\n\t[EXAMPLE title="A"]\n\t\t<span>x</span>\n\t[/EXAMPLE]\n\n[/SHOWCASE]\n',
+		);
+		const errors = await collectGrammarErrors(await loadConfig(root), root);
+		expect(errors[0]).toMatch(/^Chip\.sdoc:1 — /);
+	});
+
+	it('says nothing about a file that is fine', async () => {
+		const root = project(
+			'[SHOWCASE title="Chip"]\n\n\t[EXAMPLE title="A"]\n\t\t<span>x</span>\n\t[/EXAMPLE]\n\n[/SHOWCASE]\n',
+		);
+		expect(await collectGrammarErrors(await loadConfig(root), root)).toEqual([]);
 	});
 });

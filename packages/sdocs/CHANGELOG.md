@@ -12,6 +12,27 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.165] - 2026-08-21
+
+### Fixed
+
+- **`sdocs build` fails on grammar errors.** It validated the site structure
+  and then let Vite compile, so it saw only what would not compile — and a
+  note type that does not exist compiles fine and renders untyped, while an
+  attribute nobody reads compiles fine and does nothing. Both shipped with the
+  build reporting success, which matters because CI usually runs `build` and
+  not `check`. The same three errors `check` reports now stop the build.
+- **A `css` path that points at nothing says so.** A typo there is otherwise
+  invisible: every stage renders unstyled and nothing explains why, so the
+  natural conclusion is that project CSS does not reach previews — the one
+  thing the option exists to do. A warning rather than an error, since the
+  file may come from a build step that has not run.
+- **`sdocs dev` with no `.sdoc` files explains itself.** It printed
+  "Discovered 0 doc file(s):" and served an empty Explorer, which reads as
+  though the tool has nothing to offer rather than as though it is looking in
+  the wrong place. It now prints the patterns it tried, the directory it tried
+  them in, and a complete doc to copy.
+
 ## [0.0.164] - 2026-08-21
 
 ### Fixed

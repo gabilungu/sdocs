@@ -5,7 +5,7 @@ import { existsSync, readdirSync } from 'node:fs';
 import { loadConfig, normalizeBase } from '../server/config.js';
 import { sdocsPlugin } from '../vite.js';
 import { generateBuildFiles, cleanBuildFiles } from '../server/app-gen.js';
-import { buildSiteMap } from '../server/site-map.js';
+import { buildSiteMap, collectGrammarErrors } from '../server/site-map.js';
 import { sdocsWarningFilter } from '../server/snippet-compiler.js';
 import { displayTitle, type SectionMap } from '../explorer/tree-builder.js';
 import type { ResolvedSdocsConfig } from '../types.js';
@@ -41,6 +41,17 @@ export async function buildCommand(opts?: { base?: string; outDir?: string }): P
 		for (const e of map.errors) {
 			console.error(`  ✗ ${e.message}${e.file ? `\n    ${e.file}` : ''}`);
 		}
+		process.exit(1);
+	}
+
+	// And the grammar. Vite catches what will not compile; it has nothing to
+	// say about a note type that does not exist or an attribute nobody reads,
+	// both of which ship silently and are wrong on the page.
+	const grammar = await collectGrammarErrors(config, cwd);
+	if (grammar.length > 0) {
+		console.error(`[sdocs] ${grammar.length} grammar error(s):`);
+		for (const e of grammar) console.error(`  ✗ ${e}`);
+		console.error('[sdocs] `sdocs check` reports these with more context.');
 		process.exit(1);
 	}
 

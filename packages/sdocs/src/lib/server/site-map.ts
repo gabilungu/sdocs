@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { relative } from 'node:path';
 import { discoverDocFiles } from './discovery.js';
 import { parseSdoc } from '../language/index.js';
 import { planEntitySnippets } from './doc-model.js';
@@ -56,4 +57,31 @@ export async function buildSiteMap(config: ResolvedSdocsConfig, cwd: string) {
 		sections: config.sectionsDeclared ? config.sections : undefined,
 		home: config.home,
 	});
+}
+
+/**
+ * Grammar diagnostics across the project, as `file:line — message`.
+ *
+ * `sdocs check` treats every one of these as an error and exits 1. `build`
+ * used to see none of them: it validates the site structure and then lets Vite
+ * compile, and a bad note type or an attribute that does not exist compiles
+ * perfectly well. So a project whose CI ran only `build` deployed a site whose
+ * notes rendered untyped and whose attributes were quietly ignored, with a
+ * green pipeline.
+ */
+export async function collectGrammarErrors(
+	config: ResolvedSdocsConfig,
+	cwd: string,
+): Promise<string[]> {
+	const files = await discoverDocFiles(config.include, cwd);
+	const problems: string[] = [];
+	for (const filePath of files) {
+		const source = await readFile(filePath, 'utf-8');
+		const rel = relative(cwd, filePath);
+		for (const d of parseSdoc(source).diagnostics) {
+			const line = source.slice(0, d.span.start).split('\n').length;
+			problems.push(`${rel}:${line} — ${d.message}`);
+		}
+	}
+	return problems;
 }

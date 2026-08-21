@@ -110,6 +110,36 @@ function allSnippets(entry: DocEntry): ExtractedSnippet[] {
 	];
 }
 
+/**
+ * Nothing matched. Say what was looked for and what to do about it.
+ *
+ * "Discovered 0 doc file(s):" and then an empty Explorer is the first thing a
+ * mistyped `include` produces, and it reads as though the tool has nothing to
+ * offer rather than as though it is looking in the wrong place. Naming the
+ * patterns is usually enough on its own — the mistake is visible the moment
+ * you see the glob written out beside the directory you are standing in.
+ */
+function reportNoDocs(include: string[], projectRoot: string): void {
+	console.log('[sdocs] No .sdoc files matched. Looked for:');
+	for (const pattern of include) console.log(`  - ${pattern}`);
+	console.log(`  in ${projectRoot}`);
+	console.log(
+		'[sdocs] Write one beside a component — the file below is a whole doc —',
+	);
+	console.log('[sdocs] or check `include` in sdocs.config.js.\n');
+	console.log('  <script>');
+	console.log("  \timport Button from './Button.svelte';");
+	console.log('  </script>');
+	console.log('');
+	console.log('  [SHOWCASE title="Button"]');
+	console.log('');
+	console.log('  \t[COMPONENT component={Button}]');
+	console.log('  \t\t<Button {...args} />');
+	console.log('  \t[/COMPONENT]');
+	console.log('');
+	console.log('  [/SHOWCASE]\n');
+}
+
 export function sdocsPlugin(
 	userConfig?: (SdocsConfig | ResolvedSdocsConfig) & {
 		_buildMode?: boolean;
@@ -315,7 +345,11 @@ export function sdocsPlugin(
 		async buildStart() {
 			buildErrors = [];
 			const files = await discoverDocFiles(config.include, root);
-			console.log(`[sdocs] Discovered ${files.length} doc file(s):`);
+			if (files.length === 0) {
+				reportNoDocs(config.include, projectRoot);
+			} else {
+				console.log(`[sdocs] Discovered ${files.length} doc file(s):`);
+			}
 			for (const file of files) {
 				console.log(`  - ${file}`);
 				await processDocFile(file);

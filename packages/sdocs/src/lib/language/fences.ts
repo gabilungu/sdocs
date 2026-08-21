@@ -19,11 +19,7 @@
 
 /** An open fence: its marker char, its length, and whether it opened inside a
  * blockquote. Null when no fence is open. */
-export type FenceState = {
-  marker: string;
-  len: number;
-  inQuote: boolean;
-} | null;
+export type FenceState = { marker: string; len: number; inQuote: boolean } | null;
 
 /** Indent, then any number of blockquote markers, then the fence run. */
 const FENCE_RE = /^(\s*(?:>\s?)*)(`{3,}|~{3,})/;
@@ -37,29 +33,29 @@ const QUOTE_RE = /^\s*>/;
  * opaque can just check `inside`.
  */
 export function stepFence(
-  state: { fence: FenceState },
-  line: string,
+	state: { fence: FenceState },
+	line: string,
 ): { fence: boolean; inside: boolean } {
-  const match = FENCE_RE.exec(line);
-  if (match) {
-    const inQuote = match[1].includes(">");
-    const marker = match[2][0];
-    const len = match[2].length;
-    if (!state.fence) {
-      state.fence = { marker, len, inQuote };
-    } else if (marker === state.fence.marker && len >= state.fence.len) {
-      // CommonMark: a fence closes only on the SAME marker character with
-      // AT LEAST as many chars; other marker lines are fenced content.
-      state.fence = null;
-    }
-    return { fence: true, inside: true };
-  }
-  // A fence opened inside a blockquote ends with the blockquote — there is no
-  // lazy continuation for code. Without this an unclosed one would swallow
-  // the rest of the document.
-  if (state.fence?.inQuote && !QUOTE_RE.test(line)) {
-    state.fence = null;
-    return { fence: false, inside: false };
-  }
-  return { fence: false, inside: state.fence !== null };
+	const match = FENCE_RE.exec(line);
+	if (match) {
+		const inQuote = match[1].includes('>');
+		const marker = match[2][0];
+		const len = match[2].length;
+		if (!state.fence) {
+			state.fence = { marker, len, inQuote };
+		} else if (marker === state.fence.marker && len >= state.fence.len) {
+			// CommonMark: a fence closes only on the SAME marker character with
+			// AT LEAST as many chars; other marker lines are fenced content.
+			state.fence = null;
+		}
+		return { fence: true, inside: true };
+	}
+	// A fence opened inside a blockquote ends with the blockquote — there is no
+	// lazy continuation for code. Without this an unclosed one would swallow
+	// the rest of the document.
+	if (state.fence?.inQuote && !QUOTE_RE.test(line)) {
+		state.fence = null;
+		return { fence: false, inside: false };
+	}
+	return { fence: false, inside: state.fence !== null };
 }

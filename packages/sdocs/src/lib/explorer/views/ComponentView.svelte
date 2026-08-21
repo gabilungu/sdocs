@@ -87,22 +87,32 @@
 	);
 	/** The glyph and the words behind each status.
 	 *
-	 * One shape throughout, filling as the component matures: an empty circle
-	 * for a draft, half-filled while it is built, a dot under review, a notch
+	 * One shape throughout, filling as the component matures: a hollow circle
+	 * for a draft, half-filled while it is built, a dot under review, a query
 	 * while it is experimental, a tick when it is ready, a cross once it is on
 	 * the way out. A strip of tabs then reads as a scale rather than as six
 	 * unrelated pictures, and every one is a square viewBox so they hold the
-	 * same optical size beside each other. */
+	 * same optical size beside each other.
+	 *
+	 * `draft` takes Font Awesome's *regular* circle, not its solid one: the
+	 * solid `circle` is a filled disc, which would make the emptiest state read
+	 * as the fullest and run the scale backwards. */
+	/**
+	 * The glyph and the words behind each status.
+	 *
+	 * Distinct **silhouettes**, not one shape with different insides. At 13px
+	 * the interior of a glyph is four or five pixels: a circle holding a `?`,
+	 * a circle holding a dot and a half-filled circle all read as "a coloured
+	 * dot", and only a tick and a cross survive because those shapes are
+	 * over-learned. An outline that differs at a glance is the whole job.
+	 */
 	const STATUS: Record<ComponentStatus, { icon: string; label: string }> = {
-		draft: { icon: 'fa-circle', label: 'Draft — sketched, not real yet' },
-		wip: { icon: 'fa-circle-half-stroke', label: 'Work in progress — being built' },
-		review: { icon: 'fa-circle-dot', label: 'In review — built, awaiting sign-off' },
-		experimental: {
-			icon: 'fa-circle-notch',
-			label: 'Experimental — usable, but the API may change',
-		},
+		draft: { icon: 'fa-pencil', label: 'Draft — sketched, not real yet' },
+		wip: { icon: 'fa-screwdriver-wrench', label: 'Work in progress — being built' },
+		review: { icon: 'fa-magnifying-glass', label: 'In review — built, awaiting sign-off' },
+		experimental: { icon: 'fa-flask', label: 'Experimental — usable, but the API may change' },
 		ready: { icon: 'fa-circle-check', label: 'Ready — done, use it' },
-		deprecated: { icon: 'fa-circle-xmark', label: 'Deprecated — on the way out' },
+		deprecated: { icon: 'fa-ban', label: 'Deprecated — on the way out' },
 	};
 
 	const exampleSnippets = $derived(doc.examples ?? []);
@@ -981,15 +991,23 @@
 		opacity: 1;
 	}
 
-	/* Colour follows the lifecycle: unfinished is grey, in-flight is blue,
-	   ready is green, deprecated is amber — so a strip of tabs reads at a
-	   glance without anyone hovering a glyph. */
+	/* Colour tells the lifecycle apart at a glance: nothing yet is grey, in the
+	   workshop is amber, being looked at is blue, unproven is purple, go is
+	   green — and retired is grey again.
+
+	   Deprecated is deliberately **not** red. The component still works; it is
+	   on the way out, not broken. Red would say "error", would compete with the
+	   `bug` note that means something is actually wrong, and would shout at a
+	   reader for using something that works today. Grey at both ends of the
+	   scale reads as "not for you right now", which is what both mean. */
 	.sdocs-status {
 		display: inline-flex;
 		align-items: center;
 		color: var(--color-base-400);
 	}
-	.sdocs-status[data-status='wip'],
+	.sdocs-status[data-status='wip'] {
+		color: var(--color-amber-500);
+	}
 	.sdocs-status[data-status='review'] {
 		color: var(--color-action-500);
 	}
@@ -1000,7 +1018,7 @@
 		color: var(--color-success-500);
 	}
 	.sdocs-status[data-status='deprecated'] {
-		color: var(--color-warning-600);
+		color: var(--color-base-500);
 	}
 	.sdocs-preview-tab {
 		padding: 7px 14px;
@@ -1039,9 +1057,13 @@
 	.sdocs-view-header :global(.sdocs-todo) {
 		margin-top: 12px;
 	}
-	/* An example's column already spaces its rows; the note only needs to be
-	   held to the content width like its siblings. */
-	.sdocs-example > :global(.Note) {
+	/* An example's column already spaces its rows; these only need holding to
+	   the content width like their siblings. Without the cap the todo stretched
+	   across both grid tracks — past the notes above it and into the room the
+	   stage keeps for dragging. */
+	.sdocs-example > :global(.Note),
+	.sdocs-example > :global(.sdocs-todo),
+	.sdocs-example > :global(.sdocs-prose-block) {
 		max-width: var(--sdocs-content-max, 1200px);
 	}
 	/* The title and whatever rides at the end of its line. */

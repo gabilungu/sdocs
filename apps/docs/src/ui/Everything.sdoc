@@ -1,0 +1,121 @@
+<script lang="ts">
+	import Card from './Card.svelte';
+	import Disclosure from './Disclosure.svelte';
+	import LinkButton from './LinkButton.svelte';
+	import Meter from './Meter.svelte';
+	import Notice from './Notice.svelte';
+	import NoticeJs from './NoticeJs.svelte';
+	import TextField from './TextField.svelte';
+</script>
+
+[SHOWCASE
+	title="@demo/Everything"
+	description="Every block the language has, on one page — `[NOTES]` in all six types, a nested `[TODO]`, `[PROSE]` before and after the components, a `[COMPONENTS]` strip carrying all six statuses plus one with none, and examples that carry their own blocks."
+]
+
+	[NOTES]
+		- bug: The count badge has no upper bound — past 99 it widens the title row.
+		- a11y: The icon-only variant has no accessible name.
+		- warning: Being replaced by ActionButton in v4.
+		- perf: Re-renders every child on a `tone` change, snippets included.
+		- tip: Pair it with Field when it labels an input.
+		- info: Ships in the 4.2 release.
+		- A note with no type at all, which ranks above `tip` and `info`.
+	[/NOTES]
+
+	[TODO]
+		- [x] Ship the six statuses
+		- [ ] Document the dark theme
+			- [x] Pick the ramp
+			- [ ] Decide the token names
+				- [ ] Check them against the `--color-base` scale
+		- [ ] Audit every stage for contrast
+	[/TODO]
+
+	[PROSE]
+		## Prose before the components
+
+		This block renders **before** the tab strip because that is where it was
+		written. It has everything a [`[DOC]`](/language/doc-pages) body has —
+		emphasis, `code`, links, lists, tables and fences:
+
+		| Status | Waits on |
+		|---|---|
+		| `review` | a person |
+		| `experimental` | real use |
+
+		```svelte
+		<Meter value={64} max={100} label="Docs coverage" />
+		```
+
+		> [!NOTE]
+		> GitHub-style alerts work here too.
+	[/PROSE]
+
+	[COMPONENTS]
+
+		[COMPONENT component={Disclosure} status="draft" args={{ summary: 'Draft', open: false }}]
+			<Disclosure {...args}>Sketched, not real yet.</Disclosure>
+		[/COMPONENT]
+
+		[COMPONENT component={TextField} status="wip" args={{ label: 'Work in progress', placeholder: 'Being built' }}]
+			<TextField {...args} />
+		[/COMPONENT]
+
+		[COMPONENT component={NoticeJs} status="review" args={{ title: 'In review', tone: 'info' }}]
+			<NoticeJs {...args}>Built, waiting on sign-off.</NoticeJs>
+		[/COMPONENT]
+
+		[COMPONENT component={Meter} status="experimental" args={{ value: 40, max: 100, label: 'Experimental' }}]
+			<Meter {...args} />
+		[/COMPONENT]
+
+		[COMPONENT component={Notice} status="ready" args={{ title: 'Ready', tone: 'success' }}]
+			<Notice {...args}>Done — use it.</Notice>
+		[/COMPONENT]
+
+		[COMPONENT component={LinkButton} status="deprecated" args={{ href: '#', variant: 'primary' }}]
+			<LinkButton {...args}>Deprecated</LinkButton>
+		[/COMPONENT]
+
+		[COMPONENT component={Card} args={{ href: '#', title: 'No status', linkText: 'Nobody said' }}]
+			<Card {...args}>
+				This one declares no status at all, which reads as nobody said — a
+				different thing from a draft. Its tab carries no glyph.
+			</Card>
+		[/COMPONENT]
+
+	[/COMPONENTS]
+
+	[PROSE]
+		### Prose after the components
+
+		And this one renders after the strip, before the examples — source order,
+		with the tab strip counting as a single item however many tabs it holds.
+	[/PROSE]
+
+	[EXAMPLE title="Carries its own blocks" tags="notes, todo, prose"]
+		[NOTES]
+			- bug: An example's notes travel with it to its own route.
+			- tip: Open this example on its own page to see them.
+		[/NOTES]
+		[TODO]
+			- [ ] An example takes a checklist too
+			- [x] Nested inside its body, lifted out before staging
+		[/TODO]
+		[PROSE]
+			An example's prose is markdown only — no Svelte islands, since it is a
+			caption on a stage rather than a page of its own.
+		[/PROSE]
+		<Notice title="With everything" tone="info">
+			Description, notes, todo, prose, tags — then the stage.
+		</Notice>
+	[/EXAMPLE]
+
+	[EXAMPLE title="Plain example" description="Nothing but a description and a stage."]
+		<Card href="#" title="Plain" linkText="No blocks">
+			The ordinary case, for comparison.
+		</Card>
+	[/EXAMPLE]
+
+[/SHOWCASE]

@@ -12,6 +12,42 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.143] - 2026-08-21
+
+### Changed
+
+- **The status glyphs have distinct silhouettes** — a pencil, a wrench, a
+  magnifier, a flask, a tick, a ban sign. The circle family they replace was
+  one shape with six different insides, and at 13px the inside of a glyph is
+  four or five pixels: a circle holding a `?`, a circle holding a dot and a
+  half-filled circle all read as "a coloured dot". Only the tick and the cross
+  survived, because those shapes are over-learned.
+
+- **`deprecated` is grey, not red.** The component still works — it is on the
+  way out, not broken. Red said "error", competed with the `bug` note that
+  means something is genuinely wrong, and shouted at a reader for using
+  something that works today. Grey at both ends of the scale reads as "not for
+  you right now", which is what `draft` and `deprecated` both mean.
+
+- **`wip` is amber and `review` blue**, where both were blue: one is in the
+  workshop, the other is being looked at.
+
+### Fixed
+
+- **A `[TODO]` in an example ran to the full view width**, past the notes above
+  it and into the room the stage keeps for dragging. Examples capped `.Note` at
+  the content column and nothing else; the todo and prose blocks are capped
+  too now.
+
+- **`draft` rendered as a filled disc.** Font Awesome's *solid* `circle` is a
+  full disc, so the emptiest state read as the fullest and the scale ran
+  backwards. Moot now the glyphs are silhouettes, but it was wrong for a
+  release.
+
+- **The icon test missed `.sdoc` files** — the Icon showcase lists every glyph
+  by name, and is the one file guaranteed to reference an icon that was just
+  renamed. It caught nothing when five were; it does now.
+
 ## [0.0.142] - 2026-08-21
 
 ### Changed

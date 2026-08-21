@@ -19,14 +19,14 @@
 		</div>
 	[/EXAMPLE]
 
-	[EXAMPLE title="StatusScale" description="The `[COMPONENT]` status glyphs — one shape filling as a component matures, so a strip of tabs reads as a scale."]
+	[EXAMPLE title="StatusScale" description="The `[COMPONENT]` status glyphs, in lifecycle order — distinct silhouettes, because at 13px the inside of a glyph is four pixels and only the outline reads."]
 		<div style="display: flex; gap: 12px; align-items: center;">
-			<Icon name="fa-circle" --w="14px" --h="14px" />
-			<Icon name="fa-circle-half-stroke" --w="14px" --h="14px" />
-			<Icon name="fa-circle-dot" --w="14px" --h="14px" />
-			<Icon name="fa-circle-notch" --w="14px" --h="14px" />
+			<Icon name="fa-pencil" --w="14px" --h="14px" />
+			<Icon name="fa-screwdriver-wrench" --w="14px" --h="14px" />
+			<Icon name="fa-magnifying-glass" --w="14px" --h="14px" />
+			<Icon name="fa-flask" --w="14px" --h="14px" />
 			<Icon name="fa-circle-check" --w="14px" --h="14px" />
-			<Icon name="fa-circle-xmark" --w="14px" --h="14px" />
+			<Icon name="fa-ban" --w="14px" --h="14px" />
 		</div>
 	[/EXAMPLE]
 

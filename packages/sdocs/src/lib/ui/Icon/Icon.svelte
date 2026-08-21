@@ -2,12 +2,12 @@
 	// Font Awesome Free (CC BY 4.0) — the two semantic sets, [COMPONENT] status
 	// and [NOTES] types. Filled, where the chrome icons below are Lucide
 	// strokes: a status glyph is content, and reads better solid at 13px.
-	import faCircleSvg from './icons/fa/circle.svg?raw';
-	import faCircleHalfStrokeSvg from './icons/fa/circle-half-stroke.svg?raw';
-	import faCircleDotSvg from './icons/fa/circle-dot.svg?raw';
-	import faCircleNotchSvg from './icons/fa/circle-notch.svg?raw';
+	import faPencilSvg from './icons/fa/pencil.svg?raw';
+	import faScrewdriverWrenchSvg from './icons/fa/screwdriver-wrench.svg?raw';
+	import faMagnifyingGlassSvg from './icons/fa/magnifying-glass.svg?raw';
+	import faFlaskSvg from './icons/fa/flask.svg?raw';
+	import faBanSvg from './icons/fa/ban.svg?raw';
 	import faCircleCheckSvg from './icons/fa/circle-check.svg?raw';
-	import faCircleXmarkSvg from './icons/fa/circle-xmark.svg?raw';
 	import faBugSvg from './icons/fa/bug.svg?raw';
 	import faUniversalAccessSvg from './icons/fa/universal-access.svg?raw';
 	import faTriangleExclamationSvg from './icons/fa/triangle-exclamation.svg?raw';
@@ -45,12 +45,12 @@
 	import zapSvg from './icons/zap.svg?raw';
 
 	const icons: Record<string, string> = {
-		'fa-circle': faCircleSvg,
-		'fa-circle-half-stroke': faCircleHalfStrokeSvg,
-		'fa-circle-dot': faCircleDotSvg,
-		'fa-circle-notch': faCircleNotchSvg,
+		'fa-pencil': faPencilSvg,
+		'fa-screwdriver-wrench': faScrewdriverWrenchSvg,
+		'fa-magnifying-glass': faMagnifyingGlassSvg,
+		'fa-flask': faFlaskSvg,
+		'fa-ban': faBanSvg,
 		'fa-circle-check': faCircleCheckSvg,
-		'fa-circle-xmark': faCircleXmarkSvg,
 		'fa-bug': faBugSvg,
 		'fa-universal-access': faUniversalAccessSvg,
 		'fa-triangle-exclamation': faTriangleExclamationSvg,

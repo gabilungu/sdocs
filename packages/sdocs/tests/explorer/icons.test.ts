@@ -64,11 +64,14 @@ describe('the icon registry', () => {
 		}
 	});
 
+	// `.sdoc` included: the Icon showcase lists every glyph by name, and it is
+	// the one file guaranteed to reference an icon that was just renamed.
 	it.each([
 		['explorer/views/ComponentView.svelte'],
 		['ui/Note/Note.svelte'],
 		['explorer/views/NoteControl.svelte'],
 		['explorer/views/Sidebar.svelte'],
+		['ui/Icon/Icon.sdoc'],
 	])('resolves every icon %s asks for', (file) => {
 		const unknown = referenced(file).filter((name) => !icons.has(name));
 		expect(unknown).toEqual([]);

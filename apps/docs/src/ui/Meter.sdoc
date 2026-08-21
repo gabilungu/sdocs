@@ -37,6 +37,12 @@
 	[/EXAMPLE]
 
 	[EXAMPLE title="Themed"]
+
+		[TODO]
+			- [x] New item
+			- [x] New item
+		[/TODO]
+
 		[NOTES]
 			- info: The mascot palette is still being picked.
 		[/NOTES]

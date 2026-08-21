@@ -4,11 +4,11 @@
 
 [SHOWCASE title="Icon" description="Displays an SVG icon by name. Supports sizing and color via CSS custom properties."]
 
-	[component component={Icon} args={{ name: 'chevron-right' }}]
+	[COMPONENT component={Icon} args={{ name: 'chevron-right' }}]
 		<Icon name="chevron-right" --w="24px" --h="24px" --fill="currentColor" />
-	[/component]
+	[/COMPONENT]
 
-	[example title="AllIcons"]
+	[EXAMPLE title="AllIcons"]
 		<div style="display: flex; gap: 12px; align-items: center;">
 			<Icon name="chevron-up" />
 			<Icon name="chevron-down" />
@@ -17,24 +17,24 @@
 			<Icon name="folder" />
 			<Icon name="folder-open" />
 		</div>
-	[/example]
+	[/EXAMPLE]
 
-	[example title="CustomSize"]
+	[EXAMPLE title="CustomSize"]
 		<div style="display: flex; gap: 12px; align-items: center;">
 			<Icon name="chevron-right" --w="16px" --h="16px" />
 			<Icon name="chevron-right" />
 			<Icon name="chevron-right" --w="32px" --h="32px" />
 			<Icon name="chevron-right" --w="48px" --h="48px" />
 		</div>
-	[/example]
+	[/EXAMPLE]
 
-	[example title="CustomColor"]
+	[EXAMPLE title="CustomColor"]
 		<div style="display: flex; gap: 12px; align-items: center;">
 			<Icon name="chevron-right" --fill="tomato" />
 			<Icon name="chevron-right" --fill="dodgerblue" />
 			<Icon name="chevron-right" --fill="mediumseagreen" />
 			<Icon name="chevron-right" --fill="slateviolet" />
 		</div>
-	[/example]
+	[/EXAMPLE]
 
 [/SHOWCASE]

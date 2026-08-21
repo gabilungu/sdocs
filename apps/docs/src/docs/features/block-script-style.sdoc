@@ -7,7 +7,7 @@
 	description="Each example below carries its own <script> and <style> — a full mini component. The file script is visible to every block; a block's script and style are visible only inside it."
 ]
 
-	[example title="Interactive, with local state"]
+	[EXAMPLE title="Interactive, with local state"]
 		<script lang="ts">
 			let count = $state(0);
 		</script>
@@ -23,9 +23,9 @@
 			}
 			.bump:hover { background: #f3f4f6; }
 		</style>
-	[/example]
+	[/EXAMPLE]
 
-	[example title="Sibling scopes don't collide"]
+	[EXAMPLE title="Sibling scopes don't collide"]
 		<script lang="ts">
 			let count = $state(100);
 		</script>
@@ -36,9 +36,9 @@
 		<style>
 			.proof { font: 14px system-ui, sans-serif; margin: 0; }
 		</style>
-	[/example]
+	[/EXAMPLE]
 
-	[example title="Driven by data" direction="column"]
+	[EXAMPLE title="Driven by data" direction="column"]
 		<script lang="ts">
 			const alerts = [
 				{ title: "Deploy finished", tone: "success" as const },
@@ -51,6 +51,6 @@
 				Declared in this example's own script and rendered with an each block.
 			</Notice>
 		{/each}
-	[/example]
+	[/EXAMPLE]
 
 [/SHOWCASE]

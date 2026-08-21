@@ -4,8 +4,8 @@
 
 [SHOWCASE title="UI / Control / Text" description="A text input control for string values."]
 
-	[component component={Text} args={{ label: 'Name', value: 'Hello' }}]
+	[COMPONENT component={Text} args={{ label: 'Name', value: 'Hello' }}]
 		<Text {...args} onchange={(v) => console.log('changed:', v)} />
-	[/component]
+	[/COMPONENT]
 
 [/SHOWCASE]

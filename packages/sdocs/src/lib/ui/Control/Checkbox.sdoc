@@ -4,8 +4,8 @@
 
 [SHOWCASE title="Control / Checkbox" description="A checkbox control for boolean values."]
 
-	[component component={Checkbox} args={{ label: 'Enabled', value: true }}]
+	[COMPONENT component={Checkbox} args={{ label: 'Enabled', value: true }}]
 		<Checkbox {...args} onchange={(v) => console.log('changed:', v)} />
-	[/component]
+	[/COMPONENT]
 
 [/SHOWCASE]

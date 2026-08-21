@@ -275,8 +275,12 @@ export async function formatSdoc(
 	const retag = (offset: number, indent: string, closer: string) => {
 		const lineIdx = lineIndex(source, offset);
 		const text = sourceLines[lineIdx];
-		if (text.trim() !== closer) return;
-		const normalized = indent + text.trim();
+		// Matched case-insensitively and re-emitted in the canonical spelling:
+		// sub-block tags were lowercase before 0.0.139 and are uppercase after,
+		// and formatting is how an old document migrates. Both spellings parse,
+		// so this only ever changes how a file looks.
+		if (text.trim().toLowerCase() !== closer.toLowerCase()) return;
+		const normalized = indent + closer;
 		if (normalized !== text) {
 			regions.push({ firstLine: lineIdx, lastLine: lineIdx, lines: [normalized] });
 		}
@@ -301,8 +305,10 @@ export async function formatSdoc(
 		retag(Math.max(entity.openerSpan.end, entity.span.end - 1), '', `[/${entity.kind}]`);
 		for (const block of entity.blocks) {
 			// The tag as written — [component] must not reprint as [preview].
-			reopen(block.openerSpan, block.attrs, block.tag, oneLevel);
-			retag(Math.max(block.openerSpan.end, block.span.end - 1), oneLevel, `[/${block.tag}]`);
+			// Capitalized on the way out — the opener and its closer together.
+			const tag = block.tag.toUpperCase();
+			reopen(block.openerSpan, block.attrs, tag, oneLevel);
+			retag(Math.max(block.openerSpan.end, block.span.end - 1), oneLevel, `[/${tag}]`);
 		}
 	}
 

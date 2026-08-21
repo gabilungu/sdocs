@@ -6,7 +6,7 @@
 
 [SHOWCASE title="NavTree / NavTree.Item" description="A tree node that acts as a leaf (link/button) or expandable folder when children are provided. Supports left and right snippet slots for custom content."]
 
-	[component component={Item} args={{ label: 'Label' }}]
+	[COMPONENT component={Item} args={{ label: 'Label' }}]
 		<NavTree>
 			<Item {...args} >
 			<Item {...args} >
@@ -18,9 +18,9 @@
 
 			</Item>
 		</NavTree>
-	[/component]
+	[/COMPONENT]
 
-	[example title="LeftSlot"]
+	[EXAMPLE title="LeftSlot"]
 		<NavTree>
 			<Item label="Home" href="#/home">
 				{#snippet left()}<Icon name="folder" --w="14px" --h="14px" />{/snippet}
@@ -29,9 +29,9 @@
 				{#snippet left()}<Icon name="folder-open" --w="14px" --h="14px" />{/snippet}
 			</Item>
 		</NavTree>
-	[/example]
+	[/EXAMPLE]
 
-	[example title="RightSlot"]
+	[EXAMPLE title="RightSlot"]
 		<NavTree>
 			<Item label="bundle.js" href="#/bundle">
 				{#snippet right()}<span style="font-size: 11px; color: tomato;">54kb</span>{/snippet}
@@ -40,9 +40,9 @@
 				{#snippet right()}<span style="font-size: 11px; color: #9ca3af;">3.2kb</span>{/snippet}
 			</Item>
 		</NavTree>
-	[/example]
+	[/EXAMPLE]
 
-	[example title="Expandable"]
+	[EXAMPLE title="Expandable"]
 		<NavTree>
 			<Item label="Controls" expanded>
 				<Item label="Text" href="#/text" />
@@ -52,14 +52,14 @@
 				<Item label="Frame" href="#/frame" />
 			</Item>
 		</NavTree>
-	[/example]
+	[/EXAMPLE]
 
-	[example title="ActiveState"]
+	[EXAMPLE title="ActiveState"]
 		<NavTree>
 			<Item label="Regular item" href="#/one" />
 			<Item label="Active item" href="#/two" active />
 			<Item label="Another item" href="#/three" />
 		</NavTree>
-	[/example]
+	[/EXAMPLE]
 
 [/SHOWCASE]

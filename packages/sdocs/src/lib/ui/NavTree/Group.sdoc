@@ -6,7 +6,7 @@
 
 [SHOWCASE title="NavTree / NavTree.Group" description="A collapsible section header with uppercase label. Used to organize items into named categories."]
 
-	[component component={Group}]
+	[COMPONENT component={Group}]
 		<NavTree>
 			<Group label="Components">
 				<Item label="Button" href="#/button" />
@@ -14,18 +14,18 @@
 				<Item label="Card" href="#/card" />
 			</Group>
 		</NavTree>
-	[/component]
+	[/COMPONENT]
 
-	[example title="Collapsed"]
+	[EXAMPLE title="Collapsed"]
 		<NavTree>
 			<Group label="Advanced" expanded={false}>
 				<Item label="Tree" href="#/tree" />
 				<Item label="Table" href="#/table" />
 			</Group>
 		</NavTree>
-	[/example]
+	[/EXAMPLE]
 
-	[example title="MultipleGroups"]
+	[EXAMPLE title="MultipleGroups"]
 		<NavTree>
 			<Group label="Components">
 				<Item label="Button" href="#/button" />
@@ -39,6 +39,6 @@
 				<Item label="Dashboard" href="#/dashboard" />
 			</Group>
 		</NavTree>
-	[/example]
+	[/EXAMPLE]
 
 [/SHOWCASE]

@@ -11,41 +11,41 @@
 	]}
 ]
 
-	[component component={Notice} synonyms="callout, alert, admonition, banner" args={{ title: 'Build finished', tone: 'success', dismissible: true, count: 1 }}]
+	[COMPONENT component={Notice} synonyms="callout, alert, admonition, banner" args={{ title: 'Build finished', tone: 'success', dismissible: true, count: 1 }}]
 		<Notice {...args}>
 			All 12 pages compiled in 1.2s — try dismissing me, or change my props
 			in the table below.
 		</Notice>
-	[/component]
+	[/COMPONENT]
 
-	[example title="WithIconSnippet" tags="icon, snippet, warning"]
+	[EXAMPLE title="WithIconSnippet" tags="icon, snippet, warning"]
 		<Notice {...args} title="Deploy warning" tone="warning">
 			{#snippet icon(tone)}
 				<span>{tone === 'warning' ? '⚠️' : 'ℹ️'}</span>
 			{/snippet}
 			The icon snippet receives the current tone as a parameter.
 		</Notice>
-	[/example]
+	[/EXAMPLE]
 
-	[example title="Repeated" tags="count, badge" notes={[{ note: 'The count badge has no upper bound yet — past 99 it widens the title row.', intent: 'warning' }]}]
+	[EXAMPLE title="Repeated" tags="count, badge" notes={[{ note: 'The count badge has no upper bound yet — past 99 it widens the title row.', intent: 'warning' }]}]
 		<Notice {...args} title="Connection retried" tone="danger" count={4}>
 			The count prop renders an occurrence badge next to the title.
 		</Notice>
-	[/example]
+	[/EXAMPLE]
 
-	[example title="WithAction"]
+	[EXAMPLE title="WithAction"]
 		<Notice {...args} title="Update available" action={{ label: 'Restart now' }}>
 			The action prop is a custom object type — see how it appears in the
 			Props table.
 		</Notice>
-	[/example]
+	[/EXAMPLE]
 
-	[example title="Themed"]
+	[EXAMPLE title="Themed"]
 		<div style="--notice-accent: #fc1d29; --notice-bg: #fff5f5; --notice-radius: 4px;">
 			<Notice {...args} title="Mascot mode">
 				Styled entirely through the annotated CSS custom properties.
 			</Notice>
 		</div>
-	[/example]
+	[/EXAMPLE]
 
 [/SHOWCASE]

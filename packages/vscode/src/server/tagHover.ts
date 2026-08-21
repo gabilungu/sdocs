@@ -99,13 +99,17 @@ const TAG_SHOWCASE: Record<string, string> = {
 /** Hover for the sdoc tag token at `position`, if the position is on one. */
 export function sdocTagHover(source: string, position: Position): Hover | null {
 	const line = source.split('\n')[position.line] ?? '';
-	const re = /\[\/?(SHOWCASE|DOC|PAGE|LAYOUT|component|example)\b\]?/g;
+	// Sub-block tags come in either casing — uppercase from 0.0.139, lowercase
+	// in every file written before it — so both are matched and both resolve to
+	// the same entry.
+	const re = /\[\/?(SHOWCASE|DOC|PAGE|LAYOUT|COMPONENT|EXAMPLE|component|example)\b\]?/gi;
 	for (let m = re.exec(line); m; m = re.exec(line)) {
 		const start = m.index;
 		const end = m.index + m[0].length;
-		if (position.character >= start && position.character <= end) {
+		const entry = TAG_SHOWCASE[m[1]] ?? TAG_SHOWCASE[m[1].toLowerCase()];
+		if (entry && position.character >= start && position.character <= end) {
 			return {
-				contents: { kind: MarkupKind.Markdown, value: TAG_SHOWCASE[m[1]] },
+				contents: { kind: MarkupKind.Markdown, value: entry },
 				range: {
 					start: { line: position.line, character: start },
 					end: { line: position.line, character: end },

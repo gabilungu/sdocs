@@ -5,22 +5,22 @@
 
 [SHOWCASE title="@demo/Card" description="Linked card with an icon tile, body text, and a call-to-action line."]
 
-	[component component={Card} args={{ href: '#', title: 'CLI', linkText: 'Command reference' }}]
+	[COMPONENT component={Card} args={{ href: '#', title: 'CLI', linkText: 'Command reference' }}]
 		<Card {...args}>
 			Starts the Explorer in any project with zero install, and ships it as a
 			static site.
 		</Card>
-	[/component]
+	[/COMPONENT]
 
-	[example title="WithIcon"]
+	[EXAMPLE title="WithIcon"]
 		<Card {...args}>
 			{#snippet icon()}<Terminal size={22} />{/snippet}
 			Starts the Explorer in any project with zero install, and ships it as a
 			static site.
 		</Card>
-	[/example]
+	[/EXAMPLE]
 
-	[example title="Grid"]
+	[EXAMPLE title="Grid"]
 		<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem;">
 			<Card href="#" title="Explorer" linkText="Explore the docs">
 				{#snippet icon()}<Terminal size={22} />{/snippet}
@@ -30,6 +30,6 @@
 				Zero-install docs dev server and static site builder.
 			</Card>
 		</div>
-	[/example]
+	[/EXAMPLE]
 
 [/SHOWCASE]

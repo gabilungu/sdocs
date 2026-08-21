@@ -8,7 +8,7 @@
 	description="The plain-JavaScript twin of Notice: the same full feature surface documented through JSDoc (@typedef + @property) instead of TypeScript — compare the two pages."
 ]
 
-	[component
+	[COMPONENT
 		component={NoticeJs}
 		args={{ title: 'Build finished', tone: 'success', dismissible: true, count: 1 }}
 	]
@@ -16,32 +16,32 @@
 			Documented entirely with JSDoc — types, descriptions, events, and snippets
 			all come from the annotations.
 		</NoticeJs>
-	[/component]
+	[/COMPONENT]
 
-	[component component={Notice}]
+	[COMPONENT component={Notice}]
 		<Notice {...args}>Something here</Notice>
-	[/component]
+	[/COMPONENT]
 
 
-	[example title="WithIconSnippet"]
+	[EXAMPLE title="WithIconSnippet"]
 		<NoticeJs title="Deploy warning" tone="warning">
 			{#snippet icon(tone)}
 				<span>{tone === "warning" ? "⚠️" : "ℹ️"}</span>
 			{/snippet}
 			The icon snippet receives the current tone as a parameter.
 		</NoticeJs>
-	[/example]
+	[/EXAMPLE]
 
 	
 
-	[example title="WithAction"]
+	[EXAMPLE title="WithAction"]
 		<NoticeJs {...args} title="Update available" action={{ label: "Restart now" }}>
 			The action prop is a custom JSDoc typedef — it appears by name in the Props
 			table.
 		</NoticeJs>
-	[/example]
-	[example title="some title"]
+	[/EXAMPLE]
+	[EXAMPLE title="some title"]
 		<div></div>
-	[/example]
+	[/EXAMPLE]
 [/SHOWCASE]
 

@@ -4,8 +4,8 @@
 
 [SHOWCASE title="UI / Control / Select" description="A dropdown select control."]
 
-	[component component={Select} args={{ label: 'Size', value: 'md' }}]
+	[COMPONENT component={Select} args={{ label: 'Size', value: 'md' }}]
 		<Select {...args} options={['sm', 'md', 'lg']} onchange={(v) => console.log('changed:', v)} />
-	[/component]
+	[/COMPONENT]
 
 [/SHOWCASE]

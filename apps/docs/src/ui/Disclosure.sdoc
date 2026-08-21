@@ -4,27 +4,27 @@
 
 [SHOWCASE title="@demo/Disclosure" description="Expandable panel with a children snippet, a parameterized marker snippet, and an ontoggle event."]
 
-	[component component={Disclosure} args={{ summary: 'What is a .sdoc file?', open: false }}]
+	[COMPONENT component={Disclosure} args={{ summary: 'What is a .sdoc file?', open: false }}]
 		<Disclosure {...args}>
 			A file of <code>[SHOWCASE]</code>, <code>[DOC]</code>, and <code>[LAYOUT]</code>
 			blocks, rendered by the Explorer with live previews and controls.
 		</Disclosure>
-	[/component]
+	[/COMPONENT]
 
-	[example title="StartsOpen"]
+	[EXAMPLE title="StartsOpen"]
 		<Disclosure {...args} summary="Already expanded" open>
 			The <code>open</code> prop only sets the initial state — the component
 			manages its own from there.
 		</Disclosure>
-	[/example]
+	[/EXAMPLE]
 
-	[example title="CustomMarker"]
+	[EXAMPLE title="CustomMarker"]
 		<Disclosure {...args} summary="Custom marker snippet">
 			{#snippet marker(open)}
 				<span>{open ? '−' : '+'}</span>
 			{/snippet}
 			The marker snippet receives the open state as a parameter.
 		</Disclosure>
-	[/example]
+	[/EXAMPLE]
 
 [/SHOWCASE]

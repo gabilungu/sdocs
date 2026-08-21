@@ -34,6 +34,98 @@ afterAll(() => {
 	for (const dir of tempDirs) rmSync(dir, { recursive: true, force: true });
 });
 
+/**
+ * A project that documents components **without sdocs installed** — the
+ * standalone CLI flow. Generated rather than copied from a checked-in app, so
+ * the invariant below is not hostage to a directory somebody might tidy away.
+ *
+ * Two things it has to keep: a **host-only dependency** (`clsx`, resolvable
+ * from the project and not from sdocs) and **two entities whose slugs differ
+ * from their filenames**, which is what makes the entity-identity keying
+ * observable.
+ */
+function makeStandaloneProject(): string {
+	const dir = realpathSync(mkdtempSync(join(tmpdir(), 'sdocs-build-')));
+	tempDirs.push(dir);
+	mkdirSync(join(dir, 'src/styles'), { recursive: true });
+	writeFileSync(
+		join(dir, 'package.json'),
+		'{"name":"standalone","private":true,"type":"module"}\n',
+	);
+	writeFileSync(
+		join(dir, 'sdocs.config.js'),
+		"export default {\n\tlogo: 'standalone',\n\tcss: './src/styles/global.css',\n};\n",
+	);
+	writeFileSync(join(dir, 'src/styles/global.css'), ':root { --chip-bg: #eee; }\n');
+	// clsx is the point: a dependency the *project* has and sdocs does not.
+	writeFileSync(
+		join(dir, 'src/Chip.svelte'),
+		[
+			'<script>',
+			"\timport clsx from 'clsx';",
+			'\t/**',
+			'\t * @typedef {Object} Props',
+			'\t * @property {string} [label] - Chip text',
+			'\t * @property {boolean} [active] - Highlighted state',
+			'\t */',
+			'\t/** @type {Props} */',
+			"\tlet { label = 'Chip', active = false } = $props();",
+			'</script>',
+			"<span class={clsx('chip', active && 'is-active')}>{label}</span>",
+			'',
+		].join('\n'),
+	);
+	writeFileSync(
+		join(dir, 'src/Chip.sdoc'),
+		[
+			'<script>',
+			"\timport Chip from './Chip.svelte';",
+			'</script>',
+			'',
+			'[SHOWCASE title="Chip" description="A chip using a host-only dependency."]',
+			'',
+			"\t[component component={Chip} args={{ label: 'Hello', active: false }}]",
+			'\t\t<Chip {...args} />',
+			'\t[/component]',
+			'',
+			'\t[example title="Active"]',
+			'\t\t<Chip label="On" active />',
+			'\t[/example]',
+			'',
+			'[/SHOWCASE]',
+			'',
+		].join('\n'),
+	);
+	// A grouped title, so the slug (`pages-about`) differs from the filename.
+	writeFileSync(
+		join(dir, 'src/About.sdoc'),
+		[
+			'<script>',
+			"\timport Chip from './Chip.svelte';",
+			'</script>',
+			'',
+			'[DOC title=":Pages / About"]',
+			'',
+			'\t# standalone',
+			'',
+			'\tDocumented without installing sdocs.',
+			'',
+			'\t[example title="Chips"]',
+			'\t\t<Chip label="One" active />',
+			'\t[/example]',
+			'',
+			'[/DOC]',
+			'',
+		].join('\n'),
+	);
+	// sdocs resolves the project's own deps; symlink them in as an install would.
+	mkdirSync(join(dir, 'node_modules'), { recursive: true });
+	for (const dep of ['clsx', 'svelte']) {
+		symlinkSync(join(REPO, 'node_modules', dep), join(dir, 'node_modules', dep), 'junction');
+	}
+	return dir;
+}
+
 function makeBareProject(): string {
 	const dir = realpathSync(mkdtempSync(join(tmpdir(), 'sdocs-e2e-')));
 	tempDirs.push(dir);
@@ -322,16 +414,7 @@ describe('sdocs dev from an npx cache, against a project that has vite', () => {
 
 describe('sdocs build in the standalone test app', () => {
 	it('emits preview pages keyed by entity identity (byte-match invariant)', { timeout: 120_000 }, async () => {
-		// Copy the app so build output never pollutes the repo
-		const dir = realpathSync(mkdtempSync(join(tmpdir(), 'sdocs-build-')));
-		tempDirs.push(dir);
-		cpSync(join(REPO, 'apps/testapp-standalone'), dir, { recursive: true });
-		rmSync(join(dir, 'dist'), { recursive: true, force: true });
-		// The app's deps are hoisted to the monorepo root; the copy needs them
-		mkdirSync(join(dir, 'node_modules'), { recursive: true });
-		for (const dep of ['clsx', 'svelte']) {
-			symlinkSync(join(REPO, 'node_modules', dep), join(dir, 'node_modules', dep), 'junction');
-		}
+		const dir = makeStandaloneProject();
 
 		const { child, output } = spawnCli(['build'], dir);
 		await new Promise<void>((resolvePromise, reject) => {
@@ -372,11 +455,11 @@ describe('sdocs build in the standalone test app', () => {
 		// Grouped titles drop the group in the page/tab title — the sidebar carries it.
 		expect(aboutPage).toContain('<title>About – ');
 		expect(aboutPage).toContain('<div id="app"><!--');
-		expect(aboutPage, 'DOC prose is prerendered').toContain('without installing it');
+		expect(aboutPage, 'DOC prose is prerendered').toContain('Documented without installing sdocs');
 		const chipPage = readFileSync(join(dir, 'dist/chip/index.html'), 'utf8');
 		expect(chipPage).toContain('<title>Chip – ');
 		expect(chipPage, 'showcase description becomes the meta description').toContain(
-			'<meta name="description" content="A pill-shaped tag',
+			'<meta name="description" content="A chip using a host-only dependency',
 		);
 		// The 404 fallback stays a bare shell (unknown routes boot the SPA).
 		const notFound = readFileSync(join(dir, 'dist/404.html'), 'utf8');

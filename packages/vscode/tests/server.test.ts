@@ -88,7 +88,7 @@ describe('sdoc language server over LSP', () => {
 		// Opener lines project to generated {#snippet} wrappers; a forwarded
 		// completion there offers e.g. `{/snippet}` whose textEdit REPLACES
 		// authored opener text — same gate as hover/definition/signature.
-		const line = lines.findIndex((l) => l.includes('[component'));
+		const line = lines.findIndex((l) => l.includes('[COMPONENT'));
 		const res = (await client.connection.sendRequest('textDocument/completion', {
 			textDocument: { uri },
 			position: { line, character: lines[line].indexOf('component=') },
@@ -100,7 +100,7 @@ describe('sdoc language server over LSP', () => {
 
 	it('definition of a snippet arg never targets a generated wrapper line', async () => {
 		// `args` is declared by the generated {#snippet} wrapper on the
-		// [component] opener line — a target with virtual coordinates that used
+		// [COMPONENT] opener line — a target with virtual coordinates that used
 		// to come back as a garbage span inside the authored opener. Dropped
 		// entirely: fewer results beat wrong ones.
 		const line = lines.findIndex((l) => l.includes('{...args}'));
@@ -155,7 +155,7 @@ describe('sdoc language server over LSP', () => {
 		expect(formatted).toContain(
 			"args={{ title: 'Build finished', tone: 'success', dismissible: true, count: 1 }}",
 		);
-		expect(formatted).toContain('[/component]');
+		expect(formatted).toContain('[/COMPONENT]');
 		expect(formatted).toContain('[/SHOWCASE]');
 		await client.changeDoc(uri, 5, source);
 	});
@@ -172,8 +172,8 @@ describe('sdoc language server over LSP', () => {
 		expect(opener?.contents?.value).toContain('component documentation entity');
 		expect(opener?.contents?.value).not.toContain('{#snippet');
 
-		const previewLine = lines.findIndex((l) => l.includes('[component'));
-		const preview = await hoverAt(previewLine, lines[previewLine].indexOf('[component') + 3);
+		const previewLine = lines.findIndex((l) => l.includes('[COMPONENT'));
+		const preview = await hoverAt(previewLine, lines[previewLine].indexOf('[COMPONENT') + 3);
 		expect(preview?.contents?.value).toContain('live component panel');
 
 		const closerLine = lines.findIndex((l) => l.includes('[/SHOWCASE]'));
@@ -276,7 +276,7 @@ describe('block-level <script>/<style> (per-block virtual docs)', () => {
 
 [SHOWCASE title="Block"]
 
-	[example title="Scoped"]
+	[EXAMPLE title="Scoped"]
 		<script lang="ts">
 			const localItems = ["a", "b"];
 			let localCount = $state(2);
@@ -286,7 +286,7 @@ describe('block-level <script>/<style> (per-block virtual docs)', () => {
 		<style>
 			.picked { color: gray; }
 		</style>
-	[/example]
+	[/EXAMPLE]
 
 [/SHOWCASE]
 `;
@@ -329,20 +329,20 @@ describe('entity-script import used only by a later block', () => {
 		const probe: number = 1;
 	</script>
 
-	[example title="Plain"]
+	[EXAMPLE title="Plain"]
 		<b>no component here, just {probe}</b>
-	[/example]
+	[/EXAMPLE]
 
-	[example title="Uses it"]
+	[EXAMPLE title="Uses it"]
 		<Notice title="hi">x</Notice>
-	[/example]
+	[/EXAMPLE]
 
-	[example title="Scripted"]
+	[EXAMPLE title="Scripted"]
 		<script lang="ts">
 			const localThing = 3;
 		</script>
 		<i>{localThing}</i>
-	[/example]
+	[/EXAMPLE]
 
 [/SHOWCASE]
 `;
@@ -402,9 +402,9 @@ describe('diagnostic publishes are version-stamped, stale coordinates withheld',
 		'',
 		'[SHOWCASE title="V"]',
 		'',
-		'\t[example title="A"]',
+		'\t[EXAMPLE title="A"]',
 		'\t\t<b>{probe + notAThing}</b>',
-		'\t[/example]',
+		'\t[/EXAMPLE]',
 		'',
 		'[/SHOWCASE]',
 		'',
@@ -454,11 +454,11 @@ describe('single-line <script> tags are live (recomposed content spans)', () => 
 	const slSource = [
 		'[SHOWCASE title="One line"]',
 		'',
-		'\t[example title="A"]',
+		'\t[EXAMPLE title="A"]',
 		'\t\t<script lang="ts">const bad: string = 1;</script>',
 		'\t\t<i>{bad}</i>',
 		'\t\t<b>{alsoNope}</b>',
-		'\t[/example]',
+		'\t[/EXAMPLE]',
 		'',
 		'[/SHOWCASE]',
 		'',
@@ -548,9 +548,9 @@ describe('single-line ENTITY <script> is live too', () => {
 		'[SHOWCASE title="Entity one line"]',
 		'\t<script lang="ts">const worse: string = 2;</script>',
 		'',
-		'\t[example title="A"]',
+		'\t[EXAMPLE title="A"]',
 		'\t\t<b>{worse}</b>',
-		'\t[/example]',
+		'\t[/EXAMPLE]',
 		'',
 		'[/SHOWCASE]',
 		'',

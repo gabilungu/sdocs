@@ -4,8 +4,8 @@
 
 [SHOWCASE title="UI / Control / Number" description="A numeric input control."]
 
-	[component component={Number} args={{ label: 'Count', value: 42 }}]
+	[COMPONENT component={Number} args={{ label: 'Count', value: 42 }}]
 		<Number {...args} onchange={(v) => console.log('changed:', v)} />
-	[/component]
+	[/COMPONENT]
 
 [/SHOWCASE]

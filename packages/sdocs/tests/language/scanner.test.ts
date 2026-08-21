@@ -138,11 +138,27 @@ describe('scanSdoc errors', () => {
 		expect(codes('[SHOWCASE title="X"]\nstray text\n[/SHOWCASE]\n')).toContain('text-outside-blocks');
 	});
 
-	it('rejects wrong casing with a targeted message', () => {
+	it('rejects a lowercase entity with a targeted message', () => {
+		// Entities have always been uppercase, so there is no old spelling to
+		// keep working.
 		expect(codes('[showcase title="X"]\n[/showcase]\n')).toContain('casing');
-		expect(codes('[SHOWCASE title="X"]\n[COMPONENT component={B}]\nx\n[/COMPONENT]\n[/SHOWCASE]\n')).toContain(
-			'casing',
-		);
+	});
+
+	it('takes a sub-block in either casing', () => {
+		// [COMPONENT] is the spelling from 0.0.139 on; [component] is what every
+		// file written before it says, and the formatter is what migrates them.
+		// Formatting is opt-in, so both spellings work permanently.
+		const upper = '[SHOWCASE title="X"]\n[COMPONENT component={B}]\nx\n[/COMPONENT]\n[/SHOWCASE]\n';
+		const lower = '[SHOWCASE title="X"]\n[component component={B}]\nx\n[/component]\n[/SHOWCASE]\n';
+		expect(codes(upper)).toEqual([]);
+		expect(codes(lower)).toEqual([]);
+	});
+
+	it('does not take a closer whose casing differs from its opener', () => {
+		// Both spellings are legal, but a block still has to close itself.
+		expect(
+			codes('[SHOWCASE title="X"]\n[COMPONENT component={B}]\nx\n[/component]\n[/SHOWCASE]\n'),
+		).not.toEqual([]);
 	});
 
 	it('rejects sub-blocks outside SHOWCASE and unknown blocks inside', () => {

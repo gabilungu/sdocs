@@ -106,10 +106,13 @@ describe('projectSdoc', () => {
 });
 
 describe('projectSdoc over the real corpus', () => {
+	// The docs site is the corpus — it is also what the language server, the
+	// grammar and the formatter tests read, so one body of `.sdoc` keeps them
+	// all honest. The package's own bundled docs join it: they ship in `dist`,
+	// so they have to project too.
 	const dirs = [
 		resolve(__dirname, '../../../../apps/docs/src'),
-		resolve(__dirname, '../../../../apps/testapp-embedded/src/lib/UI'),
-		resolve(__dirname, '../../../../apps/testapp-standalone/src'),
+		resolve(__dirname, '../../src/lib/ui'),
 	];
 	const files: string[] = [];
 	for (const dir of dirs) {

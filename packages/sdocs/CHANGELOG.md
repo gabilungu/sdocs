@@ -5,6 +5,11 @@ All notable changes to the `sdocs` package are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+Anything that changes what an existing `.sdoc` file or config means goes under
+a **`### Breaking`** heading, first in its release. The MCP `get_changelog`
+tool reads those first when an agent asks what changed between two versions, so
+a breaking change written under any other heading is one an agent will miss.
+
 ## [Unreleased]
 
 ## [0.0.138] - 2026-08-21

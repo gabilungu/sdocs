@@ -1,5 +1,5 @@
 /**
- * Formatting for [DOC] bodies that contain [example] blocks: the prose
+ * Formatting for [DOC] bodies that contain [EXAMPLE] blocks: the prose
  * around the blocks formats as markdown, the example bodies format as Svelte
  * fragments, the tags and the blank lines separating them stay put.
  */
@@ -18,9 +18,9 @@ describe('formatting PAGE bodies with examples', () => {
 			'',
 			'\tSome    prose *stays*.',
 			'',
-			'\t[example title="Ramp"]',
+			'\t[EXAMPLE title="Ramp"]',
 			'\t\t<div   class="row"  ><b>x</b></div>',
-			'\t[/example]',
+			'\t[/EXAMPLE]',
 			'',
 			'\tAfter.',
 			'',
@@ -34,11 +34,11 @@ describe('formatting PAGE bodies with examples', () => {
 		expect(result).toContain('\t# Colors');
 		expect(result).toContain('\t\t<div class="row"><b>x</b></div>');
 		// tags untouched, on their own lines
-		expect(result).toContain('\t[example title="Ramp"]');
-		expect(result).toContain('\t[/example]');
+		expect(result).toContain('\t[EXAMPLE title="Ramp"]');
+		expect(result).toContain('\t[/EXAMPLE]');
 		// the blank lines around the example survive (prettier restyles emphasis)
-		expect(result).toContain('_stays_.\n\n\t[example');
-		expect(result).toContain('[/example]\n\n\tAfter.');
+		expect(result).toContain('_stays_.\n\n\t[EXAMPLE');
+		expect(result).toContain('[/EXAMPLE]\n\n\tAfter.');
 	});
 
 	it('leaves an already-formatted page with examples unchanged', async () => {
@@ -47,9 +47,9 @@ describe('formatting PAGE bodies with examples', () => {
 			'',
 			'\tProse.',
 			'',
-			'\t[example title="A"]',
+			'\t[EXAMPLE title="A"]',
 			'\t\t<b>x</b>',
-			'\t[/example]',
+			'\t[/EXAMPLE]',
 			'',
 			'[/DOC]',
 			'',
@@ -65,9 +65,9 @@ describe('tag indentation normalization', () => {
 			'',
 			'\t\t\tProse.',
 			'',
-			'\t\t\t[example title="A"]',
+			'\t\t\t[EXAMPLE title="A"]',
 			'\t<b>x</b>',
-			'\t\t\t\t\t[/example]',
+			'\t\t\t\t\t[/EXAMPLE]',
 			'',
 			'\t\t[/DOC]',
 			'',
@@ -77,9 +77,9 @@ describe('tag indentation normalization', () => {
 		const lines = result!.split('\n');
 		expect(lines).toContain('[DOC title="P"]');
 		expect(lines).toContain('\tProse.');
-		expect(lines).toContain('\t[example title="A"]');
+		expect(lines).toContain('\t[EXAMPLE title="A"]');
 		expect(lines).toContain('\t\t<b>x</b>');
-		expect(lines).toContain('\t[/example]');
+		expect(lines).toContain('\t[/EXAMPLE]');
 		expect(lines).toContain('[/DOC]');
 	});
 
@@ -100,9 +100,9 @@ describe('scan-error lines stay byte-identical (no authored text deleted)', () =
 		const source = [
 			'[SHOWCASE title="X"]',
 			'',
-			'\t[example title="a" title="b"]',
+			'\t[EXAMPLE title="a" title="b"]',
 			'\t\t<b   >x</b>',
-			'\t[/example]',
+			'\t[/EXAMPLE]',
 			'',
 			'[/SHOWCASE]',
 			'',
@@ -110,7 +110,7 @@ describe('scan-error lines stay byte-identical (no authored text deleted)', () =
 		const result = await formatSdoc(source, OPTIONS);
 		expect(result).not.toBeNull();
 		// the erroneous opener line is untouched, duplicate and all
-		expect(result!.split('\n')[2]).toBe('\t[example title="a" title="b"]');
+		expect(result!.split('\n')[2]).toBe('\t[EXAMPLE title="a" title="b"]');
 		// the rest of the file still formats
 		expect(result).toContain('\t\t<b>x</b>');
 	});
@@ -119,16 +119,16 @@ describe('scan-error lines stay byte-identical (no authored text deleted)', () =
 		const source = [
 			'[SHOWCASE title="X"]',
 			'',
-			'\t[example title="a"] stray text',
+			'\t[EXAMPLE title="a"] stray text',
 			'\t\t<b   >x</b>',
-			'\t[/example]',
+			'\t[/EXAMPLE]',
 			'',
 			'[/SHOWCASE]',
 			'',
 		].join('\n');
 		const result = await formatSdoc(source, OPTIONS);
 		expect(result).not.toBeNull();
-		expect(result!.split('\n')[2]).toBe('\t[example title="a"] stray text');
+		expect(result!.split('\n')[2]).toBe('\t[EXAMPLE title="a"] stray text');
 		expect(result).toContain('\t\t<b>x</b>');
 	});
 });
@@ -137,9 +137,9 @@ describe('line endings', () => {
 	const lfSource = [
 		'[SHOWCASE title="X"]',
 		'',
-		'\t[example title="A"]',
+		'\t[EXAMPLE title="A"]',
 		'\t\t<b   >x</b>',
-		'\t[/example]',
+		'\t[/EXAMPLE]',
 		'',
 		'[/SHOWCASE]',
 		'',
@@ -171,9 +171,9 @@ describe('opener wrapping at printWidth (default 80)', () => {
 		const source = [
 			`[SHOWCASE title="@demo/Widget" description="${desc}"]`,
 			'',
-			'\t[component component={Widget}]',
+			'\t[COMPONENT component={Widget}]',
 			'\t\t<Widget />',
-			'\t[/component]',
+			'\t[/COMPONENT]',
 			'',
 			'[/SHOWCASE]',
 			'',
@@ -185,7 +185,7 @@ describe('opener wrapping at printWidth (default 80)', () => {
 			['[SHOWCASE', '\ttitle="@demo/Widget"', `\tdescription="${desc}"`, ']'].join('\n'),
 		);
 		// the short sub-block opener stays on one line
-		expect(out).toContain('\t[component component={Widget}]');
+		expect(out).toContain('\t[COMPONENT component={Widget}]');
 	});
 
 	it('wraps a wide sub-block opener at its own indent', async () => {
@@ -193,16 +193,16 @@ describe('opener wrapping at printWidth (default 80)', () => {
 		const source = [
 			'[SHOWCASE title="D"]',
 			'',
-			`\t[component component={Widget} ${args}]`,
+			`\t[COMPONENT component={Widget} ${args}]`,
 			'\t\t<Widget />',
-			'\t[/component]',
+			'\t[/COMPONENT]',
 			'',
 			'[/SHOWCASE]',
 			'',
 		].join('\n');
 		const out = await formatSdoc(source, OPTIONS);
 		expect(out).not.toBeNull();
-		expect(out).toContain(['\t[component', '\t\tcomponent={Widget}', `\t\t${args}`, '\t]'].join('\n'));
+		expect(out).toContain(['\t[COMPONENT', '\t\tcomponent={Widget}', `\t\t${args}`, '\t]'].join('\n'));
 		// the short entity opener above it is untouched
 		expect(out).toContain('[SHOWCASE title="D"]');
 	});
@@ -214,9 +214,9 @@ describe('opener wrapping at printWidth (default 80)', () => {
 			`\tdescription="${desc}"`,
 			']',
 			'',
-			'\t[component component={Widget}]',
+			'\t[COMPONENT component={Widget}]',
 			'\t\t<Widget />',
-			'\t[/component]',
+			'\t[/COMPONENT]',
 			'',
 			'[/SHOWCASE]',
 			'',
@@ -249,7 +249,7 @@ describe('fences survive formatting (mangling regression)', () => {
 		expect(buttonLine).toBeGreaterThan(svelteOpen);
 		expect(buttonLine).toBeLessThan(closeAfter);
 		// nothing ever joins block tags with other content
-		expect(lines.some((l) => l.includes('[/example]') && l !== '[/example]')).toBe(false);
+		expect(lines.some((l) => l.includes('[/EXAMPLE]') && l !== '[/EXAMPLE]')).toBe(false);
 		expect(lines.some((l) => l.includes('[/DOC]') && l !== '[/DOC]')).toBe(false);
 		// headings keep their own lines (the mangled output joined them)
 		expect(lines).toContain('## Separators');
@@ -260,7 +260,7 @@ describe('block-level <script>/<style> formatting', () => {
 	it('formats a body containing its own script and style as a mini component', async () => {
 		const source = `[SHOWCASE title="Nav"]
 
-	[example title="Data"]
+	[EXAMPLE title="Data"]
 		<script lang="ts">
 			const   items=[{label:"Home"}]
 			let active   =  $state("Home")
@@ -269,7 +269,7 @@ describe('block-level <script>/<style> formatting', () => {
 		<style>
 			.hint{color:gray}
 		</style>
-	[/example]
+	[/EXAMPLE]
 
 [/SHOWCASE]
 `;
@@ -282,16 +282,16 @@ describe('block-level <script>/<style> formatting', () => {
 		// style formatted, last in the body
 		expect(formatted!).toMatch(/\.hint\s*{\s*\n\s*color:\s*gray;/);
 		// structure intact
-		expect(formatted!).toContain('[/example]');
+		expect(formatted!).toContain('[/EXAMPLE]');
 	});
 });
 
 describe('whitespace sensitivity default', () => {
 	const HUGGY = `[SHOWCASE title="X"]
 
-	[example title="Long opener with text"]
+	[EXAMPLE title="Long opener with text"]
 		<NoticeJs {...args} title="Update available" action={{ label: "Restart now" }}>The action prop is a custom JSDoc typedef — it appears by name in the Props table.</NoticeJs>
-	[/example]
+	[/EXAMPLE]
 
 [/SHOWCASE]
 `;
@@ -330,9 +330,9 @@ describe('entity-level script/style formatting', () => {
 		const shared = [1, 2];
 	</script>
 
-	[example title="A"]
+	[EXAMPLE title="A"]
 		<b>{shared}</b>
-			[/example]
+			[/EXAMPLE]
 
 	<style>
 		.n { color: gray; }
@@ -344,25 +344,25 @@ describe('entity-level script/style formatting', () => {
 		expect(formatted).not.toBeNull();
 		expect(formatted!).toContain('const shared = [1, 2];');
 		expect(formatted!).toContain('.n { color: gray; }');
-		expect(formatted!).toContain('\n\t[/example]');
+		expect(formatted!).toContain('\n\t[/EXAMPLE]');
 	});
 });
 
-describe('formatting [component] blocks', () => {
-	it('formats a [component] block and its body', async () => {
+describe('formatting [COMPONENT] blocks', () => {
+	it('formats a [COMPONENT] block and its body', async () => {
 		const source = [
 			'[SHOWCASE title="B"]',
 			'',
-			'\t[component component={Button} args={{ label: "Hi" }}]',
+			'\t[COMPONENT component={Button} args={{ label: "Hi" }}]',
 			'\t\t<Button   {...args}   />',
-			'\t[/component]',
+			'\t[/COMPONENT]',
 			'',
 			'[/SHOWCASE]',
 			'',
 		].join('\n');
 		const out = await formatSdoc(source, OPTIONS);
-		expect(out).toContain('[component component={Button}');
-		expect(out).toContain('[/component]');
+		expect(out).toContain('[COMPONENT component={Button}');
+		expect(out).toContain('[/COMPONENT]');
 		expect(out).toContain('<Button {...args} />');
 	});
 
@@ -370,15 +370,15 @@ describe('formatting [component] blocks', () => {
 		const source = [
 			'[SHOWCASE title="B"]',
 			'',
-			'\t[component component={NavTree.Group}]',
+			'\t[COMPONENT component={NavTree.Group}]',
 			'\t\t<NavTree.Group   label="x"  />',
-			'\t[/component]',
+			'\t[/COMPONENT]',
 			'',
 			'[/SHOWCASE]',
 			'',
 		].join('\n');
 		const out = await formatSdoc(source, OPTIONS);
-		expect(out).toContain('[component component={NavTree.Group}]');
+		expect(out).toContain('[COMPONENT component={NavTree.Group}]');
 		expect(out).toContain('<NavTree.Group label="x" />');
 	});
 });

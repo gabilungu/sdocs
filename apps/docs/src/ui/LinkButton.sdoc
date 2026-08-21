@@ -4,19 +4,19 @@
 
 [SHOWCASE title="@demo/LinkButton" description="Button-shaped link used for the site's calls to action."]
 
-	[component component={LinkButton} args={{ href: '#', variant: 'primary', external: false }}]
+	[COMPONENT component={LinkButton} args={{ href: '#', variant: 'primary', external: false }}]
 		<LinkButton {...args}>Get started</LinkButton>
-	[/component]
+	[/COMPONENT]
 
-	[example title="Secondary"]
+	[EXAMPLE title="Secondary"]
 		<LinkButton {...args} variant="secondary">Documentation</LinkButton>
-	[/example]
+	[/EXAMPLE]
 
-	[example title="Pair"]
+	[EXAMPLE title="Pair"]
 		<div style="display: flex; gap: 0.75rem;">
 			<LinkButton href="#">Get started</LinkButton>
 			<LinkButton href="#" variant="secondary">Documentation</LinkButton>
 		</div>
-	[/example]
+	[/EXAMPLE]
 
 [/SHOWCASE]

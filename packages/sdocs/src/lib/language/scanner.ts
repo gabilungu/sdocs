@@ -28,17 +28,27 @@ export type SubBlockKind = 'preview' | 'example';
 export const ENTITY_KINDS: readonly EntityKind[] = ['SHOWCASE', 'DOC', 'PAGE', 'LAYOUT'];
 export const SUB_BLOCK_KINDS: readonly SubBlockKind[] = ['preview', 'example'];
 
-/** Tag names that open sub-blocks. `[component]` documents a component (its
- * internal kind is 'preview'); `[example]` is a frozen snippet. */
-export const SUB_BLOCK_TAGS: readonly string[] = ['component', 'example'];
+/** Tag names that open sub-blocks, in their canonical (uppercase) spelling.
+ * `[COMPONENT]` documents a component (its internal kind is 'preview');
+ * `[EXAMPLE]` is a frozen snippet. */
+export const SUB_BLOCK_TAGS: readonly string[] = ['COMPONENT', 'EXAMPLE'];
 const SUB_BLOCK_TAG_KINDS: Record<string, SubBlockKind> = {
 	component: 'preview',
 	example: 'example',
 };
 
-/** The kind a sub-block tag opens, or null for an unknown tag. */
+/**
+ * The kind a sub-block tag opens, or null for an unknown tag.
+ *
+ * **Case-insensitive on purpose.** Sub-blocks were lowercase until 0.0.139 and
+ * uppercase after it, and old files are never rewritten by a release — the
+ * formatter capitalizes them when a document is next formatted, and until then
+ * both spellings mean the same block. Since formatting is opt-in, a file
+ * nobody formats stays lowercase forever, so this is permanent rather than a
+ * deprecation window.
+ */
 export function subBlockKindOf(name: string): SubBlockKind | null {
-	return SUB_BLOCK_TAG_KINDS[name] ?? null;
+	return SUB_BLOCK_TAG_KINDS[name.toLowerCase()] ?? null;
 }
 
 export interface AttrValue {
@@ -719,15 +729,6 @@ export function scanSdoc(source: string): SdocFile {
 				continue;
 			}
 			const span = { start: line.start + line.text.indexOf(trimmed[0]), end: line.end };
-			if (token && subBlockKindOf(token.name.toLowerCase()) && !token.closer) {
-				errors.push({
-					code: 'casing',
-					message: `Sub-block tags are lowercase: [${token.name.toLowerCase()}].`,
-					span,
-				});
-				i++;
-				continue;
-			}
 			if (token && !token.closer && isEntityKind(token.name)) {
 				errors.push({
 					code: 'unclosed-block',
@@ -742,7 +743,7 @@ export function scanSdoc(source: string): SdocFile {
 					code: token.closer ? 'stray-closer' : 'unknown-tag',
 					message: token.closer
 						? `Unexpected closer [/${token.name}] inside [SHOWCASE].`
-						: `Unknown block [${token.name}] inside [SHOWCASE] — expected [component] or [example].`,
+						: `Unknown block [${token.name}] inside [SHOWCASE] — expected [COMPONENT] or [EXAMPLE].`,
 					span,
 				});
 				i++;
@@ -864,14 +865,18 @@ export function scanSdoc(source: string): SdocFile {
 				return i + 1;
 			}
 			const token = tagToken(trimmed);
-			if (token && !token.closer && token.name === 'example') {
+			// Matched by kind, not by spelling: a DOC's examples come in either
+			// casing like everywhere else, and the closer has to be the one
+			// this opener actually used.
+			if (token && !token.closer && subBlockKindOf(token.name) === 'example') {
 				const opener = scanOpener(i, token.name.length);
 				if (!opener) return lines.length;
-				const captured = captureBody(opener.nextLi, '[/example]');
+				const closer = `[/${token.name}]`;
+				const captured = captureBody(opener.nextLi, closer);
 				if (!captured) {
 					errors.push({
 						code: 'unclosed-block',
-						message: 'Missing [/example].',
+						message: `Missing ${closer}.`,
 						span: opener.openerSpan,
 					});
 					return lines.length;
@@ -879,7 +884,7 @@ export function scanSdoc(source: string): SdocFile {
 				const sub = scanSubBlockBody(opener.nextLi, captured.nextLi - 1, 'example');
 				entity.blocks.push({
 					kind: 'example',
-					tag: 'example',
+					tag: token.name,
 					attrs: opener.attrs,
 					body: captured.body,
 					bodySpan: captured.bodySpan,

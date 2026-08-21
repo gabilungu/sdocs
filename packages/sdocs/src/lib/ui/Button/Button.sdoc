@@ -5,33 +5,33 @@
 
 [SHOWCASE title="Button" description="A flexible button with optional left and right snippet slots for icons or badges."]
 
-	[component component={Button}]
+	[COMPONENT component={Button}]
 		<Button {...args}>Click me</Button>
-	[/component]
+	[/COMPONENT]
 
-	[example title="WithLeftIcon"]
+	[EXAMPLE title="WithLeftIcon"]
 		<Button onclick={() => alert('Settings')}>
 			{#snippet left()}<Icon name="folder" --w="14px" --h="14px" />{/snippet}
 			Settings
 		</Button>
-	[/example]
+	[/EXAMPLE]
 
-	[example title="WithRightIcon"]
+	[EXAMPLE title="WithRightIcon"]
 		<Button>
 			Next
 			{#snippet right()}<Icon name="chevron-right" --w="14px" --h="14px" />{/snippet}
 		</Button>
-	[/example]
+	[/EXAMPLE]
 
-	[example title="BothSlots"]
+	[EXAMPLE title="BothSlots"]
 		<Button>
 			{#snippet left()}<Icon name="file-text" --w="14px" --h="14px" />{/snippet}
 			Export
 			{#snippet right()}<span style="font-size: 11px; opacity: 0.6;">PDF</span>{/snippet}
 		</Button>
-	[/example]
+	[/EXAMPLE]
 
-	[example title="IconOnly"]
+	[EXAMPLE title="IconOnly"]
 		<div style="display: flex; gap: 8px;">
 			<Button title="Light theme" --p="4px 6px">
 				{#snippet left()}<Icon name="sun" --w="16px" --h="16px" />{/snippet}
@@ -40,10 +40,10 @@
 				{#snippet left()}<Icon name="maximize" --w="16px" --h="16px" />{/snippet}
 			</Button>
 		</div>
-	[/example]
+	[/EXAMPLE]
 
-	[example title="Disabled"]
+	[EXAMPLE title="Disabled"]
 		<Button disabled>Can't click</Button>
-	[/example]
+	[/EXAMPLE]
 
 [/SHOWCASE]

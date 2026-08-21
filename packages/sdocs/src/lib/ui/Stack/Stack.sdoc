@@ -5,39 +5,39 @@
 
 [SHOWCASE title="Stack" description="A flex container with configurable direction, gap, alignment, and styling."]
 
-	[component component={Stack}]
+	[COMPONENT component={Stack}]
 		<Stack>
 			<Button>One</Button>
 			<Button>Two</Button>
 			<Button>Three</Button>
 		</Stack>
-	[/component]
+	[/COMPONENT]
 
-	[example title="Column"]
+	[EXAMPLE title="Column"]
 		<Stack --gap="8px">
 			<Button>One</Button>
 			<Button>Two</Button>
 			<Button>Three</Button>
 		</Stack>
-	[/example]
+	[/EXAMPLE]
 
-	[example title="Row"]
+	[EXAMPLE title="Row"]
 		<Stack --direction="row" --gap="8px">
 			<Button>One</Button>
 			<Button>Two</Button>
 			<Button>Three</Button>
 		</Stack>
-	[/example]
+	[/EXAMPLE]
 
-	[example title="Centered"]
+	[EXAMPLE title="Centered"]
 		<Stack --direction="row" --gap="12px" --align="center" --justify="center" --p="16px" --bg="var(--color-base-50)" --r="8px">
 			<Button>Left</Button>
 			<Button>Center</Button>
 			<Button>Right</Button>
 		</Stack>
-	[/example]
+	[/EXAMPLE]
 
-	[example title="Wrap"]
+	[EXAMPLE title="Wrap"]
 		<Stack --direction="row" --gap="8px" --wrap="wrap" style="max-width: 200px;">
 			<Button>A</Button>
 			<Button>B</Button>
@@ -45,6 +45,6 @@
 			<Button>D</Button>
 			<Button>E</Button>
 		</Stack>
-	[/example]
+	[/EXAMPLE]
 
 [/SHOWCASE]

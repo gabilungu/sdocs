@@ -4,7 +4,7 @@
 
 [SHOWCASE title="Frame" description="A flexible holy-grail layout with top, bottom, left, right, and center regions."]
 
-	[component component={Frame}]
+	[COMPONENT component={Frame}]
 		<div style="height: 300px; border: 1px solid #ccc;">
 			<Frame>
 				{#snippet top()}
@@ -22,9 +22,9 @@
 				{/snippet}
 			</Frame>
 		</div>
-	[/component]
+	[/COMPONENT]
 
-	[example title="TopAndBottom"]
+	[EXAMPLE title="TopAndBottom"]
 		<div style="height: 200px; border: 1px solid #ccc;">
 			<Frame>
 				{#snippet top()}
@@ -36,9 +36,9 @@
 				{/snippet}
 			</Frame>
 		</div>
-	[/example]
+	[/EXAMPLE]
 
-	[example title="Sidebar"]
+	[EXAMPLE title="Sidebar"]
 		<div style="height: 200px; border: 1px solid #ccc;">
 			<Frame>
 				{#snippet left()}
@@ -47,6 +47,6 @@
 				<div style="padding: 8px;">Content</div>
 			</Frame>
 		</div>
-	[/example]
+	[/EXAMPLE]
 
 [/SHOWCASE]

@@ -4,8 +4,8 @@
 
 [SHOWCASE title="UI / Control / Color" description="A color picker control."]
 
-	[component component={Color} args={{ label: 'Background', value: '#3b82f6' }}]
+	[COMPONENT component={Color} args={{ label: 'Background', value: '#3b82f6' }}]
 		<Color {...args} onchange={(v) => console.log('changed:', v)} />
-	[/component]
+	[/COMPONENT]
 
 [/SHOWCASE]

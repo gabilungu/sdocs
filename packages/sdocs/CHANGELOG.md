@@ -12,6 +12,17 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.163] - 2026-08-21
+
+### Fixed
+
+- **The two webfonts the package redistributes are now attributed.** Figtree
+  and JetBrains Mono ship as subset woff2 files and are both under the SIL
+  Open Font License, which asks that the copyright notice and the licence
+  travel with them. `NOTICE.md` covered the icons and had simply never grown a
+  font section. Both copyright lines are the projects' own, and the licence is
+  reproduced in full.
+
 ## [0.0.162] - 2026-08-21
 
 ### Fixed

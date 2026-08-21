@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.72] - 2026-08-21
+
+### Changed
+
+- **The bundled language server moved to svelte-language-server 0.18.4**
+  (svelte2tsx 0.7.61), along with a sweep of the build and packaging
+  dependencies. Nothing in the extension's own surface changes; the tree it is
+  built and shipped from carries eighteen fewer advisories.
+
 ## [0.0.71] - 2026-08-21
 
 ### Fixed

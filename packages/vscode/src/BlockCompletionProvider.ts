@@ -63,11 +63,19 @@ const ATTR_SHOWCASE: Record<string, string> = {
 	toc: '`toc="false"` hides the table of contents for this page.',
 	slug: 'Overrides the URL segment for this entity (lowercase letters, digits, hyphens). Defaults to the slugified last title segment.',
 	hide: 'Keeps this entity routable but out of every sidebar — for pages reached by link only (a home page, say).',
+	notes:
+		"Standing remarks about this page: `notes={[{ note: 'Deprecated in v3', intent: 'warning' }]}`. `intent` is `danger` · `warning` · `success` · `info`; leave it off for a grey remark. Each renders as an alert under the title, and the sidebar row gets a dot — filled for its own note, hollow for one inside it.",
+	tags: 'What this example shows, comma-separated: `tags="user menu, badge"`. Rendered as quiet badges, and searched by the MCP `search_docs` tool.',
+	synonyms:
+		'Other names this component answers to, comma-separated: `synonyms="pill, chip"`. Rendered above the preview, and searched by the MCP `search_docs` tool.',
 };
 
-/** Snippet body for an attribute, from its value kind (special-cased for args). */
+/** Snippet body for an attribute, from its value kind. The two expression
+ * attributes get their shape spelled out: `={$1}` on its own leaves the author
+ * facing an empty pair of braces with no clue what belongs in them. */
 function attrInsert(name: string, rule: AttrRule): string {
 	if (name === 'args') return 'args={{ $1 }}';
+	if (name === 'notes') return "notes={[{ note: '$1' }]}";
 	if (rule.kind === 'bare') return name;
 	return rule.kind === 'expression' ? `${name}={$1}` : `${name}="$1"`;
 }

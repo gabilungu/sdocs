@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.66] - 2026-08-21
+
+### Added
+
+- **Completion for `notes`, `synonyms`, `tags`, and the section divider**, from
+  sdocs 0.0.136. The block attributes and the config schema are read from the
+  sdocs package and bundled at build time, so the editor offers `synonyms=`
+  inside a `[component]`, `tags=` inside an `[example]`, `notes=` on every
+  entity and example, and documents `{ type: 'divider' }` on the config's
+  `sections` key. `notes` completes to its shape —
+  `notes={[{ note: '…' }]}` — rather than an empty pair of braces, and the
+  block lint reports a malformed note in the editor exactly as the build does.
+
+
 ## [0.0.65] - 2026-08-20
 
 ### Added

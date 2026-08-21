@@ -2,7 +2,7 @@
 	import Button from './Button/Button.svelte';
 </script>
 
-[LAYOUT title=":Layouts / Demo"]
+[LAYOUT title=":Layouts / Demo" notes={[{ note: 'A layout has no title of its own, so its notes ride over the top — dismiss one to see the whole thing.', intent: 'info' }, { note: 'A second note stacks under the first, and closes on its own.' }]}]
 
 	<div style="display: flex; flex-direction: column; height: 100vh;">
 		<header style="display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; border-bottom: 1px solid #e5e7eb;">

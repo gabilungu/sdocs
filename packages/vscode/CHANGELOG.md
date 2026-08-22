@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.79] - 2026-08-22
+
+### Added
+
+- **`[PATTERN]` support.** Highlighting, block completion, attribute
+  completion and diagnostics for the new entity — see the sdocs 0.0.172 notes
+  for what it is.
+
 ## [0.0.78] - 2026-08-22
 
 ### Fixed

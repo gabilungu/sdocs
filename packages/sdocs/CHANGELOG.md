@@ -12,6 +12,40 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.172] - 2026-08-22
+
+### Added
+
+- **`[PATTERN]` — a fifth entity, for the level between a component and a
+  page.** A user menu, a notifications system, a comment thread: one
+  composition of several components, documented as a single thing. It is a
+  `[SHOWCASE]` with the prop half switched off — a composition has no one
+  component whose API it could extract, so there is no `[COMPONENT]`, no props
+  panel and no controls. The body is the composition:
+
+  ```sdoc
+  [PATTERN title="Patterns / User Menu" description="Avatar, menu and badge."]
+
+  	<Avatar name="Ada" /> <Menu>Profile · Settings · Sign out</Menu>
+
+  [/PATTERN]
+  ```
+
+  The page is the title, the description, the composition on a stage in your
+  project's own css, and its source in a code panel — a pattern is a thing you
+  copy. It takes `title`, `description`, `slug`, `hide` and the stage
+  attributes; a `[COMPONENT]`, `[EXAMPLE]` or text block in the body is
+  reported rather than rendered as literal text, and the message for the first
+  two points at `[SHOWCASE]`.
+
+  Emerald in the sidebar, under a `blocks` glyph.
+
+### Fixed
+
+- **A block in a `[PAGE]` or `[LAYOUT]` body is reported.** `[NOTES]` and its
+  siblings already were; `[COMPONENT]` and `[EXAMPLE]` were not, and rendered
+  as literal text on the page.
+
 ## [0.0.171] - 2026-08-22
 
 ### Added

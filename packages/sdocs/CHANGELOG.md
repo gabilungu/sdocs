@@ -12,6 +12,16 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.173] - 2026-08-22
+
+### Fixed
+
+- **A `[PATTERN]` refuses a note written into it.** Its body is Svelte markup,
+  captured whole, so a `[NOTES]` or `[TODO]` written there would never be read
+  back — it would render as literal text on the page. `[PAGE]` and `[LAYOUT]`
+  have refused this since 0.0.149; the new kind was missing from the guard,
+  which covers both the Explorer's note button and the MCP write tools.
+
 ## [0.0.172] - 2026-08-22
 
 ### Added

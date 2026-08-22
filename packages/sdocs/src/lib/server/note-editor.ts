@@ -78,11 +78,12 @@ function locate(
 	if (!entity) {
 		throw new NoteTargetError(`No entity with the slug "${target.entitySlug}" in this file.`);
 	}
-	// A [PAGE] or [LAYOUT] body is captured whole as Svelte markup, so a block
-	// written into one is never read back — it renders as literal text on the
-	// page. Refusing here closes both write paths at once: the Explorer's note
-	// button and the MCP tools both arrive through this function.
-	if (entity.kind === 'PAGE' || entity.kind === 'LAYOUT') {
+	// A [PAGE], [LAYOUT] or [PATTERN] body is captured whole as Svelte markup,
+	// so a block written into one is never read back — it renders as literal
+	// text on the page. Refusing here closes both write paths at once: the
+	// Explorer's note button and the MCP tools both arrive through this
+	// function.
+	if (entity.kind === 'PAGE' || entity.kind === 'LAYOUT' || entity.kind === 'PATTERN') {
 		throw new NoteTargetError(
 			`A [${entity.kind}] body is Svelte markup, so it cannot hold a [${kind.toUpperCase()}] — the block would render as text.`,
 		);

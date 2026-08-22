@@ -4,6 +4,9 @@ export default {
 	port: 3100,
 
 	title: 'sdocs',
+	// Preview stages take the project's css, not the Explorer's — without this
+	// the demo components render in the browser's default serif.
+	css: './src/stage.css',
 	favicon: '/favicon.svg',
 	static: './static',
 

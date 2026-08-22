@@ -1,0 +1,21 @@
+/* The css every preview stage loads — the `css:` value in sdocs.config.js.
+ *
+ * A stage is an isolated document that takes the PROJECT's css, not the
+ * Explorer's: that separation is what makes a preview look like your product
+ * rather than like these docs. It also means a project that declares no css
+ * gets a stage with none, and the components inside it render in the browser's
+ * default serif — which is what this site did until someone looked.
+ *
+ * The demo components here are the docs site's own, so the answer is the same
+ * typography the site uses.
+ */
+
+@import '../../../packages/sdocs/src/lib/ui/styles/fonts/fonts.css';
+@import '../../../packages/sdocs/src/lib/ui/styles/theme.css';
+
+html,
+body {
+	margin: 0;
+	font-family: var(--sans);
+	color: var(--color-base-900);
+}

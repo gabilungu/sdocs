@@ -13,7 +13,7 @@
 	1. **`<script>`** — at the top, optional. Imports and shared values, in
 	   JavaScript or TypeScript. Available to every entity in the file.
 	2. **Entities** — the middle. Any number of `[SHOWCASE]`, `[DOC]`, `[PAGE]`,
-	   `[LAYOUT]` and `[PATTERN]` blocks, in any mix. Each entity is its own route (and
+	   `[LAYOUT]` and `[PATTERNS]` blocks, in any mix. Each entity is its own route (and
 	   usually its own sidebar entry).
 	3. **`<style>`** — at the bottom, optional. CSS available to the file's
 	   previews and examples.
@@ -61,7 +61,7 @@
 	| [`[SHOWCASE]`](/language/component-docs) | components | live previews with controls (tabs when several), titled examples, extracted API |
 	| [`[DOC]`](/language/doc-pages) | freeform content | markdown-first, auto table of contents |
 	| [`[PAGE]`](/language/svelte-pages) | a Svelte-built page | plain Svelte in the docs context — landing pages, custom routes |
-	| [`[PATTERN]`](/language/patterns) | one composition | several components assembled — a user menu, a notifications system |
+	| [`[PATTERNS]`](/language/patterns) | one composition | several components assembled — a user menu, a notifications system |
 	| [`[LAYOUT]`](/language/layout-docs) | a full-page sketch | rendered in an isolated frame |
 
 	The `title` attribute places each entity in the sidebar — plain path
@@ -108,7 +108,7 @@
 	  an error.
 
 	[GLOSSARY title="Terms used on this page" subtitle="Each is defined once, here." search]
-		- Entity: one `[SHOWCASE]`, `[PATTERN]`, `[DOC]`, `[PAGE]` or `[LAYOUT]` — each is a route.
+		- Entity: one `[SHOWCASE]`, `[PATTERNS]`, `[DOC]`, `[PAGE]` or `[LAYOUT]` — each is a route.
 		- Block: something written inside an entity, like `[COMPONENT]` or `[NOTES]`.
 		- Stage: the isolated frame a preview renders in, with the project's own css.
 		- Flow: what an entity shows, in the order it was written.

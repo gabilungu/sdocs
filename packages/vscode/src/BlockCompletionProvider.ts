@@ -17,9 +17,9 @@ const ENTITY_BLOCKS: BlockSpec[] = [
 		insert: 'SHOWCASE title="$1"]\n\n\t$0\n\n[/SHOWCASE]',
 	},
 	{
-		label: 'PATTERN',
+		label: 'PATTERNS',
 		detail: 'A composition documented as one thing: a user menu, a notifications system',
-		insert: 'PATTERN title="$1" description="$2"]\n\n\t$0\n\n[/PATTERN]',
+		insert: 'PATTERNS title="$1" description="$2"]\n\n\t$0\n\n[/PATTERNS]',
 	},
 	{
 		label: 'DOC',

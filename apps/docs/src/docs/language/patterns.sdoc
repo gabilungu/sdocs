@@ -1,14 +1,17 @@
 [DOC title="@language/Patterns"]
 
-	A `[PATTERN]` documents **one composition** — a user menu, a notifications
-	system, a comment thread. The level between a component and a page: bigger
-	than a button, smaller than a screen, and the level most design systems
-	never write down.
+	A `[PATTERNS]` entity documents **one composition** — a user menu, a signup
+	panel, a comment thread — together with the states it ships in. The level
+	between a component and a page: bigger than a button, smaller than a
+	screen, and the level most design systems never write down.
 
 	It is a `[SHOWCASE]` with the prop half switched off. A composition has no
 	single component whose API it could extract, so there is no `[COMPONENT]`,
 	no props panel and no controls — a props table documenting one part of a
-	composition would be actively misleading. The body **is** the composition.
+	composition would be actively misleading. Everything else is the same:
+	`[EXAMPLE]` states, `[PROSE]` between them, `[NOTES]`, `[TODO]`,
+	`[GLOSSARY]`, and the same stages with the same resize handles and code
+	panels.
 
 	````sdoc
 	<script lang="ts">
@@ -16,15 +19,26 @@
 		import Menu from './Menu.svelte';
 	</script>
 
-	[PATTERN title="Patterns / User Menu" description="Avatar, menu and badge."]
+	[PATTERNS title="Patterns / User Menu" description="Avatar, menu and badge."]
 
-		<Avatar name="Ada" /> <Menu>Profile · Settings · Sign out</Menu>
+		[EXAMPLE title="Signed out"]
+			<Menu>Sign in</Menu>
+		[/EXAMPLE]
 
-	[/PATTERN]
+		[PROSE]
+			Once there is a user, the avatar becomes the trigger.
+		[/PROSE]
+
+		[EXAMPLE title="Signed in"]
+			<Avatar name="Ada" /> <Menu>Profile · Settings · Sign out</Menu>
+		[/EXAMPLE]
+
+	[/PATTERNS]
 	````
 
-	The page is the title, the description, the composition on a stage, and its
-	source in a code panel — because a pattern is a thing you copy.
+	Each `[EXAMPLE]` is a state of the same composition, and each gets its own
+	sidebar entry under the pattern — the same bookmark icon a `[SHOWCASE]`'s
+	examples get — and its own route, so a single state is linkable.
 
 	## Attributes
 
@@ -34,50 +48,49 @@
 	| `description` | no | Short text under the title — inline markdown renders styled |
 	| `slug` | no | Overrides the URL segment (default: slugified title segment) |
 	| `hide` | no | A bare flag: routable, but never listed in a sidebar |
-	| `maxWidth` | no | Stage width (default `100%`) |
-	| `padding` | no | Stage padding |
-	| `direction` | no | Stage `flex-direction` |
-	| `gap` | no | Stage `gap` |
+	| `maxWidth` | no | Default stage width for this entity's examples |
+	| `padding` | no | Default stage padding |
+	| `direction` | no | Default stage `flex-direction` |
+	| `gap` | no | Default stage `gap` |
 	| `contentX` | no | Horizontal alignment: `left`/`center`/`right`/`justify` |
 	| `contentY` | no | Vertical alignment: `top`/`middle`/`bottom`/`justify` |
-	| `background` | no | Stage background — a CSS color or a `var()` from the project's css |
+	| `background` | no | Default stage background — a CSS color or a `var()` from the project's css |
 	| `minHeight` | no | Minimum stage height |
 
-	## The body is Svelte, in your project's context
+	Each `[EXAMPLE]` can override any of the stage attributes for itself.
 
-	The stage loads the project's [`css`](/explorer/configuration#css), the same
-	way a `[COMPONENT]` preview and an `[EXAMPLE]` do — the composition looks
-	like your product, not like these docs. An entity-level `<script>` and
-	`<style>` work as they do elsewhere: the script's imports are what the body
-	composes from, and the style joins the stage's css.
+	## Your project's context
 
-	## It takes no blocks
+	The stages load the project's [`css`](/explorer/configuration#css), the same
+	way a `[COMPONENT]` preview and a `[SHOWCASE]`'s examples do — the
+	composition looks like your product, not like these docs. An entity-level
+	`<script>` and `<style>` work as they do elsewhere: the script's imports are
+	what the examples compose from.
 
-	A pattern is one composition, so `[COMPONENT]`, `[EXAMPLE]`, `[NOTES]`,
-	`[TODO]`, `[PROSE]` and `[GLOSSARY]` are not read inside one — its body is
-	Svelte markup, and a block written there would render as literal text.
-	Rather than let that pass silently, each is reported:
+	## No `[COMPONENT]`
+
+	A pattern has no single component API, so a `[COMPONENT]` block in one is an
+	error rather than a silently misleading props panel:
 
 	```
 	error  src/UserMenu.sdoc:3 › Patterns / User Menu
-	  [COMPONENT] is not read inside a [PATTERN] — a pattern is one
-	  composition, written directly in its body. For a component with its API
-	  and variants, use [SHOWCASE].
+	  [COMPONENT] is not allowed in a [PATTERNS] — a pattern documents a
+	  composition, which has no single component API. Use [SHOWCASE] for a
+	  component, or [EXAMPLE] to show this composition.
 	```
+
+	Loose markup is an error too, for the same reason it is in a `[SHOWCASE]`:
+	every stage belongs to a named state.
 
 	## When to reach for which
 
-	- **[`[PATTERN]`](/language/patterns)** — several components assembled into
-	  one reusable thing. No single API to document.
+	- **`[PATTERNS]`** — several components assembled into one reusable thing,
+	  with its states. No single API to document.
 	- **[`[SHOWCASE]`](/language/component-docs)** — one component, with its
 	  extracted API, live controls and as many variants as you like.
 	- **[`[LAYOUT]`](/language/layout-docs)** — a whole page rather than a piece
 	  of one, on a full-bleed canvas you can resize to real viewport widths.
 	- **[`[DOC]`](/language/doc-pages)** — prose that isn't tied to one thing.
-
-	If a pattern needs several *states* — signed in and signed out, an empty
-	list and a full one — document them as separate patterns, or use a
-	`[SHOWCASE]` with one `[EXAMPLE]` per state.
 
 	## See also
 

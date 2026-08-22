@@ -24,10 +24,10 @@ export interface Span {
 	end: number;
 }
 
-export type EntityKind = 'SHOWCASE' | 'PATTERN' | 'DOC' | 'PAGE' | 'LAYOUT';
+export type EntityKind = 'SHOWCASE' | 'PATTERNS' | 'DOC' | 'PAGE' | 'LAYOUT';
 export type SubBlockKind = 'preview' | 'example' | 'prose' | 'notes' | 'todo' | 'glossary';
 
-export const ENTITY_KINDS: readonly EntityKind[] = ['SHOWCASE', 'PATTERN', 'DOC', 'PAGE', 'LAYOUT'];
+export const ENTITY_KINDS: readonly EntityKind[] = ['SHOWCASE', 'PATTERNS', 'DOC', 'PAGE', 'LAYOUT'];
 export const SUB_BLOCK_KINDS: readonly SubBlockKind[] = [
 	'preview',
 	'example',
@@ -707,6 +707,10 @@ export function scanSdoc(source: string): SdocFile {
 
 	/** Scan the inside of a [SHOWCASE] entity until its closer. */
 	function scanShowcaseBody(startLi: number, entity: Entity): number {
+		// [SHOWCASE] and [PATTERNS] have the same body: blocks, no loose text.
+		// The closer is the only thing that differs, so it comes from the
+		// entity rather than being written into the scan seven times.
+		const CLOSER = `[/${entity.kind}]`;
 		let i = startLi;
 		let sawContent = false;
 		let styleMisplacedReported = false;
@@ -770,7 +774,7 @@ export function scanSdoc(source: string): SdocFile {
 			// there is no prose to demote it into (loose text here is itself an
 			// error), so keep the capture: the CSS still applies exactly once and
 			// the position diagnostic stands alone, without a cascade.
-			if (entity.style && trimmed !== '[/SHOWCASE]' && !styleMisplacedReported) {
+			if (entity.style && trimmed !== CLOSER && !styleMisplacedReported) {
 				styleMisplacedReported = true;
 				errors.push({
 					code: 'entity-style-position',
@@ -780,7 +784,7 @@ export function scanSdoc(source: string): SdocFile {
 			}
 			sawContent = true;
 			const token = tagToken(trimmed);
-			if (token && token.closer && token.name === 'SHOWCASE' && trimmed === '[/SHOWCASE]') {
+			if (token && token.closer && token.name === entity.kind && trimmed === CLOSER) {
 				if (group !== null) {
 					errors.push({
 						code: 'unclosed-block',
@@ -788,8 +792,8 @@ export function scanSdoc(source: string): SdocFile {
 						span: { start: line.start, end: line.end },
 					});
 				}
-				const tagStart = line.start + line.text.indexOf('[/SHOWCASE]');
-				entity.span.end = tagStart + '[/SHOWCASE]'.length;
+				const tagStart = line.start + line.text.indexOf(CLOSER);
+				entity.span.end = tagStart + CLOSER.length;
 				return i + 1;
 			}
 			if (trimmed === COMPONENTS_OPEN) {
@@ -880,7 +884,7 @@ export function scanSdoc(source: string): SdocFile {
 			if (token && !token.closer && isEntityKind(token.name)) {
 				errors.push({
 					code: 'unclosed-block',
-					message: `Missing [/SHOWCASE] before the next entity.`,
+					message: `Missing ${CLOSER} before the next entity.`,
 					span,
 				});
 				entity.span.end = line.start;
@@ -890,8 +894,8 @@ export function scanSdoc(source: string): SdocFile {
 				errors.push({
 					code: token.closer ? 'stray-closer' : 'unknown-tag',
 					message: token.closer
-						? `Unexpected closer [/${token.name}] inside [SHOWCASE].`
-						: `Unknown block [${token.name}] inside [SHOWCASE] — expected [COMPONENT], [COMPONENTS], [EXAMPLE], [GLOSSARY], [NOTES], [TODO] or [PROSE].`,
+						? `Unexpected closer [/${token.name}] inside [${entity.kind}].`
+						: `Unknown block [${token.name}] inside [${entity.kind}] — expected [COMPONENT], [COMPONENTS], [EXAMPLE], [GLOSSARY], [NOTES], [TODO] or [PROSE].`,
 					span,
 				});
 				i++;
@@ -899,14 +903,14 @@ export function scanSdoc(source: string): SdocFile {
 			}
 			errors.push({
 				code: 'text-outside-blocks',
-				message: 'Text inside [SHOWCASE] must be inside a [component] or [example] block.',
+				message: `Text inside [${entity.kind}] must be inside a ${entity.kind === 'PATTERNS' ? '[EXAMPLE]' : '[component] or [example]'} block.`,
 				span,
 			});
 			i++;
 		}
 		errors.push({
 			code: 'unclosed-block',
-			message: 'Missing [/SHOWCASE].',
+			message: `Missing ${CLOSER}.`,
 			span: entity.openerSpan,
 		});
 		entity.span.end = source.length;
@@ -1175,7 +1179,7 @@ export function scanSdoc(source: string): SdocFile {
 				span: { start: opener.openerSpan.start, end: opener.openerSpan.end },
 			};
 			entities.push(entity);
-			if (token.name === 'SHOWCASE') {
+			if (token.name === 'SHOWCASE' || token.name === 'PATTERNS') {
 				li = scanShowcaseBody(opener.nextLi, entity);
 			} else if (token.name === 'DOC') {
 				li = scanDocBody(opener.nextLi, entity);

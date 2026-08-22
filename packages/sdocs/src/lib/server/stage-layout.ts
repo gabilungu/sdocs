@@ -21,7 +21,7 @@ function kindKeyOf(kind: string): 'showcase' | 'doc' | 'page' | 'layout' {
 	// A pattern is a stage, not a canvas: it takes the showcase defaults so it
 	// sits in a sized, padded frame under its title rather than filling the
 	// viewport the way a [LAYOUT] does.
-	if (kind === 'SHOWCASE' || kind === 'PATTERN') return 'showcase';
+	if (kind === 'SHOWCASE' || kind === 'PATTERNS') return 'showcase';
 	if (kind === 'DOC') return 'doc';
 	if (kind === 'PAGE') return 'page';
 	return 'layout';
@@ -52,7 +52,7 @@ export function resolveStageLayout(
 		// direction/gap/contentX flex a preview/example stage — and a pattern's
 		// single body stage, which has no block to carry them, so they come
 		// from the entity or the config.
-		...((entity.kind === 'SHOWCASE' && block) || entity.kind === 'PATTERN'
+		...((entity.kind === 'SHOWCASE' && block) || entity.kind === 'PATTERNS'
 			? {
 					direction: block?.direction ?? entity.sizing.direction ?? config.content.showcase.direction,
 					gap: block?.gap ?? entity.sizing.gap ?? config.content.showcase.gap,

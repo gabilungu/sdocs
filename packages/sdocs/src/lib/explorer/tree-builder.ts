@@ -342,21 +342,24 @@ export function buildTree(
 		// Create the item node
 		const itemPath = [...currentPath, itemName];
 
-		if (kind === 'component') {
+		// A pattern's states are its examples, and they belong in the sidebar
+		// under it exactly as a showcase's do — same branch, and the entity node
+		// keeps its own type so it keeps its own icon.
+		if (kind === 'component' || kind === 'pattern') {
 			const examples = doc.examples?.map((s) => s.name) ?? [];
 
 			// Check if a folder node with this name already exists (created by a child doc)
 			const existing = parent.find((n) => n.name === itemName);
 			const componentNode: TreeNode = existing ?? {
 				name: itemName,
-				type: 'component',
+				type: kind,
 				path: itemPath,
 				route: [...parentRoute, leaf],
 				children: [],
 			};
 
-			// Upgrade folder to component and attach doc data
-			componentNode.type = 'component';
+			// Upgrade folder to the entity's own type and attach doc data
+			componentNode.type = kind;
 			componentNode.doc = doc;
 			componentNode.entity = true;
 			componentNode.examples = examples;

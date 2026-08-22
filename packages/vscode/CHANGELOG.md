@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.80] - 2026-08-22
+
+### Breaking
+
+- **`[PATTERN]` is now `[PATTERNS]` and holds blocks.** Highlighting,
+  completion and diagnostics follow; see the sdocs 0.0.174 notes.
+
 ## [0.0.79] - 2026-08-22
 
 ### Added

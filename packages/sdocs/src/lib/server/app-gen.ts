@@ -227,7 +227,21 @@ function generateIndexHtml(title: string, favicon: string): string {
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	${faviconLink(favicon)}
 	<title>${title}</title>
-	<style>body { margin: 0; }</style>
+	<style>
+		/* The Explorer's own typography is scoped to .sdocs-app so it cannot
+		   leak into a host app when embedded. Standalone, sdocs owns the whole
+		   document — and without this the body kept the browser default, so
+		   anything outside that scope, and the first paint before the app
+		   mounts, rendered in Times. --sans is defined on :root by theme.css;
+		   the stack repeats here because this style tag is inline in the shell
+		   and runs before that stylesheet has loaded. */
+		html {
+			font-family: var(--sans, 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+		}
+		body {
+			margin: 0;
+		}
+	</style>
 </head>
 <body>
 	<div id="app"></div>

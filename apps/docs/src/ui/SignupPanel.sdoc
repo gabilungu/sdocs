@@ -5,7 +5,7 @@
 	import Notice from './Notice.svelte';
 </script>
 
-[PATTERN
+[PATTERNS
 	title="@demo/Signup Panel"
 	description="A card, two fields, a notice and a call to action — the composition, not its parts."
 	maxWidth="480px"
@@ -13,13 +13,28 @@
 	gap="16px"
 ]
 
-	<Card href="#" title="Create an account" linkText="Already have one? Sign in">
-		<TextField label="Email" placeholder="ada@example.com" />
-		<TextField label="Password" placeholder="At least 12 characters" />
-		<Notice title="One more thing" tone="info">
-			We'll send a confirmation link before anything is created.
-		</Notice>
-		<LinkButton href="#" variant="primary">Create account</LinkButton>
-	</Card>
+	[EXAMPLE title="Default"]
+		<Card href="#" title="Create an account" linkText="Already have one? Sign in">
+			<TextField label="Email" placeholder="ada@example.com" />
+			<TextField label="Password" placeholder="At least 12 characters" />
+			<LinkButton href="#" variant="primary">Create account</LinkButton>
+		</Card>
+	[/EXAMPLE]
 
-[/PATTERN]
+	[PROSE]
+		When the form needs to say something before it is submitted, the notice
+		sits inside the card rather than above it — the composition stays one
+		object on the page.
+	[/PROSE]
+
+	[EXAMPLE title="With a notice"]
+		<Card href="#" title="Create an account" linkText="Already have one? Sign in">
+			<TextField label="Email" placeholder="ada@example.com" />
+			<Notice title="One more thing" tone="info">
+				We'll send a confirmation link before anything is created.
+			</Notice>
+			<LinkButton href="#" variant="primary">Create account</LinkButton>
+		</Card>
+	[/EXAMPLE]
+
+[/PATTERNS]

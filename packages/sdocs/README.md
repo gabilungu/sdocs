@@ -201,12 +201,12 @@ prefix routes at the site root and belongs to no sidebar; point the config's
 [/PAGE]
 ```
 
-### Patterns — `[PATTERN]`
+### Patterns — `[PATTERNS]`
 
-One composition of several components — a user menu, a notifications system —
-documented as a single thing. A `[SHOWCASE]` with the prop half switched off:
-there is no one component whose API it could extract, so no `[COMPONENT]`, no
-props panel and no controls. The body is the composition.
+One composition of several components — a user menu, a signup panel — with the
+states it ships in. A `[SHOWCASE]` with the prop half switched off: no single
+component whose API it could extract, so no `[COMPONENT]`, no props panel and
+no controls. Everything else is the same.
 
 ```sdoc
 <script lang="ts">
@@ -214,15 +214,22 @@ props panel and no controls. The body is the composition.
 	import Menu from './Menu.svelte';
 </script>
 
-[PATTERN title="Patterns / User Menu" description="Avatar, menu and badge."]
+[PATTERNS title="Patterns / User Menu" description="Avatar, menu and badge."]
 
-	<Avatar src={user.img} /> <Menu>Profile · Settings · Sign out</Menu>
+	[EXAMPLE title="Signed out"]
+		<Menu>Sign in</Menu>
+	[/EXAMPLE]
 
-[/PATTERN]
+	[EXAMPLE title="Signed in"]
+		<Avatar name="Ada" /> <Menu>Profile · Sign out</Menu>
+	[/EXAMPLE]
+
+[/PATTERNS]
 ```
 
-Reach for `[SHOWCASE]` when one component with an API is the subject, and
-`[LAYOUT]` when the composition is a whole page rather than a piece of one.
+Each example gets its own sidebar entry and route. Reach for `[SHOWCASE]` when
+one component with an API is the subject, and `[LAYOUT]` when the composition
+is a whole page.
 
 ### Layouts — `[LAYOUT]`
 

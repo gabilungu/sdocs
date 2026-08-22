@@ -45,7 +45,7 @@ describe('the docs site links to routes that exist', () => {
 					kind:
 						entity.kind === 'SHOWCASE'
 							? 'component'
-							: entity.kind === 'PATTERN'
+							: entity.kind === 'PATTERNS'
 								? 'pattern'
 								: entity.kind === 'DOC'
 									? 'doc'

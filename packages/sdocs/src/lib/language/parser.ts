@@ -248,32 +248,13 @@ export interface LayoutEntity {
 /**
  * A composition documented as one thing: a user menu, a notifications system.
  *
- * Structurally a [LAYOUT] — a plain Svelte body, no blocks — but staged like a
- * [SHOWCASE]: it sits in a sized stage under its own title and description,
- * rather than filling the viewport. What it does NOT have is the prop half. A
- * composition has no single component whose API it documents, so there is no
- * [COMPONENT], no extraction and no controls panel.
+ * Structurally a [SHOWCASE] with the prop half switched off — the same blocks,
+ * the same flow, the same stages — but no [COMPONENT], because a composition
+ * has no single component whose API it could document. `previews` is always
+ * empty; it is kept so the two kinds share every code path that reads them.
  */
-export interface PatternEntity {
-	kind: 'PATTERN';
-	title: string;
-	/** Short text under the title — inline markdown, as a [SHOWCASE]'s is */
-	description: string | null;
-	slug: string;
-	/** Explicit route leaf from slug="…"; null → slugified title segment */
-	routeSlug: string | null;
-	/** `hide` flag: routable but never listed in a sidebar */
-	hide: boolean;
-	notes: DocNote[];
-	todos: TodoItem[];
-	prose: string[];
-	sizing: Sizing;
-	script: TagBlock | null;
-	style: TagBlock | null;
-	body: string;
-	bodySpan: Span;
-	openerSpan: Span;
-	span: Span;
+export interface PatternEntity extends Omit<ShowcaseEntity, 'kind'> {
+	kind: 'PATTERNS';
 }
 
 export type SdocEntity = ShowcaseEntity | DocEntity | PageEntity | LayoutEntity | PatternEntity;
@@ -549,7 +530,7 @@ const ENTITY_ATTR_RULES: Record<string, Record<string, AttrRule>> = {
 		// On PAGE, contentX places the content container inside the view.
 		contentX: { required: false, kind: 'string', hint: 'contentX="center"' },
 	},
-	PATTERN: {
+	PATTERNS: {
 		title: { required: true, kind: 'string', hint: 'title="Group / Name"' },
 		description: { required: false, kind: 'string', hint: 'description="…"' },
 		...ROUTE_ATTR_RULES,
@@ -1021,16 +1002,9 @@ function reportTextBlocksInBody(kind: string, entity: Entity, diagnostics: ScanE
 		const m = /^[ \t]*\[(NOTES|TODO|PROSE|GLOSSARY|COMPONENT|EXAMPLE|COMPONENTS)\b/i.exec(raw);
 		if (m) {
 			const tag = m[1].toUpperCase();
-			// A [COMPONENT] or [EXAMPLE] in a pattern is a different mistake
-			// from a stray [NOTES]: the author wants the other entity, and
-			// saying so is more use than saying this one renders as text.
-			const staged = tag === 'COMPONENT' || tag === 'COMPONENTS' || tag === 'EXAMPLE';
 			diagnostics.push({
 				code: 'block-in-body',
-				message:
-					staged && kind === 'PATTERN'
-						? `[${tag}] is not read inside a [PATTERN] — a pattern is one composition, written directly in its body. For a component with its API and variants, use [SHOWCASE].`
-						: `[${tag}] is not read inside a [${kind}] — its body is Svelte markup, so this renders as literal text.`,
+				message: `[${tag}] is not read inside a [${kind}] — its body is Svelte markup, so this renders as literal text.`,
 				span: { start: offset, end: offset + raw.length },
 			});
 		}
@@ -1213,8 +1187,9 @@ function parseShowcase(
 	entity: Entity,
 	fileImports: Map<string, Span>,
 	diagnostics: ScanError[],
-): ShowcaseEntity {
-	checkAttrs('[SHOWCASE]', entity.attrs, ENTITY_ATTR_RULES.SHOWCASE, entity.openerSpan, diagnostics);
+): ShowcaseEntity | PatternEntity {
+	const kind = entity.kind as 'SHOWCASE' | 'PATTERNS';
+	checkAttrs(`[${kind}]`, entity.attrs, ENTITY_ATTR_RULES[kind], entity.openerSpan, diagnostics);
 	checkNestedScript(entity.script, fileImports, diagnostics);
 	const outerImports = mergeImports(fileImports, entity.script);
 	const previews: PreviewBlock[] = [];
@@ -1234,6 +1209,18 @@ function parseShowcase(
 
 	for (const block of entity.blocks) {
 		if (block.kind === 'preview') {
+			// A composition has no one component whose API it could document, so
+			// a props panel here would document a part and imply it was the
+			// whole. The author wants the other entity; say which.
+			if (kind === 'PATTERNS') {
+				diagnostics.push({
+					code: 'block-not-allowed',
+					message:
+						'[COMPONENT] is not allowed in a [PATTERNS] — a pattern documents a composition, which has no single component API. Use [SHOWCASE] for a component, or [EXAMPLE] to show this composition.',
+					span: block.openerSpan,
+				});
+				continue;
+			}
 			const preview = parsePreview(block, outerImports, diagnostics);
 			if (previewLabels.has(preview.label)) {
 				diagnostics.push({
@@ -1307,7 +1294,9 @@ function parseShowcase(
 	const title = stringAttr(entity.attrs, 'title') ?? '';
 	const { notes, todos, prose } = text.result;
 	return {
-		kind: 'SHOWCASE',
+		// [PATTERNS] is this same entity with the prop half switched off —
+		// same blocks, same flow, no previews.
+		kind: entity.kind as 'SHOWCASE' | 'PATTERNS',
 		title,
 		slug: slugifyTitle(title),
 		routeSlug: routeSlugAttr(entity.attrs, diagnostics),
@@ -1427,12 +1416,12 @@ export function parseSdoc(source: string): SdocDocument {
 
 	for (const entity of scanned.entities) {
 		let typed: SdocEntity;
-		if (entity.kind === 'SHOWCASE') {
+		if (entity.kind === 'SHOWCASE' || entity.kind === 'PATTERNS') {
 			typed = parseShowcase(entity, fileImports, diagnostics);
 		} else if (entity.kind === 'DOC') {
 			typed = parseDoc(entity, fileImports, diagnostics);
 		} else {
-			// PAGE, LAYOUT and PATTERN share the shape: a plain Svelte body.
+			// PAGE and LAYOUT share the shape: a plain Svelte body.
 			const kind = entity.kind;
 			checkAttrs(`[${kind}]`, entity.attrs, ENTITY_ATTR_RULES[kind], entity.openerSpan, diagnostics);
 			const title = stringAttr(entity.attrs, 'title') ?? '';
@@ -1451,9 +1440,6 @@ export function parseSdoc(source: string): SdocDocument {
 			typed = {
 				kind,
 				title,
-				...(kind === 'PATTERN'
-					? { description: stringAttr(entity.attrs, 'description') ?? null }
-					: {}),
 				slug: slugifyTitle(title),
 				routeSlug: routeSlugAttr(entity.attrs, diagnostics),
 				hide: bareAttr(entity.attrs, 'hide'),
@@ -1471,7 +1457,7 @@ export function parseSdoc(source: string): SdocDocument {
 				bodySpan: entity.bodySpan,
 				openerSpan: entity.openerSpan,
 				span: entity.span,
-			} as PageEntity | LayoutEntity | PatternEntity;
+			} as PageEntity | LayoutEntity;
 		}
 		if (slugs.has(typed.slug)) {
 			diagnostics.push({

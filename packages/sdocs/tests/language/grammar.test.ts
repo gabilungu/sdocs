@@ -880,20 +880,31 @@ describe('scopes that were unreachable from one level down', () => {
 });
 
 /**
- * [PATTERN] is a fifth entity, and a kind that is half-added is the failure
+ * [PATTERNS] is a fifth entity, and a kind that is half-added is the failure
  * mode: the grammar is one of five surfaces that enumerate them, and the one
  * where a miss shows up as a whole file rendering as plain text.
  */
-describe('[PATTERN] is scoped like the entity it is', () => {
-	const PATTERN_SRC = `<script lang="ts">
+describe('[PATTERNS] is scoped like the entity it is', () => {
+	// The rule was first cloned from [LAYOUT], back when a pattern held a
+	// markup body. Once it held blocks instead, that rule scoped the opener and
+	// closer correctly while every [EXAMPLE] and [NOTES] inside rendered as
+	// plain Svelte text — and a test that only checked the opener passed
+	// happily through it. This checks the blocks.
+	const PATTERNS_SRC = `<script lang="ts">
 	import Avatar from './Avatar.svelte';
 </script>
 
-[PATTERN title="Patterns / User Menu" description="Assembled."]
+[PATTERNS title="Patterns / User Menu" description="Assembled."]
 
-	<Avatar name="Ada" /> <Menu>Profile</Menu>
+	[EXAMPLE title="Signed in"]
+		<Avatar name="Ada" />
+	[/EXAMPLE]
 
-[/PATTERN]
+	[NOTES]
+		- a11y: The trigger owns aria-expanded.
+	[/NOTES]
+
+[/PATTERNS]
 
 [DOC title="After"]
 
@@ -902,7 +913,7 @@ describe('[PATTERN] is scoped like the entity it is', () => {
 [/DOC]
 `;
 
-	it('scopes the opener, the attributes and the closer', async () => {
+	it('scopes its opener, its blocks and its closer', async () => {
 		const hl = await createHighlighter({
 			themes: ['github-dark'],
 			langs: [
@@ -910,25 +921,28 @@ describe('[PATTERN] is scoped like the entity it is', () => {
 				{ ...grammar, name: 'sdoc', embeddedLangs: ['svelte', 'typescript', 'javascript', 'css', 'markdown'] },
 			],
 		});
-		const { tokens } = hl.codeToTokens(PATTERN_SRC, {
+		const { tokens } = hl.codeToTokens(PATTERNS_SRC, {
 			lang: 'sdoc',
 			theme: 'github-dark',
 			includeExplanation: true,
 		});
-		const lines = PATTERN_SRC.split('\n');
+		const lines = PATTERNS_SRC.split('\n');
 		const scopesOn = (needle: string) => {
 			const li = lines.findIndex((l) => l.includes(needle));
 			return (tokens[li] ?? []).flatMap(
 				(t) => t.explanation?.flatMap((e) => e.scopes.map((s) => s.scopeName)) ?? [],
 			);
 		};
-		expect(scopesOn('[PATTERN title=').some((s) => s.includes('keyword.control.entity.sdoc'))).toBe(true);
-		expect(scopesOn('[PATTERN title=').some((s) => s.includes('entity.other.attribute-name.sdoc'))).toBe(true);
-		expect(scopesOn('[/PATTERN]').some((s) => s.includes('keyword.control.entity.sdoc'))).toBe(true);
-		// The body is Svelte, as a [LAYOUT]'s is.
+		expect(scopesOn('[PATTERNS title=').some((s) => s.includes('keyword.control.entity.sdoc'))).toBe(true);
+		expect(scopesOn('[PATTERNS title=').some((s) => s.includes('entity.other.attribute-name.sdoc'))).toBe(true);
+		expect(scopesOn('[/PATTERNS]').some((s) => s.includes('keyword.control.entity.sdoc'))).toBe(true);
+		// The blocks inside — the half the layout-shaped rule missed.
+		expect(scopesOn('[EXAMPLE title=').some((s) => s.includes('entity.name.tag.sdoc'))).toBe(true);
+		expect(scopesOn('[/EXAMPLE]').some((s) => s.includes('entity.name.tag.sdoc'))).toBe(true);
+		expect(scopesOn('[NOTES]').some((s) => s.includes('keyword.control.block.sdoc'))).toBe(true);
+		// An example body is still Svelte.
 		expect(scopesOn('<Avatar name=').some((s) => s.includes('svelte'))).toBe(true);
-		// And the entity after it is unaffected — a desync here would take the
-		// rest of the file with it.
+		// And the entity after it is unaffected.
 		expect(colorOf(tokens as Tokens, lines, '[/DOC]'), '[/DOC]').not.toBe(PLAIN);
 		hl.dispose();
 	});

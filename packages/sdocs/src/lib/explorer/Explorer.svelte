@@ -10,7 +10,6 @@
 	import LayoutView from './views/LayoutView.svelte';
 	import AboutPage from './views/AboutPage.svelte';
 	import NotFoundPage from './views/NotFoundPage.svelte';
-	import PatternView from './views/PatternView.svelte';
 	import ChangelogPage from './views/ChangelogPage.svelte';
 	import ErrorScreen from './views/ErrorScreen.svelte';
 	import { onMount, setContext, type Component } from 'svelte';
@@ -456,8 +455,6 @@
 					<DocView doc={resolved.doc} {activeStylesheet} {pageModules} {preloaded} {dev} />
 				{:else if resolved.doc.kind === 'page'}
 					<PageView doc={resolved.doc} {pageModules} {preloaded} {dev} />
-				{:else if resolved.doc.kind === 'pattern'}
-					<PatternView doc={resolved.doc} {activeStylesheet} />
 				{:else if resolved.doc.kind === 'layout'}
 					<LayoutView doc={resolved.doc} {activeStylesheet} {dev} />
 				{:else}

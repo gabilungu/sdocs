@@ -26,7 +26,7 @@ export async function buildSiteMap(config: ResolvedSdocsConfig, cwd: string) {
 				kind:
 					entity.kind === 'SHOWCASE'
 						? 'component'
-						: entity.kind === 'PATTERN'
+						: entity.kind === 'PATTERNS'
 							? 'pattern'
 							: entity.kind === 'DOC'
 								? 'doc'
@@ -37,14 +37,16 @@ export async function buildSiteMap(config: ResolvedSdocsConfig, cwd: string) {
 				entitySlug: entity.slug,
 				meta: {
 					title: entity.title,
-					...(entity.kind === 'SHOWCASE' && entity.description
+					...((entity.kind === 'SHOWCASE' || entity.kind === 'PATTERNS') && entity.description
 						? { description: entity.description }
 						: {}),
 				},
 				previews: [],
 				prose: [],
 				examples:
-					entity.kind === 'SHOWCASE'
+					// A pattern's states are addressable exactly as a showcase's
+					// are — that is what puts them in the sidebar under it.
+					entity.kind === 'SHOWCASE' || entity.kind === 'PATTERNS'
 						? planEntitySnippets(entity)
 								.filter((s) => s.role === 'example')
 								.map((s) => ({ name: s.name, slug: s.slug, role: s.role, body: '' }))

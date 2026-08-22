@@ -92,7 +92,7 @@
 			"include": "#layout"
 		},
 		{
-			"include": "#pattern"
+			"include": "#patterns"
 		}
 	],
 	"repository": {
@@ -237,6 +237,72 @@
 				}
 			},
 			"end": "^\\s*(\\[/)(SHOWCASE)(\\])\\s*$",
+			"endCaptures": {
+				"1": {
+					"name": "punctuation.definition.tag.begin.sdoc"
+				},
+				"2": {
+					"name": "keyword.control.entity.sdoc"
+				},
+				"3": {
+					"name": "punctuation.definition.tag.end.sdoc"
+				}
+			},
+			"patterns": [
+				{
+					"include": "#comment"
+				},
+				{
+					"include": "#opener-continuation"
+				},
+				{
+					"include": "#block-script-ts"
+				},
+				{
+					"include": "#block-script-js"
+				},
+				{
+					"include": "#block-style"
+				},
+				{
+					"include": "#components-container"
+				},
+				{
+					"include": "#text-block"
+				},
+				{
+					"include": "#prose"
+				},
+				{
+					"include": "#glossary"
+				},
+				{
+					"include": "#preview"
+				},
+				{
+					"include": "#example"
+				}
+			]
+		},
+		"patterns": {
+			"name": "meta.block.patterns.sdoc",
+			"begin": "^\\s*(\\[)(PATTERNS)\\b(.*)$",
+			"beginCaptures": {
+				"1": {
+					"name": "punctuation.definition.tag.begin.sdoc"
+				},
+				"2": {
+					"name": "keyword.control.entity.sdoc"
+				},
+				"3": {
+					"patterns": [
+						{
+							"include": "#attributes"
+						}
+					]
+				}
+			},
+			"end": "^\\s*(\\[/)(PATTERNS)(\\])\\s*$",
 			"endCaptures": {
 				"1": {
 					"name": "punctuation.definition.tag.begin.sdoc"
@@ -527,60 +593,6 @@
 				{
 					"begin": "(^|\\G)",
 					"while": "(^|\\G)(?!\\s*\\[/LAYOUT\\]\\s*$)",
-					"patterns": [
-						{
-							"include": "#block-script-ts"
-						},
-						{
-							"include": "#block-script-js"
-						},
-						{
-							"include": "#block-style"
-						},
-						{
-							"include": "#opener-continuation"
-						},
-						{
-							"include": "source.svelte"
-						}
-					]
-				}
-			]
-		},
-		"pattern": {
-			"name": "meta.block.pattern.sdoc",
-			"begin": "^\\s*(\\[)(PATTERN)\\b(.*)$",
-			"beginCaptures": {
-				"1": {
-					"name": "punctuation.definition.tag.begin.sdoc"
-				},
-				"2": {
-					"name": "keyword.control.entity.sdoc"
-				},
-				"3": {
-					"patterns": [
-						{
-							"include": "#attributes"
-						}
-					]
-				}
-			},
-			"end": "^\\s*(\\[/)(PATTERN)(\\])\\s*$",
-			"endCaptures": {
-				"1": {
-					"name": "punctuation.definition.tag.begin.sdoc"
-				},
-				"2": {
-					"name": "keyword.control.entity.sdoc"
-				},
-				"3": {
-					"name": "punctuation.definition.tag.end.sdoc"
-				}
-			},
-			"patterns": [
-				{
-					"begin": "(^|\\G)",
-					"while": "(^|\\G)(?!\\s*\\[/PATTERN\\]\\s*$)",
 					"patterns": [
 						{
 							"include": "#block-script-ts"

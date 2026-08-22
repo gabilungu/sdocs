@@ -287,7 +287,7 @@ export async function checkDocFile(filePath: string, cwd: string): Promise<Check
 			}
 		};
 
-		if (entity.kind === 'SHOWCASE') {
+		if (entity.kind === 'SHOWCASE' || entity.kind === 'PATTERNS') {
 			// `component={X}` must trace to a real component file: without it the
 			// preview still renders, but its API tables and controls silently
 			// don't. The build only warns; here it's an error you can gate on.

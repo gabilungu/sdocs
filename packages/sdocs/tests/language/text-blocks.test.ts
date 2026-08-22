@@ -481,10 +481,11 @@ describe('text blocks in a body that cannot hold them', () => {
 
 	// The editor is the other half: both the Explorer's button and the MCP
 	// tools reach the file through it, so one guard closes both.
-	it('refuses to write a block into a [PAGE], [LAYOUT] or [PATTERN]', () => {
-		// All three capture their body whole as Svelte markup, so a block
-		// written in would come back as literal text on the page.
-		for (const kind of ['PAGE', 'LAYOUT', 'PATTERN']) {
+	it('refuses to write a block into a [PAGE] or [LAYOUT]', () => {
+		// Both capture their body whole as Svelte markup, so a block written in
+		// would come back as literal text on the page. A [PATTERNS] holds
+		// blocks and is deliberately not in this list.
+		for (const kind of ['PAGE', 'LAYOUT']) {
 			const source = `[${kind} title="Dashboard"]\n\n\t<div>Hi</div>\n\n[/${kind}]\n`;
 			expect(() =>
 				writeNotes(source, { entitySlug: 'dashboard' }, [{ note: 'nope', type: 'bug' }]),

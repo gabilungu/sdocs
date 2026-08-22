@@ -12,6 +12,53 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.174] - 2026-08-22
+
+### Breaking
+
+- **`[PATTERN]` is now `[PATTERNS]`, and holds `[EXAMPLE]` blocks rather than a
+  body.** It shipped a few hours ago as a body-only entity, which was too
+  little in use: a composition with one state is a screenshot, and the
+  hand-rolled view it needed had neither the resize handles nor the code
+  panel's overflow handling that showcase examples have had all along — a long
+  line ran off the page instead of scrolling.
+
+  It is now genuinely what it was always described as: a `[SHOWCASE]` with the
+  prop half switched off. Same blocks, same flow, same stages, same code
+  panels, same resize handles. Each `[EXAMPLE]` is a state, and gets its own
+  sidebar entry under the pattern — with the same bookmark icon a showcase's
+  examples get — and its own route.
+
+  ```sdoc
+  [PATTERNS title="Patterns / User Menu" description="Avatar, menu and badge."]
+
+  	[EXAMPLE title="Signed out"]
+  		<Menu>Sign in</Menu>
+  	[/EXAMPLE]
+
+  	[PROSE]
+  		Once there is a user, the avatar becomes the trigger.
+  	[/PROSE]
+
+  	[EXAMPLE title="Signed in"]
+  		<Avatar name="Ada" /> <Menu>Profile · Sign out</Menu>
+  	[/EXAMPLE]
+
+  [/PATTERNS]
+  ```
+
+  A `[COMPONENT]` in one is still refused, pointing at `[SHOWCASE]`. Loose
+  markup is now an error too, exactly as in a `[SHOWCASE]` — every stage
+  belongs to a named state.
+
+### Fixed
+
+- **The standalone site's body font.** The Explorer's typography is scoped to
+  `.sdocs-app` so it cannot leak into a host app when embedded — but standalone
+  sdocs owns the whole document, and nothing set a font on it. Anything outside
+  that scope, and the first paint before the app mounts, rendered in the
+  browser's default serif. The generated shell now sets it on `html`.
+
 ## [0.0.173] - 2026-08-22
 
 ### Fixed

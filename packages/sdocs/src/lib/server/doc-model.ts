@@ -97,7 +97,7 @@ export function planEntitySnippets(entity: SdocEntity): PlannedSnippet[] {
 			...blockParts(e),
 		};
 	};
-	if (entity.kind === 'SHOWCASE') {
+	if (entity.kind === 'SHOWCASE' || entity.kind === 'PATTERNS') {
 		// [PROSE] blocks are planned first so their slugs are reserved before
 		// an example can take one: prose-1 is addressable, an example titled
 		// "Prose 1" is not worth a collision.

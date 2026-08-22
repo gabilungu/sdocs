@@ -383,7 +383,7 @@ const TOOLS = [
 	{
 		name: 'resolve_visual_target',
 		description:
-			'Resolve a stage — a [component] preview, an [example], a [PATTERN] or a ' +
+			'Resolve a stage — a [component] preview, an [example], a [PATTERNS] or a ' +
 			'[LAYOUT] — ' +
 			'to a preview-only route and stable selectors intended for browser ' +
 			'automation, plus the source files behind it. Accepts a name ' +
@@ -668,7 +668,7 @@ async function scaffoldComponentDoc(params: Record<string, unknown>) {
 
 const ENTITY_KIND_TO_DOC_KIND = {
 	SHOWCASE: 'component',
-	PATTERN: 'pattern',
+	PATTERNS: 'pattern',
 	DOC: 'doc',
 	PAGE: 'page',
 	LAYOUT: 'layout',
@@ -1216,7 +1216,7 @@ async function routeToStage(
 	if (target.snippetName) return base;
 	// An entity route: pick the stage that *is* the entity.
 	// A pattern's route IS its stage, as a showcase's and a layout's are.
-	if (info.kind === 'SHOWCASE' || info.kind === 'PATTERN' || info.kind === 'LAYOUT') return base;
+	if (info.kind === 'SHOWCASE' || info.kind === 'PATTERNS' || info.kind === 'LAYOUT') return base;
 	const examples: string[] = [];
 	for (const [r, t] of map.routes) {
 		if (t.doc === target.doc && t.snippetName) examples.push(`/${r}`);

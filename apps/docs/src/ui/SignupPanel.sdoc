@@ -1,0 +1,25 @@
+<script lang="ts">
+	import Card from './Card.svelte';
+	import TextField from './TextField.svelte';
+	import LinkButton from './LinkButton.svelte';
+	import Notice from './Notice.svelte';
+</script>
+
+[PATTERN
+	title="@demo/Signup Panel"
+	description="A card, two fields, a notice and a call to action — the composition, not its parts."
+	maxWidth="480px"
+	direction="column"
+	gap="16px"
+]
+
+	<Card href="#" title="Create an account" linkText="Already have one? Sign in">
+		<TextField label="Email" placeholder="ada@example.com" />
+		<TextField label="Password" placeholder="At least 12 characters" />
+		<Notice title="One more thing" tone="info">
+			We'll send a confirmation link before anything is created.
+		</Notice>
+		<LinkButton href="#" variant="primary">Create account</LinkButton>
+	</Card>
+
+[/PATTERN]

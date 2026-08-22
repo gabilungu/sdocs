@@ -26,11 +26,13 @@ export async function buildSiteMap(config: ResolvedSdocsConfig, cwd: string) {
 				kind:
 					entity.kind === 'SHOWCASE'
 						? 'component'
-						: entity.kind === 'DOC'
-							? 'doc'
-							: entity.kind === 'PAGE'
-								? 'page'
-								: 'layout',
+						: entity.kind === 'PATTERN'
+							? 'pattern'
+							: entity.kind === 'DOC'
+								? 'doc'
+								: entity.kind === 'PAGE'
+									? 'page'
+									: 'layout',
 				filePath,
 				entitySlug: entity.slug,
 				meta: {

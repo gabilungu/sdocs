@@ -18,7 +18,10 @@ interface EntityLike {
 }
 
 function kindKeyOf(kind: string): 'showcase' | 'doc' | 'page' | 'layout' {
-	if (kind === 'SHOWCASE') return 'showcase';
+	// A pattern is a stage, not a canvas: it takes the showcase defaults so it
+	// sits in a sized, padded frame under its title rather than filling the
+	// viewport the way a [LAYOUT] does.
+	if (kind === 'SHOWCASE' || kind === 'PATTERN') return 'showcase';
 	if (kind === 'DOC') return 'doc';
 	if (kind === 'PAGE') return 'page';
 	return 'layout';
@@ -46,20 +49,22 @@ export function resolveStageLayout(
 			block?.maxWidth ??
 			(entity.kind === 'LAYOUT' ? (entity.sizing.maxWidth ?? kindDefaults.maxWidth) : '100%'),
 		padding: block?.padding ?? entity.sizing.padding ?? kindDefaults.padding,
-		// direction/gap/contentX flex the preview/example stages only
-		...(entity.kind === 'SHOWCASE' && block
+		// direction/gap/contentX flex a preview/example stage — and a pattern's
+		// single body stage, which has no block to carry them, so they come
+		// from the entity or the config.
+		...((entity.kind === 'SHOWCASE' && block) || entity.kind === 'PATTERN'
 			? {
-					direction: block.direction ?? entity.sizing.direction ?? config.content.showcase.direction,
-					gap: block.gap ?? entity.sizing.gap ?? config.content.showcase.gap,
-					contentX: block.contentX ?? entity.sizing.contentX ?? config.content.showcase.contentX,
-					contentY: block.contentY ?? entity.sizing.contentY ?? config.content.showcase.contentY,
+					direction: block?.direction ?? entity.sizing.direction ?? config.content.showcase.direction,
+					gap: block?.gap ?? entity.sizing.gap ?? config.content.showcase.gap,
+					contentX: block?.contentX ?? entity.sizing.contentX ?? config.content.showcase.contentX,
+					contentY: block?.contentY ?? entity.sizing.contentY ?? config.content.showcase.contentY,
 					background:
-						block.background ??
+						block?.background ??
 						entity.sizing.background ??
 						config.content.showcase.background ??
 						undefined,
 					minHeight:
-						block.minHeight ??
+						block?.minHeight ??
 						entity.sizing.minHeight ??
 						config.content.showcase.minHeight ??
 						undefined,

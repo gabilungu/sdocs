@@ -11,7 +11,7 @@ import type {
 	SectionEntry,
 } from '../types.js';
 
-export type TreeNodeType = 'folder' | 'group' | 'component' | 'doc' | 'page' | 'layout';
+export type TreeNodeType = 'folder' | 'group' | 'component' | 'pattern' | 'doc' | 'page' | 'layout';
 
 export interface TreeNode {
 	name: string;

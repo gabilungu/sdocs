@@ -37,6 +37,7 @@
 	import menuSvg from './icons/menu.svg?raw';
 	import paletteSvg from './icons/palette.svg?raw';
 	import panelsTopLeftSvg from './icons/panels-top-left.svg?raw';
+	import blocksSvg from './icons/blocks.svg?raw';
 	import sdocsSvg from './icons/sdocs.svg?raw';
 	import slidersHorizontalSvg from './icons/sliders-horizontal.svg?raw';
 	import squareFunctionSvg from './icons/square-function.svg?raw';
@@ -80,6 +81,7 @@
 		'menu': menuSvg,
 		'palette': paletteSvg,
 		'panels-top-left': panelsTopLeftSvg,
+		'blocks': blocksSvg,
 		'sdocs': sdocsSvg,
 		'sliders-horizontal': slidersHorizontalSvg,
 		'square-function': squareFunctionSvg,

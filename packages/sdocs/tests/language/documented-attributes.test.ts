@@ -22,6 +22,7 @@ const DOCS = resolve(__dirname, '../../../../apps/docs/src/docs/language');
 /** Which reference page documents which block kinds. */
 const PAGES: { file: string; kinds: string[] }[] = [
 	{ file: 'component-docs.sdoc', kinds: ['SHOWCASE', 'preview'] },
+	{ file: 'patterns.sdoc', kinds: ['PATTERN'] },
 	{ file: 'doc-pages.sdoc', kinds: ['DOC', 'example'] },
 	{ file: 'svelte-pages.sdoc', kinds: ['PAGE'] },
 	{ file: 'layout-docs.sdoc', kinds: ['LAYOUT'] },

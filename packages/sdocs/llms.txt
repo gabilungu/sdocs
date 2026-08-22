@@ -411,7 +411,8 @@ Three parts, in this order (only the entities are required):
 
 1. `<script>` — top, optional. Imports and shared values (JS/TS), visible to
    every entity in the file.
-2. Entities — the middle. Any mix of `[SHOWCASE]`, `[DOC]`, `[PAGE]`, `[LAYOUT]`.
+2. Entities — the middle. Any mix of `[SHOWCASE]`, `[PATTERN]`, `[DOC]`, `[PAGE]`,
+   `[LAYOUT]`.
    Each is its own route and (usually) its own sidebar entry.
 3. `<style>` — bottom, optional. CSS available to the file's previews/examples.
 
@@ -423,7 +424,7 @@ example renders isolated, so each gets its own copy of anything mutable.
 
 - Tags are line-anchored square brackets, each on its own line: `[SHOWCASE …]`
   opens, `[/SHOWCASE]` closes.
-- Entity tags are UPPERCASE (`[SHOWCASE]`, `[DOC]`, `[PAGE]`, `[LAYOUT]`); inner
+- Entity tags are UPPERCASE (`[SHOWCASE]`, `[PATTERN]`, `[DOC]`, `[PAGE]`, `[LAYOUT]`); inner
   blocks inside them are UPPERCASE too (`[COMPONENT]`, `[COMPONENTS]`,
   `[EXAMPLE]`, `[NOTES]`, `[TODO]`, `[PROSE]`). `[COMPONENT]` and `[EXAMPLE]`
   are also accepted lowercase, indefinitely — files written before 0.0.139 keep
@@ -442,10 +443,31 @@ example renders isolated, so each gets its own copy of anything mutable.
 | `[SHOWCASE]` | components — live previews with controls, examples, extracted API | stages: project |
 | `[DOC]` | freeform markdown content, auto table of contents | prose: docs |
 | `[PAGE]` | a Svelte-built page (landing pages, custom routes) | docs |
+| `[PATTERN]` | one composition of several components — a user menu, a notifications system | stage: project |
 | `[LAYOUT]` | a full-page composition of your product, isolated frame | project |
 
+`[PATTERN]` is a `[SHOWCASE]` with the prop half switched off. It documents a
+composition — several components assembled into one thing — which has no single
+component whose API it could extract, so there is no `[COMPONENT]`, no props
+panel and no controls. Its body IS the composition, written directly:
+
+```sdoc
+[PATTERN title="Patterns / User Menu" description="Avatar, menu and badge."]
+
+	<Avatar src={user.img} /> <Menu>Profile · Settings · Sign out</Menu>
+
+[/PATTERN]
+```
+
+Attributes: `title` (required), `description`, `slug`, `hide`, and the stage
+attributes (`maxWidth`, `padding`, `direction`, `gap`, `contentX`, `contentY`,
+`background`, `minHeight`). It takes no blocks — a `[COMPONENT]`, `[EXAMPLE]`
+or `[NOTES]` in the body is reported, not silently rendered as text. Use
+`[SHOWCASE]` when there is one component with an API to document, and
+`[LAYOUT]` when the composition is a whole page rather than a piece of one.
+
 **Project context vs docs context** (the concept that ties the format together):
-`[EXAMPLE]`/`[COMPONENT]` **stages** and `[LAYOUT]` bodies load your project's
+`[EXAMPLE]`/`[COMPONENT]` **stages** and `[PATTERN]`/`[LAYOUT]` bodies load your project's
 `css` — they look like your product. `[DOC]` prose and `[PAGE]` bodies render in
 the **docs** context (the docs app's own styling, its CSS variables) — the
 project `css` never touches them. Rule of thumb: *prose is docs-styled, stages

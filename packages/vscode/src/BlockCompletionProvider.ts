@@ -17,6 +17,11 @@ const ENTITY_BLOCKS: BlockSpec[] = [
 		insert: 'SHOWCASE title="$1"]\n\n\t$0\n\n[/SHOWCASE]',
 	},
 	{
+		label: 'PATTERN',
+		detail: 'A composition documented as one thing: a user menu, a notifications system',
+		insert: 'PATTERN title="$1" description="$2"]\n\n\t$0\n\n[/PATTERN]',
+	},
+	{
 		label: 'DOC',
 		detail: 'Freeform markdown page',
 		insert: 'DOC title="$1"]\n\n\t$0\n\n[/DOC]',

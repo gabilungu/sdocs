@@ -24,10 +24,10 @@ export interface Span {
 	end: number;
 }
 
-export type EntityKind = 'SHOWCASE' | 'DOC' | 'PAGE' | 'LAYOUT';
+export type EntityKind = 'SHOWCASE' | 'PATTERN' | 'DOC' | 'PAGE' | 'LAYOUT';
 export type SubBlockKind = 'preview' | 'example' | 'prose' | 'notes' | 'todo' | 'glossary';
 
-export const ENTITY_KINDS: readonly EntityKind[] = ['SHOWCASE', 'DOC', 'PAGE', 'LAYOUT'];
+export const ENTITY_KINDS: readonly EntityKind[] = ['SHOWCASE', 'PATTERN', 'DOC', 'PAGE', 'LAYOUT'];
 export const SUB_BLOCK_KINDS: readonly SubBlockKind[] = [
 	'preview',
 	'example',

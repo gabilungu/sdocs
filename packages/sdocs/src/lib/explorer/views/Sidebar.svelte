@@ -139,6 +139,7 @@
 			case 'component':
 				if (node.entity) return isCompound(node) ? 'component' : 'diamond';
 				return 'bookmark';
+			case 'pattern': return 'blocks';
 			case 'doc':
 			case 'page': return 'file-text';
 			case 'layout': return 'panels-top-left';
@@ -151,6 +152,7 @@
 			case 'folder': return 'var(--color-base-400)';
 			case 'component':
 				return node.entity ? 'var(--color-component-500)' : 'var(--color-example-500)';
+			case 'pattern': return 'var(--color-pattern-500)';
 			case 'doc':
 			case 'page': return 'var(--color-page-550)';
 			case 'layout': return 'var(--color-layout-500)';
@@ -161,6 +163,7 @@
 	function expanderActiveColor(node: TreeNode): string {
 		switch (node.type) {
 			case 'component': return 'var(--color-component-400)';
+			case 'pattern': return 'var(--color-pattern-400)';
 			case 'doc':
 			case 'page': return 'var(--color-page-400)';
 			case 'layout': return 'var(--color-layout-400)';

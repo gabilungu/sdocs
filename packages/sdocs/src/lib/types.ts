@@ -500,7 +500,7 @@ export interface TocHeading {
 /** A complete doc entry (one entity of one .sdoc file) */
 export interface DocEntry {
 	/** Doc kind: SHOWCASE / DOC / PAGE / LAYOUT */
-	kind: 'component' | 'doc' | 'page' | 'layout';
+	kind: 'component' | 'pattern' | 'doc' | 'page' | 'layout';
 	/** Absolute path to the .sdoc file */
 	filePath: string;
 	/** URL-safe entity id, unique within the file */

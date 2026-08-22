@@ -1,0 +1,88 @@
+[DOC title="@language/Patterns"]
+
+	A `[PATTERN]` documents **one composition** — a user menu, a notifications
+	system, a comment thread. The level between a component and a page: bigger
+	than a button, smaller than a screen, and the level most design systems
+	never write down.
+
+	It is a `[SHOWCASE]` with the prop half switched off. A composition has no
+	single component whose API it could extract, so there is no `[COMPONENT]`,
+	no props panel and no controls — a props table documenting one part of a
+	composition would be actively misleading. The body **is** the composition.
+
+	````sdoc
+	<script lang="ts">
+		import Avatar from './Avatar.svelte';
+		import Menu from './Menu.svelte';
+	</script>
+
+	[PATTERN title="Patterns / User Menu" description="Avatar, menu and badge."]
+
+		<Avatar name="Ada" /> <Menu>Profile · Settings · Sign out</Menu>
+
+	[/PATTERN]
+	````
+
+	The page is the title, the description, the composition on a stage, and its
+	source in a code panel — because a pattern is a thing you copy.
+
+	## Attributes
+
+	| Attribute | Required | Meaning |
+	|---|---|---|
+	| `title` | yes | Sidebar path and display name — `"Patterns / User Menu"` nests under Patterns |
+	| `description` | no | Short text under the title — inline markdown renders styled |
+	| `slug` | no | Overrides the URL segment (default: slugified title segment) |
+	| `hide` | no | A bare flag: routable, but never listed in a sidebar |
+	| `maxWidth` | no | Stage width (default `100%`) |
+	| `padding` | no | Stage padding |
+	| `direction` | no | Stage `flex-direction` |
+	| `gap` | no | Stage `gap` |
+	| `contentX` | no | Horizontal alignment: `left`/`center`/`right`/`justify` |
+	| `contentY` | no | Vertical alignment: `top`/`middle`/`bottom`/`justify` |
+	| `background` | no | Stage background — a CSS color or a `var()` from the project's css |
+	| `minHeight` | no | Minimum stage height |
+
+	## The body is Svelte, in your project's context
+
+	The stage loads the project's [`css`](/explorer/configuration#css), the same
+	way a `[COMPONENT]` preview and an `[EXAMPLE]` do — the composition looks
+	like your product, not like these docs. An entity-level `<script>` and
+	`<style>` work as they do elsewhere: the script's imports are what the body
+	composes from, and the style joins the stage's css.
+
+	## It takes no blocks
+
+	A pattern is one composition, so `[COMPONENT]`, `[EXAMPLE]`, `[NOTES]`,
+	`[TODO]`, `[PROSE]` and `[GLOSSARY]` are not read inside one — its body is
+	Svelte markup, and a block written there would render as literal text.
+	Rather than let that pass silently, each is reported:
+
+	```
+	error  src/UserMenu.sdoc:3 › Patterns / User Menu
+	  [COMPONENT] is not read inside a [PATTERN] — a pattern is one
+	  composition, written directly in its body. For a component with its API
+	  and variants, use [SHOWCASE].
+	```
+
+	## When to reach for which
+
+	- **[`[PATTERN]`](/language/patterns)** — several components assembled into
+	  one reusable thing. No single API to document.
+	- **[`[SHOWCASE]`](/language/component-docs)** — one component, with its
+	  extracted API, live controls and as many variants as you like.
+	- **[`[LAYOUT]`](/language/layout-docs)** — a whole page rather than a piece
+	  of one, on a full-bleed canvas you can resize to real viewport widths.
+	- **[`[DOC]`](/language/doc-pages)** — prose that isn't tied to one thing.
+
+	If a pattern needs several *states* — signed in and signed out, an empty
+	list and a full one — document them as separate patterns, or use a
+	`[SHOWCASE]` with one `[EXAMPLE]` per state.
+
+	## See also
+
+	- [Component docs](/language/component-docs) — `[SHOWCASE]` and `[COMPONENT]`
+	- [Layouts](/language/layout-docs) — full-page compositions
+	- [Overview](/language/overview) — every entity, side by side
+
+[/DOC]

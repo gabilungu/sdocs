@@ -246,6 +246,26 @@
 	--color-layout-850: var(--color-purple-150);
 	--color-layout-900: var(--color-purple-100);
 	--color-layout-950: var(--color-purple-50);
+
+	--color-pattern-50: var(--color-emerald-950);
+	--color-pattern-100: var(--color-emerald-900);
+	--color-pattern-150: var(--color-emerald-850);
+	--color-pattern-200: var(--color-emerald-800);
+	--color-pattern-250: var(--color-emerald-750);
+	--color-pattern-300: var(--color-emerald-700);
+	--color-pattern-350: var(--color-emerald-650);
+	--color-pattern-400: var(--color-emerald-600);
+	--color-pattern-450: var(--color-emerald-550);
+	--color-pattern-500: var(--color-emerald-500);
+	--color-pattern-550: var(--color-emerald-450);
+	--color-pattern-600: var(--color-emerald-400);
+	--color-pattern-650: var(--color-emerald-350);
+	--color-pattern-700: var(--color-emerald-300);
+	--color-pattern-750: var(--color-emerald-250);
+	--color-pattern-800: var(--color-emerald-200);
+	--color-pattern-850: var(--color-emerald-150);
+	--color-pattern-900: var(--color-emerald-100);
+	--color-pattern-950: var(--color-emerald-50);
 	/* example (inverted) */
 	--color-example-50: var(--color-cyan-950);
 	--color-example-100: var(--color-cyan-900);

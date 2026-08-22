@@ -16,6 +16,7 @@
 	const componentCount = $derived(docs.filter((d) => d.kind === 'component').length);
 	const pageCount = $derived(docs.filter((d) => d.kind === 'doc' || d.kind === 'page').length);
 	const layoutCount = $derived(docs.filter((d) => d.kind === 'layout').length);
+	const patternCount = $derived(docs.filter((d) => d.kind === 'pattern').length);
 </script>
 
 <div class="sdocs-home">
@@ -40,6 +41,12 @@
 			<div class="sdocs-stat">
 				<span class="sdocs-stat-value">{pageCount}</span>
 				<span class="sdocs-stat-label">{pageCount === 1 ? 'Page' : 'Pages'}</span>
+			</div>
+		{/if}
+		{#if patternCount > 0}
+			<div class="sdocs-stat">
+				<span class="sdocs-stat-value">{patternCount}</span>
+				<span class="sdocs-stat-label">{patternCount === 1 ? 'Pattern' : 'Patterns'}</span>
 			</div>
 		{/if}
 		{#if layoutCount > 0}

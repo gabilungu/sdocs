@@ -22,7 +22,7 @@ export default {
 		{
 			slug: 'language',
 			title: 'Language',
-			order: ['overview', 'component-docs', 'doc-pages', 'svelte-pages', 'layout-docs'],
+			order: ['overview', 'component-docs', 'patterns', 'doc-pages', 'svelte-pages', 'layout-docs'],
 		},
 		{ slug: 'cli', title: 'CLI', order: ['overview', 'commands'] },
 		{ slug: 'extension', title: 'Extension', order: ['overview', 'language-support', 'projects-view', 'docs-tabs'] },

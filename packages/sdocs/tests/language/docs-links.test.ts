@@ -45,11 +45,13 @@ describe('the docs site links to routes that exist', () => {
 					kind:
 						entity.kind === 'SHOWCASE'
 							? 'component'
-							: entity.kind === 'DOC'
-								? 'doc'
-								: entity.kind === 'PAGE'
-									? 'page'
-									: 'layout',
+							: entity.kind === 'PATTERN'
+								? 'pattern'
+								: entity.kind === 'DOC'
+									? 'doc'
+									: entity.kind === 'PAGE'
+										? 'page'
+										: 'layout',
 					filePath: file,
 					entitySlug: entity.slug,
 					routeSlug: entity.routeSlug ?? undefined,

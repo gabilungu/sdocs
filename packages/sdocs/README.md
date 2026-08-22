@@ -201,6 +201,29 @@ prefix routes at the site root and belongs to no sidebar; point the config's
 [/PAGE]
 ```
 
+### Patterns — `[PATTERN]`
+
+One composition of several components — a user menu, a notifications system —
+documented as a single thing. A `[SHOWCASE]` with the prop half switched off:
+there is no one component whose API it could extract, so no `[COMPONENT]`, no
+props panel and no controls. The body is the composition.
+
+```sdoc
+<script lang="ts">
+	import Avatar from './Avatar.svelte';
+	import Menu from './Menu.svelte';
+</script>
+
+[PATTERN title="Patterns / User Menu" description="Avatar, menu and badge."]
+
+	<Avatar src={user.img} /> <Menu>Profile · Settings · Sign out</Menu>
+
+[/PATTERN]
+```
+
+Reach for `[SHOWCASE]` when one component with an API is the subject, and
+`[LAYOUT]` when the composition is a whole page rather than a piece of one.
+
 ### Layouts — `[LAYOUT]`
 
 Full-page component compositions rendered on an isolated stage.

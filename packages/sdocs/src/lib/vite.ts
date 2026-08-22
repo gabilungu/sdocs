@@ -667,11 +667,13 @@ export function sdocsPlugin(
 				kind:
 					entity.kind === 'SHOWCASE'
 						? 'component'
-						: entity.kind === 'DOC'
-							? 'doc'
-							: entity.kind === 'PAGE'
-								? 'page'
-								: 'layout',
+						: entity.kind === 'PATTERN'
+							? 'pattern'
+							: entity.kind === 'DOC'
+								? 'doc'
+								: entity.kind === 'PAGE'
+									? 'page'
+									: 'layout',
 				filePath,
 				entitySlug: entity.slug,
 				meta: {
@@ -691,7 +693,9 @@ export function sdocsPlugin(
 
 			// Sizing cascade: block attribute -> entity attribute -> config default.
 			const kindDefaults = config.content[
-				entity.kind === 'SHOWCASE'
+				// A pattern is staged like a showcase — sized and padded under
+				// its title, not full-bleed the way a layout is.
+				entity.kind === 'SHOWCASE' || entity.kind === 'PATTERN'
 					? 'showcase'
 					: entity.kind === 'DOC'
 						? 'doc'
@@ -703,6 +707,11 @@ export function sdocsPlugin(
 			entry.maxWidth = entity.sizing.maxWidth ?? kindDefaults.maxWidth;
 			if (entity.kind === 'DOC') {
 				entry.showToc = entity.sizing.toc ?? config.content.doc.toc;
+			}
+
+			// A pattern's description sits under its title, as a showcase's does.
+			if (entity.kind === 'PATTERN' && entity.description) {
+				entry.meta.description = entity.description;
 			}
 
 			if (entity.kind === 'SHOWCASE') {
@@ -820,6 +829,12 @@ export function sdocsPlugin(
 				entry.contentKey = pageKey(filePath, entity.slug);
 			} else {
 				snippets[0].stage = stageOf();
+				// A pattern shows its own source — the composition is the thing
+				// you copy, so the code panel is the point. A layout has no code
+				// panel and does not pay for the highlighting.
+				if (entity.kind === 'PATTERN') {
+					snippets[0].highlightedHtml = await highlight(snippets[0].body);
+				}
 				entry.content = snippets[0];
 			}
 

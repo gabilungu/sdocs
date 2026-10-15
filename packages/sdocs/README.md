@@ -47,7 +47,7 @@ format. Fourteen tools — ten that read, four that write:
 | `validate_sdoc` | parse `.sdoc` text, return diagnostics |
 | `get_authoring_guide` | the format reference, whole or by section — also on the web as [llms.txt](https://gabilungu.github.io/sdocs/llms.txt) |
 | `get_changelog` | this install's changelog, breaking changes first |
-| `list_docs` | the project's docs, their routes, notes, todos, glossary terms and component statuses — and the running sdocs version |
+| `list_docs` | the project's docs, their routes, notes, todos and glossary terms — and the running sdocs version |
 | `search_docs` | find a page by any name it goes under, or sweep by note type |
 | `check_docs` | compile every stage, validate the site structure, report what breaks |
 | `check_coverage` | which components have a `[COMPONENT]` preview |
@@ -58,7 +58,6 @@ format. Fourteen tools — ten that read, four that write:
 | Write | |
 |---|---|
 | `set_notes` | replace a `[NOTES]` block |
-| `set_status` | set a `[COMPONENT]`'s lifecycle status |
 | `set_todos` | replace a `[TODO]` checklist |
 | `toggle_todo` | tick one item |
 
@@ -141,7 +140,7 @@ one file can hold several.
 
 [SHOWCASE title="Components / Button" description="A flexible button component."]
 
-	[COMPONENT component={Button} status="ready" args={{ label: 'Click me', disabled: false }}]
+	[COMPONENT component={Button} args={{ label: 'Click me', disabled: false }}]
 		<Button {...args} />
 	[/COMPONENT]
 
@@ -155,9 +154,7 @@ one file can hold several.
 - **`[COMPONENT]`** — a live showcase with interactive controls.
   `component={X}` names the previewed component (its props, events,
   snippets, methods, state, and CSS custom properties are extracted
-  automatically) and `args` sets the control defaults. `status` is optional:
-  `draft`, `wip`, `review`, `experimental`, `ready` or `deprecated`, shown as a
-  glyph on the component's tab. Two or more `[COMPONENT]` blocks share one tab
+  automatically) and `args` sets the control defaults. Two or more `[COMPONENT]` blocks share one tab
   strip and must sit inside a `[COMPONENTS]` wrapper.
 - **`[EXAMPLE]`** — frozen showcases rendered exactly as written, shown
   below the preview area. Each needs a unique `title`.

@@ -35,12 +35,6 @@
 	flows with the other blocks, in a `[DOC]` it sits mid-prose. `search` turns
 	on a filter box. [Language reference](/language/overview#text-blocks).
 
-	## 0.0.140 — component `status`
-
-	`draft`, `wip`, `review`, `experimental`, `ready`, `deprecated` — shown as a
-	glyph on the component's tab, so a strip of tabs says what is safe to use at
-	a glance. [See it live](/demo/everything).
-
 	## 0.0.139 — the text blocks
 
 	`[NOTES]`, `[TODO]` and `[PROSE]` — standing remarks with a status

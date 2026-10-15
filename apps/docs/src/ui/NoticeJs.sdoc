@@ -12,7 +12,6 @@
 
 		[COMPONENT
 			component={NoticeJs}
-			status="review"
 			args={{ title: 'Build finished', tone: 'success', dismissible: true, count: 1 }}
 		]
 			<NoticeJs {...args}>
@@ -21,7 +20,7 @@
 			</NoticeJs>
 		[/COMPONENT]
 
-		[COMPONENT component={Notice} status="ready"]
+		[COMPONENT component={Notice}]
 			<Notice {...args}>Something here</Notice>
 		[/COMPONENT]
 

@@ -56,35 +56,33 @@
 
 		[COMPONENT
 			component={Disclosure}
-			status="draft"
 			description="Block description only — this component has no `@component` comment of its own."
 			args={{ summary: 'Draft', open: false }}
 		]
 			<Disclosure {...args}>Sketched, not real yet.</Disclosure>
 		[/COMPONENT]
 
-		[COMPONENT component={TextField} status="wip" args={{ label: 'Work in progress', placeholder: 'Being built' }}]
+		[COMPONENT component={TextField} args={{ label: 'Work in progress', placeholder: 'Being built' }}]
 			<TextField {...args} />
 		[/COMPONENT]
 
-		[COMPONENT component={NoticeJs} status="review" args={{ title: 'In review', tone: 'info' }}]
+		[COMPONENT component={NoticeJs} args={{ title: 'In review', tone: 'info' }}]
 			<NoticeJs {...args}>Built, waiting on sign-off.</NoticeJs>
 		[/COMPONENT]
 
 		[COMPONENT
 			component={Meter}
-			status="experimental"
 			description="Both descriptions — this line is the block's, and the component's own follows underneath."
 			args={{ value: 40, max: 100, label: 'Experimental' }}
 		]
 			<Meter {...args} />
 		[/COMPONENT]
 
-		[COMPONENT component={Notice} status="ready" args={{ title: 'Ready', tone: 'success' }}]
+		[COMPONENT component={Notice} args={{ title: 'Ready', tone: 'success' }}]
 			<Notice {...args}>Done — use it.</Notice>
 		[/COMPONENT]
 
-		[COMPONENT component={LinkButton} status="deprecated" args={{ href: '#', variant: 'primary' }}]
+		[COMPONENT component={LinkButton} args={{ href: '#', variant: 'primary' }}]
 			<LinkButton {...args}>Deprecated</LinkButton>
 		[/COMPONENT]
 

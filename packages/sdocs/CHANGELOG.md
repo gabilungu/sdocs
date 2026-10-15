@@ -12,6 +12,27 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.176] - 2026-10-15
+
+### Breaking
+
+- **`status` on `[COMPONENT]` is removed.** The lifecycle glyph on a
+  component's tab is gone, and so is the attribute behind it: a
+  `status="…"` left in a `.sdoc` is now an error that says it was removed.
+  Delete it. If what it said matters to a reader — "deprecated, use
+  ActionButton" — write it as a `[NOTES]` line. The MCP `set_status` tool is
+  gone with it, and `list_docs` no longer reports `statuses`. The six
+  `fa-` glyphs that only drew it (`fa-pencil`, `fa-screwdriver-wrench`,
+  `fa-eye`, `fa-flask`, `fa-circle-check`, `fa-ban`) leave the `Icon` set.
+
+### Changed
+
+- **Notes are for what matters.** The MCP server's instructions, the
+  `set_notes` tool and the authoring guide now say plainly that a `[NOTES]`
+  line is for something a reader must know — a real bug, an accessibility
+  gap, a caveat that will bite — and never a status or progress marker. Most
+  components need none.
+
 ## [0.0.175] - 2026-10-15
 
 ### Removed

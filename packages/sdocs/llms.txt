@@ -24,15 +24,20 @@ that split.
 
 ## Setup
 
-Install into a Svelte 5 project:
+**sdocs does not need to be installed.** With `.sdoc` files present,
+`npx sdocs run` fetches sdocs into the npx cache and serves them, resolving
+your components' dependencies (and your project's own `svelte`) from the
+project; `npx sdocs build` and `npx sdocs check` work the same way. The config
+file is a plain exported object that imports nothing, so it adds no dependency
+either. The sdocs VS Code extension can also run the docs from its Projects
+view. Do not add sdocs to `package.json` just to use it.
+
+Install it only to embed the Explorer in your own Vite app, or to pin the
+version in the project:
 
 ```bash
 npm install sdocs
 ```
-
-Or skip installing entirely — with `.sdoc` files present, `npx sdocs run`
-fetches sdocs into the npx cache and serves them, resolving your components'
-dependencies (and your project's own `svelte`) from the project.
 
 Scaffold a config (optional — the defaults work with zero config):
 
@@ -174,7 +179,7 @@ Explorer uses:
   config's `include` globs match, each with its entities (kind, title), the
   **route** each one serves at (plus a route per example), the components its
   previews document, and everything the entity carries — its `notes`, its
-  `[TODO]` tree, its `[GLOSSARY]` terms, and each component's `status`. The routes come from the Explorer's own router, so
+  `[TODO]` tree and its `[GLOSSARY]` terms. The routes come from the Explorer's own router, so
   they're exactly what the site serves — drive a browser over them to smoke
   test every page.
 - `search_docs { query?, type?, limit? }` — find documentation by any name it
@@ -182,7 +187,7 @@ Explorer uses:
   `synonyms`, an example title, an example's `tags`, a `[GLOSSARY]` term or its
   definition, a `[TODO]` line, or the text of any `notes` on either. Matching is a case-insensitive **substring**, so `butt` finds
   `Button` and `menu` finds every example tagged "user menu". `type` sweeps by
-  note status instead — `type: 'bug'` lists everything marked bug with no query
+  note type instead — `type: 'bug'` lists everything marked bug with no query
   at all, and `'none'` finds notes written without one; give both
   and a result has to satisfy both. Each hit says which names matched, the
   notes it carries, and the route it serves at — pass that route to
@@ -190,10 +195,8 @@ Explorer uses:
 - `set_notes { file, entity, example?, notes }` — replace a `[NOTES]` block's
   contents. Pass the whole list you want; an empty one removes the block. Each
   note is `{ note, type? }` with type `bug`/`a11y`/`warning`/`perf`/`tip`/`info`.
-- `set_status { file, entity, component, status }` — set a `[COMPONENT]`'s
-  status, or `null` to remove it. Name the component by its `component={…}`
-  identifier, or by its `title="…"` when one entity previews the same component
-  twice.
+  Only for something important a reader must know (see the `[NOTES]`
+  section); never a status or progress marker.
 - `set_todos { file, entity, example?, todos }` — replace a `[TODO]` checklist.
   Items are `{ text, done?, children? }`, nesting to any depth.
 - `toggle_todo { file, entity, example?, path, done }` — tick one item by its
@@ -201,8 +204,8 @@ Explorer uses:
   as `list_docs` reports the tree). Rewrites one character; prefer it to
   `set_todos` when you are only ticking something off.
 
-  **The four writes above edit the project's `.sdoc` files.** Each rewrites the
-  smallest span that will do — a block's own span, or a single attribute — so
+  **The three writes above edit the project's `.sdoc` files.** Each rewrites the
+  smallest span that will do — a block's own span, or a single character — so
   formatting, comments and every other byte survive. Reach for them rather than
   editing `.sdoc` text yourself: they cannot produce a file that does not
   parse. Each refuses any path the project's `include` globs do not already
@@ -607,10 +610,10 @@ One note per line, once per entity and once per `[EXAMPLE]`:
 		- a11y: The icon-only variant has no accessible name.
 		- warning: Being replaced by ActionButton in v4.
 		- tip: Pair it with Field when it labels an input.
-		- Ships in the next release.
+		- Submits its form unless it is given type="button".
 	[/NOTES]
 
-	[COMPONENT component={Button} status="review"]
+	[COMPONENT component={Button}]
 		<Button {...args} />
 	[/COMPONENT]
 
@@ -623,22 +626,18 @@ One note per line, once per entity and once per `[EXAMPLE]`:
   off and the note is a plain remark, shown in grey. A type outside that set is
   an error, not a silent fallback: grey is a real choice, and a typo would read
   as one.
-- A note is an **observation** — what should someone know about this. Where a
-  component sits in its life is `status` on the `[COMPONENT]`, which is a
-  property of the thing rather than a remark about it; the two vocabularies
-  were one until 0.0.140.
+- **Write one only when it matters.** A note is something a reader must know
+  before using the component — a real bug, an accessibility gap, a caveat that
+  will bite. It is not a status or a progress log: never add a note to say a
+  component is new, done, in progress or in review, and never to restate what
+  the page already shows. Most components carry no notes at all; when in
+  doubt, leave the block out.
 - Each renders as an alert directly under the entity's title, in the order
   written.
 - **Only `[SHOWCASE]`, `[DOC]` and `[EXAMPLE]` bodies hold them.** A `[PAGE]`
   or `[LAYOUT]` body is captured whole as Svelte markup, so a block written
   there is never read back — it renders as literal text on the page. sdocs
   reports it (`block-in-body`) rather than letting it through.
-
-Under `sdocs dev` the Explorer can write them: a note button at the end of every
-entity and example title opens an editor, and Save rewrites the `[NOTES]` block
-in the `.sdoc` itself. It is offered only where a block can actually live —
-`[SHOWCASE]`, `[DOC]` and their examples. Dev only — the endpoint behind it exists on no built site, and
-it refuses any file the project does not document.
 
 In the sidebar the notes become one dot on the row: **filled** when the worst of
 them is on that page, **hollow** when it is on something inside it. A row shows
@@ -654,39 +653,6 @@ type outranks `tip` and `info` deliberately — an author who did not reach for 
 word was not being reassuring. A `hide` entity's notes stay out of the
 roll-up.
 
-## `status` — where a component is in its life
-
-An optional attribute on `[COMPONENT]`, shown as a glyph after the name on its
-tab (which is why the tab strip renders even for a single component):
-
-```sdoc
-[COMPONENT component={Button} status="experimental"]
-	<Button {...args} />
-[/COMPONENT]
-```
-
-One linear path, plus the end of it:
-
-| Value | Means |
-|---|---|
-| `draft` | sketched, not real yet |
-| `wip` | being built |
-| `review` | built, waiting on sign-off |
-| `experimental` | usable, but the API may still change |
-| `ready` | done — use it |
-| `deprecated` | on the way out |
-
-`review` and `experimental` are both "not final", and the difference is who
-they wait on: a review waits on a person, an experiment waits on real use.
-
-Leave it off and the component has no status, which reads as *nobody said* — a
-different thing from `draft`. A value outside the set is an error rather than a
-silent no-status, for the same reason an unknown note type is.
-
-This is a property of the component. A remark *about* it — including "this is
-being replaced by X" — is a `[NOTES]` line, which can carry the text that says
-what to use instead.
-
 ## `[TODO]` — a checklist
 
 Once per entity and once per `[EXAMPLE]`, nested to any depth by indentation:
@@ -701,11 +667,9 @@ Once per entity and once per `[EXAMPLE]`, nested to any depth by indentation:
 ```
 
 Every line is `- [ ] text` or `- [x] text`; the text is inline markdown. It
-always renders when present — this is not a dev-only affordance — and under
-`sdocs dev` the boxes are live: ticking one writes straight back into the
-`.sdoc`, rewriting the single character between the brackets and nothing else.
-A built site shows the same list read-only, since there is no source there to
-write to.
+always renders when present — this is not a dev-only affordance — and is
+read-only in the Explorer: ticking, adding or renaming an item is an edit to
+the `.sdoc` file.
 
 Indentation is meaning here, not layout: it is what nests one item under
 another. The formatter leaves a `[TODO]` body exactly as written for that

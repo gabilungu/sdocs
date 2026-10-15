@@ -137,7 +137,7 @@
 			- a11y: The icon-only variant has no accessible name.
 			- warning: Being replaced by ActionButton in v4.
 			- tip: Pair it with Field when it labels an input.
-			- Ships in the next release.
+			- Submits its form unless it is given type="button".
 		[/NOTES]
 
 		[COMPONENT component={Button}]
@@ -153,13 +153,12 @@
 	silent fallback to grey, since grey is a real choice and a typo would look
 	like one.
 
-	A note is an **observation** — what should someone know about this thing.
-	Where a component sits in its life is
-	[`status`](/language/component-docs#status-where-a-component-is-in-its-life)
-	on the `[COMPONENT]`, which is a property of it rather than a remark about
-	it. The two were one vocabulary until 0.0.140, and splitting them is what
-	lets a note say "being replaced by ActionButton" while the component itself
-	says `deprecated`.
+	**Write a note only when it matters.** A note is something a reader must
+	know before using the component — a real bug, an accessibility gap, a
+	caveat that will bite. It is not a status or a progress log: a note saying
+	a component is new, done or in review tells the reader nothing they can act
+	on, and every one of those makes the notes that do matter easier to miss.
+	Most components carry no notes at all.
 
 	Each note renders as an alert directly under the entity's title, in the
 	order written.

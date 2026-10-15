@@ -84,7 +84,6 @@ describe('MCP handler', () => {
 			// The writes come last, so a tool list read top-to-bottom is
 			// everything that only looks, then everything that changes a file.
 			'set_notes',
-			'set_status',
 			'set_todos',
 			'toggle_todo',
 		]);
@@ -785,25 +784,6 @@ describe('the blocks over MCP', () => {
 		expect(await inDir(dir, () => search('count or label'))).toContain('definition of Badge');
 	});
 
-	it('sets a status, and removes it again byte-for-byte', async () => {
-		const dir = project();
-		const file = join(dir, 'Badge.sdoc');
-		const set = (status: string | null) =>
-			inDir(dir, () =>
-				callTool('set_status', {
-					file: 'Badge.sdoc',
-					entity: 'Display / Badge',
-					component: 'Badge',
-					status,
-				}),
-			);
-		await set('review');
-		expect(readFileSync(file, 'utf-8')).toContain('[COMPONENT component={Badge} status="review"]');
-		await set(null);
-		// The attribute and the space before it, and nothing else.
-		expect(readFileSync(file, 'utf-8')).toBe(SOURCE);
-	});
-
 	it('ticks one todo without touching the author’s text', async () => {
 		const dir = project();
 		await inDir(dir, () =>
@@ -833,38 +813,24 @@ describe('the blocks over MCP', () => {
 		expect(out).not.toContain('Overflows past 99');
 	});
 
-	// The same guard the dev server's endpoints use: a write tool that touches
-	// any path it is handed can be pointed anywhere.
+	// A write tool that touches any path it is handed can be pointed anywhere.
 	it('refuses a file the project does not document', async () => {
 		const dir = project();
 		const { error } = await inDir(dir, () =>
 			rpc('tools/call', {
-				name: 'set_status',
+				name: 'set_notes',
 				arguments: {
 					file: '../../etc/passwd',
 					entity: 'Display / Badge',
-					component: 'Badge',
-					status: 'ready',
+					notes: [],
 				},
 			}),
 		);
 		expect(error?.message).toContain('not a .sdoc this project documents');
 	});
 
-	it('refuses a status outside the vocabulary, and an entity that is not there', async () => {
+	it('refuses an entity that is not there', async () => {
 		const dir = project();
-		const bad = await inDir(dir, () =>
-			rpc('tools/call', {
-				name: 'set_status',
-				arguments: {
-					file: 'Badge.sdoc',
-					entity: 'Display / Badge',
-					component: 'Badge',
-					status: 'stable',
-				},
-			}),
-		);
-		expect(bad.error?.message).toContain('status must be one of');
 		const missing = await inDir(dir, () =>
 			rpc('tools/call', {
 				name: 'set_notes',
@@ -902,11 +868,10 @@ describe('concurrent writes to one file', () => {
 		process.chdir(dir);
 		try {
 			await Promise.all([
-				callTool('set_status', {
+				callTool('set_todos', {
 					file: 'Badge.sdoc',
 					entity: 'Display / Badge',
-					component: 'Badge',
-					status: 'ready',
+					todos: [{ text: 'Both edits must survive, too.' }],
 				}),
 				callTool('set_notes', {
 					file: 'Badge.sdoc',
@@ -918,7 +883,7 @@ describe('concurrent writes to one file', () => {
 			process.chdir(prev);
 		}
 		const out = readFileSync(file, 'utf-8');
-		expect(out).toContain('status="ready"');
+		expect(out).toContain('- [ ] Both edits must survive, too.');
 		expect(out).toContain('- tip: Both edits must survive.');
 	});
 });

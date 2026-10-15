@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { Component, Snippet } from 'svelte';
 	import type {
-		ComponentStatus,
 		DocEntry,
 		DocNote,
 		ExtractedSnippet,
@@ -112,41 +111,6 @@
 		activePreview?.componentName ??
 			((meta.title ?? '').split('/').pop()?.trim() || 'Component'),
 	);
-	/** The glyph and the words behind each status.
-	 *
-	 * One shape throughout, filling as the component matures: a hollow circle
-	 * for a draft, half-filled while it is built, a dot under review, a query
-	 * while it is experimental, a tick when it is ready, a cross once it is on
-	 * the way out. A strip of tabs then reads as a scale rather than as six
-	 * unrelated pictures, and every one is a square viewBox so they hold the
-	 * same optical size beside each other.
-	 *
-	 * `draft` takes Font Awesome's *regular* circle, not its solid one: the
-	 * solid `circle` is a filled disc, which would make the emptiest state read
-	 * as the fullest and run the scale backwards. */
-	/**
-	 * The glyph and the words behind each status.
-	 *
-	 * Distinct **silhouettes**, not one shape with different insides. At 13px
-	 * the interior of a glyph is four or five pixels: a circle holding a `?`,
-	 * a circle holding a dot and a half-filled circle all read as "a coloured
-	 * dot", and only a tick and a cross survive because those shapes are
-	 * over-learned. An outline that differs at a glance is the whole job.
-	 *
-	 * `review` is an eye rather than a magnifier for a second reason: a
-	 * magnifying glass means *search* everywhere in software, and this app has
-	 * a search box in its own sidebar. An icon that already means something
-	 * else in the same window means that other thing.
-	 */
-	const STATUS: Record<ComponentStatus, { icon: string; label: string }> = {
-		draft: { icon: 'fa-pencil', label: 'Draft — sketched, not real yet' },
-		wip: { icon: 'fa-screwdriver-wrench', label: 'Work in progress — being built' },
-		review: { icon: 'fa-eye', label: 'In review — built, awaiting sign-off' },
-		experimental: { icon: 'fa-flask', label: 'Experimental — usable, but the API may change' },
-		ready: { icon: 'fa-circle-check', label: 'Ready — done, use it' },
-		deprecated: { icon: 'fa-ban', label: 'Deprecated — on the way out' },
-	};
-
 	const exampleSnippets = $derived(doc.examples ?? []);
 
 	/**
@@ -567,9 +531,9 @@
 		     render as a single item wherever the first of them appears. -->
 		{#snippet componentsBlock()}
 			<!-- Shown for a single component too: the tab names the component
-			     being previewed, and carries its status — a page that drops the
-			     strip when there is one component makes that information appear
-			     and disappear with the count. -->
+			     being previewed, and a page that drops the strip when there is
+			     one component makes that name appear and disappear with the
+			     count. -->
 			{#if previews.length > 0}
 				<div
 					class="sdocs-preview-tabs"
@@ -591,17 +555,6 @@
 							onkeydown={onTabKeydown}
 						>
 							{preview.label}
-							{#if preview.snippet.status}
-								{@const status = STATUS[preview.snippet.status]}
-								<span
-									class="sdocs-status"
-									data-status={preview.snippet.status}
-									title={status.label}
-									aria-label={status.label}
-								>
-									<Icon name={status.icon} --w="13px" --h="13px" --fill="currentColor" />
-								</span>
-							{/if}
 						</button>
 					{/each}
 				</div>
@@ -1058,35 +1011,6 @@
 		opacity: 1;
 	}
 
-	/* Colour tells the lifecycle apart at a glance: nothing yet is grey, in the
-	   workshop is amber, being looked at is blue, unproven is purple, go is
-	   green — and retired is grey again.
-
-	   Deprecated is deliberately **not** red. The component still works; it is
-	   on the way out, not broken. Red would say "error", would compete with the
-	   `bug` note that means something is actually wrong, and would shout at a
-	   reader for using something that works today. Grey at both ends of the
-	   scale reads as "not for you right now", which is what both mean. */
-	.sdocs-status {
-		display: inline-flex;
-		align-items: center;
-		color: var(--color-base-400);
-	}
-	.sdocs-status[data-status='wip'] {
-		color: var(--color-amber-500);
-	}
-	.sdocs-status[data-status='review'] {
-		color: var(--color-action-500);
-	}
-	.sdocs-status[data-status='experimental'] {
-		color: var(--color-purple-500);
-	}
-	.sdocs-status[data-status='ready'] {
-		color: var(--color-success-500);
-	}
-	.sdocs-status[data-status='deprecated'] {
-		color: var(--color-base-500);
-	}
 	.sdocs-preview-tab {
 		padding: 7px 14px;
 		border: none;

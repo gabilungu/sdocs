@@ -18,7 +18,6 @@ import {
 } from './scanner.js';
 import { declaredBindings, scrubScriptText } from './script-scan.js';
 import type {
-	ComponentStatus,
 	DocNote,
 	GlossaryBlock,
 	GlossaryTerm,
@@ -68,9 +67,6 @@ export interface PreviewBlock {
 	/** Other names this component answers to, from synonyms="…". Shown with
 	 * the preview and searched by the MCP server; empty when absent. */
 	synonyms: string[];
-	/** Where this component sits in its life, from status="…"; null when the
-	 * author did not say. */
-	status: ComponentStatus | null;
 	/** Tab label: the title override or the component name */
 	label: string;
 	sizing: Sizing;
@@ -556,7 +552,6 @@ const SUB_BLOCK_ATTR_RULES: Record<string, Record<string, AttrRule>> = {
 		title: { required: false, kind: 'string', hint: 'title="…"' },
 		description: { required: false, kind: 'string', hint: 'description="…"' },
 		synonyms: { required: false, kind: 'string', hint: 'synonyms="pill, chip"' },
-		status: { required: false, kind: 'string', hint: 'status="ready"' },
 		...SIZING_ATTR_RULES,
 		...STAGE_LAYOUT_ATTR_RULES,
 	},
@@ -589,6 +584,16 @@ export function attributeRules(kind: string): Record<string, AttrRule> {
 	return SUB_BLOCK_ATTR_RULES[key] ?? {};
 }
 
+/** Attributes sdocs once accepted, by the block that took them, with what to
+ * do instead. A file written for an older sdocs gets told why, not just that
+ * the name is unknown. */
+const REMOVED_ATTRS: Record<string, Record<string, string>> = {
+	preview: {
+		status:
+			'`status` was removed in sdocs 0.0.176 — delete it. Something a reader must know about the component goes in [NOTES].',
+	},
+};
+
 function checkAttrs(
 	owner: string,
 	attrs: Attrs,
@@ -599,9 +604,12 @@ function checkAttrs(
 	for (const [name, value] of Object.entries(attrs)) {
 		const rule = rules[name];
 		if (!rule) {
+			const removed = Object.entries(SUB_BLOCK_ATTR_RULES).find(([, r]) => r === rules)?.[0];
 			diagnostics.push({
 				code: 'unknown-attr',
-				message: `Unknown attribute "${name}" on ${owner}. Allowed: ${Object.keys(rules).join(', ')}.`,
+				message:
+					(removed && REMOVED_ATTRS[removed]?.[name]) ??
+					`Unknown attribute "${name}" on ${owner}. Allowed: ${Object.keys(rules).join(', ')}.`,
 				span: value.span,
 			});
 			continue;
@@ -651,15 +659,6 @@ const NOTE_KEYS = ['note', 'intent'];
  */
 export { NOTE_TYPES, NOTE_TYPE_ORDER } from '../note-order.js';
 
-/** The lifecycle a `[COMPONENT]` may declare, in order. */
-export const COMPONENT_STATUSES: readonly ComponentStatus[] = [
-	'draft',
-	'wip',
-	'review',
-	'experimental',
-	'ready',
-	'deprecated',
-];
 
 // The type allows digits, not just letters: `a11y` is one of them, and a
 // letters-only pattern silently read it as an untyped note whose text began
@@ -938,23 +937,6 @@ function parsePreview(
 		}
 	}
 
-	// An unknown status is an error rather than a silent no-status: a component
-	// with no status reads as "nobody said", and a typo would look like one.
-	let status: ComponentStatus | null = null;
-	const statusAttr = block.attrs.status;
-	if (statusAttr && statusAttr.kind === 'string') {
-		const raw = statusAttr.raw.trim();
-		if ((COMPONENT_STATUSES as readonly string[]).includes(raw)) {
-			status = raw as ComponentStatus;
-		} else {
-			diagnostics.push({
-				code: 'component-status',
-				message: `Unknown status "${raw}" — expected ${COMPONENT_STATUSES.join(', ')}.`,
-				span: statusAttr.valueSpan,
-			});
-		}
-	}
-
 	let args: Record<string, ArgValue> | null = null;
 	let argsRaw: string | null = null;
 	const argsAttr = block.attrs.args;
@@ -971,7 +953,6 @@ function parsePreview(
 		title,
 		description: stringAttr(block.attrs, 'description'),
 		synonyms: listAttr(block.attrs, 'synonyms'),
-		status,
 		label: title ?? componentName ?? 'Preview',
 		sizing: sizingOf(block.attrs),
 		body: normalizeBody(block.body),

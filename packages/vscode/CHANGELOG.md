@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.81] - 2026-10-15
+
+### Breaking
+
+- **`status` on `[COMPONENT]` is removed.** It is no longer completed or
+  described on hover, and a leftover `status="…"` is flagged as removed. See
+  the sdocs 0.0.176 notes.
+
 ## [0.0.80] - 2026-08-22
 
 ### Breaking

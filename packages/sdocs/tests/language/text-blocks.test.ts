@@ -8,7 +8,6 @@
 import { describe, it, expect } from 'vitest';
 import { writeNotes } from '../../src/lib/server/note-editor.js';
 import {
-	COMPONENT_STATUSES,
 	parseSdoc,
 	type ShowcaseEntity,
 } from '../../src/lib/language/parser.js';
@@ -248,42 +247,23 @@ describe('[COMPONENTS]', () => {
 });
 
 /**
- * `status` says where a component sits in its life — a property of the thing,
- * where a note is a remark about it. The two vocabularies were one until
- * 0.0.140, which is why `wip`, `ready` and `deprecated` moved here and the
- * note types became observations.
+ * `status` on `[COMPONENT]` was removed in 0.0.176. A file written for an
+ * older sdocs is told so, rather than that it made up an attribute.
  */
-describe('[COMPONENT] status', () => {
-	const showcase = (opener: string) =>
-		parseSdoc(
+describe('[COMPONENT] status, removed', () => {
+	it('says it was removed, and where a remark that matters goes instead', () => {
+		const doc = parseSdoc(
 			[
 				'[SHOWCASE title="Forms / Button"]',
-				`\t${opener}`,
+				'\t[COMPONENT component={Button} status="ready"]',
 				'\t\t<Button />',
 				'\t[/COMPONENT]',
 				'[/SHOWCASE]',
 			].join('\n'),
 		);
-
-	it('reads every value in the lifecycle', () => {
-		for (const status of COMPONENT_STATUSES) {
-			const doc = showcase(`[COMPONENT component={Button} status="${status}"]`);
-			expect(doc.diagnostics, status).toEqual([]);
-			expect((doc.entities[0] as ShowcaseEntity).previews[0].status).toBe(status);
-		}
-	});
-
-	it('is optional — a component with none reads as "nobody said"', () => {
-		const doc = showcase('[COMPONENT component={Button}]');
-		expect(doc.diagnostics).toEqual([]);
-		expect((doc.entities[0] as ShowcaseEntity).previews[0].status).toBeNull();
-	});
-
-	// Silently ignoring a typo would look exactly like deciding not to set one.
-	it('refuses a status it does not know', () => {
-		const doc = showcase('[COMPONENT component={Button} status="stable"]');
-		expect(doc.diagnostics.map((d) => d.code)).toEqual(['component-status']);
-		expect(doc.diagnostics[0].message).toContain('draft, wip, review, experimental, ready, deprecated');
+		expect(doc.diagnostics.map((d) => d.code)).toEqual(['unknown-attr']);
+		expect(doc.diagnostics[0].message).toContain('removed in sdocs 0.0.176');
+		expect(doc.diagnostics[0].message).toContain('[NOTES]');
 	});
 
 	// The note vocabulary no longer overlaps it: a lifecycle word in a note is

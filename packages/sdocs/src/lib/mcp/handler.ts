@@ -3,16 +3,15 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { basename, dirname, isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseSdoc } from '../language/parser.js';
-import type { ComponentStatus, DocNote, GlossaryBlock, TodoItem } from '../types.js';
+import type { DocNote, GlossaryBlock, TodoItem } from '../types.js';
 import { NOTE_TYPES } from '../note-order.js';
-import { COMPONENT_STATUSES, slugifyTitle } from '../language/parser.js';
+import { slugifyTitle } from '../language/parser.js';
 import { offsetToPosition } from '../language/scanner.js';
 import { parseComponentSource } from '../server/prop-parser.js';
 import { loadConfig } from '../server/config.js';
 import { discoverDocFiles } from '../server/discovery.js';
 import {
 	writeNotes,
-	writeStatus,
 	writeTodos,
 	toggleTodo,
 } from '../server/note-editor.js';
@@ -176,6 +175,14 @@ const GUIDE_URI = 'sdocs://authoring-guide';
 const VISUAL_URI = 'sdocs://visual-testing-guide';
 
 const INSTRUCTIONS =
+	'Do not install sdocs into the project to use it. It is not a dependency ' +
+	'of the code it documents: `npx sdocs run` serves the docs with no local ' +
+	'install, and `npx sdocs build` / `npx sdocs check` work the same way. ' +
+	'An sdocs.config.js is a plain exported object that imports nothing, so it ' +
+	'needs no dependency either (and it is optional). The sdocs VS Code ' +
+	'extension can also run the docs from its Projects view. Add sdocs to ' +
+	"package.json only when the user asks for it, or to embed the Explorer in " +
+	'the project\'s own Vite app.\n\n' +
 	'sdocs authoring tools. Before writing .sdoc documentation, read the ' +
 	'authoring guide (the get_authoring_guide tool, or the sdocs://authoring-guide ' +
 	'resource) — pass a section to it when you only need one part of the format. ' +
@@ -191,6 +198,12 @@ const INSTRUCTIONS =
 	'run check_docs to compile every stage and catch what the grammar cannot ' +
 	'see: Svelte errors inside examples, imports that resolve nowhere, and ' +
 	'broken page or layout bodies.\n\n' +
+	'Write a [NOTES] line only when a reader must know something important ' +
+	'about the component before using it: a real bug, an accessibility gap, ' +
+	'a caveat that will bite. Notes are not a status or a progress log — never ' +
+	'add one to say a component is new, done, in progress or in review, and ' +
+	'never to restate what the page already shows. Most components carry no ' +
+	'notes at all; when in doubt, leave the block out.\n\n' +
 	'For visual inspection, do not screenshot the Explorer by default. Call ' +
 	'resolve_visual_target to get a preview-only route for the stage, open that ' +
 	'route directly in the browser, wait for the [data-sdocs-stage-ready] ' +
@@ -305,8 +318,8 @@ const TOOLS = [
 			'serves at (and one per example) — open those with a browser to smoke ' +
 			'test. Entries also carry what the author wrote about them: a ' +
 			"component's `synonyms`, an example's `tags`, and the `notes` on " +
-			'either, so the map says which pages are marked deprecated or broken ' +
-			'without opening them. Use it to see what exists before writing docs.',
+			'either, so the map says which pages carry a known problem without ' +
+			'opening them. Use it to see what exists before writing docs.',
 		inputSchema: { type: 'object', properties: {} },
 	},
 	{
@@ -317,7 +330,7 @@ const TOOLS = [
 			'title, an example\'s `tags`, or the text of any `notes` on either. ' +
 			'Matching is a case-insensitive substring, so "butt" finds Button and ' +
 			'"menu" finds every example tagged "user menu". `type` sweeps by ' +
-			'note status instead — type:"bug" lists everything marked ' +
+			'note type instead — type:"bug" lists everything marked ' +
 			'as a bug, with no query at all; give both and a result has to satisfy ' +
 			'both. Each hit reports which name matched, the notes it carries, and ' +
 			'the route it serves at; pass that route to resolve_visual_target to ' +
@@ -438,7 +451,10 @@ const TOOLS = [
 			'[EXAMPLE]s. Pass the full list you want the block to end up with — ' +
 			'an empty list removes the block. Each note is { note, type? } where ' +
 			'type is bug, a11y, warning, perf, tip or info; leave it off for a ' +
-			'plain remark. Only the block\'s own span is rewritten, so the rest ' +
+			'plain remark. A note is for something important a reader must know ' +
+			'about the component — a real bug, an accessibility gap, a caveat ' +
+			'that will bite — never a status or progress marker ("new", "done", ' +
+			'"in review"). Most components need none. Only the block\'s own span is rewritten, so the rest ' +
 			'of the file keeps its formatting exactly. Prefer this to editing the ' +
 			'.sdoc by hand: it cannot produce a file that does not parse.',
 		inputSchema: {
@@ -464,30 +480,6 @@ const TOOLS = [
 				},
 			},
 			required: ['file', 'entity', 'notes'],
-		},
-	},
-	{
-		name: 'set_status',
-		description:
-			"Set a [COMPONENT]'s status — where it sits in its life. One of " +
-			'draft, wip, review, experimental, ready, deprecated; pass null to ' +
-			'remove it, which reads as "nobody said" rather than draft. Name the ' +
-			'component by its component={…} identifier, or by its title="…" when ' +
-			'one entity previews the same component twice. Rewrites the one ' +
-			'attribute and nothing else.',
-		inputSchema: {
-			type: 'object',
-			properties: {
-				file: { type: 'string', description: 'Path to the .sdoc, as list_docs reports it' },
-				entity: { type: 'string', description: "The entity's title or route slug" },
-				component: { type: 'string', description: 'The component identifier or tab title' },
-				status: {
-					type: ['string', 'null'],
-					enum: [...COMPONENT_STATUSES, null],
-					description: 'The new status, or null to remove it',
-				},
-			},
-			required: ['file', 'entity', 'component', 'status'],
 		},
 	},
 	{
@@ -680,7 +672,7 @@ interface IndexedEntity {
 	kind: string;
 	title: string;
 	route: string | null;
-	components: { name: string; synonyms: string[]; status: ComponentStatus | null }[];
+	components: { name: string; synonyms: string[] }[];
 	examples: {
 		name: string;
 		route: string | null;
@@ -768,7 +760,6 @@ async function collectDocIndex() {
 								.map((p) => ({
 									name: p.componentName as string,
 									synonyms: p.synonyms,
-									status: p.status,
 								}))
 						: [],
 				examples:
@@ -804,7 +795,7 @@ async function collectDocIndex() {
  * Every write here is read-modify-write: read the source, splice, write it
  * back. Two calls landing on one file concurrently both read the original, and
  * the second overwrites the first — which reported `changed: true` for an edit
- * that no longer exists. An agent firing `set_status` and `set_notes` at the
+ * that no longer exists. An agent firing `set_notes` and `set_todos` at the
  * same document does exactly that.
  *
  * A promise chain per path serialises them. It only covers this process, which
@@ -886,15 +877,11 @@ async function listDocs() {
 		entities: f.entities.map((e) => {
 			const synonyms = e.components.filter((c) => c.synonyms.length);
 			const examples = e.examples.filter((x) => x.route !== null);
-			const withStatus = e.components.filter((c) => c.status);
 			return {
 				kind: e.kind,
 				title: e.title,
 				route: e.route,
 				...(e.components.length ? { components: e.components.map((c) => c.name) } : {}),
-				...(withStatus.length
-					? { statuses: withStatus.map((c) => ({ component: c.name, status: c.status })) }
-					: {}),
 				// Only what the author actually wrote — an empty list on every
 				// entity is noise in a map meant to be read at a glance.
 				...(synonyms.length
@@ -982,12 +969,12 @@ function flattenTodos(items: TodoItem[]): string[] {
 	return items.flatMap((item) => [item.text, ...flattenTodos(item.children)]);
 }
 
-/** The status of a note as the filter names it — an unset one is 'none'. */
+/** The type of a note as the filter names it — an unset one is 'none'. */
 function noteTypeName(note: DocNote): string {
 	return note.type ?? 'none';
 }
 
-/** Why a status filter kept a result, reported alongside the query's hits. */
+/** Why a type filter kept a result, reported alongside the query's hits. */
 function noteTypeHits(notes: DocNote[], type: string): string[] {
 	if (!type) return [];
 	return notes
@@ -1044,7 +1031,7 @@ async function searchDocs(params: Record<string, unknown>) {
 				if (hits(todo)) matched.push(`todo: ${todo}`);
 			}
 			// Kept apart from the query's hits until the decision is made: an
-			// status match must not stand in for the text the caller asked for.
+			// type match must not stand in for the text the caller asked for.
 			const byType = noteTypeHits(entity.notes, type);
 			if (keep(matched, entity.notes)) {
 				results.push({
@@ -1592,17 +1579,6 @@ async function dispatch(method: string, params: Record<string, unknown>): Promis
 					const example = typeof args.example === 'string' ? args.example : null;
 					return editDoc(args, (source, entitySlug) =>
 						writeNotes(source, { entitySlug, exampleTitle: example }, notes),
-					);
-				}
-				case 'set_status': {
-					const status = args.status == null ? null : String(args.status);
-					if (status && !(COMPONENT_STATUSES as readonly string[]).includes(status)) {
-						return invalidParams(`status must be one of ${COMPONENT_STATUSES.join(', ')}, or null`);
-					}
-					const component = String(args.component ?? '').trim();
-					if (!component) return invalidParams('component is required');
-					return editDoc(args, (source, entitySlug) =>
-						writeStatus(source, { entitySlug, component }, status),
 					);
 				}
 				case 'set_todos': {

@@ -19,17 +19,6 @@
 		</div>
 	[/EXAMPLE]
 
-	[EXAMPLE title="StatusScale" description="The `[COMPONENT]` status glyphs, in lifecycle order — distinct silhouettes, because at 13px the inside of a glyph is four pixels and only the outline reads."]
-		<div style="display: flex; gap: 12px; align-items: center;">
-			<Icon name="fa-pencil" --w="14px" --h="14px" />
-			<Icon name="fa-screwdriver-wrench" --w="14px" --h="14px" />
-			<Icon name="fa-eye" --w="14px" --h="14px" />
-			<Icon name="fa-flask" --w="14px" --h="14px" />
-			<Icon name="fa-circle-check" --w="14px" --h="14px" />
-			<Icon name="fa-ban" --w="14px" --h="14px" />
-		</div>
-	[/EXAMPLE]
-
 	[EXAMPLE title="NoteTypes" description="The `[NOTES]` glyphs, worst first: bug, a11y, warning, perf, tip, info."]
 		<div style="display: flex; gap: 12px; align-items: center;">
 			<Icon name="fa-bug" --w="16px" --h="16px" />

@@ -16,7 +16,7 @@
 		- Also the corpus the language-server and formatter tests run against.
 	[/NOTES]
 
-	[COMPONENT component={Notice} status="ready" synonyms="callout, alert, admonition, banner" args={{ title: 'Build finished', tone: 'success', dismissible: true, count: 1 }}]
+	[COMPONENT component={Notice} synonyms="callout, alert, admonition, banner" args={{ title: 'Build finished', tone: 'success', dismissible: true, count: 1 }}]
 		<Notice {...args}>
 			All 12 pages compiled in 1.2s — try dismissing me, or change my props
 			in the table below.

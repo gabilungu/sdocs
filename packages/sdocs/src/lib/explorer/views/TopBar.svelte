@@ -171,7 +171,7 @@
 		['validate_sdoc', 'parse .sdoc text, return diagnostics and entities'],
 		['get_authoring_guide', 'the format reference, whole or one section'],
 		['get_changelog', 'this install’s changelog, breaking changes first'],
-		['list_docs', 'the project’s docs, routes, notes, todos, glossary and statuses'],
+		['list_docs', 'the project’s docs, routes, notes, todos and glossary'],
 		['search_docs', 'find a page by any name it goes under, or sweep by note type'],
 		['check_docs', 'compile every stage and report what breaks'],
 		['check_coverage', 'which components have a [COMPONENT] preview'],
@@ -179,7 +179,6 @@
 		['get_component_api', 'a component’s full extracted API and description'],
 		['scaffold_component_doc', 'a starter .sdoc from a component’s extracted props'],
 		['set_notes', 'replace a [NOTES] block — writes to your source'],
-		['set_status', 'set a [COMPONENT]’s lifecycle status — writes to your source'],
 		['set_todos', 'replace a [TODO] checklist — writes to your source'],
 		['toggle_todo', 'tick one todo item — writes to your source'],
 	];

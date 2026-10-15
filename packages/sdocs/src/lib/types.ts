@@ -255,9 +255,9 @@ export interface ResolvedSdocsConfig {
  * What a note says about the thing it is attached to. Absent is a plain
  * remark, shown in grey.
  *
- * An **observation**, not a lifecycle stage — where a component sits in its
- * life is `status` on the `[COMPONENT]`, which is a property of the thing
- * rather than a remark about it. A note says what someone should know.
+ * An **observation** worth interrupting the reader for — a defect, a caveat,
+ * something they would get wrong without it. Not a progress marker: a note
+ * that only says how far along a component is tells the reader nothing.
  *
  * `a11y` and `perf` name the two problems worth calling out by kind rather
  * than by severity: both are defects a reader triages differently from an
@@ -267,28 +267,11 @@ export interface ResolvedSdocsConfig {
  */
 export type NoteType = 'bug' | 'a11y' | 'warning' | 'perf' | 'tip' | 'info';
 
-/**
- * Where a `[COMPONENT]` sits in its life — a property of the component, not a
- * remark about it, which is what `[NOTES]` is for.
- *
- * One linear path, `draft` through `ready`, plus `deprecated` at the end of
- * it. `experimental` and `review` are both "not final", and the difference is
- * who they wait on: a review waits on a person, an experiment waits on real
- * use.
- */
-export type ComponentStatus =
-	| 'draft'
-	| 'wip'
-	| 'review'
-	| 'experimental'
-	| 'ready'
-	| 'deprecated';
-
 /** One line of a `[NOTES]` block. */
 export interface DocNote {
 	/** What the note says. */
 	note: string;
-	/** Its status; absent is a plain remark, shown in grey. */
+	/** Its type; absent is a plain remark, shown in grey. */
 	type: NoteType | null;
 }
 
@@ -446,8 +429,6 @@ export interface ExtractedSnippet {
 	/** A `[component]`'s synonyms="…": other names the component answers to.
 	 * Rendered above its preview, and searched by the MCP server. */
 	synonyms?: string[];
-	/** A `[COMPONENT]`'s status="…", shown as a glyph on its tab. */
-	status?: ComponentStatus;
 	/** An `[EXAMPLE]`'s [NOTES], shown under its title. */
 	notes?: DocNote[];
 	/** An `[EXAMPLE]`'s [TODO] checklist. */

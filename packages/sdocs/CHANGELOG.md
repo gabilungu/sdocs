@@ -12,6 +12,11 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+### Changed
+
+- **The sidebar's note dots are smaller** — 5px instead of 10px, so they mark
+  a row without competing with its label.
+
 ## [0.0.176] - 2026-10-15
 
 ### Breaking

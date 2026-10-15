@@ -499,10 +499,11 @@
 	   with it — it marks, it doesn't announce. */
 	.sdocs-note-dot {
 		display: block;
-		width: 7px;
-		height: 7px;
+		box-sizing: border-box;
+		width: 5px;
+		height: 5px;
 		border-radius: 999px;
-		border: 1.5px solid var(--dot);
+		border: 1px solid var(--dot);
 		--dot: var(--color-base-400);
 	}
 	.sdocs-note-dot.is-own {

@@ -1,6 +1,4 @@
-import { resolve } from 'node:path';
-import { loadConfig } from '../server/config.js';
-import { discoverDocFiles } from '../server/discovery.js';
+import { projectDocFiles } from '../server/discovery.js';
 import { checkDocFiles, formatProblem } from '../server/check.js';
 import { buildSiteMap } from '../server/site-map.js';
 
@@ -16,11 +14,7 @@ import { buildSiteMap } from '../server/site-map.js';
  */
 export async function checkCommand(): Promise<void> {
 	const cwd = process.cwd();
-	const config = await loadConfig(cwd);
-	const files = await discoverDocFiles(
-		config.include.map((p) => resolve(cwd, p)),
-		cwd,
-	);
+	const { config, files } = await projectDocFiles(cwd);
 
 	if (files.length === 0) {
 		console.log('[sdocs] No .sdoc files matched the include patterns.');

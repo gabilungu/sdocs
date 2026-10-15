@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { scanSdoc, attributeRules, type AttrRule } from 'sdocs/language';
+import { attributeRules, type AttrRule } from 'sdocs/language';
 import { importedIdentifiers } from './sdocSource';
-import { openerAt } from './blockCompletionCore';
+import { hostEntityAt, openerAt } from './blockCompletionCore';
 
 interface BlockSpec {
 	label: string;
@@ -63,7 +63,7 @@ const SUB_BLOCKS: BlockSpec[] = [
 	},
 	{
 		label: 'TODO',
-		detail: 'A nested checklist, tickable from the Explorer in dev',
+		detail: 'A nested checklist, shown read-only in the docs',
 		insert: 'TODO]\n\t- [ ] $0\n[/TODO]',
 	},
 	{
@@ -78,11 +78,14 @@ const SUB_BLOCKS: BlockSpec[] = [
 	},
 ];
 
-/** What each entity takes. A [DOC] body is already prose, so it takes neither
- * [PROSE] nor the component blocks; a [LAYOUT] and a [PAGE] take none of them
- * yet — their bodies capture no blocks. */
+/** What each entity takes. A [PATTERNS] is a [SHOWCASE] without the
+ * component blocks — a composition has no single component API. A [DOC] body
+ * is already prose, so it takes neither [PROSE] nor the component blocks; a
+ * [LAYOUT] and a [PAGE] take none of them yet — their bodies capture no
+ * blocks. */
 const SUB_BLOCKS_BY_ENTITY: Record<string, string[]> = {
 	SHOWCASE: ['COMPONENT', 'COMPONENTS', 'EXAMPLE', 'GLOSSARY', 'NOTES', 'TODO', 'PROSE'],
+	PATTERNS: ['EXAMPLE', 'GLOSSARY', 'NOTES', 'TODO', 'PROSE'],
 	DOC: ['EXAMPLE', 'GLOSSARY', 'NOTES', 'TODO'],
 };
 
@@ -142,16 +145,12 @@ export class BlockCompletionProvider implements vscode.CompletionItemProvider {
 		}
 
 		// A bare '[' (or '[par…') at line start → offer whole blocks. Which set
-		// depends on the entity the cursor sits inside: [SHOWCASE] takes both
-		// sub-blocks, [DOC] takes [example] only, elsewhere entities.
+		// depends on the entity the cursor sits inside (SUB_BLOCKS_BY_ENTITY);
+		// outside every entity, the entities themselves.
 		const bare = /^\s*\[([A-Za-z]*)$/.exec(before);
 		if (bare) {
-			const file = scanSdoc(document.getText());
-			const offset = document.offsetAt(position);
-			const host = file.entities.find(
-				(e) => offset > e.openerSpan.end && offset < e.span.end,
-			);
-			const allowed = host ? SUB_BLOCKS_BY_ENTITY[host.kind] : undefined;
+			const host = hostEntityAt(document.getText(), document.offsetAt(position));
+			const allowed = host ? SUB_BLOCKS_BY_ENTITY[host] : undefined;
 			const specs = allowed
 				? SUB_BLOCKS.filter((s) => allowed.includes(s.label))
 				: host

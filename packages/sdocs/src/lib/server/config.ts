@@ -5,13 +5,11 @@ import { resolve } from 'node:path';
 import type {
 	SdocsConfig,
 	ResolvedSdocsConfig,
-	SectionEntry,
-	SectionDivider,
-	NormalizedSection,
 	AxisConfig,
 	ScaleConfig,
 	ScalePreset,
 } from '../types.js';
+import { normalizeSections } from '../explorer/tree-builder.js';
 
 const CONFIG_NAMES = ['sdocs.config.ts', 'sdocs.config.mjs', 'sdocs.config.js'];
 
@@ -61,7 +59,6 @@ export function findConfigFile(root: string): string | null {
 	return null;
 }
 
-/** Resolve include glob patterns to absolute paths */
 /** Component globs for coverage: the configured value, or the include globs
  * with `.sdoc` swapped for `.svelte` (docs commonly sit beside components). */
 function normalizeComponents(
@@ -72,6 +69,7 @@ function normalizeComponents(
 	return include.map((p) => p.replace(/\.sdoc$/, '.svelte'));
 }
 
+/** Resolve include glob patterns to absolute paths */
 function resolveIncludePatterns(patterns: string[], root: string): string[] {
 	return patterns.map((p) => (p.startsWith('/') ? p : resolve(root, p)));
 }
@@ -173,15 +171,6 @@ export function resolveAndFinalize(
 }
 
 /**
- * Import a config file (.js/.mjs; .ts only on Node with native type stripping).
- *
- * A throw here reaches the user as the very first thing sdocs says, so it is
- * caught and rewritten. Node's own error for a syntax error in an imported
- * module is `SyntaxError: Invalid or unexpected token` followed by ten frames
- * of `node:internal/modules/esm/*` — and the name of the file it failed to
- * read appears in none of them.
- */
-/**
  * The nearest package.json's `type`, or null when there isn't one.
  *
  * Walks up from `from`, the way Node resolves a module's type — a config in a
@@ -211,6 +200,15 @@ function isCommonJsModuleMismatch(configPath: string, detail: string): boolean {
 	return nearestPackageType(configPath) !== 'module';
 }
 
+/**
+ * Import a config file (.js/.mjs; .ts only on Node with native type stripping).
+ *
+ * A throw here reaches the user as the very first thing sdocs says, so it is
+ * caught and rewritten. Node's own error for a syntax error in an imported
+ * module is `SyntaxError: Invalid or unexpected token` followed by ten frames
+ * of `node:internal/modules/esm/*` — and the name of the file it failed to
+ * read appears in none of them.
+ */
 async function importConfig(configPath: string): Promise<SdocsConfig> {
 	try {
 		// Use dynamic import with file:// URL for ESM compatibility
@@ -256,36 +254,6 @@ export class ConfigError extends Error {
 		super(message);
 		this.name = 'ConfigError';
 	}
-}
-
-/** Sections with defaults filled in; the implicit `docs` section when none
- * are declared. Slug validity and duplicates are checked at site validation. */
-/** A divider entry rather than a section. Narrowing needs a predicate: the
- * negative branch of an inline `'type' in entry && …` stays the whole union. */
-function isDivider(entry: SectionEntry): entry is SectionDivider {
-	return 'type' in entry && entry.type === 'divider';
-}
-
-function normalizeSections(sections: SectionEntry[] | undefined): NormalizedSection[] {
-	if (!sections || sections.length === 0) return DEFAULTS.sections;
-	const resolved: NormalizedSection[] = [];
-	for (const entry of sections) {
-		// A divider is a mark on the section before it, not a section of its
-		// own — so nothing downstream has to know it exists. One that opens the
-		// array has nothing to mark and falls away.
-		if (isDivider(entry)) {
-			const previous = resolved[resolved.length - 1];
-			if (previous) previous.dividerAfter = true;
-			continue;
-		}
-		resolved.push({
-			slug: String(entry.slug ?? ''),
-			title: entry.title ?? capitalize(String(entry.slug ?? '')),
-			order: entry.order ?? [],
-			dividerAfter: entry.dividerAfter === true,
-		});
-	}
-	return resolved;
 }
 
 function capitalize(s: string): string {

@@ -5,3 +5,5 @@ esbuild.js
 tsconfig.json
 **/*.map
 .gitignore
+tests/
+vitest.config.ts

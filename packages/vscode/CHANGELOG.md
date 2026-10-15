@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.82] - 2026-10-15
+
+### Fixed
+
+- **`[PATTERNS]` is fully supported.** Format Document formats each
+  `[EXAMPLE]` in a pattern as Svelte (it used to leave the whole body as is),
+  `[` inside a `[PATTERNS]` completes the blocks it takes, hovering the tag
+  explains it, and example markup inside one is checked like a showcase's.
+- **Folding covers every tag** — all five entities and every block, in the
+  casing the scanner accepts. `[preview]`, no longer a tag, is gone.
+- **The `[TODO]` hover and completion** no longer say a box can be ticked from
+  the Explorer; the checklist is edited in the `.sdoc`.
+- **Config completion** is offered only for the config files sdocs actually
+  loads (`sdocs.config.js`, `.ts`, `.mjs`).
+
+### Changed
+
+- The packaged extension no longer ships its test files.
+
 ## [0.0.81] - 2026-10-15
 
 ### Breaking

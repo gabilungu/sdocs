@@ -100,8 +100,8 @@
 	],
 	"folding": {
 		"markers": {
-			"start": "^\\s*\\[(SHOWCASE|DOC|PAGE|LAYOUT|preview|example)\\b",
-			"end": "^\\s*\\[/(SHOWCASE|DOC|PAGE|LAYOUT|preview|example)\\]"
+			"start": "^\\s*\\[(?:(?:SHOWCASE|PATTERNS|DOC|PAGE|LAYOUT|COMPONENT|component|EXAMPLE|example|GLOSSARY)\\b|(?:COMPONENTS|NOTES|TODO|PROSE)\\]\\s*$)",
+			"end": "^\\s*\\[/(SHOWCASE|PATTERNS|DOC|PAGE|LAYOUT|COMPONENTS|COMPONENT|component|EXAMPLE|example|GLOSSARY|NOTES|TODO|PROSE)\\]"
 		}
 	},
 	"colorizedBracketPairs": [

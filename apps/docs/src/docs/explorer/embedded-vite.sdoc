@@ -21,14 +21,14 @@
 	};
 	```
 
-	The plugin reads the same [`sdocs.config.js`](/explorer/configuration) if present; options passed here override it. In embedded mode only `include` and `css` matter — UI options like `title` and `sections` are props on the `Explorer` component (below), and `port`/`open` apply only to the standalone CLI.
+	The plugin reads the same [`sdocs.config.js`](/explorer/configuration) if present; options passed here override it. In embedded mode the plugin uses `include`, `css`, `axes`, `scale` and `content` — the last three reach the Explorer through `virtual:sdocs`. UI options like `title` and `sections` are props on the `Explorer` component (below), and `port`/`open` apply only to the standalone CLI.
 
 	The plugin:
 
 	- Discovers `.sdoc` files and parses them
 	- Exposes them as the `virtual:sdocs` module
 	- Watches for file changes and triggers a full reload
-	- Adds a middleware endpoint for syntax highlighting
+	- Serves each stage's preview page to the iframes
 
 	## 2. Create a page that mounts the Explorer
 
@@ -82,7 +82,7 @@
 	| `cssNames` | `string[]` | Stylesheet names if using named CSS. Comes from `virtual:sdocs`. |
 	| `pageModules` | `Record<string, () => Promise<…>>` | **Required for `[DOC]`/`[PAGE]` pages.** Their bodies compile to components loaded through this map; without it they render blank. Comes from `virtual:sdocs`. |
 	| `scale` | `ScaleConfig \| null` | The [scale slider](/explorer/features/theming#a-continuous-knob). Comes from `virtual:sdocs`. |
-	| `axes` | `AxisConfig[]` | [Customization axes](/explorer/features/theming#customization-axes) — the top bar's dropdowns. Comes from `virtual:sdocs`. |
+	| `axes` | `AxisConfig[]` | [Customization axes](/explorer/features/theming#customization-axes) — the top bar's switches. Comes from `virtual:sdocs`. |
 	| `title` | `string` | Header title text. Default: `'sdocs'`. |
 	| `logo` | `string \| false` | Header logo: `'sdocs'` for the built-in mascot (default), an image URL, or `false` to hide. |
 	| `previewBase` | `string` | URL prefix for preview pages when the app deploys under a sub-path. In SvelteKit, pass `base` from `$app/paths`. Default: `''`. |

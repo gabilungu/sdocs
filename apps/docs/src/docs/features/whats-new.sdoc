@@ -37,9 +37,9 @@
 
 	## 0.0.139 — the text blocks
 
-	`[NOTES]`, `[TODO]` and `[PROSE]` — standing remarks with a status
-	vocabulary that rolls up into the sidebar, a nested checklist you can tick
-	from the browser, and markdown anywhere in a component's page. `[COMPONENTS]`
+	`[NOTES]`, `[TODO]` and `[PROSE]` — standing remarks with a typed
+	vocabulary that rolls up into the sidebar, a nested checklist, and markdown
+	anywhere in a component's page. `[COMPONENTS]`
 	groups several component blocks into the one tab strip they share.
 	[Language reference](/language/overview#text-blocks).
 

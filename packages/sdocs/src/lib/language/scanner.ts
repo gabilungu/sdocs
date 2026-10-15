@@ -2,9 +2,10 @@
  * Syntactic scanner for v2 .sdoc files.
  *
  * A .sdoc file is: optional <script> at the top, entity blocks in the
- * middle ([SHOWCASE] / [DOC] / [PAGE] / [LAYOUT], with lowercase sub-blocks
- * [preview] / [example] inside [SHOWCASE] and [example] inside [DOC]),
- * optional <style> at the bottom.
+ * middle ([SHOWCASE] / [PATTERNS] / [DOC] / [PAGE] / [LAYOUT], with
+ * sub-blocks — [COMPONENT] / [EXAMPLE] / [PROSE] / [NOTES] / [TODO] /
+ * [GLOSSARY] — inside [SHOWCASE] and [PATTERNS], and all but [COMPONENT]
+ * inside [DOC]), optional <style> at the bottom.
  *
  * The scanner is line-anchored and non-balancing: tags are recognized only
  * at the start of a line and only where the current state allows them, so
@@ -37,21 +38,8 @@ export const SUB_BLOCK_KINDS: readonly SubBlockKind[] = [
 	'glossary',
 ];
 
-/** Blocks whose body is prose or a list rather than a Svelte fragment: they
- * are never staged, never compiled, and carry no block script or style. */
-export const TEXT_BLOCK_KINDS: readonly SubBlockKind[] = ['prose', 'notes', 'todo'];
-
-/** Tag names that open sub-blocks, in their canonical (uppercase) spelling.
- * `[COMPONENT]` documents a component (its internal kind is 'preview');
+/** `[COMPONENT]` documents a component (its internal kind is 'preview');
  * `[EXAMPLE]` is a frozen snippet. */
-export const SUB_BLOCK_TAGS: readonly string[] = [
-	'COMPONENT',
-	'EXAMPLE',
-	'GLOSSARY',
-	'PROSE',
-	'NOTES',
-	'TODO',
-];
 const SUB_BLOCK_TAG_KINDS: Record<string, SubBlockKind> = {
 	component: 'preview',
 	example: 'example',
@@ -136,7 +124,7 @@ export interface SubBlock {
 	 * first in the entity, 1 for the next. Null when it was written directly
 	 * in the entity body, which a lone `[COMPONENT]` may be. */
 	group?: number | null;
-	/** The tag as written — 'component', 'preview' (alias), or 'example' —
+	/** The tag as written — 'COMPONENT', 'component', 'EXAMPLE', 'NOTES' —
 	 * so diagnostics can name the block the author actually typed. */
 	tag: string;
 	attrs: Attrs;
@@ -158,15 +146,16 @@ export interface SubBlock {
 export interface Entity {
 	kind: EntityKind;
 	attrs: Attrs;
-	/** SHOWCASE: preview/example sub-blocks. DOC: example sub-blocks.
-	 * PAGE/LAYOUT: always empty. */
+	/** SHOWCASE/PATTERNS: every sub-block, in source order. DOC: every
+	 * sub-block but [COMPONENT]. PAGE/LAYOUT: always empty. */
 	blocks: SubBlock[];
 	/** Entity-level <script> — the first content of the entity body */
 	script: TagBlock | null;
 	/** Entity-level <style> — the last content of the entity body */
 	style: TagBlock | null;
 	/** DOC/PAGE/LAYOUT: the raw body (for DOC it includes any [example] blocks,
-	 * addressable via their spans). SHOWCASE: '' (body text between blocks is an error). */
+	 * addressable via their spans). SHOWCASE/PATTERNS: '' (body text between
+	 * blocks is an error). */
 	body: string;
 	bodySpan: Span;
 	openerSpan: Span;

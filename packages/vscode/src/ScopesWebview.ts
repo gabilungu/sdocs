@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { detectScopes, type Scope } from './scopes';
 import type { SdocsRunner } from './SdocsRunner';
-import type { SdocsPanels } from './SdocsPanels';
+import { restartScope, type SdocsPanels } from './SdocsPanels';
 
 /** Card-based "Projects" sidebar. */
 export class ScopesWebview implements vscode.WebviewViewProvider {
@@ -39,24 +39,9 @@ export class ScopesWebview implements vscode.WebviewViewProvider {
 			case 'external':
 				await this.runner.openExternal(msg.dir);
 				break;
-			case 'restart': {
-				// Mirror the sdocs.restartServer command: placeholder in any open
-				// docs tab, restart, then force its iframe to reload once the
-				// fresh server reports ready (both no-op without a tab).
-				this.panels.showRestarting(msg.dir);
-				const ready = new Promise<void>((resolve) => {
-					const sub = this.runner.onReady(({ dir }) => {
-						if (dir === msg.dir) {
-							sub.dispose();
-							resolve();
-						}
-					});
-				});
-				await this.runner.restart(msg.dir);
-				await ready;
-				this.panels.reload(msg.dir);
+			case 'restart':
+				await restartScope(this.runner, this.panels, msg.dir);
 				break;
-			}
 			case 'stop':
 				this.runner.stop(msg.dir);
 				this.panels.close(msg.dir);

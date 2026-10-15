@@ -1,4 +1,7 @@
+import { resolve } from 'node:path';
 import { glob } from 'tinyglobby';
+import { loadConfig } from './config.js';
+import type { ResolvedSdocsConfig } from '../types.js';
 
 /** Discover all .sdoc files matching the include patterns */
 export async function discoverDocFiles(
@@ -10,6 +13,20 @@ export async function discoverDocFiles(
 		absolute: true,
 	});
 	return files.sort();
+}
+
+/** The project's config, and every .sdoc its `include` globs match — resolved
+ * against `cwd`, the project root. What each command and tool that reads the
+ * whole project starts from. */
+export async function projectDocFiles(
+	cwd: string,
+): Promise<{ config: ResolvedSdocsConfig; files: string[] }> {
+	const config = await loadConfig(cwd);
+	const files = await discoverDocFiles(
+		config.include.map((p) => resolve(cwd, p)),
+		cwd,
+	);
+	return { config, files };
 }
 
 /** The static directory prefix of a glob pattern — every path segment before

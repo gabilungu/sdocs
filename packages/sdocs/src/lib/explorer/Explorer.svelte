@@ -49,11 +49,13 @@
 		basePath?: string;
 		/** Version of sdocs that built the site, shown on the About page */
 		sdocsVersion?: string;
-		/** The dev server serves the MCP endpoint — shows the top-bar MCP
-		 * button. Only ever true in `sdocs dev` (config `mcp`, default on). */
+		/** The dev server serves the MCP endpoint — adds the "MCP server" item
+		 * to the top bar's ⋮ menu. Only ever true in `sdocs dev` (config `mcp`,
+		 * default on). */
 		mcp?: boolean;
 		/** Design-system dimensions the reader can switch between. Each renders
-		 * a dropdown and lands on every preview as `data-<id>`. */
+		 * as a segmented control (a dropdown when the bar is crowded) and lands
+		 * on every preview as `data-<id>`. */
 		axes?: Required<AxisConfig>[];
 		/** A continuous knob rendered as a slider; its value lands on every
 		 * preview as a CSS custom property. */
@@ -174,10 +176,6 @@
 		if (saved && cssNames.includes(saved)) activeStylesheet = saved;
 	}
 
-	/** Written when the reader picks, never from an effect watching the value.
-	 * An effect also fires for the startup default, which lands before the
-	 * stored pick is read and overwrites it — the saved choice would be
-	 * destroyed by the very load that was meant to restore it. */
 	/** Restore the stored scale, clamped to the range the config now declares —
 	 * a project that narrows its range must not leave readers pinned outside it. */
 	function restoreScale() {
@@ -187,6 +185,10 @@
 		scaleValue = Math.min(scale.max, Math.max(scale.min, saved));
 	}
 
+	/** Written when the reader picks, never from an effect watching the value.
+	 * An effect also fires for the startup default, which lands before the
+	 * stored pick is read and overwrites it — the saved choice would be
+	 * destroyed by the very load that was meant to restore it. */
 	function chooseScale(value: number) {
 		scaleValue = value;
 		localStorage.setItem('sdocs-scale', String(value));

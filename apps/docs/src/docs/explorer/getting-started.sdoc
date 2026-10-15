@@ -24,9 +24,11 @@
 	npx sdocs init
 	```
 
-	This creates `sdocs.config.js` at the project root with every option present
-	but commented out — the defaults already work with zero config. Uncomment and
-	adjust `include` if your `.sdoc` files live somewhere other than `./src`:
+	This creates `sdocs.config.js` at the project root — `sdocs.config.mjs` unless
+	your `package.json` says `"type": "module"`, since the file uses `export
+	default` — with the common options present but commented out. The defaults
+	already work with zero config. Uncomment and adjust `include` if your `.sdoc`
+	files live somewhere other than `./src`:
 
 	```js
 	/** @type {import('sdocs').SdocsConfig} */

@@ -22,7 +22,9 @@
 	## Entities
 
 	- **`[SHOWCASE]`** — component documentation with previews and examples
+	- **`[PATTERNS]`** — compositions of several components, shown in their states
 	- **`[DOC]`** — standalone content pages
+	- **`[PAGE]`** — free-form Svelte pages, rendered in the docs app itself
 	- **`[LAYOUT]`** — full-page layout previews
 
 [/DOC]

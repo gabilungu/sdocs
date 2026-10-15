@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'node:path';
-import { createRequire } from 'node:module';
+import { readFileSync } from 'node:fs';
+import { localSdocs } from './launch';
 
 /**
  * Registers the sdocs MCP server with the editor's MCP client, so agent
@@ -28,17 +29,15 @@ function serverCommand(cwd: string | undefined): {
 	args: string[];
 	version?: string;
 } {
-	if (cwd) {
+	const local = cwd ? localSdocs(cwd) : null;
+	if (local) {
 		try {
-			// Resolve a real export ('sdocs/vite' → <pkg>/dist/vite.js) and derive
-			// the bin from it; './package.json' isn't guaranteed to be exported.
-			const require = createRequire(path.join(cwd, 'noop.js'));
-			const vitePlugin = require.resolve('sdocs/vite');
-			const root = path.join(path.dirname(vitePlugin), '..');
-			const version = (require(path.join(root, 'package.json')) as { version?: string }).version;
-			return { command: process.execPath, args: [path.join(root, 'bin', 'sdocs.js'), 'mcp'], version };
+			const pkg = JSON.parse(readFileSync(path.join(local.root, 'package.json'), 'utf-8')) as {
+				version?: string;
+			};
+			return { command: process.execPath, args: [local.bin, 'mcp'], version: pkg.version };
 		} catch {
-			// No local install — npx below.
+			// An install with no readable manifest — npx below.
 		}
 	}
 	return { command: 'npx', args: ['--yes', 'sdocs', 'mcp'] };

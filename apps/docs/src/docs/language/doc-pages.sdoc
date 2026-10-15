@@ -79,10 +79,10 @@
 	## About page
 
 	Every site has an **About** page at `/about`: the project logo, the counts
-	of components, pages, and layouts, and the sdocs version that built the
-	site. It's the default landing page whenever the config sets no `home`, and
-	it stays reachable at `/about` either way — including from the **ⓘ** button
-	in the top bar.
+	of components, pages, patterns, and layouts, and the sdocs version that
+	built the site. It's the default landing page whenever the config sets no
+	`home`, and it stays reachable at `/about` either way — including from
+	**About sdocs** in the top bar's ⋮ menu.
 
 	## Examples in pages
 
@@ -188,8 +188,10 @@
 	highlights. Heading IDs are slugified — lowercased, non-word characters
 	stripped, spaces as hyphens — so `## Getting Started` anchors at
 	`#getting-started`. The page header shows the entity's name — the `title`'s
-	last path segment (groups and folders already structure the sidebar); a top-level
-	`#` heading in the body is neither required nor listed.
+	last path segment (groups and folders already structure the sidebar) —
+	unless the body has a top-level `#` heading, which then serves as the
+	title. That heading is optional, and never listed in the table of
+	contents.
 
 	## When to reach for a doc
 

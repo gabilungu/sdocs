@@ -14,14 +14,16 @@
 		cssNames?: string[];
 		activeStylesheet?: string;
 		theme?: ThemeMode;
-		/** Design-system dimensions to offer, one dropdown each. */
+		/** Design-system dimensions to offer, one segmented control each
+		 * (dropdowns when they stop fitting). */
 		axes?: Required<AxisConfig>[];
 		/** Current pick per axis id. */
 		axisValues?: Record<string, string>;
 		/** The scale slider's range, or null when the project declares none. */
 		scale?: Required<ScaleConfig> | null;
 		scaleValue?: number;
-		/** This dev server serves the MCP endpoint — show the MCP button. */
+		/** This dev server serves the MCP endpoint — offer "MCP server" in the
+		 * ⋮ menu. */
 		mcp?: boolean;
 		/** Narrow viewport with somewhere to navigate: show the drawer toggle. */
 		showBurger?: boolean;
@@ -165,7 +167,7 @@
 	let mcpUrl = $state('');
 	let copied = $state('');
 	const MCP_STDIO = 'npx sdocs mcp';
-	/** Every tool the server serves. It listed five of fourteen, which
+	/** Every tool the server serves. It listed five of thirteen, which
 	 * under-sold the thing to the one audience most able to use it. */
 	const MCP_TOOLS = [
 		['validate_sdoc', 'parse .sdoc text, return diagnostics and entities'],
@@ -183,7 +185,7 @@
 		['toggle_todo', 'tick one todo item — writes to your source'],
 	];
 
-	/** The kebab: About, and MCP when the config leaves it on. Closing on an
+	/** The kebab: About, What's changed, and MCP when the config leaves it on. Closing on an
 	 * outside pointerdown rather than a click, so the menu is gone before
 	 * whatever was clicked reacts. */
 	let menuOpen = $state(false);

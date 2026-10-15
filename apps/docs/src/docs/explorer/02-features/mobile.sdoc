@@ -26,9 +26,11 @@
 	chips it replaces still need somewhere to live, so the drawer opens with
 	just those.
 
-	The [stylesheet picker](/explorer/configuration) moves to the foot of the
-	drawer when a project declares more than one — in the top bar it is the one
-	control wide enough to crowd out the rest.
+	The top bar's design-system controls — the
+	[stylesheet picker](/explorer/configuration#css), the
+	[axes](/explorer/features/theming#customization-axes) and the
+	[scale](/explorer/features/theming#a-continuous-knob) — move to the foot of
+	the drawer, where there is room for their labels.
 
 	## Stages stop being resizable
 

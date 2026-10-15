@@ -9,6 +9,7 @@ import { buildSiteMap, collectGrammarErrors } from '../server/site-map.js';
 import { checkDocFiles, formatProblem } from '../server/check.js';
 import { discoverDocFiles } from '../server/discovery.js';
 import { sdocsWarningFilter } from '../server/snippet-compiler.js';
+import { escapeHtml } from '../server/page-markdown.js';
 import { displayTitle, type SectionMap } from '../explorer/tree-builder.js';
 import type { ResolvedSdocsConfig } from '../types.js';
 import { loadSveltePlugin, loadVite, svelteDedupe } from '../server/svelte-toolchain.js';
@@ -74,7 +75,8 @@ export async function buildCommand(opts?: { base?: string; outDir?: string }): P
 		process.exit(1);
 	}
 
-	// Generate the staging directory (in the OS temp dir) with entry + preview HTML files
+	// Generate the staging directory (under node_modules/.cache; the OS temp
+	// dir only as a last resort) with entry + preview HTML files
 	const { sdocsDir, inputs } = await generateBuildFiles(config, cwd);
 	const inputCount = Object.keys(inputs).length;
 	console.log(`[sdocs] Generated ${inputCount} page(s) (1 main + ${inputCount - 1} previews)`);
@@ -189,9 +191,6 @@ async function buildPrerenderer(
 	const mod = await import(pathToFileURL(resolve(sdocsDir, 'dist-server/server-entry.mjs')).href);
 	return mod.renderRoute as RenderRoute;
 }
-
-const escapeHtml = (s: string) =>
-	s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 /**
  * A file sdocs leaves in its own output, so the next build can tell its own

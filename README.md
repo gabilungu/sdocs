@@ -9,8 +9,6 @@ A lightweight documentation tool for Svelte 5 components. This repository is an 
 | [packages/sdocs](packages/sdocs) | The `sdocs` npm package — CLI, Vite plugin, and Svelte UI |
 | [packages/vscode](packages/vscode) | VS Code extension — `.sdoc` language support |
 | [apps/docs](apps/docs) | The documentation website — built with sdocs itself |
-| [apps/testapp-embedded](apps/testapp-embedded) | Test app — SvelteKit app with sdocs embedded as a dependency |
-| [apps/testapp-standalone](apps/testapp-standalone) | Test app — no sdocs installed, exercises the standalone CLI |
 
 ## Development
 
@@ -18,12 +16,11 @@ A lightweight documentation tool for Svelte 5 components. This repository is an 
 npm install            # install all workspaces
 npm run build          # build the sdocs library
 npm run dev            # sdocs dev server (dogfoods its own docs)
-npm run docs:dev          # run the documentation site
-npm run docs:build        # build the documentation site
-npm run embedded:dev      # run the embedded test app (sdocs as dependency)
-npm run standalone:run    # run the standalone test app via the local CLI
-npm run standalone:build  # static-build the standalone test app
-npm run vscode:build      # build the VS Code extension
+npm run docs:dev       # run the documentation site
+npm run docs:build     # build the documentation site
+npm run test           # run the sdocs test suite
+npm run test:vscode    # run the VS Code extension tests
+npm run vscode:build   # build the VS Code extension
 ```
 
 The VS Code extension is a self-contained package built with esbuild. It is intentionally kept

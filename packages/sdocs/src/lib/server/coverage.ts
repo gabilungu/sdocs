@@ -1,9 +1,8 @@
-import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { relative } from 'node:path';
 import { glob } from 'tinyglobby';
 import { parseSdoc } from '../language/parser.js';
-import { extractImports, resolveComponentImport } from './doc-model.js';
+import { extractImports, resolvePreviewComponent } from './doc-model.js';
 
 /**
  * Documentation coverage: which components under the configured globs have a
@@ -77,7 +76,6 @@ export async function measureCoverage(
 		const fileImports = extractImports(doc.script?.content ?? '');
 		for (const entity of doc.entities) {
 			if (entity.kind !== 'SHOWCASE') continue;
-			const entityImports = entity.script ? extractImports(entity.script.content) : [];
 			for (const preview of entity.previews) {
 				if (!preview.componentName) continue;
 				const site: CoverageSite = {
@@ -86,18 +84,11 @@ export async function measureCoverage(
 					stage: preview.label,
 					component: preview.componentName,
 				};
-				// Most local binding wins, matching the Explorer's own lookup.
-				const blockImports = preview.script ? extractImports(preview.script.content) : [];
-				const resolved = resolveComponentImport(
-					preview.componentName,
-					[...blockImports, ...entityImports, ...fileImports],
-					docFile,
-				);
-				// A resolved path is a claim about the filesystem — the resolver
-				// follows imports, it doesn't stat them. Verify before counting
-				// the component as documented, so a preview pointing at a file
-				// that isn't there reads as missing source, not as coverage.
-				if (!resolved || !existsSync(resolved)) {
+				// Resolved through the Explorer's own lookup, and only a file
+				// that is there counts: a preview pointing at a missing one
+				// reads as missing source, not as coverage.
+				const resolved = resolvePreviewComponent(preview, entity, fileImports, docFile);
+				if (!resolved) {
 					unresolved.push(site);
 					continue;
 				}

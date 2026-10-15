@@ -13,12 +13,13 @@
 	import HeightHandle from './HeightHandle.svelte';
 	import { displayTitle } from '../tree-builder.js';
 	import { capSidePadding, isNarrow } from '../viewport.svelte.js';
+	import { usePageModule, type PageModules } from '../page-module.svelte.js';
 
 	interface Props {
 		doc: DocEntry;
 		activeStylesheet?: string;
 		/** Native page components from `virtual:sdocs`, keyed by contentKey. */
-		pageModules?: Record<string, () => Promise<{ default: unknown }>>;
+		pageModules?: PageModules;
 		/** Already-resolved content components: the prerenderer passes all of
 		 * them (effects never run server-side) and the built app's entry passes
 		 * the current route's, so hydration matches the static HTML. */
@@ -30,8 +31,6 @@
 	const meta = $derived(doc.meta);
 	const toc = $derived(doc.toc ?? []);
 
-	// The page body compiles to its own component (prose + islands + example
-	// markers); it renders here, natively — sdocs styling, no iframe. Only the
 	/** Stage heights the reader dragged to, by example slug; absent means the
 	 * stage still sizes itself to its content. */
 	let stageHeights = $state<Record<string, number>>({});
@@ -40,36 +39,17 @@
 		stageHeights = {};
 	});
 
+	// The page body compiles to its own component (prose + islands + example
+	// markers); it renders here, natively — sdocs styling, no iframe. Only the
 	// [example] stages load the project's css, each in its own PreviewFrame.
-	let loaded = $state<Component | null>(null);
-	// A content chunk that never arrives used to leave the column empty and say
-	// so only as an unhandled rejection in the console.
-	let loadError = $state<unknown>(null);
-	const PageComponent = $derived(
-		(doc.contentKey ? preloaded[doc.contentKey] : undefined) ?? loaded,
+	const content = usePageModule(
+		() => doc.contentKey,
+		() => pageModules,
+		() => preloaded,
+		'page content',
 	);
+	const PageComponent = $derived(content.component);
 	let container: HTMLElement | undefined = $state();
-
-	$effect(() => {
-		if (doc.contentKey && preloaded[doc.contentKey]) return;
-		const load = doc.contentKey ? pageModules[doc.contentKey] : undefined;
-		loaded = null;
-		loadError = null;
-		if (!load) return;
-		let stale = false;
-		load()
-			.then((mod) => {
-				if (!stale) loaded = mod.default as Component;
-			})
-			.catch((err) => {
-				if (stale) return;
-				console.error('[sdocs] page content failed to load:', err);
-				loadError = err;
-			});
-		return () => {
-			stale = true;
-		};
-	});
 
 	// Scrollspy: the TOC highlights the section currently in view. The active
 	// heading is the last one above the threshold line near the viewport top.
@@ -174,7 +154,7 @@
 			{#if example.name}
 				<h3 class="sdocs-example-title">
 					<Icon name="bookmark" --w="14px" --h="14px" --fill="var(--color-example-500)" />
-					{example.name || '⚠ title required'}
+					{example.name}
 				</h3>
 				{#if example.description}
 					<p class="sdocs-block-description">{@html renderInlineMarkdown(example.description)}</p>
@@ -263,8 +243,8 @@
 							<ContentError {error} kind="render" title={displayTitle(meta.title)} />
 						{/snippet}
 					</svelte:boundary>
-				{:else if loadError}
-					<ContentError error={loadError} kind="load" title={displayTitle(meta.title)} />
+				{:else if content.error}
+					<ContentError error={content.error} kind="load" title={displayTitle(meta.title)} />
 				{/if}
 			</div>
 		</div>

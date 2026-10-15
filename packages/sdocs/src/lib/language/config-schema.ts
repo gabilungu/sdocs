@@ -103,6 +103,11 @@ export const configSchema: ConfigSchema = {
 		doc: 'Folder of static assets served at the site root — images for pages, files for previews. Standalone CLI flows; embedded apps use the host\'s public directory.',
 		insert: ": './${0:static}'",
 	},
+	outDir: {
+		detail: 'string',
+		doc: 'Where `sdocs build` writes the site. The build empties this directory first, so give it one of its own when the project already builds to `dist/`. Default: `dist`.',
+		insert: ": '${0:dist}'",
+	},
 	title: {
 		detail: 'string',
 		doc: 'Header title text. Default: `sdocs`.',
@@ -122,7 +127,7 @@ export const configSchema: ConfigSchema = {
 	},
 	sections: {
 		detail: "({ slug, title?, order? } | { type: 'divider' })[]",
-		doc: "The site's sections, in top-bar order. Titles reference a section by slug: `title=\"@guides/…\"`. `title` defaults to the capitalized slug; `order` lists route paths to pin first in the sidebar. Without sections, a single implicit `docs` section exists (no top bar). A `{ type: 'divider' }` entry draws a rule between the tabs around it — it has no routes and no sidebar of its own.",
+		doc: "The site's sections, in top-bar order. Titles reference a section by slug: `title=\"@guides/…\"`. `title` defaults to the capitalized slug; `order` lists route paths to pin first in the sidebar. Without sections, a single implicit `docs` section exists, shown as one \"Docs\" tab. A `{ type: 'divider' }` entry draws a rule between the tabs around it — it has no routes and no sidebar of its own.",
 		insert: ": [\n\t{ slug: '$1' },$0\n]",
 	},
 	home: {
@@ -137,18 +142,18 @@ export const configSchema: ConfigSchema = {
 	},
 	mcp: {
 		detail: 'boolean',
-		doc: 'Serve the MCP server while `sdocs dev` runs (the `/mcp` endpoint and the top-bar MCP button). Default: `true`. Built sites never carry an MCP endpoint.',
+		doc: "Serve the MCP server while `sdocs dev` runs (the `/mcp` endpoint and the \"MCP server\" item in the top bar's ⋮ menu). Default: `true`. Built sites never carry an MCP endpoint.",
 		insert: ': ${0:false}',
 		values: ['true', 'false'],
 	},
 	scale: {
 		detail: '{ min?, max?, default?, step?, var?, label?, presets? }',
-		doc: "A continuous knob, rendered as a slider in the top bar. Its value lands on every preview's `<html>` as a CSS custom property — `--scale` unless `var` names another — so the project's css can multiply by it. Defaults: `min` 0.75, `max` 1.5, `default` 1, `step` 0.05, `label` 'Scale'. Double-click the slider to return to the default. `presets` adds named stops — `[{ label: 'S', value: 0.875 }]` — rendered as a segmented control beside the slider; values outside `min`–`max` are refused.",
+		doc: "A continuous knob, rendered as a slider in the top bar. Its value lands on every preview's `<html>` as a CSS custom property — `--scale` unless `var` names another — so the project's css can multiply by it. Defaults: `min` 0.75, `max` 1.5, `default` 1, `step` 0.05, `label` 'Scale'. Double-click the slider to return to the default. `presets` adds named stops — `[{ label: 'S', value: 0.875 }]` — rendered as segmented items inside the slider's group; values outside `min`–`max` are refused.",
 		insert: ': { min: ${1:0.75}, max: ${2:1.5}, default: ${3:1}, step: ${4:0.05} }$0',
 	},
 	axes: {
 		detail: '{ id, label?, values }[]',
-		doc: "Design-system dimensions the reader can switch between — theme, density, palette. Each becomes a top-bar dropdown, and the selection lands on every preview's `<html>` as `data-<id>=\"<value>\"`, which the project's own css keys off: `[data-density='compact'] { --space-md: 8px }`. The first value is the default; `label` defaults to the capitalized id.",
+		doc: "Design-system dimensions the reader can switch between — theme, density, palette. Each becomes a top-bar segmented control (a dropdown when the bar runs out of room), and the selection lands on every preview's `<html>` as `data-<id>=\"<value>\"`, which the project's own css keys off: `[data-density='compact'] { --space-md: 8px }`. The first value is the default; `label` defaults to the capitalized id.",
 		insert: ": [\n\t{ id: '$1', values: ['$2', '$3'] },$0\n]",
 	},
 	routing: {

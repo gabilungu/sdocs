@@ -1,7 +1,7 @@
 /**
  * Every icon name the UI asks for has to exist.
  *
- * A missing one fails silently — `Icon` renders an empty span, so a status
+ * A missing one fails silently — `Icon` renders an empty span, so a sidebar
  * glyph or a note mark just is not there, and nothing in a build or a
  * typecheck says so. The names live in string maps, which typescript cannot
  * check against the registry either.
@@ -30,13 +30,21 @@ function registry(): Map<string, string> {
 	return names;
 }
 
-/** Icon names referenced from a component's `{ icon: '…' }` map or `name="…"`. */
+/** Icon names referenced from a component's `{ icon: '…' }` map, `name="…"`,
+ * or the strings an `iconName()` function returns (the sidebar picks its row
+ * glyphs that way). */
 function referenced(file: string): string[] {
 	const source = readFileSync(resolve(root, file), 'utf-8');
+	const iconFn = source.match(/function iconName\([^)]*\)[^{]*\{([\s\S]*?)\n\t\}\n/)?.[1] ?? '';
+	const returned = iconFn
+		.split('\n')
+		.flatMap((line) => line.split('return ').slice(1))
+		.flatMap((tail) => [...tail.matchAll(/'([\w-]+)'/g)].map((m) => m[1]));
 	return [
 		...[...source.matchAll(/icon: '([\w-]+)'/g)].map((m) => m[1]),
 		...[...source.matchAll(/name="([\w-]+)"/g)].map((m) => m[1]),
 		...[...source.matchAll(/^\t\t(\w+): '([\w-]+)',$/gm)].map((m) => m[2]),
+		...returned,
 	];
 }
 
@@ -49,8 +57,9 @@ describe('the icon registry', () => {
 		expect(missing).toEqual([]);
 	});
 
-	// The two semantic sets are Font Awesome Free; everything else is Lucide.
-	// Mixing them is deliberate, and the prefix is what keeps it legible.
+	// The note-type glyphs and the glossary's search glass are Font Awesome
+	// Free; everything else is Lucide. Mixing them is deliberate, and the
+	// prefix is what keeps it legible.
 	it('namespaces the Font Awesome icons, and takes them only from the free set', () => {
 		const fa = [...icons].filter(([name]) => name.startsWith('fa-'));
 		// Derived rather than a fixed number: the count changes whenever a glyph

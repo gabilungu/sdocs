@@ -7,7 +7,7 @@
  * a tick rewrites one character, so a document keeps its formatting, its
  * comments, and every byte the author put there.
  *
- * Kept apart from the middleware that calls it so the interesting half — find
+ * Kept apart from the MCP handler that calls it so the interesting half — find
  * the block, splice the text — is a pure function of source text.
  */
 
@@ -45,7 +45,7 @@ export function serializeNotes(notes: DocNote[], base: string): string {
 }
 
 /** The whitespace opening the line `offset` sits on — what the opener is
- * indented by, so an attribute written under it lines up. */
+ * indented by, so a block written under it is indented one level deeper. */
 function lineIndent(source: string, offset: number): string {
 	const start = source.lastIndexOf('\n', offset - 1) + 1;
 	return source.slice(start, offset).match(/^[\t ]*/)?.[0] ?? '';
@@ -131,11 +131,11 @@ function locate(
 }
 
 /**
- * Return `source` with the target opener's `notes` carrying exactly `notes`.
+ * Return `source` with the target's `[NOTES]` block carrying exactly `notes`.
  *
- * Replaces the attribute where one is already written, removes it when the
- * list is emptied, and otherwise adds it just inside the opener's closing
- * bracket. Throws `NoteTargetError` when the target names nothing.
+ * Replaces the block where one is already written, removes it when the list
+ * is emptied, and otherwise opens one on its own line directly under the
+ * opener. Throws `NoteTargetError` when the target names nothing.
  */
 export function writeNotes(source: string, target: NoteTarget, notes: DocNote[]): string {
 	const file = scanSdoc(source);

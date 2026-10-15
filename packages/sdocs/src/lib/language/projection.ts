@@ -201,7 +201,10 @@ export function projectSdoc(file: SdocFile): SdocProjection {
 	};
 
 	file.entities.forEach((entity: Entity, e: number) => {
-		if (entity.kind === 'SHOWCASE') {
+		// A pattern is a showcase without the prop half: the same blocks, so
+		// the same per-block snippets. Its entity body is empty — the whole-body
+		// branch below would project nothing of it.
+		if (entity.kind === 'SHOWCASE' || entity.kind === 'PATTERNS') {
 			entity.blocks.forEach((block: SubBlock, b: number) => {
 				wrapBlock(`__sdocs$${e}_${b}`, block.openerSpan, block.bodySpan, block.span, true, false);
 				const component = block.attrs.component;
@@ -256,9 +259,6 @@ export interface SdocBlockProjection extends SdocProjection {
 	extraOwnedLines?: number[];
 }
 
-interface ChainScript {
-	tag: TagBlockLike;
-}
 interface TagBlockLike {
 	attrsText: string;
 	content: string;
@@ -585,14 +585,14 @@ export function projectSdocBlocks(file: SdocFile): SdocBlockProjection[] {
 			});
 		}
 
-		// SHOWCASE with an entity script/style: a per-entity doc carries the
+		// SHOWCASE (or PATTERNS) with an entity script/style: a per-entity doc carries the
 		// chained file→entity script and every block's markup wrapped in
 		// snippets — so entity-script declarations used by ANY block read as
 		// used, and the entity style is checked against every block's markup,
 		// matching the runtime merge of entity style into each preview/example
 		// component. Block-owned lines keep their diagnostics in the per-block
 		// docs, which are pushed after and own those line ranges.
-		if (entity.kind === 'SHOWCASE' && (entityScript || entity.style)) {
+		if ((entity.kind === 'SHOWCASE' || entity.kind === 'PATTERNS') && (entityScript || entity.style)) {
 			const out: string[] = new Array(total).fill('');
 			const kinds: ProjectedLineKind[] = new Array(total).fill('blank');
 			const spans: (RecomposedSpan | undefined)[] = new Array(total);

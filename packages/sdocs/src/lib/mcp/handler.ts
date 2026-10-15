@@ -8,15 +8,16 @@ import { NOTE_TYPES } from '../note-order.js';
 import { slugifyTitle } from '../language/parser.js';
 import { offsetToPosition } from '../language/scanner.js';
 import { parseComponentSource } from '../server/prop-parser.js';
-import { loadConfig } from '../server/config.js';
-import { discoverDocFiles } from '../server/discovery.js';
+import { projectDocFiles } from '../server/discovery.js';
 import {
 	writeNotes,
 	writeTodos,
 	toggleTodo,
+	type NoteTarget,
 } from '../server/note-editor.js';
 import { buildSections, slugifySegment, splitSection } from '../explorer/tree-builder.js';
 import {
+	ENTITY_KIND_TO_DOC_KIND,
 	extractImports,
 	exampleSlug,
 	planIframeSnippets,
@@ -30,7 +31,7 @@ import { VISUAL_TESTING_GUIDE } from './visual-guide.js';
 import { buildSiteMap } from '../server/site-map.js';
 import { checkDocFiles } from '../server/check.js';
 import { measureCoverage } from '../server/coverage.js';
-import type { DocEntry, ParsedProp } from '../types.js';
+import type { DocEntry, ParsedProp, ResolvedSdocsConfig } from '../types.js';
 
 /**
  * The sdocs MCP server: authoring tools for agent clients, built directly on
@@ -76,8 +77,8 @@ function guideSections(guide: string): { title: string; start: number; end: numb
 /**
  * One section of the guide, or the whole thing.
  *
- * The guide is 40k characters; an agent that needs to know how one block is
- * written should not have to read all of it. Matching is a case-insensitive
+ * The guide is about 50k characters; an agent that needs to know how one
+ * block is written should not have to read all of it. Matching is a case-insensitive
  * substring of the heading, so `prose` finds "`[PROSE]` — markdown between the
  * blocks" without the caller knowing how it is punctuated. A section that
  * matches nothing returns the list of headings rather than an error: the reply
@@ -226,6 +227,17 @@ const SEARCH_LIMIT = 50;
  * without a type. */
 const SEARCH_TYPES: string[] = [...NOTE_TYPES, 'none'];
 
+/** The address every write tool takes: a file, an entity in it, and
+ * optionally one of that entity's [EXAMPLE]s — `exampleWhat` says what naming
+ * one does for this tool. */
+function editTargetProperties(exampleWhat: string) {
+	return {
+		file: { type: 'string', description: 'Path to the .sdoc, as list_docs reports it' },
+		entity: { type: 'string', description: "The entity's title or route slug" },
+		example: { type: 'string', description: `An [EXAMPLE] title, ${exampleWhat}` },
+	};
+}
+
 const TOOLS = [
 	{
 		name: 'validate_sdoc',
@@ -269,7 +281,7 @@ const TOOLS = [
 		description:
 			'The sdocs authoring guide: setup, configuration, the CLI, and the full ' +
 			'.sdoc format reference. Read it before writing .sdoc files. The whole ' +
-			'guide is around 40k characters, so pass `section` when you only need ' +
+			'guide is about 50k characters, so pass `section` when you only need ' +
 			'one part of it — "prose", "NOTES", "SHOWCASE", "config". Matching is a ' +
 			'case-insensitive substring of the section heading, and a section that ' +
 			'matches nothing comes back as the list of headings to choose from.',
@@ -327,7 +339,8 @@ const TOOLS = [
 		description:
 			'Find documentation by any name it goes under — the entity title, a ' +
 			'component it previews, that component\'s `synonyms`, an example ' +
-			'title, an example\'s `tags`, or the text of any `notes` on either. ' +
+			'title, an example\'s `tags`, the text of any `notes` or `todos` on ' +
+			'either, or a glossary term or its definition. ' +
 			'Matching is a case-insensitive substring, so "butt" finds Button and ' +
 			'"menu" finds every example tagged "user menu". `type` sweeps by ' +
 			'note type instead — type:"bug" lists everything marked ' +
@@ -341,7 +354,7 @@ const TOOLS = [
 				query: {
 					type: 'string',
 					description:
-						'Text to look for in titles, component names, synonyms, tags and note text',
+						'Text to look for in titles, component names, synonyms, tags, note and todo text, and glossary terms and definitions',
 				},
 				type: {
 					type: 'string',
@@ -460,12 +473,7 @@ const TOOLS = [
 		inputSchema: {
 			type: 'object',
 			properties: {
-				file: { type: 'string', description: 'Path to the .sdoc, as list_docs reports it' },
-				entity: { type: 'string', description: "The entity's title or route slug" },
-				example: {
-					type: 'string',
-					description: "An [EXAMPLE] title, to edit its notes instead of the entity's",
-				},
+				...editTargetProperties("to edit its notes instead of the entity's"),
 				notes: {
 					type: 'array',
 					description: 'The notes the block should end up with',
@@ -493,9 +501,7 @@ const TOOLS = [
 		inputSchema: {
 			type: 'object',
 			properties: {
-				file: { type: 'string', description: 'Path to the .sdoc, as list_docs reports it' },
-				entity: { type: 'string', description: "The entity's title or route slug" },
-				example: { type: 'string', description: 'An [EXAMPLE] title, to edit its checklist' },
+				...editTargetProperties('to edit its checklist'),
 				todos: {
 					type: 'array',
 					description: 'The checklist the block should end up with; [] removes it',
@@ -527,9 +533,7 @@ const TOOLS = [
 		inputSchema: {
 			type: 'object',
 			properties: {
-				file: { type: 'string', description: 'Path to the .sdoc, as list_docs reports it' },
-				entity: { type: 'string', description: "The entity's title or route slug" },
-				example: { type: 'string', description: 'An [EXAMPLE] title, to tick inside its checklist' },
+				...editTargetProperties('to tick inside its checklist'),
 				path: {
 					type: 'array',
 					items: { type: 'number' },
@@ -658,14 +662,6 @@ async function scaffoldComponentDoc(params: Record<string, unknown>) {
 	});
 }
 
-const ENTITY_KIND_TO_DOC_KIND = {
-	SHOWCASE: 'component',
-	PATTERNS: 'pattern',
-	DOC: 'doc',
-	PAGE: 'page',
-	LAYOUT: 'layout',
-} as const;
-
 /** One entity as both tools see it: what it is, where it serves, and every
  * name it can be found under. */
 interface IndexedEntity {
@@ -692,6 +688,40 @@ interface IndexedFile {
 }
 
 /**
+ * Parse every file and route its entities through the Explorer's own section
+ * builder — slug rules and `slug=` overrides included — so a route reported
+ * here is the route the site serves. Each file's `entries` line up with its
+ * `doc.entities`, one stub per entity, the keys `map.routes` points at.
+ */
+async function routeDocs(files: string[], config: ResolvedSdocsConfig) {
+	const parsed: { file: string; doc: ReturnType<typeof parseSdoc>; entries: DocEntry[] }[] = [];
+	for (const file of files) {
+		const doc = parseSdoc(await readFile(file, 'utf-8'));
+		const entries = doc.entities.map(
+			(e) =>
+				({
+					kind: ENTITY_KIND_TO_DOC_KIND[e.kind],
+					filePath: file,
+					routeSlug: e.routeSlug,
+					hide: e.hide,
+					meta: { title: e.title },
+					// A pattern's states are routed exactly as a showcase's examples are.
+					examples:
+						e.kind === 'SHOWCASE' || e.kind === 'PATTERNS'
+							? e.examples.map((x) => ({ name: x.title }))
+							: [],
+				}) as unknown as DocEntry,
+		);
+		parsed.push({ file, doc, entries });
+	}
+	const map = buildSections(
+		parsed.flatMap((f) => f.entries),
+		{ sections: config.sections, home: config.home },
+	);
+	return { parsed, map };
+}
+
+/**
  * Read the project's docs once, resolved the way the site resolves them.
  *
  * Both `list_docs` and `search_docs` answer from this, so a route reported by
@@ -700,31 +730,8 @@ interface IndexedFile {
  */
 async function collectDocIndex() {
 	const cwd = process.cwd();
-	const config = await loadConfig(cwd);
-	const files = await discoverDocFiles(
-		config.include.map((p) => resolve(cwd, p)),
-		cwd,
-	);
-
-	const parsed: { file: string; doc: ReturnType<typeof parseSdoc> }[] = [];
-	const entries: DocEntry[] = [];
-
-	for (const file of files) {
-		const doc = parseSdoc(await readFile(file, 'utf-8'));
-		parsed.push({ file, doc });
-		for (const e of doc.entities) {
-			entries.push({
-				kind: ENTITY_KIND_TO_DOC_KIND[e.kind],
-				filePath: file,
-				routeSlug: e.routeSlug,
-				hide: e.hide,
-				meta: { title: e.title },
-				examples: e.kind === 'SHOWCASE' ? e.examples.map((x) => ({ name: x.title })) : [],
-			} as unknown as DocEntry);
-		}
-	}
-
-	const map = buildSections(entries, { sections: config.sections, home: config.home });
+	const { config, files } = await projectDocFiles(cwd);
+	const { parsed, map } = await routeDocs(files, config);
 
 	// Invert the route table: entity route (no snippet) and one per example.
 	const routeOf = new Map<DocEntry, string>();
@@ -739,12 +746,11 @@ async function collectDocIndex() {
 		}
 	}
 
-	let cursor = 0;
-	const indexed: IndexedFile[] = parsed.map(({ file, doc }) => ({
+	const indexed: IndexedFile[] = parsed.map(({ file, doc, entries }) => ({
 		file: relative(cwd, file),
 		valid: doc.diagnostics.length === 0,
-		entities: doc.entities.map((e) => {
-			const entry = entries[cursor++];
+		entities: doc.entities.map((e, i) => {
+			const entry = entries[i];
 			const routes = exampleRoutes.get(entry);
 			return {
 				kind: e.kind,
@@ -763,7 +769,7 @@ async function collectDocIndex() {
 								}))
 						: [],
 				examples:
-					e.kind === 'SHOWCASE' || e.kind === 'DOC'
+					e.kind === 'SHOWCASE' || e.kind === 'PATTERNS' || e.kind === 'DOC'
 						? e.examples.map((x) => ({
 								name: x.title,
 								route: routes?.get(x.title) ?? null,
@@ -779,16 +785,6 @@ async function collectDocIndex() {
 	return { cwd, config, files, indexed, structureErrors: map.errors.map((e) => e.message) };
 }
 
-
-/**
- * Resolve a write request to a real file in this project, and apply `edit`.
- *
- * The path has to be a file the project's `include` globs already match. A write tool that would
- * touch any path it is handed is a write tool that can be pointed anywhere.
- *
- * `entity` is matched on its title or its slug, so a caller can pass back
- * whatever `list_docs` showed it.
- */
 /**
  * One edit at a time, per file.
  *
@@ -820,9 +816,19 @@ function withFileLock<T>(path: string, run: () => Promise<T>): Promise<T> {
 	return next;
 }
 
+/**
+ * Resolve a write request to a real file in this project, and apply `edit`.
+ *
+ * The path has to be a file the project's `include` globs already match. A write tool that would
+ * touch any path it is handed is a write tool that can be pointed anywhere.
+ *
+ * `entity` is matched on its title or its slug, so a caller can pass back
+ * whatever `list_docs` showed it; `example`, when given, narrows the edit to
+ * that [EXAMPLE] of it.
+ */
 async function editDoc(
 	params: Record<string, unknown>,
-	edit: (source: string, entitySlug: string) => string,
+	edit: (source: string, target: NoteTarget) => string,
 ): Promise<unknown> {
 	const asked = String(params.file ?? '').trim();
 	const entityName = String(params.entity ?? '').trim();
@@ -830,11 +836,7 @@ async function editDoc(
 	if (!entityName) return invalidParams('entity is required');
 
 	const cwd = process.cwd();
-	const config = await loadConfig(cwd);
-	const files = await discoverDocFiles(
-		config.include.map((p) => resolve(cwd, p)),
-		cwd,
-	);
+	const { files } = await projectDocFiles(cwd);
 	const target = resolve(cwd, asked);
 	if (!files.includes(target)) {
 		return invalidParams(
@@ -856,7 +858,10 @@ async function editDoc(
 
 		let next: string;
 		try {
-			next = edit(source, entity.slug);
+			next = edit(source, {
+				entitySlug: entity.slug,
+				exampleTitle: typeof params.example === 'string' ? params.example : null,
+			});
 		} catch (err) {
 			return invalidParams(err instanceof Error ? err.message : String(err));
 		}
@@ -932,17 +937,6 @@ async function listDocs() {
 }
 
 /**
- * Find documentation by any name it goes under: the entity's title, a
- * component it previews, that component's `synonyms`, an example's title, or
- * an example's `tags`.
- *
- * Matching is a case-insensitive substring, deliberately: an agent looking for
- * a button rarely knows whether the project calls it Button, ButtonGroup or
- * "btn", and a search that only answers to whole words sends it back to
- * reading files. Every hit says which name matched, so a surprising result
- * explains itself.
- */
-/**
  * Coerce whatever a caller sent into the checklist shape.
  *
  * An agent will send `{ text }` and leave the rest off; filling the gaps here
@@ -982,11 +976,23 @@ function noteTypeHits(notes: DocNote[], type: string): string[] {
 		.map((n) => `note type: ${noteTypeName(n)}`);
 }
 
+/**
+ * Find documentation by any name it goes under: the entity's title, a
+ * component it previews, that component's `synonyms`, an example's title, an
+ * example's `tags` — or the text it carries: notes, todo items, glossary
+ * terms and their definitions.
+ *
+ * Matching is a case-insensitive substring, deliberately: an agent looking for
+ * a button rarely knows whether the project calls it Button, ButtonGroup or
+ * "btn", and a search that only answers to whole words sends it back to
+ * reading files. Every hit says which name matched, so a surprising result
+ * explains itself.
+ */
 async function searchDocs(params: Record<string, unknown>) {
 	const raw = typeof params.query === 'string' ? params.query.trim() : '';
 	const type = typeof params.type === 'string' ? params.type.trim() : '';
-	// One or the other is enough: a text search, a sweep of everything marked
-	// danger, or both together.
+	// One or the other is enough: a text search, a sweep of every note of one
+	// type (everything marked as a bug), or both together.
 	if (!raw && !type) {
 		return invalidParams('search_docs needs a query, a type, or both');
 	}
@@ -1161,31 +1167,16 @@ interface RouteTarget {
 
 async function routeToStage(
 	route: string,
-	cwd: string,
-	config: Awaited<ReturnType<typeof loadConfig>>,
+	files: string[],
+	config: ResolvedSdocsConfig,
 ): Promise<RouteTarget | null> {
-	const files = await discoverDocFiles(
-		config.include.map((p) => resolve(cwd, p)),
-		cwd,
-	);
-	const entries: DocEntry[] = [];
+	const { parsed, map } = await routeDocs(files, config);
 	const meta = new Map<DocEntry, { file: string; kind: string; title: string; slug: string }>();
-	for (const file of files) {
-		const doc = parseSdoc(await readFile(file, 'utf-8'));
-		for (const e of doc.entities) {
-			const entry = {
-				kind: ENTITY_KIND_TO_DOC_KIND[e.kind],
-				filePath: file,
-				routeSlug: e.routeSlug,
-				hide: e.hide,
-				meta: { title: e.title },
-				examples: e.kind === 'SHOWCASE' ? e.examples.map((x) => ({ name: x.title })) : [],
-			} as unknown as DocEntry;
-			entries.push(entry);
-			meta.set(entry, { file, kind: e.kind, title: e.title, slug: e.slug });
-		}
+	for (const { file, doc, entries } of parsed) {
+		doc.entities.forEach((e, i) => {
+			meta.set(entries[i], { file, kind: e.kind, title: e.title, slug: e.slug });
+		});
 	}
-	const map = buildSections(entries, { sections: config.sections, home: config.home });
 	const wanted = route.replace(/^\/+|\/+$/g, '');
 	const target = map.routes.get(wanted);
 	if (!target) return null;
@@ -1229,11 +1220,7 @@ async function resolveVisualTarget(params: Record<string, unknown>) {
 	const raw = typeof params.target === 'string' ? params.target.trim() : '';
 	if (!raw) throw new RpcError(-32602, 'target is required');
 	const cwd = process.cwd();
-	const config = await loadConfig(cwd);
-	const files = await discoverDocFiles(
-		config.include.map((p) => resolve(cwd, p)),
-		cwd,
-	);
+	const { config, files } = await projectDocFiles(cwd);
 
 	const needle = raw.replace(/^sdocs:/i, '').trim();
 	const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
@@ -1246,7 +1233,7 @@ async function resolveVisualTarget(params: Record<string, unknown>) {
 	// happen to spell the stage) while `/atoms/button` matched nothing, which
 	// reads as a broken tool rather than an unsupported input.
 	const routeTarget = needle.startsWith('/')
-		? await routeToStage(needle, cwd, config)
+		? await routeToStage(needle, files, config)
 		: null;
 
 	interface Candidate {
@@ -1415,24 +1402,16 @@ async function resolveVisualTarget(params: Record<string, unknown>) {
 
 async function checkDocs(params: Record<string, unknown>) {
 	const cwd = process.cwd();
-	const config = await loadConfig(cwd);
-	const file = params.file;
-	let files: string[];
-	if (typeof file === 'string' && file) {
-		files = [isAbsolute(file) ? file : resolve(cwd, file)];
-	} else {
-		files = await discoverDocFiles(
-			config.include.map((p) => resolve(cwd, p)),
-			cwd,
-		);
-	}
+	const file = typeof params.file === 'string' && params.file ? params.file : null;
+	const project = await projectDocFiles(cwd);
+	const files = file ? [isAbsolute(file) ? file : resolve(cwd, file)] : project.files;
 	const result = await checkDocFiles(files, cwd);
 	const errors = result.problems.filter((p) => p.severity === 'error');
 	// Site structure is a whole-project property — an unknown @section or a
 	// route collision needs every file to be visible — so it is checked only
 	// when no single file was asked for. Same map `build` refuses to deploy
 	// past, so an agent that gets `ok` here has a site that builds.
-	const structure = typeof file === 'string' && file ? [] : (await buildSiteMap(config, cwd)).errors;
+	const structure = file ? [] : (await buildSiteMap(project.config, cwd)).errors;
 	const ok = result.ok && structure.length === 0;
 	return toolResult({
 		ok,
@@ -1449,11 +1428,7 @@ async function checkDocs(params: Record<string, unknown>) {
 
 async function checkCoverage() {
 	const cwd = process.cwd();
-	const config = await loadConfig(cwd);
-	const files = await discoverDocFiles(
-		config.include.map((p) => resolve(cwd, p)),
-		cwd,
-	);
+	const { config, files } = await projectDocFiles(cwd);
 	const result = await measureCoverage(files, config.components, cwd);
 	return toolResult({
 		...result,
@@ -1576,19 +1551,15 @@ async function dispatch(method: string, params: Record<string, unknown>): Promis
 						}
 						notes.push({ note, type: (type || null) as DocNote['type'] });
 					}
-					const example = typeof args.example === 'string' ? args.example : null;
-					return editDoc(args, (source, entitySlug) =>
-						writeNotes(source, { entitySlug, exampleTitle: example }, notes),
-					);
+					return editDoc(args, (source, target) => writeNotes(source, target, notes));
 				}
 				case 'set_todos': {
 					if (!Array.isArray(args.todos)) {
 						return invalidParams('todos must be an array — pass [] to remove the block');
 					}
 					const todos = args.todos;
-					const example = typeof args.example === 'string' ? args.example : null;
-					return editDoc(args, (source, entitySlug) =>
-						writeTodos(source, { entitySlug, exampleTitle: example }, normalizeTodos(todos)),
+					return editDoc(args, (source, target) =>
+						writeTodos(source, target, normalizeTodos(todos)),
 					);
 				}
 				case 'toggle_todo': {
@@ -1596,9 +1567,8 @@ async function dispatch(method: string, params: Record<string, unknown>): Promis
 					if (!path.length || path.some((n) => !Number.isInteger(n) || n < 0)) {
 						return invalidParams('path must be one or more non-negative positions, outermost first');
 					}
-					const example = typeof args.example === 'string' ? args.example : null;
-					return editDoc(args, (source, entitySlug) =>
-						toggleTodo(source, { entitySlug, exampleTitle: example }, path, !!args.done),
+					return editDoc(args, (source, target) =>
+						toggleTodo(source, target, path, !!args.done),
 					);
 				}
 				case 'get_changelog': {

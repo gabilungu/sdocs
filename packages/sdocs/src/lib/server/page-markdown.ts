@@ -1,9 +1,11 @@
 /**
- * [PAGE] body transform: markdown-first with Svelte conveniences.
+ * Markdown rendering for [DOC] bodies, [PROSE] blocks and the other prose
+ * sdocs shows (descriptions, the changelog): markdown-first with Svelte
+ * conveniences. A [PAGE] body is plain Svelte and never passes through here.
  *
  * The body is CommonMark/GFM; prose passes through untouched so
  * `{expression}` interpolation and `<Component />` islands compile in the
- * generated Svelte preview. Code fences and inline code are INERT: they are
+ * generated page component. Code fences and inline code are INERT: they are
  * highlighted (fences) or wrapped (inline) at transform time with `{` and
  * `}` escaped, so nothing inside code ever interpolates.
  */
@@ -33,7 +35,8 @@ function escapeBraces(html: string): string {
 	return html.replace(/\{/g, '&#123;').replace(/\}/g, '&#125;');
 }
 
-function escapeHtml(text: string): string {
+/** Escape text for HTML content or a double-quoted attribute value. */
+export function escapeHtml(text: string): string {
 	return text
 		.replace(/&/g, '&amp;')
 		.replace(/</g, '&lt;')
@@ -96,13 +99,6 @@ function plainText(tokens: Token[]): string {
 }
 
 /**
- * Render a [PAGE] body: Svelte islands (see segmentPageBody) pass through
- * verbatim — markdown never splits a snippet or an HTML section — and the
- * prose between them renders as markdown. Islands land at the top level of
- * the compiled fragment, so a snippet declared anywhere is renderable from
- * anywhere on the page.
- */
-/**
  * Prefix root-absolute src/href URLs in rendered page HTML with the build's
  * public base path. Markdown like `![x](/sample.svg)` or `[a](/guides/colors)`
  * refers to the site root; under a sub-path deploy (GitHub project Pages) the
@@ -116,6 +112,13 @@ export function applyBaseToHtml(html: string, base: string): string {
 	return html.replace(/\b(src|href)="\/(?!\/|@)/g, `$1="${prefix}/`);
 }
 
+/**
+ * Render a markdown body — a [DOC], a [PROSE] block: Svelte islands (see
+ * segmentPageBody) pass through verbatim — markdown never splits a snippet or
+ * an HTML section — and the prose between them renders as markdown. Islands land at the top level of
+ * the compiled fragment, so a snippet declared anywhere is renderable from
+ * anywhere on the page.
+ */
 export async function renderPageMarkdown(source: string): Promise<RenderedPage> {
 	const toc: TocHeading[] = [];
 	const usedIds = new Set<string>();

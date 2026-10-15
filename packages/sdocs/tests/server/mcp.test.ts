@@ -67,7 +67,7 @@ describe('MCP handler', () => {
 		expect((await rpc('nope/nope')).error?.code).toBe(-32601);
 	});
 
-	it('lists the fourteen tools, reads before writes', async () => {
+	it('lists the thirteen tools, reads before writes', async () => {
 		const { result } = await rpc('tools/list');
 		const names = (result as { tools: { name: string }[] }).tools.map((t) => t.name);
 		expect(names).toEqual([
@@ -226,6 +226,36 @@ describe('MCP handler', () => {
 			expect(result.docs[0].file).toBe('Button.sdoc');
 			// The route the site actually serves — folders and slug rules included.
 			expect(result.docs[0].entities[0].route).toBe('/docs/forms/button');
+		} finally {
+			process.chdir(prev);
+		}
+	});
+
+	// A pattern's states are routed exactly as a showcase's examples are, so
+	// the MCP route table has to carry them too — otherwise list_docs reports
+	// them unrouted and resolve_visual_target cannot reach them by route.
+	it('routes the states of a [PATTERNS] entity', async () => {
+		const dir = mkdtempSync(join(tmpdir(), 'sdocs-mcp-patterns-'));
+		writeFileSync(join(dir, 'sdocs.config.js'), 'export default {\n\tinclude: ["./**/*.sdoc"],\n};\n');
+		writeFileSync(
+			join(dir, 'Menu.sdoc'),
+			'[PATTERNS title="Patterns / Menu"]\n' +
+				'\t[EXAMPLE title="Closed"]\n' +
+				'\t\t<button>Menu</button>\n' +
+				'\t[/EXAMPLE]\n' +
+				'[/PATTERNS]\n',
+		);
+		const prev = process.cwd();
+		process.chdir(dir);
+		try {
+			const listed = (await callTool('list_docs')).structuredContent as Record<string, any>;
+			const entity = listed.docs[0].entities[0];
+			expect(entity.kind).toBe('PATTERNS');
+			expect(entity.examples).toMatchObject([{ name: 'Closed', route: '/docs/patterns/menu/closed' }]);
+			const r = (await callTool('resolve_visual_target', { target: entity.examples[0].route }))
+				.structuredContent as Record<string, any>;
+			expect(r.resolved?.name).toBe('Closed');
+			expect(r.resolved?.kind).toBe('example');
 		} finally {
 			process.chdir(prev);
 		}
@@ -666,8 +696,8 @@ describe('validate_sdoc reports where a title will be served', () => {
 });
 
 /**
- * The guide is ~40k characters. An agent that needs to know how one block is
- * written should not have to read all of it — and one that arrives at a
+ * The guide is about 50k characters. An agent that needs to know how one
+ * block is written should not have to read all of it — and one that arrives at a
  * project on a newer sdocs needs the breaking changes before it writes
  * anything.
  */
@@ -714,10 +744,10 @@ describe('get_authoring_guide({ section }) and get_changelog({ since })', () => 
 /**
  * Reading and writing the blocks.
  *
- * The writes exist because an agent asked to "mark Button deprecated" will
+ * The writes exist because an agent asked to "note that Badge overflows" will
  * edit that `.sdoc` one way or another — through a tool that splices the one
- * attribute, or by pattern-matching the source. The first cannot produce a
- * file that does not parse.
+ * block, or by pattern-matching the source. The first cannot produce a file
+ * that does not parse.
  */
 describe('the blocks over MCP', () => {
 	const SOURCE = [

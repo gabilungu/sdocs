@@ -9,42 +9,24 @@
 <script lang="ts">
 	import type { Component } from 'svelte';
 	import ContentError from './ContentError.svelte';
+	import { usePageModule, type PageModules } from '../page-module.svelte.js';
 
 	interface Props {
 		/** Key into `pageModules` / `preloaded`; nothing renders without one. */
 		key?: string;
-		pageModules?: Record<string, () => Promise<{ default: unknown }>>;
+		pageModules?: PageModules;
 		preloaded?: Record<string, Component>;
 	}
 
 	let { key, pageModules = {}, preloaded = {} }: Props = $props();
 
-	let loaded = $state<Component | null>(null);
-	const Body = $derived((key ? preloaded[key] : undefined) ?? loaded);
-
-	// A prose block whose chunk never arrives used to render as nothing.
-	let loadError = $state<unknown>(null);
-
-	$effect(() => {
-		if (key && preloaded[key]) return;
-		const load = key ? pageModules[key] : undefined;
-		loaded = null;
-		loadError = null;
-		if (!load) return;
-		let stale = false;
-		load()
-			.then((mod) => {
-				if (!stale) loaded = mod.default as Component;
-			})
-			.catch((err) => {
-				if (stale) return;
-				console.error('[sdocs] prose block failed to load:', err);
-				loadError = err;
-			});
-		return () => {
-			stale = true;
-		};
-	});
+	const body = usePageModule(
+		() => key,
+		() => pageModules,
+		() => preloaded,
+		'prose block',
+	);
+	const Body = $derived(body.component);
 </script>
 
 {#if Body}
@@ -54,6 +36,6 @@
 			<ContentError {error} kind="render" />
 		{/snippet}
 	</svelte:boundary>
-{:else if loadError}
-	<ContentError error={loadError} kind="load" />
+{:else if body.error}
+	<ContentError error={body.error} kind="load" />
 {/if}

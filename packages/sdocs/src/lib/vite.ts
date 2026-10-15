@@ -8,12 +8,14 @@ import { discoverDocFiles, globBase } from './server/discovery.js';
 import { parseComponent } from './server/prop-parser.js';
 import { parseSdoc, offsetToPosition } from './language/index.js';
 import {
+	ENTITY_KIND_TO_DOC_KIND,
 	planEntitySnippets,
 	extractImports,
-	resolveComponentImport,
+	resolvePreviewComponent,
+	unresolvedComponentMessage,
 } from './server/doc-model.js';
 import { stageId, stageIdentity } from './server/preview-runtime.js';
-import { resolveStageLayout, type SizingAttrs } from './server/stage-layout.js';
+import { kindKeyOf, resolveStageLayout, type SizingAttrs } from './server/stage-layout.js';
 import { renderPageMarkdown, applyBaseToHtml } from './server/page-markdown.js';
 import { highlight, disposeHighlighter } from './server/highlighter.js';
 import {
@@ -22,6 +24,8 @@ import {
 	parsePageId,
 	parsePreviewUrl,
 	resolveScriptImports,
+	joinScripts,
+	joinStyles,
 	generateIframeComponent,
 	generateMountScript,
 	generatePageComponent,
@@ -44,6 +48,7 @@ import type {
 	DocEntry,
 	ExtractedSnippet,
 	ComponentData,
+	StageLayout,
 } from './types.js';
 
 const VIRTUAL_MODULE_ID = 'virtual:sdocs';
@@ -62,8 +67,6 @@ interface PlannedPreview {
 	htmlFileName: string;
 }
 
-/** Every iframe-served snippet of an entry, in order. DOC and PAGE content
- * renders natively in the Explorer (via pageModules), never as an iframe. */
 /** This package's own CHANGELOG.md — `dist/vite.js` sits one below the root,
  * and the source tree two. Missing is not fatal: a site simply shows nothing
  * on the changelog route rather than failing to build. */
@@ -96,11 +99,22 @@ async function renderExampleProse(
 	}
 }
 
+/** Every iframe-served snippet of an entry, in order. DOC and PAGE content
+ * renders natively in the Explorer (via pageModules), never as an iframe. */
 function allSnippets(entry: DocEntry): ExtractedSnippet[] {
 	return [
 		...entry.previews.map((p) => p.snippet),
 		...entry.examples,
 		...(entry.content && entry.kind !== 'doc' && entry.kind !== 'page' ? [entry.content] : []),
+	];
+}
+
+/** Slugs of an entry's natively-rendered bodies: a doc/page's content, and
+ * every [PROSE] block. */
+function nativeSlugs(entry: DocEntry): string[] {
+	return [
+		...(entry.kind === 'doc' || entry.kind === 'page' ? ['content'] : []),
+		...entry.prose.map((_, i) => `prose-${i + 1}`),
 	];
 }
 
@@ -410,13 +424,7 @@ export function sdocsPlugin(
 				const snippet = allSnippets(entry).find((s) => s.slug === parsed.snippetSlug);
 				if (!snippet) return null;
 
-				// The scope chain: file script, then the entity's own, both with
-				// their relative imports resolved against the doc file.
-				const filePrelude = docScriptCache.get(parsed.docFilePath) ?? '';
-				const entityPrelude = entry.entityScript
-					? resolveScriptImports(entry.entityScript, parsed.docFilePath)
-					: '';
-				const scriptPrelude = [filePrelude, entityPrelude].filter((s) => s.trim()).join('\n');
+				const scriptPrelude = scriptPreludeOf(entry, parsed.docFilePath);
 				// Method calls and live state bind to the snippet's own preview;
 				// example iframes fall back to the first preview's component.
 				const preview =
@@ -427,9 +435,11 @@ export function sdocsPlugin(
 				const blockScript = snippet.script
 					? resolveScriptImports(snippet.script, parsed.docFilePath)
 					: undefined;
-				const styles = [docStyleCache.get(parsed.docFilePath), entry.entityStyle, snippet.style]
-					.filter((s): s is string => !!s?.trim())
-					.join('\n\n');
+				const styles = joinStyles(
+					docStyleCache.get(parsed.docFilePath),
+					entry.entityStyle,
+					snippet.style,
+				);
 				// The stage's own declared args seed the initial state, so a
 				// component reading a required prop has it on first render —
 				// the Controls' first message only confirms them. Examples
@@ -465,17 +475,10 @@ export function sdocsPlugin(
 						? entry?.content?.body
 						: proseBodies.get(pageKey(parsed.docFilePath, parsed.entitySlug, parsed.slug));
 				if (!entry || body === undefined) return null;
-				const filePrelude = docScriptCache.get(parsed.docFilePath) ?? '';
-				const entityPrelude = entry.entityScript
-					? resolveScriptImports(entry.entityScript, parsed.docFilePath)
-					: '';
-				const styles = [docStyleCache.get(parsed.docFilePath), entry.entityStyle]
-					.filter((s): s is string => !!s?.trim())
-					.join('\n\n');
 				return generatePageComponent(
-					[filePrelude, entityPrelude].filter((s) => s.trim()).join('\n'),
+					scriptPreludeOf(entry, parsed.docFilePath),
 					body,
-					styles,
+					joinStyles(docStyleCache.get(parsed.docFilePath), entry.entityStyle),
 				);
 			}
 
@@ -503,6 +506,16 @@ export function sdocsPlugin(
 		},
 	};
 
+	/** The scope chain a stage's code runs in: the file script, then the
+	 * entity's own, both with their relative imports resolved against the doc
+	 * file. */
+	function scriptPreludeOf(entry: DocEntry, docFilePath: string): string {
+		return joinScripts(
+			docScriptCache.get(docFilePath) ?? '',
+			entry.entityScript ? resolveScriptImports(entry.entityScript, docFilePath) : '',
+		);
+	}
+
 	// ─── Process a single doc file ───
 
 	async function processDocFile(filePath: string): Promise<void> {
@@ -517,10 +530,13 @@ export function sdocsPlugin(
 	async function processDocFileInner(filePath: string): Promise<void> {
 		const source = await readFile(filePath, 'utf-8');
 		const doc = parseSdoc(source);
+		const whereAt = (offset: number) => {
+			const pos = offsetToPosition(source, offset);
+			return `${filePath}:${pos.line + 1}:${pos.column + 1}`;
+		};
 
 		for (const d of doc.diagnostics) {
-			const pos = offsetToPosition(source, d.span.start);
-			const where = `${filePath}:${pos.line + 1}:${pos.column + 1}`;
+			const where = whereAt(d.span.start);
 			console.warn(`[sdocs] ${where} — ${d.message}`);
 			// A missing example title — or one that isn't a usable string, like
 			// title={expr} — is an error in builds: untitled stages would ship
@@ -590,16 +606,7 @@ export function sdocsPlugin(
 			}));
 
 			const entry: DocEntry = {
-				kind:
-					entity.kind === 'SHOWCASE'
-						? 'component'
-						: entity.kind === 'PATTERNS'
-							? 'pattern'
-							: entity.kind === 'DOC'
-								? 'doc'
-								: entity.kind === 'PAGE'
-									? 'page'
-									: 'layout',
+				kind: ENTITY_KIND_TO_DOC_KIND[entity.kind],
 				filePath,
 				entitySlug: entity.slug,
 				meta: {
@@ -618,19 +625,24 @@ export function sdocsPlugin(
 			};
 
 			// Sizing cascade: block attribute -> entity attribute -> config default.
-			const kindDefaults = config.content[
-				// A pattern is staged like a showcase — sized and padded under
-				// its title, not full-bleed the way a layout is.
-				entity.kind === 'SHOWCASE' || entity.kind === 'PATTERNS'
-					? 'showcase'
-					: entity.kind === 'DOC'
-						? 'doc'
-						: entity.kind === 'PAGE'
-							? 'page'
-							: 'layout'
-			];
+			const kindDefaults = config.content[kindKeyOf(entity.kind)];
 			const stageOf = (block?: SizingAttrs) => resolveStageLayout(entity, block, config);
 			entry.maxWidth = entity.sizing.maxWidth ?? kindDefaults.maxWidth;
+			// The frozen examples' tail, shared by the kinds that have them; only
+			// how each example's stage is sized differs between them.
+			const stageExamples = async (
+				examples: { sizing: SizingAttrs; prose?: string | null }[],
+				stageFor: (sizing: SizingAttrs) => StageLayout,
+			) => {
+				entry.examples = snippets.filter((s) => s.role === 'example');
+				examples.forEach((example, i) => {
+					if (entry.examples[i]) entry.examples[i].stage = stageFor(example.sizing);
+				});
+				for (const example of entry.examples) {
+					example.highlightedHtml = await highlight(example.body);
+				}
+				await renderExampleProse({ examples }, entry, base);
+			};
 			if (entity.kind === 'DOC') {
 				entry.showToc = entity.sizing.toc ?? config.content.doc.toc;
 			}
@@ -644,28 +656,14 @@ export function sdocsPlugin(
 					let componentData: ComponentData | null = null;
 					let highlightedSource: string | null = null;
 					if (preview.componentName) {
-						// The block's own imports take precedence over the file's —
-						// the more local binding wins, matching lexical scoping.
-						const blockImports = preview.script ? extractImports(preview.script.content) : [];
-						const entityImports = entity.script ? extractImports(entity.script.content) : [];
-						componentPath = resolveComponentImport(
-							preview.componentName,
-							[...blockImports, ...entityImports, ...imports],
-							filePath,
-						);
-						// A path that resolved but names no file is just as broken as
-						// one that never resolved — `sdocs check` treats them alike.
-						if (componentPath && !existsSync(componentPath)) componentPath = null;
+						componentPath = resolvePreviewComponent(preview, entity, imports, filePath);
 						if (componentPath) {
 							const loaded = await loadComponent(componentPath);
 							componentData = loaded.data;
 							highlightedSource = loaded.highlighted;
 						} else {
-							const pos = offsetToPosition(source, preview.span.start);
-							const where = `${filePath}:${pos.line + 1}:${pos.column + 1}`;
-							const message =
-								`component={${preview.componentName}} doesn't resolve to a component file — ` +
-								"check the import in the file's, the entity's, or the block's <script>.";
+							const where = whereAt(preview.span.start);
+							const message = unresolvedComponentMessage(preview.componentName);
 							console.warn(`[sdocs] ${where} — ${message}`);
 							// The preview would ship as an empty stage. Dev keeps
 							// running so the doc can be fixed in place; a build stops.
@@ -694,15 +692,7 @@ export function sdocsPlugin(
 				}
 				entry.flow = entity.flow;
 				entry.glossaries = entity.glossaries;
-
-				entry.examples = snippets.filter((s) => s.role === 'example');
-				entity.examples.forEach((example, i) => {
-					if (entry.examples[i]) entry.examples[i].stage = stageOf(example.sizing);
-				});
-				for (const example of entry.examples) {
-					example.highlightedHtml = await highlight(example.body);
-				}
-				await renderExampleProse(entity, entry, base);
+				await stageExamples(entity.examples, stageOf);
 			} else if (entity.kind === 'DOC') {
 				// The doc body renders natively in the Explorer; only its
 				// [example] blocks are staged in iframes (with the project css),
@@ -719,26 +709,16 @@ export function sdocsPlugin(
 				entry.bodyTitle = rendered.bodyTitle;
 				entry.contentKey = pageKey(filePath, entity.slug);
 				entry.glossaries = entity.glossaries;
-
-				entry.examples = snippets.filter((s) => s.role === 'example');
-				entity.examples.forEach((example, i) => {
-					if (entry.examples[i]) {
-						entry.examples[i].stage = {
-							maxWidth: example.sizing.maxWidth ?? '100%',
-							padding: example.sizing.padding ?? config.content.showcase.padding,
-							direction: example.sizing.direction ?? config.content.showcase.direction,
-							gap: example.sizing.gap ?? config.content.showcase.gap,
-							contentX: example.sizing.contentX ?? config.content.showcase.contentX,
-							contentY: example.sizing.contentY ?? config.content.showcase.contentY,
-							background: example.sizing.background ?? config.content.showcase.background ?? undefined,
-							minHeight: example.sizing.minHeight ?? config.content.showcase.minHeight ?? undefined,
-						};
-					}
-				});
-				for (const example of entry.examples) {
-					example.highlightedHtml = await highlight(example.body);
-				}
-				await renderExampleProse(entity, entry, base);
+				await stageExamples(entity.examples, (sizing) => ({
+					maxWidth: sizing.maxWidth ?? '100%',
+					padding: sizing.padding ?? config.content.showcase.padding,
+					direction: sizing.direction ?? config.content.showcase.direction,
+					gap: sizing.gap ?? config.content.showcase.gap,
+					contentX: sizing.contentX ?? config.content.showcase.contentX,
+					contentY: sizing.contentY ?? config.content.showcase.contentY,
+					background: sizing.background ?? config.content.showcase.background ?? undefined,
+					minHeight: sizing.minHeight ?? config.content.showcase.minHeight ?? undefined,
+				}));
 			} else if (entity.kind === 'PAGE') {
 				// The page body is plain Svelte rendered natively in the docs
 				// context — no stage, no iframe. Root-absolute src/href carry the
@@ -808,10 +788,7 @@ export function sdocsPlugin(
 		// (dev, embedded build, CLI build) code-splits them through the module
 		// graph — shared Svelte runtime, component CSS via Vite's import helper.
 		const pageImports = Array.from(docEntries.values())
-			.flatMap((e) => [
-				...(e.kind === 'doc' || e.kind === 'page' ? ['content'] : []),
-				...e.prose.map((_, i) => `prose-${i + 1}`),
-			].map((slug) =>
+			.flatMap((e) => nativeSlugs(e).map((slug) =>
 				`\t${JSON.stringify(pageKey(e.filePath, e.entitySlug, slug))}: () => import(${JSON.stringify(
 					pageVirtualId(e.filePath, e.entitySlug, slug),
 				)}),`,
@@ -841,12 +818,7 @@ export function sdocsPlugin(
 						server.moduleGraph.invalidateModule(iframeMod);
 					}
 				}
-				// Native bodies: a doc/page's content, and every [PROSE] block.
-				const nativeSlugs = [
-					...(entry.kind === 'doc' || entry.kind === 'page' ? ['content'] : []),
-					...entry.prose.map((_, i) => `prose-${i + 1}`),
-				];
-				for (const slug of nativeSlugs) {
+				for (const slug of nativeSlugs(entry)) {
 					const pageMod = server.moduleGraph.getModuleById(
 						'\0' + pageVirtualId(docFilePath, entry.entitySlug, slug),
 					);

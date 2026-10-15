@@ -4,13 +4,23 @@
  * from this module, so build inputs always byte-match plugin output.
  */
 
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import ts from 'typescript';
 import type { SdocEntity } from '../language/index.js';
-import type { DocNote, TodoItem } from '../types.js';
+import type { DocEntry, DocNote, TodoItem } from '../types.js';
 import { exampleSlug, previewSlug } from '../language/parser.js';
 import { scrubScriptText } from '../language/script-scan.js';
+
+/** The `DocEntry` kind each entity kind becomes — what the Explorer routes
+ * and renders it as. */
+export const ENTITY_KIND_TO_DOC_KIND = {
+	SHOWCASE: 'component',
+	PATTERNS: 'pattern',
+	DOC: 'doc',
+	PAGE: 'page',
+	LAYOUT: 'layout',
+} as const satisfies Record<SdocEntity['kind'], DocEntry['kind']>;
 
 export type SnippetRole = 'preview' | 'example' | 'content' | 'prose';
 
@@ -50,10 +60,10 @@ export interface PlannedSnippet {
 export { exampleSlug, previewSlug };
 
 /** The snippets one entity produces, in order: prose then previews then
- * examples for SHOWCASE, the 'content' body then examples for DOC, the single
- * 'content' body for PAGE and LAYOUT. DOC and PAGE content and SHOWCASE prose
- * render natively in the Explorer — never served as an iframe page (see
- * planIframeSnippets). */
+ * examples for SHOWCASE and PATTERNS (a pattern's previews are always empty),
+ * the 'content' body then examples for DOC, the single 'content' body for
+ * PAGE and LAYOUT. DOC and PAGE content and [PROSE] render natively in the
+ * Explorer — never served as an iframe page (see planIframeSnippets). */
 export function planEntitySnippets(entity: SdocEntity): PlannedSnippet[] {
 	const blockParts = (b: {
 		body: string;
@@ -184,8 +194,6 @@ export function extractImports(scriptContent: string): string[] {
 	return imports;
 }
 
-/** Resolve a default-imported identifier to the raw path it imports from
- * (relative to `fromPath`). Returns null when the identifier isn't imported. */
 /** Where an identifier's import points, and which binding it names there:
  * `null` for a default import (`import X from …`), the source name for a
  * named one (`import { X } from …`, `import { Y as X } from …`). */
@@ -195,6 +203,9 @@ interface ImportTarget {
 	binding: string | null;
 }
 
+/** Resolve an imported identifier — default or named — to the absolute path
+ * it imports from (resolved against `fromPath`) and the binding it names
+ * there. Returns null when the identifier isn't imported. */
 function importedPath(name: string, imports: string[], fromPath: string): ImportTarget | null {
 	for (const imp of imports) {
 		const def = imp.match(new RegExp(`import\\s+${name}\\s+from\\s+['"](.+?)['"]`));
@@ -377,4 +388,40 @@ export function resolveComponentImport(
 	// identifier follows the default export, or the binding a named import
 	// asked for (`import { Tree } from './index.js'`).
 	return followToSvelte(target.path, member ?? target.binding, 8);
+}
+
+/**
+ * The component file a `[component]` preview documents, or null when there is
+ * none to read. The block's own imports take precedence over the entity's, and
+ * those over the file's — the more local binding wins, matching lexical
+ * scoping.
+ *
+ * A path that resolved but names no file is just as broken as one that never
+ * resolved: the resolver follows imports, it doesn't stat them. So the dev
+ * server, `sdocs check` and coverage all treat the two alike.
+ */
+export function resolvePreviewComponent(
+	preview: { componentName: string | null; script: { content: string } | null },
+	entity: { script: { content: string } | null },
+	fileImports: string[],
+	docFilePath: string,
+): string | null {
+	if (!preview.componentName) return null;
+	const blockImports = preview.script ? extractImports(preview.script.content) : [];
+	const entityImports = entity.script ? extractImports(entity.script.content) : [];
+	const path = resolveComponentImport(
+		preview.componentName,
+		[...blockImports, ...entityImports, ...fileImports],
+		docFilePath,
+	);
+	return path && existsSync(path) ? path : null;
+}
+
+/** What the dev server warns, a build fails on, and `sdocs check` reports when
+ * a preview's component doesn't resolve. */
+export function unresolvedComponentMessage(componentName: string): string {
+	return (
+		`component={${componentName}} doesn't resolve to a component file — ` +
+		"check the import in the file's, the entity's, or the block's <script>."
+	);
 }

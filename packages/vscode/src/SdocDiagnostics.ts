@@ -82,7 +82,10 @@ export class SdocDiagnostics implements vscode.Disposable {
 				const attr = block.attrs.component;
 				if (!attr || attr.kind !== 'expression') continue;
 				const name = attr.raw.trim();
-				if (!/^[A-Z][A-Za-z0-9_]*$/.test(name)) continue; // parser already flags these
+				// Simple names only. A non-identifier is the parser's to flag; a
+				// compound name (`NavTree.Group`) the parser accepts, and it goes
+				// unchecked here — the lookup below matches whole names.
+				if (!/^[A-Z][A-Za-z0-9_]*$/.test(name)) continue;
 				const blockScript = block.script?.content ?? '';
 				const exists =
 					fileDeclared.has(name) ||

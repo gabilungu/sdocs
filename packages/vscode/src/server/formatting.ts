@@ -194,7 +194,9 @@ export async function formatSdoc(
 		bodies.push({ span: { start: start + lead, end: end - trail }, indent, markdown: true });
 	};
 	for (const entity of file.entities) {
-		if (entity.kind === 'SHOWCASE') {
+		// [PATTERNS] has a [SHOWCASE] body — blocks, no loose text — so it
+		// formats block by block too, never as one Svelte fragment.
+		if (entity.kind === 'SHOWCASE' || entity.kind === 'PATTERNS') {
 			pushBlockBodies(entity.blocks);
 		} else if (entity.kind === 'DOC' && entity.blocks.length > 0) {
 			let from = entity.bodySpan.start;

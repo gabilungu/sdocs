@@ -2,7 +2,7 @@
 	import Icon from './Icon.svelte';
 </script>
 
-[SHOWCASE title="Icon" description="Displays an SVG icon by name. Interface icons are Lucide strokes; the `fa-` prefixed ones are Font Awesome Free fills, used for the two semantic sets — `[COMPONENT]` status and `[NOTES]` types."]
+[SHOWCASE title="Icon" description="Displays an SVG icon by name. Interface icons are Lucide strokes; the `fa-` prefixed ones are Font Awesome Free fills, used for the `[NOTES]` type glyphs and the glossary's search glass."]
 
 	[COMPONENT component={Icon} args={{ name: 'chevron-right' }}]
 		<Icon name="chevron-right" --w="24px" --h="24px" --fill="currentColor" />

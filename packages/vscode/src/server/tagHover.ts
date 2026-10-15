@@ -23,6 +23,19 @@ const TAG_SHOWCASE: Record<string, string> = {
 		'',
 		`[Component docs reference](${SITE}/language/component-docs)`,
 	].join('\n'),
+	PATTERNS: [
+		'**`[PATTERNS]`** — a composition documented as one thing',
+		'',
+		'A `[SHOWCASE]` with the prop half switched off. Several components assembled into one thing — a user menu, a notifications system — have no single component API to extract, so there is no `[COMPONENT]`, no props panel and no controls. Holds `[EXAMPLE]` blocks, one per state, plus `[PROSE]`, `[NOTES]`, `[TODO]` and `[GLOSSARY]`.',
+		'',
+		'- `title` *(required)* — sidebar path, `/`-separated; a leading `:` groups, a leading `@slug/` picks the section.',
+		'- `description` — subtitle under the page heading.',
+		'- `slug` — overrides the URL segment; `hide` — routable but not listed in the sidebar.',
+		'- `maxWidth` — content column width (default `1200px`).',
+		'- `padding` / `direction` / `gap` / `contentX` / `contentY` — default stage layout for this entity\'s examples.',
+		'',
+		`[Patterns reference](${SITE}/language/patterns)`,
+	].join('\n'),
 	DOC: [
 		'**`[DOC]`** — markdown documentation page',
 		'',
@@ -120,7 +133,7 @@ const TAG_SHOWCASE: Record<string, string> = {
 		'[/TODO]',
 		'```',
 		'',
-		'Under `sdocs dev` the boxes are live: ticking one writes straight back into this file. A built site shows them read-only — there is no source there to write to.',
+		'The docs show it read-only: a box is ticked by editing it here, in the `.sdoc`.',
 		'',
 		`[Todo reference](${SITE}/language/overview#todo)`,
 	].join('\n'),
@@ -177,7 +190,7 @@ export function sdocTagHover(source: string, position: Position): Hover | null {
 	// rather than /i: the text blocks are uppercase-only, so `[notes](…)` in
 	// prose stays a markdown link instead of hovering as a block.
 	const re =
-		/\[\/?(SHOWCASE|DOC|PAGE|LAYOUT|COMPONENTS|COMPONENT|EXAMPLE|GLOSSARY|NOTES|TODO|PROSE|component|example)\b\]?/g;
+		/\[\/?(SHOWCASE|PATTERNS|DOC|PAGE|LAYOUT|COMPONENTS|COMPONENT|EXAMPLE|GLOSSARY|NOTES|TODO|PROSE|component|example)\b\]?/g;
 	for (let m = re.exec(line); m; m = re.exec(line)) {
 		const start = m.index;
 		const end = m.index + m[0].length;

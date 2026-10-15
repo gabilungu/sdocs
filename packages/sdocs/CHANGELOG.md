@@ -12,10 +12,35 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.177] - 2026-10-15
+
+### Fixed
+
+- **`[PATTERNS]` examples are on the MCP map.** `list_docs` reported no
+  examples for a `[PATTERNS]` entity, and `resolve_visual_target` could not
+  resolve one's route, so an agent could neither find nor screenshot a
+  pattern's states.
+- **The editor reads `[PATTERNS]` bodies.** The language-server projection
+  treated a `[PATTERNS]` as one empty body, so every example's markup went
+  unchecked and an import used only by examples read as unused.
+- **`outDir` is in the config schema**, so editors complete and describe it
+  like every other option.
+- **A diagnostic inside a `[PATTERNS]` names `[PATTERNS]`**, not `[SHOWCASE]`.
+
 ### Changed
 
 - **The sidebar's note dots are smaller** — 5px instead of 10px, so they mark
   a row without competing with its label.
+- **The docs, the READMEs and the authoring guide match the code again.** The
+  types reference, prop extraction, embedded setup, where the MCP and About
+  entries live (the ⋮ menu), the entity count and the MCP tool count had all
+  drifted.
+
+### Removed
+
+- **Six `Icon` glyphs nothing used:** `circle-alert`, `circle-check`, `info`,
+  `copy`, `sticky-note` and `triangle-alert`. An `<Icon name="…">` asking for
+  one now renders empty.
 
 ## [0.0.176] - 2026-10-15
 

@@ -39,9 +39,9 @@
 	| `background` | no | Default stage background — a CSS color or a `var()` from the project's css |
 	| `minHeight` | no | Minimum stage height, so a short preview still has room |
 
-	A `[SHOWCASE]` also takes the three
-	[text blocks](/language/overview#text-blocks) — `[NOTES]`, `[TODO]` and
-	`[PROSE]` — which are blocks in its body rather than attributes on its
+	A `[SHOWCASE]` also takes the four
+	[text blocks](/language/overview#text-blocks) — `[NOTES]`, `[TODO]`,
+	`[PROSE]` and `[GLOSSARY]` — which are blocks in its body rather than attributes on its
 	opener.
 
 	## `[COMPONENT]`
@@ -127,7 +127,7 @@
 
 	They render as quiet chips above the stage — a footnote to the description,
 	not a heading — and they feed
-	[`search_docs`](/extension/overview), so an agent asked for "a chip"
+	[`search_docs`](/cli/commands#sdocs-mcp), so an agent asked for "a chip"
 	finds the Badge that is one. Spacing, a trailing comma and a repeated name
 	all wash out, so `"pill,chip,"` and `"pill, chip"` mean the same thing.
 
@@ -234,7 +234,7 @@
 	```
 
 	Like `synonyms`, they render as quiet chips — here under the description —
-	and they feed [`search_docs`](/extension/overview). Tag every example that
+	and they feed [`search_docs`](/cli/commands#sdocs-mcp). Tag every example that
 	composes a user menu and one query collects them from across the project,
 	whichever component's page they live on.
 

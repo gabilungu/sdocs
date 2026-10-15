@@ -135,7 +135,10 @@
 
 	function iconName(node: TreeNode, expanded: boolean): string {
 		switch (node.type) {
-			case 'folder': return expanded ? 'folder-open' : 'folder';
+			// A group row renders as a bare heading with no icon, but it shares
+			// the folder glyph so every name this returns is one Icon registers.
+			case 'folder':
+			case 'group': return expanded ? 'folder-open' : 'folder';
 			case 'component':
 				if (node.entity) return isCompound(node) ? 'component' : 'diamond';
 				return 'bookmark';
@@ -143,7 +146,6 @@
 			case 'doc':
 			case 'page': return 'file-text';
 			case 'layout': return 'panels-top-left';
-			default: return 'file';
 		}
 	}
 
@@ -583,7 +585,7 @@
 		color: var(--color-base-900);
 	}
 
-	/* ── Drawer foot: the top bar's stylesheet picker ── */
+	/* ── Drawer foot: the top bar's axes, scale, scale presets and stylesheet picker ── */
 	.sdocs-drawer-foot {
 		display: flex;
 		align-items: center;

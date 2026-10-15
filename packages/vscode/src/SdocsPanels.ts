@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import type { SdocsRunner } from './SdocsRunner';
 
 interface Entry {
 	panel: vscode.WebviewPanel;
@@ -56,13 +57,8 @@ export class SdocsPanels implements vscode.Disposable {
 
 	/** Reload the iframe of the currently active preview panel */
 	refreshActive(): void {
-		for (const entry of this.panels.values()) {
-			// Setting identical html is a no-op (VS Code diffs it), so stamp
-			// each refresh to force the webview — and its iframe — to reload.
-			if (entry.panel.active) {
-				entry.panel.webview.html = iframeHtml(entry.lastHref ?? entry.url, ++this.refreshCount);
-			}
-		}
+		const dir = this.activeScopeDir();
+		if (dir) this.reload(dir);
 	}
 
 	/** Hand the active panel's current page to the machine's own browser.
@@ -91,6 +87,8 @@ export class SdocsPanels implements vscode.Disposable {
 	reload(scopeDir: string): void {
 		const entry = this.panels.get(scopeDir);
 		if (entry) {
+			// Setting identical html is a no-op (VS Code diffs it), so stamp
+			// each reload to force the webview — and its iframe — to reload.
 			entry.panel.webview.html = iframeHtml(entry.lastHref ?? entry.url, ++this.refreshCount);
 		}
 	}
@@ -107,8 +105,31 @@ export class SdocsPanels implements vscode.Disposable {
 	}
 }
 
-/** True when href shares url's origin — a stale route from a previous server
- * (different port) must not survive into the new one. */
+/**
+ * Restart a scope's dev server: a placeholder in its docs tab, the restart,
+ * then a forced reload of the tab once the fresh server reports ready — the
+ * URL may be unchanged, so open()'s diff won't reload it on its own. Without
+ * an open tab the panel steps are no-ops.
+ */
+export async function restartScope(
+	runner: SdocsRunner,
+	panels: SdocsPanels,
+	scopeDir: string,
+): Promise<void> {
+	panels.showRestarting(scopeDir);
+	const ready = new Promise<void>((resolve) => {
+		const sub = runner.onReady(({ dir }) => {
+			if (dir === scopeDir) {
+				sub.dispose();
+				resolve();
+			}
+		});
+	});
+	await runner.restart(scopeDir);
+	await ready;
+	panels.reload(scopeDir);
+}
+
 /**
  * Show a stage on its own: the editor's built-in Simple Browser when it is
  * available, the machine's default browser when it isn't.
@@ -135,6 +156,8 @@ async function openStageUrl(href: string): Promise<void> {
 
 const SIMPLE_BROWSER_SHOW = 'simpleBrowser.show';
 
+/** True when href shares url's origin — a stale route from a previous server
+ * (different port) must not survive into the new one. */
 function sameOrigin(href: string, url: string): boolean {
 	try {
 		return new URL(href).origin === new URL(url).origin;

@@ -74,7 +74,7 @@
 	A stage page accepts its axes as URL parameters, so a single preview can be opened — or screenshotted — in an exact combination without clicking through the Explorer:
 
 	```
-	/preview/button/sizes?axis-scheme=dark&axis-density=compact
+	/@sdocs/preview/<entity>/<stage>?axis-scheme=dark&axis-density=compact
 	```
 
 	## A continuous knob
@@ -145,7 +145,7 @@
 	}
 	```
 
-	With more than one named stylesheet, sdocs shows a dropdown in the top bar letting users switch between them. Only one is active at a time — switching disables the others.
+	With more than one named stylesheet, sdocs adds a switch to the top bar letting users pick between them — a segmented control like the axes, and a dropdown when the bar runs short of room. Only one is active at a time — switching disables the others.
 
 	Reach for **axes** instead when the variants multiply: three palettes × two densities is six stylesheets to maintain but two axes to declare, and axes compose where whole-file swaps can't.
 

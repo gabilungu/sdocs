@@ -28,12 +28,11 @@ export function stageId(relPathWithSlugs: string): string {
 
 /** The identity string a stage id hashes: doc path + entity + snippet.
  *
- * Deliberately the **absolute** path. A relative one would have to agree on a
- * root, and the two callers don't have the same one — the dev server encodes
- * against its staging directory, the MCP server against the project — which
- * would hand a person one id on screen and the tool a different id for the
- * same stage. Nothing leaks: the hash is five characters and never ships in a
- * built site. */
+ * Deliberately the **absolute** path: it needs no agreed root, so the dev
+ * server, the build and both MCP transports hash the same stage to the same id
+ * without depending on `setDocPathRoot` having been called first — a person
+ * and a tool are never handed two ids for one stage. Nothing leaks: the hash
+ * is five characters and never ships in a built site. */
 export function stageIdentity(filePath: string, entitySlug: string, snippetSlug: string): string {
 	return `${filePath.split(sep).join('/')}#${entitySlug}/${snippetSlug}`;
 }

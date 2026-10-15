@@ -6,7 +6,7 @@ import { ConfigCompletionProvider } from './ConfigCompletionProvider';
 import { SdocDiagnostics } from './SdocDiagnostics';
 import { newComponentDoc } from './newComponentDoc';
 import { SdocsRunner } from './SdocsRunner';
-import { SdocsPanels } from './SdocsPanels';
+import { SdocsPanels, restartScope } from './SdocsPanels';
 import { ScopesWebview } from './ScopesWebview';
 import { registerMcpProvider } from './McpProvider';
 
@@ -61,7 +61,7 @@ export function activate(context: vscode.ExtensionContext) {
 		// Config completion matches by filename (the doc may be flipped to
 		// js/ts), and defers to the TypeScript type when `sdocs` is installed.
 		vscode.languages.registerCompletionItemProvider(
-			{ pattern: '**/sdocs.config.{js,cjs,mjs,ts,mts,cts}' },
+			{ pattern: '**/sdocs.config.{js,ts,mjs}' },
 			new ConfigCompletionProvider(),
 			':', "'", '"',
 		),
@@ -77,34 +77,9 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand('sdocs.openInBrowser', () => panels.openActiveExternally()),
 		vscode.commands.registerCommand('sdocs.restartServer', async () => {
 			const dir = panels.activeScopeDir();
-			if (!dir) return;
-			panels.showRestarting(dir);
-			// Resolve once the freshly restarted server reports its URL, then
-			// force the iframe to reload (the URL may be unchanged, so open()'s
-			// diff won't reload it on its own).
-			const ready = new Promise<void>((resolve) => {
-				const sub = runner.onReady(({ dir: d }) => {
-					if (d === dir) {
-						sub.dispose();
-						resolve();
-					}
-				});
-			});
-			await runner.restart(dir);
-			await ready;
-			panels.reload(dir);
+			if (dir) await restartScope(runner, panels, dir);
 		}),
 	);
-
-	// Versions up to 0.0.13 formatted via scratch files under
-	// node_modules/.cache/sdocs-format; sweep any leftovers from crashed sessions.
-	for (const folder of vscode.workspace.workspaceFolders ?? []) {
-		const dir = vscode.Uri.joinPath(folder.uri, 'node_modules', '.cache', 'sdocs-format');
-		vscode.workspace.fs.delete(dir, { recursive: true, useTrash: false }).then(
-			undefined,
-			() => {},
-		);
-	}
 }
 
 export function deactivate(): Thenable<void> | undefined {

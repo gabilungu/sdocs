@@ -100,11 +100,23 @@ function sdocUriOf(virtual: string): string {
 	return virtual.replace(VIRTUAL_SUFFIX_RE, '');
 }
 
+/** The block key a virtual URI carries, or null for the base one. */
+function blockKeyOf(virtual: string): string | null {
+	return virtual.match(/\.__sdocs_([\w-]+)\.svelte$/)?.[1] ?? null;
+}
+
 /** The projection a virtual URI carries: the base one or a block's. */
 function projectionOf(entry: Tracked, virtual: string): SdocProjection | null {
-	const m = virtual.match(/\.__sdocs_([\w-]+)\.svelte$/);
-	if (!m) return entry.projection;
-	return entry.blocks.find((b) => b.key === m[1]) ?? null;
+	const key = blockKeyOf(virtual);
+	if (key === null) return entry.projection;
+	return entry.blocks.find((b) => b.key === key) ?? null;
+}
+
+/** The block projection that owns an authored line, or null when the base
+ * projection does. */
+function ownerOf(entry: Tracked, line: number): SdocBlockProjection | null {
+	const idx = entry.owner[line] ?? -1;
+	return idx === -1 ? null : entry.blocks[idx];
 }
 
 /** Merge the per-virtual-doc diagnostics: each authored line is owned by
@@ -121,7 +133,7 @@ function publishMerged(sdocUri: string, entry: Tracked): void {
 		if (stored.version !== entry.version) continue;
 		const projection = projectionOf(entry, uri);
 		if (!projection) continue;
-		const blockKey = uri.match(/\.__sdocs_([\w-]+)\.svelte$/)?.[1] ?? null;
+		const blockKey = blockKeyOf(uri);
 		const ownerIdx = blockKey === null ? -1 : entry.blocks.findIndex((b) => b.key === blockKey);
 		for (const d of stored.items) {
 			const line = d.range.start.line;
@@ -370,19 +382,16 @@ documents.onDidClose((event) => {
  * for lines inside a script/style-bearing block, the base one elsewhere. */
 function owningUri(sdocUri: string, line: number): string {
 	const entry = tracked.get(sdocUri);
-	if (!entry) return virtualUri(sdocUri);
-	const idx = entry.owner[line] ?? -1;
-	return idx === -1 ? virtualUri(sdocUri) : blockVirtualUri(sdocUri, entry.blocks[idx].key);
+	const block = entry && ownerOf(entry, line);
+	return block ? blockVirtualUri(sdocUri, block.key) : virtualUri(sdocUri);
 }
 
 /** Positions map 1:1; only the document URI needs translation — to the
  * virtual doc owning the request's line. */
-function forwardParams<T extends { textDocument: { uri: string }; position?: { line: number } }>(
+function forwardParams<T extends { textDocument: { uri: string }; position: { line: number } }>(
 	params: T,
 ): T {
-	const uri = params.position
-		? owningUri(params.textDocument.uri, params.position.line)
-		: virtualUri(params.textDocument.uri);
+	const uri = owningUri(params.textDocument.uri, params.position.line);
 	return { ...params, textDocument: { ...params.textDocument, uri } };
 }
 
@@ -419,8 +428,7 @@ function speaksForPosition(
 function isAuthoredPosition(uri: string, position: { line: number; character: number }): boolean {
 	const entry = tracked.get(uri);
 	if (!entry) return false;
-	const idx = entry.owner[position.line] ?? -1;
-	const projection = idx === -1 ? entry.projection : entry.blocks[idx];
+	const projection = ownerOf(entry, position.line) ?? entry.projection;
 	return speaksForPosition(projection, position, 'inclusive');
 }
 

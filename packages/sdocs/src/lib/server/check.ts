@@ -6,13 +6,19 @@ import { offsetToPosition } from '../language/scanner.js';
 import {
 	generateIframeComponent,
 	generatePageComponent,
+	joinScripts,
+	joinStyles,
 	resolveScriptImports,
 	scanRelativeImports,
 	sdocsWarningFilter,
 } from './snippet-compiler.js';
 import { renderPageMarkdown } from './page-markdown.js';
 import { loadSvelteCompiler } from './svelte-toolchain.js';
-import { extractImports, resolveComponentImport } from './doc-model.js';
+import {
+	extractImports,
+	resolvePreviewComponent,
+	unresolvedComponentMessage,
+} from './doc-model.js';
 
 /**
  * Compile every documentation stage the way the dev server does.
@@ -226,7 +232,7 @@ export async function checkDocFile(filePath: string, cwd: string): Promise<Check
 	for (const entity of doc.entities) {
 		const entityScript = entity.script?.content ?? '';
 		const entityPrelude = entityScript ? resolveScriptImports(entityScript, filePath) : '';
-		const scriptPrelude = [filePrelude, entityPrelude].filter((s) => s.trim()).join('\n');
+		const scriptPrelude = joinScripts(filePrelude, entityPrelude);
 		const entityStyle = entity.style?.content ?? '';
 
 		for (const spec of missingImports(entityScript, filePath)) {
@@ -265,9 +271,7 @@ export async function checkDocFile(filePath: string, cwd: string): Promise<Check
 					});
 				}
 			}
-			const styles = [fileStyle, entityStyle, blockStyle]
-				.filter((s): s is string => !!s?.trim())
-				.join('\n\n');
+			const styles = joinStyles(fileStyle, entityStyle, blockStyle);
 			const generated = asPage
 				? generatePageComponent(scriptPrelude, markup, styles || undefined)
 				: generateIframeComponent(scriptPrelude, markup, [], undefined, undefined, {
@@ -290,27 +294,19 @@ export async function checkDocFile(filePath: string, cwd: string): Promise<Check
 		if (entity.kind === 'SHOWCASE' || entity.kind === 'PATTERNS') {
 			// `component={X}` must trace to a real component file: without it the
 			// preview still renders, but its API tables and controls silently
-			// don't. The build only warns; here it's an error you can gate on.
+			// don't. Dev only warns and a build fails; here it's an error you can
+			// gate on before building.
 			const fileImports = extractImports(fileScript);
-			const entityImports = extractImports(entityScript);
 			for (const p of entity.previews) {
 				if (!p.componentName) continue;
-				const blockImports = p.script ? extractImports(p.script.content) : [];
-				const resolvedComponent = resolveComponentImport(
-					p.componentName,
-					[...blockImports, ...entityImports, ...fileImports],
-					filePath,
-				);
-				if (!resolvedComponent || !existsSync(resolvedComponent)) {
+				if (!resolvePreviewComponent(p, entity, fileImports, filePath)) {
 					problems.push({
 						file,
 						entity: entity.title,
 						stage: p.label,
 						kind: 'component',
 						severity: 'error',
-						message:
-							`component={${p.componentName}} doesn't resolve to a component file — ` +
-							"check the import in the file's, the entity's, or the block's <script>.",
+						message: unresolvedComponentMessage(p.componentName),
 						line: offsetToPosition(source, p.span.start).line + 1,
 					});
 				}
@@ -329,7 +325,7 @@ export async function checkDocFile(filePath: string, cwd: string): Promise<Check
 			const generated = generatePageComponent(
 				scriptPrelude,
 				rendered.html,
-				[fileStyle, entityStyle].filter((s) => s.trim()).join('\n\n') || undefined,
+				joinStyles(fileStyle, entityStyle) || undefined,
 			);
 			// A page-module filename, so the shared warning filter treats this
 			// exactly as the dev server and the build do.

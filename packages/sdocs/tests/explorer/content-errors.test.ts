@@ -25,31 +25,37 @@ const read = (p: string) => readFileSync(resolve(views, p), 'utf-8');
 const LOADERS = ['DocView.svelte', 'PageView.svelte', 'NativeBody.svelte'];
 
 describe('content chunk failures are visible', () => {
+	// All three load through one helper, so its guards cover every view.
+	const loader = readFileSync(resolve(views, '../page-module.svelte.ts'), 'utf-8');
+
+	it('the shared loader catches a rejected import', () => {
+		// The import is chained, not bare: a bare `load().then(...)` is the
+		// exact shape that produced the silent blank.
+		expect(loader, 'unguarded load()').not.toMatch(/load\(\)\.then\([^)]*\)\s*;/);
+		expect(loader).toContain('.catch((err) => {');
+		expect(loader).toContain('error = err;');
+		// And it still says so in the console, for whoever is looking.
+		expect(loader).toContain('console.error(`[sdocs]');
+	});
+
+	it('the shared loader clears the error when the route changes', () => {
+		// Without this the card from one page follows you to the next.
+		expect(loader).toContain('error = null;');
+	});
+
 	for (const file of LOADERS) {
-		it(`${file} catches a rejected import`, () => {
-			const src = read(file);
-			// The import is chained, not bare: a bare `load().then(...)` is the
-			// exact shape that produced the silent blank.
-			expect(src, 'unguarded load()').not.toMatch(/load\(\)\.then\([^)]*\)\s*;/);
-			expect(src).toContain('.catch((err) => {');
-			expect(src).toContain('loadError = err;');
-			// And it still says so in the console, for whoever is looking.
-			expect(src).toContain("console.error('[sdocs]");
+		it(`${file} loads through the shared loader`, () => {
+			expect(read(file)).toContain('usePageModule(');
 		});
 
 		it(`${file} renders something when the load fails`, () => {
-			expect(read(file)).toMatch(/\{:else if loadError\}\s*\n\s*<ContentError/);
+			expect(read(file)).toMatch(/\{:else if \w+\.error\}\s*\n\s*<ContentError/);
 		});
 
 		it(`${file} catches a throw during render`, () => {
 			const src = read(file);
 			expect(src).toContain('<svelte:boundary>');
 			expect(src).toContain('{#snippet failed(error)}');
-		});
-
-		it(`${file} clears the error when the route changes`, () => {
-			// Without this the card from one page follows you to the next.
-			expect(read(file)).toContain('loadError = null;');
 		});
 	}
 

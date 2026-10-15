@@ -42,7 +42,8 @@ export async function devCommand(opts?: DevOptions): Promise<void> {
 	const svelte = await loadSveltePlugin(cwd);
 	const { createServer } = await loadVite(cwd);
 
-	// Generate the staging directory (in the OS temp dir) with entry files
+	// Generate the staging directory (under node_modules/.cache; the OS temp
+	// dir only as a last resort) with entry files
 	const sdocsDir = await generateDevFiles(config, cwd);
 
 	// Resolve include patterns to absolute paths (relative to cwd, not the staging dir)

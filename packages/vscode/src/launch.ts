@@ -21,18 +21,28 @@ export function launchCommand(
 	// and a rule that only holds on the platform nobody tests is not a rule.
 	platform: NodeJS.Platform = process.platform,
 ): { command: string; args: string[]; shell: boolean } {
+	const local = localSdocs(scopeDir);
+	if (local) return { command: process.execPath, args: [local.bin, 'run'], shell: false };
+	return {
+		command: 'npx',
+		args: ['--yes', 'sdocs', 'run'],
+		shell: platform === 'win32',
+	};
+}
+
+/**
+ * The sdocs package `dir` resolves to — its root and its CLI entry point — or
+ * null when it has no local install. Shared by the Projects view runner and
+ * the MCP server definition, so both prefer the same install.
+ */
+export function localSdocs(dir: string): { root: string; bin: string } | null {
 	try {
 		// Resolve a real export ('sdocs/vite' → <pkg>/dist/vite.js) and derive
-		// the bin from it; './package.json' isn't guaranteed to be exported.
-		const require = createRequire(path.join(scopeDir, 'noop.js'));
-		const vitePlugin = require.resolve('sdocs/vite');
-		const bin = path.join(path.dirname(vitePlugin), '..', 'bin', 'sdocs.js');
-		return { command: process.execPath, args: [bin, 'run'], shell: false };
+		// the root from it; './package.json' isn't guaranteed to be exported.
+		const require = createRequire(path.join(dir, 'noop.js'));
+		const root = path.join(path.dirname(require.resolve('sdocs/vite')), '..');
+		return { root, bin: path.join(root, 'bin', 'sdocs.js') };
 	} catch {
-		return {
-			command: 'npx',
-			args: ['--yes', 'sdocs', 'run'],
-			shell: platform === 'win32',
-		};
+		return null;
 	}
 }

@@ -48,7 +48,7 @@
 	## sdoc syntax highlighting
 
 	The extension ships a TextMate grammar for the block-based
-	[sdoc language](/language/overview): `[SHOWCASE]`, `[DOC]`, and `[LAYOUT]` entities,
+	[sdoc language](/language/overview): `[SHOWCASE]`, `[DOC]`, `[PAGE]`, `[PATTERNS]`, and `[LAYOUT]` entities,
 	`[COMPONENT]` and `[EXAMPLE]` blocks, and Svelte-style attributes, with
 	embedded TypeScript, Svelte, and CSS coloring inside `<script>`, block
 	bodies, and `<style>`. `[DOC]` bodies color as markdown — headings, bold,

@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { relative } from 'node:path';
 import { discoverDocFiles } from './discovery.js';
 import { parseSdoc } from '../language/index.js';
-import { planEntitySnippets } from './doc-model.js';
+import { ENTITY_KIND_TO_DOC_KIND, planEntitySnippets } from './doc-model.js';
 import { buildSections } from '../explorer/tree-builder.js';
 import type { DocEntry, ResolvedSdocsConfig } from '../types.js';
 
@@ -23,16 +23,7 @@ export async function buildSiteMap(config: ResolvedSdocsConfig, cwd: string) {
 		const doc = parseSdoc(await readFile(filePath, 'utf-8'));
 		for (const entity of doc.entities) {
 			stubs.push({
-				kind:
-					entity.kind === 'SHOWCASE'
-						? 'component'
-						: entity.kind === 'PATTERNS'
-							? 'pattern'
-							: entity.kind === 'DOC'
-								? 'doc'
-								: entity.kind === 'PAGE'
-									? 'page'
-									: 'layout',
+				kind: ENTITY_KIND_TO_DOC_KIND[entity.kind],
 				filePath,
 				entitySlug: entity.slug,
 				meta: {

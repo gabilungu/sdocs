@@ -5,11 +5,12 @@
 	import { Note } from '../../ui/Note/index.js';
 	import ContentError from './ContentError.svelte';
 	import { displayTitle } from '../tree-builder.js';
+	import { usePageModule, type PageModules } from '../page-module.svelte.js';
 
 	interface Props {
 		doc: DocEntry;
 		/** Native doc/page components from `virtual:sdocs`, keyed by contentKey. */
-		pageModules?: Record<string, () => Promise<{ default: unknown }>>;
+		pageModules?: PageModules;
 		/** Already-resolved content components: the prerenderer passes all of
 		 * them (effects never run server-side) and the built app's entry passes
 		 * the current route's, so hydration matches the static HTML. */
@@ -21,34 +22,13 @@
 	// A PAGE body is plain Svelte compiled to its own component. It renders
 	// here in the docs context — sdocs CSS variables, no stage tooling, no
 	// iframe — inside the same max-width container DOC pages use.
-	let loaded = $state<Component | null>(null);
-	const PageComponent = $derived(
-		(doc.contentKey ? preloaded[doc.contentKey] : undefined) ?? loaded,
+	const content = usePageModule(
+		() => doc.contentKey,
+		() => pageModules,
+		() => preloaded,
+		'page content',
 	);
-
-	// A content chunk that never arrives used to render as nothing at all.
-	let loadError = $state<unknown>(null);
-
-	$effect(() => {
-		if (doc.contentKey && preloaded[doc.contentKey]) return;
-		const load = doc.contentKey ? pageModules[doc.contentKey] : undefined;
-		loaded = null;
-		loadError = null;
-		if (!load) return;
-		let stale = false;
-		load()
-			.then((mod) => {
-				if (!stale) loaded = mod.default as Component;
-			})
-			.catch((err) => {
-				if (stale) return;
-				console.error('[sdocs] page content failed to load:', err);
-				loadError = err;
-			});
-		return () => {
-			stale = true;
-		};
-	});
+	const PageComponent = $derived(content.component);
 
 	// contentX places the container inside the view.
 	const containerMargin = $derived(
@@ -61,10 +41,12 @@
 
 <div class="sdocs-svelte-page" style:padding={viewPadding}>
 	<div class="sdocs-svelte-page-inner" style:max-width={doc.maxWidth} style:margin={containerMargin}>
-		<!-- A [PAGE] renders no title of its own, so the note opens the page
-		     rather than sitting under a heading that isn't there. It stays in
-		     the flow: a page scrolls, and a banner laid over it would cover
-		     content the reader scrolled to. -->
+		<!-- Today this list is always empty: a [PAGE] body is taken whole as
+		     Svelte, and the parser reports a [NOTES] block in it rather than
+		     capturing it. Were a page to carry notes, they would open it —
+		     a [PAGE] renders no title to sit under — and stay in the flow,
+		     since a banner laid over a scrolling page covers what the reader
+		     scrolled to. -->
 		{#if doc.meta?.notes?.length}
 			<div class="sdocs-page-note">
 				{#each doc.meta.notes as entry, i (i)}
@@ -79,8 +61,8 @@
 					<ContentError {error} kind="render" title={displayTitle(doc.meta.title)} />
 				{/snippet}
 			</svelte:boundary>
-		{:else if loadError}
-			<ContentError error={loadError} kind="load" title={displayTitle(doc.meta.title)} />
+		{:else if content.error}
+			<ContentError error={content.error} kind="load" title={displayTitle(doc.meta.title)} />
 		{/if}
 	</div>
 </div>

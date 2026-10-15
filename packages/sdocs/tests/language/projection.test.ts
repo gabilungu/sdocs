@@ -540,6 +540,52 @@ describe('projectSdocBlocks: SHOWCASE entity style/script docs', () => {
 	});
 });
 
+// A [PATTERNS] entity carries the same blocks a [SHOWCASE] does, and its
+// entity body is empty — so projecting it as one whole-body snippet left every
+// example out of the virtual document, and imports only its examples used
+// read as unused.
+describe('[PATTERNS] projects like a [SHOWCASE]', () => {
+	const src = `<script lang="ts">
+	import Button from './Button.svelte';
+</script>
+
+[PATTERNS title="Patterns / Burger"]
+	<script lang="ts">
+		const label = 'Menu';
+	</script>
+
+	[EXAMPLE title="Icon only"]
+		<Button aria-label={label} />
+	[/EXAMPLE]
+
+	[EXAMPLE title="With label"]
+		<Button>{label}</Button>
+	[/EXAMPLE]
+
+[/PATTERNS]
+`;
+	const sourceLines = src.split('\n');
+	const at = (needle: string) => sourceLines.findIndex((l) => l.includes(needle));
+
+	it('wraps each block as a snippet with its markup live', () => {
+		const projection = projectSdoc(scanSdoc(src));
+		const lines = projection.text.split('\n');
+		expect(lines[at('[EXAMPLE title="Icon only"]')]).toBe('{#snippet __sdocs$0_0(args: any)}');
+		expect(lines[at('aria-label')]).toBe(sourceLines[at('aria-label')]);
+		expect(lines[at('[EXAMPLE title="With label"]')]).toBe('{#snippet __sdocs$0_1(args: any)}');
+		expect(() => compile(projection.text, { generate: false } as never)).not.toThrow();
+	});
+
+	it('gives an entity script its own doc, with every block markup in it', () => {
+		const blocks = projectSdocBlocks(scanSdoc(src));
+		expect(blocks.map((b) => b.key)).toEqual(['0', '0_0', '0_1']);
+		const lines = blocks[0].text.split('\n');
+		expect(lines[at("const label = 'Menu'")]).toBe(sourceLines[at("const label = 'Menu'")]);
+		expect(lines[at('<Button>{label}')]).toBe(sourceLines[at('<Button>{label}')]);
+		expect(compile(blocks[0].text, { generate: 'client' }).js.code).toBeTruthy();
+	});
+});
+
 describe('projectSdocBlocks: inner chained script sharing its opener line', () => {
 	const compileOk = (text: string) => expect(compile(text, { generate: 'client' }).js.code).toBeTruthy();
 

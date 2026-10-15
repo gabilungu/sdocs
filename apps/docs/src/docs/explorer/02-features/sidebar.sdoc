@@ -120,7 +120,7 @@
 
 	## See also
 
-	- [Configuration reference](/explorer/configuration) — full `sidebar` option
+	- [Configuration reference](/explorer/configuration#sections) — the full `sections` option
 	- [Mobile](/explorer/features/mobile) — the drawer, and what else narrows
 	- [Routing](/explorer/features/routing) — how sidebar selections map to URLs
 

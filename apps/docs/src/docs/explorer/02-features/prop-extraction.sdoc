@@ -193,7 +193,8 @@
 
 	`{type}` picks the control (`color` a swatch, `dimension` a number and
 	unit, anything else a text box), the description runs to the end of the
-	line, and an optional trailing `(default: …)` sets the default.
+	line, and an optional trailing `(default: …)` gives a default for when the
+	style declares none.
 
 	Annotation is deliberate rather than automatic. A component's `<style>`
 	usually references far more variables than a consumer is meant to
@@ -218,11 +219,10 @@
 	An annotated `--bg` shows `#333` here without repeating it. When different
 	properties use *different* fallbacks for the same variable, the Default
 	column shows **Mixed** — hover it for the per-property breakdown. A
-	`(default: …)` on the annotation overrides all of this.
+	`(default: …)` on the annotation is only the fallback: it shows when the
+	style has neither a declaration nor a `var()` fallback for the variable.
 
 	The supported types are `color` (→ color picker) and `dimension` (→ number + px unit). See [interactive controls](/explorer/features/interactive-controls).
-
-	Without the annotation, the var is still extracted and gets a plain text input.
 
 	## Limitations
 

@@ -7,7 +7,10 @@
 	import type {
 	  SdocsConfig,
 	  ResolvedSdocsConfig,
+	  AxisConfig,
+	  ScaleConfig,
 	  DocEntry,
+	  PreviewEntry,
 	  SdocMeta,
 	  ComponentData,
 	  ParsedProp,
@@ -19,8 +22,9 @@
 	} from 'sdocs';
 	```
 
-	Fields that can be absent are typed as required-but-nullable (`string | null`),
-	not TypeScript-optional — check for `null`, not for the key's presence.
+	In the extracted API (`ParsedProp` and its siblings), fields that can be
+	absent are typed as required-but-nullable (`string | null`), not
+	TypeScript-optional — check for `null`, not for the key's presence.
 
 	## `SdocsConfig`
 
@@ -36,6 +40,7 @@
 	  open?: boolean;
 	  css?: string | Record<string, string>;
 	  static?: string;
+	  outDir?: string;
 	  title?: string;
 	  logo?: string | false;
 	  favicon?: string;
@@ -45,14 +50,32 @@
 	  base?: string;
 	  mcp?: boolean;
 	  components?: string | string[];
-	  axes?: { id: string; label?: string; values: string[] }[];
-	  scale?: { min?: number; max?: number; default?: number; step?: number; var?: string; label?: string };
+	  axes?: AxisConfig[];
+	  scale?: ScaleConfig;
 	  content?: {
 	    doc?: ContentSizing & { toc?: boolean; contentX?: string };
 	    page?: ContentSizing & { contentX?: string };
 	    showcase?: ContentSizing & { direction?: string; gap?: string; background?: string; minHeight?: string; contentX?: string; contentY?: string };
 	    layout?: ContentSizing & { background?: string; minHeight?: string };
 	  };
+	}
+	```
+
+	```ts
+	interface AxisConfig {
+	  id: string;
+	  label?: string;
+	  values: string[];
+	}
+
+	interface ScaleConfig {
+	  min?: number;
+	  max?: number;
+	  default?: number;
+	  step?: number;
+	  var?: string;
+	  label?: string;
+	  presets?: { label: string; value: number }[];
 	}
 	```
 
@@ -65,38 +88,67 @@
 	What the loader returns: the same shape with every default applied, so
 	nothing downstream has to re-derive one. `include` is always an array,
 	`css` is `null` rather than absent when unset, and `content` carries a
-	complete sizing block for all four entity kinds.
+	complete sizing block for each kind with its own `content` key (`doc`, `page`,
+	`showcase`, `layout`).
 
 	## `SdocMeta`
 
-	The shape of the `meta` object exported from a `.sdoc` file.
+	An entity's metadata, read from its opener (`[SHOWCASE title="…"]`) and the
+	`[NOTES]` and `[TODO]` blocks it holds. It is `DocEntry.meta`.
 
 	```ts
 	interface SdocMeta {
-	  component?: unknown;
-	  title: string;
+	  title: string;              // sidebar path, e.g. 'Demo / Button'
 	  description?: string;
-	  args?: Record<string, unknown>;
-	  settings?: Record<string, unknown>;
+	  notes?: DocNote[];          // the entity's [NOTES]
+	  todos?: TodoItem[];         // the entity's [TODO] checklist
 	}
 	```
 
-	Only `title` is required. For component docs, `component` is also effectively required (needed for prop extraction and controls).
+	Only `title` is required.
 
 	## `DocEntry`
 
-	Each discovered `.sdoc` file becomes one `DocEntry`. These are what `virtual:sdocs` exports as `docs`.
+	Each entity in a discovered `.sdoc` file becomes one `DocEntry` — a file
+	with three entities yields three. These are what `virtual:sdocs` exports as
+	`docs`.
+
+	`kind` names the entity: `'component'` is a `[SHOWCASE]`, `'pattern'` a
+	`[PATTERNS]`, and the rest match their tag.
 
 	```ts
 	interface DocEntry {
-	  kind: 'component' | 'page' | 'layout';
-	  filePath: string;                     // absolute path to the .sdoc file
-	  componentPath: string | null;         // absolute path to the documented component
+	  kind: 'component' | 'pattern' | 'doc' | 'page' | 'layout';
+	  filePath: string;                 // absolute path to the .sdoc file
+	  entitySlug: string;               // unique within the file
 	  meta: SdocMeta;
-	  componentData: ComponentData | null;  // for kind === 'component'
-	  snippets: ExtractedSnippet[];         // Default + named
-	  highlightedSource: string | null;     // highlighted component source HTML
-	  toc?: TocHeading[];                   // for kind === 'page'
+	  entityScript?: string | null;     // entity-level <script>, shared by its blocks
+	  entityStyle?: string | null;      // entity-level <style>
+	  previews: PreviewEntry[];         // [COMPONENT] previews; empty otherwise
+	  examples: ExtractedSnippet[];     // [EXAMPLE]s
+	  content: ExtractedSnippet | null; // the body (doc, page, layout)
+	  toc?: TocHeading[];               // doc only
+	  maxWidth?: string;                // resolved content sizing
+	  padding?: string;
+	  contentX?: string;
+	  showToc?: boolean;                // doc only
+	  bodyTitle?: string;               // the body's # heading (doc only)
+	  contentKey?: string;              // key into pageModules (doc, page)
+	  prose: { key: string }[];         // [PROSE] blocks, keyed into pageModules
+	  flow?: FlowItem[];                // body order of a [SHOWCASE] or [PATTERNS]
+	  glossaries?: GlossaryBlock[];     // [GLOSSARY] blocks, in source order
+	  routeSlug?: string;               // from slug="…"
+	  hide?: boolean;                   // routable, never listed in a sidebar
+	}
+
+	interface PreviewEntry {
+	  label: string;                       // tab label
+	  componentName: string | null;
+	  componentPath: string | null;        // absolute path to the component
+	  componentData: ComponentData | null; // its extracted API
+	  highlightedSource: string | null;    // highlighted component source HTML
+	  args: Record<string, string | number | boolean | null>;
+	  snippet: ExtractedSnippet;
 	}
 
 	interface TocHeading {
@@ -112,10 +164,16 @@
 
 	```ts
 	interface ComponentData {
+	  description?: string | null;      // the <!-- @component --> comment
+	  descriptionHtml?: string;
 	  props: ParsedProp[];
 	  methods: ParsedMethod[];
 	  state: ParsedState[];
 	  cssProps: ParsedCssProp[];
+	  acceptsClass?: boolean;           // merges `class` onto its root
+	  forwardsRest?: boolean;           // spreads `...rest` onto its root
+	  restType?: string | null;         // what the rest props are typed as
+	  warnings?: string[];              // why extraction came back thin
 	}
 	```
 
@@ -163,6 +221,7 @@
 	  name: string;             // e.g. "--bg"
 	  type: string | null;      // from @cssvar, e.g. "color" or "dimension"
 	  default: string | null;
+	  defaultUses?: { property: string; value: string }[]; // when var() fallbacks differ
 	  description: string | null;
 	}
 	```
@@ -173,7 +232,7 @@
 	interface ExtractedSnippet {
 	  name: string;             // preview label, example title, or 'Content'
 	  slug: string;             // URL-safe id, unique within the entity
-	  role: 'preview' | 'example' | 'content';
+	  role: 'preview' | 'example' | 'content' | 'prose';
 	  body: string;             // block body source
 	  highlightedHtml?: string; // highlighted body HTML
 	  previewUrl?: string;      // preview iframe URL (added by the virtual module)

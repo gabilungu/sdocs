@@ -31,8 +31,8 @@ PERFORMANCE OF THIS SOFTWARE.
 
 ## Font Awesome Free
 
-The two **semantic** icon sets — the `[COMPONENT]` `status` glyphs and the
-`[NOTES]` type glyphs — are from
+The `[NOTES]` type glyphs, and the magnifying glass on a `[GLOSSARY]`'s
+filter box, are from
 [Font Awesome Free](https://fontawesome.com) 7.3.1, used under
 **CC BY 4.0** (https://creativecommons.org/licenses/by/4.0/).
 

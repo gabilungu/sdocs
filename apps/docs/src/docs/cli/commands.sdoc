@@ -77,7 +77,7 @@
 	Starts a Vite dev server on the configured port (default `3000`). Watches:
 
 	- `.sdoc` files matching `include`
-	- Each doc's `meta.component` file
+	- Each component a `[COMPONENT]` names with `component={…}`
 
 	Any change triggers a full reload. The config file itself is read once at
 	startup — restart the server after editing it. See

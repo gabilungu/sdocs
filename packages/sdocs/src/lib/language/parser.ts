@@ -7,7 +7,6 @@
 import {
 	scanSdoc,
 	type Attrs,
-	type AttrValue,
 	type Entity,
 	type ScanError,
 	type SdocFile,
@@ -111,9 +110,8 @@ export interface ExampleBlock {
 	span: Span;
 }
 
-/** One `- [ ] text` line of a `[TODO]` block, with whatever nests under it. */
 /**
- * One item in a [SHOWCASE]'s body, in source order.
+ * One item in a [SHOWCASE]'s or [PATTERNS]' body, in source order.
  *
  * `[COMPONENT]` blocks are tabs rather than flow: several of them share one
  * stage, one set of code panels and one API table, so the whole tab strip is a
@@ -169,7 +167,8 @@ export interface DocEntity {
 	notes: DocNote[];
 	/** The checklist from a [TODO] block; empty when there is none */
 	todos: TodoItem[];
-	/** Markdown from [PROSE] blocks, in source order; empty when there are none */
+	/** Always empty: a [DOC] body is markdown already, so a [PROSE] block in
+	 * one is refused. Kept so every entity kind carries the same fields. */
 	prose: string[];
 	/** [GLOSSARY] blocks, in source order — spliced into the body where they
 	 * were written, the way examples are. */
@@ -199,11 +198,13 @@ export interface PageEntity {
 	routeSlug: string | null;
 	/** `hide` flag: routable but never listed in a sidebar */
 	hide: boolean;
-	/** Standing remarks from a [NOTES] block; empty when there is none */
+	/** Always empty: the body is taken whole as Svelte markup, so a [NOTES]
+	 * block is reported rather than captured. Kept so every entity kind
+	 * carries the same fields. */
 	notes: DocNote[];
-	/** The checklist from a [TODO] block; empty when there is none */
+	/** Always empty, for the same reason as `notes`. */
 	todos: TodoItem[];
-	/** Markdown from [PROSE] blocks, in source order; empty when there are none */
+	/** Always empty, for the same reason as `notes`. */
 	prose: string[];
 	sizing: Sizing;
 	/** Entity-level <script> — shared by every block of this entity */
@@ -224,11 +225,13 @@ export interface LayoutEntity {
 	routeSlug: string | null;
 	/** `hide` flag: routable but never listed in a sidebar */
 	hide: boolean;
-	/** Standing remarks from a [NOTES] block; empty when there is none */
+	/** Always empty: the body is taken whole as Svelte markup, so a [NOTES]
+	 * block is reported rather than captured. Kept so every entity kind
+	 * carries the same fields. */
 	notes: DocNote[];
-	/** The checklist from a [TODO] block; empty when there is none */
+	/** Always empty, for the same reason as `notes`. */
 	todos: TodoItem[];
-	/** Markdown from [PROSE] blocks, in source order; empty when there are none */
+	/** Always empty, for the same reason as `notes`. */
 	prose: string[];
 	sizing: Sizing;
 	/** Entity-level <script> — shared by every block of this entity */
@@ -353,10 +356,6 @@ export function importedNames(script: string): Map<string, Span> {
 	return names;
 }
 
-/** A nested script may not re-import an identifier an outer scope already
- * binds — the generated module concatenates the scripts, so the duplicate
- * would be a confusing compile error. Reported here as a clear diagnostic
- * instead. Also flags redefinitions of stage-provided names. */
 /** Outer imports plus the entity script's — the scope a block script sees. */
 function mergeImports(outer: Map<string, Span>, script: TagBlock | null): Map<string, Span> {
 	if (!script) return outer;
@@ -368,7 +367,7 @@ function mergeImports(outer: Map<string, Span>, script: TagBlock | null): Map<st
 /** Which generated wrappers a script's content is lifted into, and therefore
  * which plumbing names it must not redeclare:
  * - stage: the iframe wrapper (declares `args` and `__sdocsRef`) — previews,
- *   examples, SHOWCASE/LAYOUT entity scripts, DOC entity scripts (their
+ *   examples, SHOWCASE/PATTERNS/LAYOUT entity scripts, DOC entity scripts (their
  *   examples), and the file script.
  * - page: the DOC/PAGE page component (declares `__sdocsExample` via
  *   `$props()`) — DOC and PAGE entity scripts, and the file script. */
@@ -431,6 +430,10 @@ function checkReservedNames(
 	}
 }
 
+/** A nested script may not re-import an identifier an outer scope already
+ * binds — the generated module concatenates the scripts, so the duplicate
+ * would be a confusing compile error. Reported here as a clear diagnostic
+ * instead. Also flags redefinitions of stage-provided names. */
 function checkNestedScript(
 	script: TagBlock | null,
 	outerImports: Map<string, Span>,
@@ -539,7 +542,8 @@ const ENTITY_ATTR_RULES: Record<string, Record<string, AttrRule>> = {
 		...SIZING_ATTR_RULES,
 		// The page-canvas subset of the stage attributes: paint and size the
 		// full-bleed stage without a wrapper element. (The flex attributes stay
-		// SHOWCASE-only — a LAYOUT body is flow-root, not a flex stage.)
+		// with SHOWCASE and PATTERNS — a LAYOUT body is flow-root, not a flex
+		// stage.)
 		background: { required: false, kind: 'string', hint: 'background="var(--bg)"' },
 		minHeight: { required: false, kind: 'string', hint: 'minHeight="100vh"' },
 	},
@@ -571,7 +575,8 @@ const SUB_BLOCK_ATTR_RULES: Record<string, Record<string, AttrRule>> = {
 };
 
 /** Allowed attributes and their value shapes for a block, keyed by kind
- * ('SHOWCASE'|'DOC'|'PAGE'|'LAYOUT'|'preview'|'example'). Single source of
+ * ('SHOWCASE'|'PATTERNS'|'DOC'|'PAGE'|'LAYOUT'|'preview'|'example'|
+ * 'glossary'). Single source of
  * truth for both diagnostics and editor attribute completions.
  *
  * Entity kinds are uppercase; a sub-block tag is accepted in either casing,
@@ -641,28 +646,6 @@ function stringAttr(attrs: Attrs, name: string): string | null {
 	return v && v.kind === 'string' ? v.raw : null;
 }
 
-const NOTE_INTENTS = ['danger', 'warning', 'success', 'info'] as const;
-const NOTE_KEYS = ['note', 'intent'];
-
-/**
- * The `[NOTES]` vocabulary, **worst first** — the order the sidebar rolls a
- * subtree up by.
- *
- * Status only, deliberately. `a11y`, `perf` and the like are categories, not
- * statuses, and mixing the two makes the ranking meaningless: there is no
- * honest answer to whether an `a11y` note outranks a `bug`. Categories are
- * what `tags` already does.
- *
- * A line with no type sits between `wip` and `ready`: it says "read me"
- * without saying what about, which is more than a note whose whole content is
- * reassurance.
- */
-export { NOTE_TYPES, NOTE_TYPE_ORDER } from '../note-order.js';
-
-
-// The type allows digits, not just letters: `a11y` is one of them, and a
-// letters-only pattern silently read it as an untyped note whose text began
-// "a11y:" — no diagnostic, just a grey note where a red one belonged.
 /** `- Term: definition`. The first colon splits; a term may not contain one. */
 const GLOSSARY_LINE_RE = /^-\s+([^:]+):\s*(.*)$/;
 
@@ -717,6 +700,9 @@ function parseGlossary(block: SubBlock, diagnostics: ScanError[]): GlossaryBlock
 	};
 }
 
+// The type allows digits, not just letters: `a11y` is one of them, and a
+// letters-only pattern silently read it as an untyped note whose text began
+// "a11y:" — no diagnostic, just a grey note where a red one belonged.
 const NOTE_LINE_RE = /^-\s+(?:([a-z][a-z0-9]*):\s*)?(.*)$/;
 
 /**
@@ -1035,7 +1021,7 @@ function splitNestedBlocks(body: string): { blocks: Map<string, string>; markup:
 function parseExample(
 	block: SubBlock,
 	seenTitles: Set<string>,
-	owner: 'SHOWCASE' | 'DOC',
+	owner: 'SHOWCASE' | 'PATTERNS' | 'DOC',
 	outerImports: Map<string, Span>,
 	diagnostics: ScanError[],
 ): ExampleBlock {
@@ -1178,7 +1164,7 @@ function parseShowcase(
 	const exampleSpans: Span[] = [];
 	const exampleTitles = new Set<string>();
 	const previewLabels = new Set<string>();
-	const text = textBlocks('[SHOWCASE]', diagnostics);
+	const text = textBlocks(`[${kind}]`, diagnostics);
 	const flow: FlowItem[] = [];
 	const glossaries: GlossaryBlock[] = [];
 	/** The one tab strip, added to the flow where the first [COMPONENT] was
@@ -1252,7 +1238,7 @@ function parseShowcase(
 				continue;
 			}
 			flow.push({ kind: 'example', index: examples.length });
-			examples.push(parseExample(block, exampleTitles, 'SHOWCASE', outerImports, diagnostics));
+			examples.push(parseExample(block, exampleTitles, kind, outerImports, diagnostics));
 			exampleSpans.push(block.openerSpan);
 		} else if (block.kind === 'glossary') {
 			flow.push({ kind: 'glossary', index: glossaries.length });

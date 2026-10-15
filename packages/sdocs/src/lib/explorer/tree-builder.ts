@@ -22,13 +22,13 @@ export interface TreeNode {
 	route: string[];
 	/** Children nodes */
 	children: TreeNode[];
-	/** The doc entry (only for component/page/layout nodes) */
+	/** The doc entry (entity nodes of every kind, and their example children) */
 	doc?: DocEntry;
-	/** True on the entity's own node (not its Docs/example children) */
+	/** True on the entity's own node (not its example children) */
 	entity?: boolean;
 	/** Set on example child nodes: the example this node opens */
 	snippetName?: string;
-	/** Example titles for component nodes (sidebar sub-pages) */
+	/** Example titles for component and pattern nodes (sidebar sub-pages) */
 	examples?: string[];
 	/** Whether this node should be expanded by default */
 	defaultExpanded?: boolean;
@@ -85,14 +85,14 @@ export interface SectionMap {
 	errors: SiteError[];
 }
 
-/** Sections with defaults filled in; the implicit `docs` section when none
- * are declared. */
 /** A divider entry rather than a section. Narrowing needs a predicate: the
  * negative branch of an inline `'type' in entry && …` stays the whole union. */
 function isDivider(entry: SectionEntry): entry is SectionDivider {
 	return 'type' in entry && entry.type === 'divider';
 }
 
+/** Sections with defaults filled in; the implicit `docs` section when none
+ * are declared. */
 export function normalizeSections(sections: SectionEntry[] | undefined): NormalizedSection[] {
 	if (!sections || sections.length === 0) {
 		return [{ slug: 'docs', title: 'Docs', order: [], dividerAfter: false }];

@@ -32,7 +32,7 @@ Run sdocs as its own dev server:
 npx sdocs dev      # Start dev server with HMR
 npx sdocs build    # Build a static site — every route prerendered to real HTML
 npx sdocs preview  # Preview the built site locally
-npx sdocs init     # Scaffold a sdocs.config.js file
+npx sdocs init     # Scaffold a config file (sdocs.config.js, or .mjs in a CommonJS project)
 npx sdocs mcp      # Serve the sdocs MCP server on stdio (authoring tools for agents)
 ```
 
@@ -40,7 +40,7 @@ npx sdocs mcp      # Serve the sdocs MCP server on stdio (authoring tools for ag
 
 `sdocs mcp` serves an [MCP](https://modelcontextprotocol.io) server so agent
 tooling works against the real parser and extractor instead of guessing at the
-format. Fourteen tools — ten that read, four that write:
+format. Thirteen tools — ten that read, three that write:
 
 | Read | |
 |---|---|
@@ -87,7 +87,6 @@ export default {
     sdocsPlugin({
       include: ['./src/lib/**/*.sdoc'],
       css: './src/styles/global.css',
-      logo: 'My Design System',
     })
   ],
 };
@@ -116,9 +115,12 @@ those pages blank with no error.
 ```ts
 // src/app.d.ts or any .d.ts file
 declare module 'virtual:sdocs' {
-  import type { DocEntry } from 'sdocs';
+  import type { AxisConfig, DocEntry, ScaleConfig } from 'sdocs';
   export const docs: DocEntry[];
   export const cssNames: string[];
+  export const axes: Required<AxisConfig>[];
+  export const scale: Required<ScaleConfig> | null;
+  export const pageModules: Record<string, () => Promise<{ default: unknown }>>;
   export default docs;
 }
 ```
@@ -368,7 +370,7 @@ relative to its section.
 | `sdocs` | Main entry — `sdocsPlugin` + types |
 | `sdocs/vite` | Vite plugin function |
 | `sdocs/explorer` | Explorer.svelte UI component |
-| `sdocs/ui` | Reusable UI components (Button, Frame, Icon, Control, NavTree, Stack) |
+| `sdocs/ui` | Reusable UI components (Button, CodeBlock, Frame, Icon, Control, NavTree, Note, Stack) |
 | `sdocs/language` | The sdoc scanner, parser, and Svelte projection |
 | `sdocs/grammar/sdoc.tmLanguage.json` | TextMate grammar for editors and highlighters |
 

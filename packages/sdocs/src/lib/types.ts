@@ -25,7 +25,7 @@ export interface SdocsConfig {
 	favicon?: string;
 	/** The site's sections, in top-bar order. Titles reference a section by
 	 * its slug (`title="@guides/…"`); an unknown slug is an error. When
-	 * absent, a single implicit `docs` section exists and no top bar renders. */
+	 * absent, a single implicit `docs` section exists, shown as one "Docs" tab. */
 	sections?: SectionEntry[];
 	/** Route path of the landing page (e.g. 'guides/introduction'). Must
 	 * resolve to an entity; when absent the root shows the About page. */
@@ -39,7 +39,7 @@ export interface SdocsConfig {
 	 * always serves at the root. Default: '/'. */
 	base?: string;
 	/** Serve the MCP server while `sdocs dev` runs (the /mcp endpoint and the
-	 * top-bar MCP button). Default: true. The explicit `sdocs mcp` command is
+	 * "MCP server" item in the top bar's ⋮ menu). Default: true. The explicit `sdocs mcp` command is
 	 * unaffected; built sites never carry an MCP endpoint. */
 	mcp?: boolean;
 	/** Glob(s) locating the components documentation coverage is measured
@@ -49,7 +49,8 @@ export interface SdocsConfig {
 	components?: string | string[];
 	/** Design-system dimensions the reader can switch between — theme, density,
 	 * palette, whatever the project's css keys off. Each becomes a top-bar
-	 * dropdown, and the selection lands on every preview as `data-<id>`. */
+	 * segmented control (a dropdown when the bar runs out of room), and the
+	 * selection lands on every preview as `data-<id>`. */
 	axes?: AxisConfig[];
 	/** A continuous knob — a top-bar slider whose value lands on every preview
 	 * as a CSS custom property. The one dimension that isn't a set of names. */
@@ -139,7 +140,7 @@ export interface ScaleConfig {
 	var?: string;
 	/** Control label. Default: 'Scale' */
 	label?: string;
-	/** Named stops, rendered as a segmented control beside the slider. Each
+	/** Named stops, rendered as segmented items inside the slider's group. Each
 	 * sets the slider to its value; the slider still reaches everything
 	 * between. Values must fall inside `min`–`max`. */
 	presets?: ScalePreset[];
@@ -235,7 +236,7 @@ export interface ResolvedSdocsConfig {
 	routing: 'history' | 'hash' | null;
 	/** Normalized public base path for the build (leading + trailing slash). */
 	base: string;
-	/** Serve the MCP server (endpoint + top-bar button) in dev. */
+	/** Serve the MCP server (endpoint + the ⋮ menu's "MCP server" item) in dev. */
 	mcp: boolean;
 	/** Globs locating component sources, for documentation coverage. */
 	components: string[];
@@ -313,7 +314,7 @@ export interface TodoItem {
 }
 
 /**
- * One item in a [SHOWCASE]'s body, in the order it was written — the tab strip
+ * One item in a [SHOWCASE]'s or [PATTERNS]' body, in the order it was written — the tab strip
  * its [COMPONENT] blocks share, one [EXAMPLE], or one [PROSE] block. Indices
  * point into the entry's own `previews` / `examples` / `prose` arrays.
  */
@@ -323,13 +324,13 @@ export type FlowItem =
 	| { kind: 'prose'; index: number }
 	| { kind: 'glossary'; index: number };
 
-/** One [PROSE] block of a [SHOWCASE], compiled as its own component. */
+/** One [PROSE] block of a [SHOWCASE] or [PATTERNS], compiled as its own component. */
 export interface ProseBlock {
 	/** Key into `pageModules` from `virtual:sdocs`. */
 	key: string;
 }
 
-/** Entity metadata from a [SHOWCASE]/[DOC]/[PAGE]/[LAYOUT] opener */
+/** Entity metadata from a [SHOWCASE]/[PATTERNS]/[DOC]/[PAGE]/[LAYOUT] opener */
 export interface SdocMeta {
 	/** Sidebar path (e.g. 'Demo / Button') */
 	title: string;
@@ -480,7 +481,7 @@ export interface TocHeading {
 
 /** A complete doc entry (one entity of one .sdoc file) */
 export interface DocEntry {
-	/** Doc kind: SHOWCASE / DOC / PAGE / LAYOUT */
+	/** Doc kind: SHOWCASE / PATTERNS / DOC / PAGE / LAYOUT */
 	kind: 'component' | 'pattern' | 'doc' | 'page' | 'layout';
 	/** Absolute path to the .sdoc file */
 	filePath: string;
@@ -494,13 +495,14 @@ export interface DocEntry {
 	entityStyle?: string | null;
 	/** Live previews (component kind; empty otherwise) */
 	previews: PreviewEntry[];
-	/** Frozen examples (component and doc kinds; empty otherwise) */
+	/** Frozen examples (component, pattern and doc kinds; empty otherwise) */
 	examples: ExtractedSnippet[];
 	/** The body (doc/page/layout kind; null otherwise) */
 	content: ExtractedSnippet | null;
 	/** Table of contents headings (doc kind only) */
 	toc?: TocHeading[];
-	/** Resolved content-column max width (component, doc, and page kinds) */
+	/** Resolved content-column max width — set for every kind, from the entity
+	 * attribute or its kind's config default */
 	maxWidth?: string;
 	/** Resolved view padding (doc and page kinds) */
 	padding?: string;
@@ -513,11 +515,11 @@ export interface DocEntry {
 	bodyTitle?: string;
 	/** Key into the virtual module's pageModules map (doc and page kinds) */
 	contentKey?: string;
-	/** A [SHOWCASE]'s [PROSE] blocks, in source order. Each compiles natively
+	/** A [SHOWCASE]'s or [PATTERNS]' [PROSE] blocks, in source order. Each compiles natively
 	 * like a [DOC] body — markdown, code fences, and Svelte islands — and is
 	 * keyed into `pageModules` by `key`. */
 	prose: ProseBlock[];
-	/** What a [SHOWCASE] shows, in source order. Absent on other kinds. */
+	/** What a [SHOWCASE] or [PATTERNS] shows, in source order. Absent on other kinds. */
 	flow?: FlowItem[];
 	/** The entity's [GLOSSARY] blocks, in source order. In a [DOC] these are
 	 * spliced into the prose at the position they were written, the way an

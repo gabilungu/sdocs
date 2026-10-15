@@ -54,7 +54,7 @@
 	</style>
 	```
 
-	## The four entities
+	## The five entities
 
 	| Entity | Documents | Details |
 	|---|---|---|
@@ -86,8 +86,7 @@
 	  entity first.
 	- The sidebar sorts siblings alphabetically regardless of file order — pin
 	  a different order with the section's `order` array.
-	- If a file grows past a handful of entities, consider splitting it — the
-	  editor will nudge you.
+	- If a file grows past a handful of entities, consider splitting it.
 
 	The top `<script>` is shared **source**, not shared state: every preview and
 	example renders isolated, so each gets its own copy of anything mutable.
@@ -163,8 +162,9 @@
 	Each note renders as an alert directly under the entity's title, in the
 	order written.
 
-	Only a `[SHOWCASE]`, a [`[DOC]`](/language/doc-pages) and their `[EXAMPLE]`
-	blocks hold text blocks. A [`[PAGE]`](/language/svelte-pages) or
+	Only a `[SHOWCASE]`, a [`[PATTERNS]`](/language/patterns), a
+	[`[DOC]`](/language/doc-pages) and their `[EXAMPLE]` blocks hold text
+	blocks. A [`[PAGE]`](/language/svelte-pages) or
 	[`[LAYOUT]`](/language/layout-docs) body is captured whole as Svelte markup,
 	so a block written in one is never read back — it would render as literal
 	text on the page. sdocs reports that (`block-in-body`) rather than letting

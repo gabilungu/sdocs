@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, writeFile, rm, readFile, copyFile, readdir, symlink } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, writeFile, rm, readFile, copyFile, readdir, symlink } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, resolve, join } from 'node:path';
@@ -100,9 +100,9 @@ const SHARED_MODULES = ['note-order.js', 'slug.js'];
  * components), the grammar the client highlighter loads for sdoc fences, and
  * the shared modules above. */
 async function copyExplorerApp(sdocsDir: string): Promise<void> {
-	await copyDir(getExplorerSourceDir(), resolve(sdocsDir, 'explorer'));
-	await copyDir(resolve(__dirname, '../ui'), resolve(sdocsDir, 'ui'));
-	await copyDir(resolve(__dirname, '../grammar'), resolve(sdocsDir, 'grammar'));
+	await cp(getExplorerSourceDir(), resolve(sdocsDir, 'explorer'), { recursive: true });
+	await cp(resolve(__dirname, '../ui'), resolve(sdocsDir, 'ui'), { recursive: true });
+	await cp(resolve(__dirname, '../grammar'), resolve(sdocsDir, 'grammar'), { recursive: true });
 	for (const name of SHARED_MODULES) {
 		await copyFile(resolve(__dirname, '..', name), resolve(sdocsDir, name));
 	}
@@ -185,21 +185,6 @@ function isAlive(pid: number): boolean {
 	} catch (err) {
 		// EPERM means it exists and belongs to someone else — still alive.
 		return (err as NodeJS.ErrnoException).code === 'EPERM';
-	}
-}
-
-/** Copy a directory recursively */
-async function copyDir(src: string, dest: string): Promise<void> {
-	await mkdir(dest, { recursive: true });
-	const entries = await readdir(src, { withFileTypes: true });
-	for (const entry of entries) {
-		const srcPath = join(src, entry.name);
-		const destPath = join(dest, entry.name);
-		if (entry.isDirectory()) {
-			await copyDir(srcPath, destPath);
-		} else {
-			await copyFile(srcPath, destPath);
-		}
 	}
 }
 

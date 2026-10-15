@@ -23,7 +23,8 @@ export function base64urlDecode(str: string): string {
 // segments long enough to break static hosts (GitHub Pages rejects them).
 let docPathRoot = process.cwd();
 
-/** Set the root that doc paths are encoded against (the Vite root / staging dir) */
+/** Set the root that doc paths are encoded against — always the project,
+ * even when Vite's own root is the CLI's staging dir. */
 export function setDocPathRoot(root: string): void {
 	docPathRoot = root;
 }
@@ -85,29 +86,6 @@ export function lookupEntry<T>(
 	return undefined;
 }
 
-/** Resolve relative imports to absolute paths for use in virtual components */
-export function resolveImportsToAbsolute(
-	imports: string[],
-	docFilePath: string,
-): string[] {
-	const docDir = dirname(docFilePath);
-	return imports.map((imp) => {
-		const match = imp.match(/^(import\s+.+\s+from\s+)['"](\.[^'"]+)['"](;?)$/);
-		if (match) {
-			const absolutePath = resolve(docDir, match[2]);
-			return `${match[1]}'${absolutePath}'${match[3]}`;
-		}
-		return imp;
-	});
-}
-
-/**
- * Rewrite the relative import specifiers in a whole `<script>` block to
- * absolute paths, so the file script — imports AND shared values (consts,
- * functions) — can be lifted verbatim into a generated preview. Everything
- * else in the script is preserved, which is what makes shared values
- * available to previews and examples.
- */
 // Import statements on scrubbed text: line-anchored, spanning multi-line
 // named imports up to the first `;`, in both `import … from '…'` and
 // side-effect `import '…'` forms. The specifier is the trailing quoted group.
@@ -145,6 +123,13 @@ export function scanRelativeImports(script: string): ScannedImport[] {
 	return found;
 }
 
+/**
+ * Rewrite the relative import specifiers in a whole `<script>` block to
+ * absolute paths, so the file script — imports AND shared values (consts,
+ * functions) — can be lifted verbatim into a generated preview. Everything
+ * else in the script is preserved, which is what makes shared values
+ * available to previews and examples.
+ */
 export function resolveScriptImports(script: string, docFilePath: string): string {
 	const docDir = dirname(docFilePath);
 	let out = '';
@@ -154,6 +139,18 @@ export function resolveScriptImports(script: string, docFilePath: string): strin
 		last = end;
 	}
 	return out + script.slice(last);
+}
+
+/** A stage's script prelude — the file script, then the entity's — with the
+ * blank ones dropped, so an absent script adds no stray line. */
+export function joinScripts(...scripts: string[]): string {
+	return scripts.filter((s) => s.trim()).join('\n');
+}
+
+/** A stage's CSS — the file `<style>`, the entity's, then the block's — with
+ * the blank and absent ones dropped. */
+export function joinStyles(...styles: (string | null | undefined)[]): string {
+	return styles.filter((s): s is string => !!s?.trim()).join('\n\n');
 }
 
 interface ScannedTag {

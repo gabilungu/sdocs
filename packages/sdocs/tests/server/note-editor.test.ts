@@ -120,7 +120,7 @@ describe('writeNotes', () => {
 });
 
 /**
- * Ticking a todo is the other write the Explorer makes. It has to be even
+ * Ticking a todo is the other write the MCP tools make. It has to be even
  * smaller than a note edit — one character between the brackets — because the
  * checklist is the author's own text and a tick is not an invitation to
  * reformat it.
@@ -192,8 +192,8 @@ describe('toggleTodo', () => {
 
 /**
  * The other todo write: anything that changes the list's *shape* re-serializes
- * the block, since there is no single character to rewrite. This is what the
- * Explorer's `+` and its inline rename go through.
+ * the block, since there is no single character to rewrite. This is what
+ * `set_todos` goes through.
  */
 describe('writeTodos', () => {
 	const items = (text: string) => [{ text, done: false, children: [] }];

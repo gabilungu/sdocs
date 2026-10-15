@@ -111,6 +111,25 @@ describe('what a pattern refuses', () => {
 		const doc = parseSdoc('[PATTERNS title="P"]\n\n\t<b>loose</b>\n\n[/PATTERNS]\n');
 		expect(doc.diagnostics.map((d) => d.message).join()).toContain('[EXAMPLE]');
 	});
+
+	it('names itself, not [SHOWCASE], in the diagnostics it shares with one', () => {
+		// It runs through the showcase parser; a message calling the author's
+		// [PATTERNS] a [SHOWCASE] sends them looking for a block that isn't there.
+		const doc = parseSdoc(
+			'[PATTERNS title="P"]\n\n' +
+				'\t[EXAMPLE title="A"]\n\t\t<b>a</b>\n\t[/EXAMPLE]\n\n' +
+				'\t[EXAMPLE title="A"]\n\t\t<b>b</b>\n\t[/EXAMPLE]\n\n' +
+				'\t[NOTES]\n\t\t- one\n\t[/NOTES]\n\n' +
+				'\t[NOTES]\n\t\t- two\n\t[/NOTES]\n\n' +
+				'[/PATTERNS]\n',
+		);
+		const messages = doc.diagnostics.map((d) => d.message);
+		expect(messages).toContain('Only one [NOTES] per [PATTERNS] — merge them.');
+		expect(messages).toContain(
+			'Duplicate example title "A" — titles are unique within a [PATTERNS] block.',
+		);
+		expect(messages.join()).not.toContain('[SHOWCASE]');
+	});
 });
 
 describe('the kind survives the trip to a DocEntry', () => {

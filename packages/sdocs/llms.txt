@@ -160,7 +160,7 @@ Explorer uses:
 - `scaffold_component_doc { componentPath, title? }` — extract a `.svelte`
   component's props and return a starter `.sdoc` (control defaults derived
   from the props) plus the suggested file path; it never writes files.
-- `get_authoring_guide { section? }` — this guide. It runs to about 40k
+- `get_authoring_guide { section? }` — this guide. It runs to about 50k
   characters, so pass `section` when you only need one part of it:
   `section: 'prose'` returns the `[PROSE]` chapter alone, matching a
   case-insensitive substring of the heading. A section that matches nothing
@@ -241,7 +241,8 @@ component through a browser without photographing the whole Explorer.
 ### Looking at a component with a browser
 
 Every stage is its own page. `/@sdocs/preview/<token>/<slug>` renders one
-`[COMPONENT]`, `[EXAMPLE]`, or `[LAYOUT]` — project css, declared args, no
+`[COMPONENT]`, `[EXAMPLE]` (from a `[SHOWCASE]`, `[PATTERNS]`, or `[DOC]`), or
+`[LAYOUT]` — project css, declared args, no
 Explorer chrome — and works as a direct top-level navigation. Photographing
 that instead of the Explorer is the difference between ~2 image tokens and
 ~2000 for the same button.
@@ -278,8 +279,8 @@ Two ways to connect:
   extension registers this server automatically.
 - **HTTP** — while `sdocs dev` runs, the same server is served at
   `http://localhost:3000/mcp` (stateless streamable HTTP, POST), and the
-  Explorer top bar shows an **MCP** button with the connection info. Dev only:
-  built sites are static and carry no MCP endpoint. Disable both with
+  **MCP server** item in the Explorer top bar's ⋮ menu shows the connection
+  info. Dev only: built sites are static and carry no MCP endpoint. Disable both with
   `mcp: false` in `sdocs.config.js` (the explicit `sdocs mcp` command still
   works).
 
@@ -315,13 +316,13 @@ interface SdocsConfig {
 	home?: string;                       // route path of the landing page
 	routing?: 'history' | 'hash';        // Default 'history' (CLI), 'hash' (embedded)
 	base?: string;                       // public base path for build. Default '/'
-	mcp?: boolean;                       // serve /mcp + the top-bar MCP button in dev. Default true
+	mcp?: boolean;                       // serve /mcp + the ⋮ menu's MCP server item in dev. Default true
 	components?: string | string[];      // component globs for coverage. Default: include with .sdoc → .svelte
 	axes?: { id: string; label?: string; values: string[] }[]; // design-system dimensions the reader can switch. Default []
 	scale?: { min?: number; max?: number; default?: number; step?: number; var?: string; label?: string; presets?: { label: string; value: number }[] }; // a top-bar slider setting a CSS custom property on every stage
-	static?: string;                     
+	static?: string;                     // static assets folder, served at site root
 	outDir?: string;                     // where `sdocs build` writes. Default 'dist'. The build
-	                                     // empties it, and refuses one it did not create.// static assets folder, served at site root
+	                                     // empties it, and refuses one it did not create.
 	content?: {                          // per-entity-kind sizing/stage defaults (see below)
 		doc?:      { maxWidth?: string; padding?: string; toc?: boolean; contentX?: string };
 		page?:     { maxWidth?: string; padding?: string; contentX?: string };
@@ -337,8 +338,8 @@ Key options:
 - **`css`** — stylesheet(s) loaded into **stages only** (preview/example iframes
   and `[LAYOUT]` pages), never page prose or the docs chrome — this is what keeps
   "your product" and "the documentation" visually separate. A single path, or a
-  `{ name: path }` map the reader switches between via a dropdown (e.g. light /
-  dark). Keep build stylesheets self-contained (inline `@import`/`url()`; fonts
+  `{ name: path }` map the reader switches between in the top bar, rendered
+  like an axis (e.g. light / dark). Keep build stylesheets self-contained (inline `@import`/`url()`; fonts
   can be data URIs). Stage css is processed by Vite, so an `@import` resolves
   against the **importing file**, not the site root: pulling in a stylesheet
   that lives in the `static` folder must be root-absolute
@@ -439,7 +440,7 @@ example renders isolated, so each gets its own copy of anything mutable.
 - Svelte code is valid only *inside* blocks; body text outside any block is an
   error.
 
-## The four entities
+## The five entities
 
 | Entity | Documents | Context |
 |---|---|---|
@@ -634,7 +635,7 @@ One note per line, once per entity and once per `[EXAMPLE]`:
   doubt, leave the block out.
 - Each renders as an alert directly under the entity's title, in the order
   written.
-- **Only `[SHOWCASE]`, `[DOC]` and `[EXAMPLE]` bodies hold them.** A `[PAGE]`
+- **Only `[SHOWCASE]`, `[PATTERNS]`, `[DOC]` and `[EXAMPLE]` bodies hold them.** A `[PAGE]`
   or `[LAYOUT]` body is captured whole as Svelte markup, so a block written
   there is never read back — it renders as literal text on the page. sdocs
   reports it (`block-in-body`) rather than letting it through.

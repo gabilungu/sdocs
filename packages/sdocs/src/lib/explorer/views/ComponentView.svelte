@@ -159,17 +159,30 @@
 	}
 	let liveStateValues = $state<Record<string, unknown>>({});
 
+	// Initial values for diffing (computed once per doc/tab change)
+	const initialProps = $derived(activePreview?.args ?? {});
+	const initialCss = $derived.by(() => {
+		const css: Record<string, string> = {};
+		if (cd?.cssProps) {
+			for (const cp of cd.cssProps) {
+				if (cp.default) css[cp.name] = cp.default;
+			}
+		}
+		return css;
+	});
+
+	// Back to the active preview's args and the component's CSS defaults.
+	// New objects, so editing a control never writes into the initial values
+	// it is diffed against.
+	function handleReset() {
+		propValues = { ...(activePreview?.args ?? {}) };
+		cssValues = { ...initialCss };
+	}
+
 	// Initialize from the active preview's args (build new objects to avoid
 	// read+write loop); re-runs on doc and tab change.
 	$effect(() => {
-		propValues = { ...(activePreview?.args ?? {}) };
-		const newCss: Record<string, string> = {};
-		if (cd?.cssProps) {
-			for (const cp of cd.cssProps) {
-				if (cp.default) newCss[cp.name] = cp.default;
-			}
-		}
-		cssValues = newCss;
+		handleReset();
 		liveStateValues = {};
 	});
 
@@ -188,18 +201,6 @@
 	function handleCssChange(name: string, value: string) {
 		cssValues = { ...cssValues, [name]: value };
 	}
-
-	// Initial values for diffing (computed once per doc/tab change)
-	const initialProps = $derived(activePreview?.args ?? {});
-	const initialCss = $derived.by(() => {
-		const css: Record<string, string> = {};
-		if (cd?.cssProps) {
-			for (const cp of cd.cssProps) {
-				if (cp.default) css[cp.name] = cp.default;
-			}
-		}
-		return css;
-	});
 
 	// Only user-changed vars reach the stage. Custom properties inherit, so a
 	// seeded default applied to the stage would cascade into nested components
@@ -252,17 +253,6 @@
 			clearTimeout(highlightTimer);
 		};
 	});
-
-	function handleReset() {
-		propValues = { ...(activePreview?.args ?? {}) };
-		const newCss: Record<string, string> = {};
-		if (cd?.cssProps) {
-			for (const cp of cd.cssProps) {
-				if (cp.default) newCss[cp.name] = cp.default;
-			}
-		}
-		cssValues = newCss;
-	}
 
 	// Resizable stage widths, local to this page. Each starts at the content
 	// column width (capped to the room, minus the handle bar) and resets when
@@ -378,16 +368,10 @@
 	const narrow = $derived(isNarrow());
 </script>
 
-<!-- The stage: a preview pane that can be dragged narrower, with the hatched
-     canvas as the room to drag into. `get`/`set` are the width binding —
-     each caller owns where that width is stored. -->
-<!-- Tags and synonyms: metadata, deliberately quiet. They sit between the
-     block's prose and its stage, and read as a footnote to the description
-     rather than a heading of their own. -->
 <!-- Every note an opener carries, in the order it was written. -->
-{#snippet notes(list: DocNote[], onclose?: (i: number) => void)}
+{#snippet notes(list: DocNote[])}
 	{#each list as entry, i (i)}
-		<Note text={entry.note} type={entry.type} onclose={onclose && (() => onclose(i))} />
+		<Note text={entry.note} type={entry.type} />
 	{/each}
 {/snippet}
 
@@ -414,6 +398,9 @@
 	{/if}
 {/snippet}
 
+<!-- Tags and synonyms: metadata, deliberately quiet. They sit between the
+     block's prose and its stage, and read as a footnote to the description
+     rather than a heading of their own. -->
 {#snippet metaChips(items: string[], label: string, size: 'sm' | 'md')}
 	<ul class="sdocs-meta-chips" aria-label={label}>
 		{#each items as item (item)}
@@ -422,6 +409,9 @@
 	</ul>
 {/snippet}
 
+<!-- The stage: a preview pane that can be dragged narrower, with the hatched
+     canvas as the room to drag into. `get`/`set` are the width binding —
+     each caller owns where that width is stored. -->
 {#snippet stage(
 	content: Snippet,
 	get: () => number | string,
@@ -670,6 +660,24 @@
 				{/if}
 			{/snippet}
 
+			<!-- The read-only API tables: one titled section each, absent when empty. -->
+			{#snippet apiSection(
+				icon: string,
+				title: string,
+				rows: Row[],
+				table: { showDefault?: boolean; control?: Snippet<[Row]>; defaultLabel?: string },
+			)}
+				{#if rows.length > 0}
+					<section class="sdocs-doc-section">
+						<h2 class="sdocs-doc-section-title">
+							<Icon name={icon} --w="15px" --h="15px" --fill="var(--color-base-500)" />
+							{title}
+						</h2>
+						<ApiTable {rows} {...table} />
+					</section>
+				{/if}
+			{/snippet}
+
 			{#if propsRows.length > 0 || cd?.acceptsClass || cd?.forwardsRest}
 				<section class="sdocs-doc-section">
 					<h2 class="sdocs-doc-section-title">
@@ -708,45 +716,13 @@
 				</section>
 			{/if}
 
-			{#if eventsRows.length > 0}
-				<section class="sdocs-doc-section">
-					<h2 class="sdocs-doc-section-title">
-						<Icon name="zap" --w="15px" --h="15px" --fill="var(--color-base-500)" />
-						Events
-					</h2>
-					<ApiTable rows={eventsRows} showDefault={false} />
-				</section>
-			{/if}
-
-			{#if snippetsRows.length > 0}
-				<section class="sdocs-doc-section">
-					<h2 class="sdocs-doc-section-title">
-						<Icon name="code" --w="15px" --h="15px" --fill="var(--color-base-500)" />
-						Snippets
-					</h2>
-					<ApiTable rows={snippetsRows} showDefault={false} />
-				</section>
-			{/if}
-
-			{#if methodsRows.length > 0}
-				<section class="sdocs-doc-section">
-					<h2 class="sdocs-doc-section-title">
-						<Icon name="square-function" --w="15px" --h="15px" --fill="var(--color-base-500)" />
-						Methods
-					</h2>
-					<ApiTable rows={methodsRows} showDefault={false} control={methodControl} />
-				</section>
-			{/if}
-
-			{#if stateRows.length > 0}
-				<section class="sdocs-doc-section">
-					<h2 class="sdocs-doc-section-title">
-						<Icon name="database" --w="15px" --h="15px" --fill="var(--color-base-500)" />
-						States
-					</h2>
-					<ApiTable rows={stateRows} defaultLabel="Current value" />
-				</section>
-			{/if}
+			{@render apiSection('zap', 'Events', eventsRows, { showDefault: false })}
+			{@render apiSection('code', 'Snippets', snippetsRows, { showDefault: false })}
+			{@render apiSection('square-function', 'Methods', methodsRows, {
+				showDefault: false,
+				control: methodControl,
+			})}
+			{@render apiSection('database', 'States', stateRows, { defaultLabel: 'Current value' })}
 			</div>
 		{/snippet}
 

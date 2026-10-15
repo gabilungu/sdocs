@@ -147,8 +147,8 @@ describe('notes', () => {
 	});
 
 	it('rejects a type it does not know', () => {
-		// Silently dropping the type would render grey — a real status of its
-		// own — so a typo would read as a deliberate choice.
+		// Silently dropping the type would render grey — the untyped note, a
+		// real type of its own — so a typo would read as a deliberate choice.
 		const doc = entity(['\t[NOTES]', '\t\t- critical: Hi', '\t[/NOTES]']);
 		expect(doc.diagnostics.map((d) => d.code)).toEqual(['note-type']);
 	});

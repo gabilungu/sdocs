@@ -1,6 +1,4 @@
-import { resolve } from 'node:path';
-import { loadConfig } from '../server/config.js';
-import { discoverDocFiles } from '../server/discovery.js';
+import { projectDocFiles } from '../server/discovery.js';
 import { measureCoverage } from '../server/coverage.js';
 
 /**
@@ -10,11 +8,7 @@ import { measureCoverage } from '../server/coverage.js';
  */
 export async function coverageCommand(): Promise<void> {
 	const cwd = process.cwd();
-	const config = await loadConfig(cwd);
-	const files = await discoverDocFiles(
-		config.include.map((p) => resolve(cwd, p)),
-		cwd,
-	);
+	const { config, files } = await projectDocFiles(cwd);
 	const result = await measureCoverage(files, config.components, cwd);
 
 	if (result.counts.components === 0) {

@@ -98,7 +98,7 @@
 	css: './src/styles/global.css'
 	```
 
-	**Named stylesheets** (user switches between them via a dropdown):
+	**Named stylesheets** (user switches between them in the top bar — a segmented control, or a dropdown when the bar runs short of room):
 
 	```js
 	css: {
@@ -308,9 +308,9 @@
 	### `mcp`
 
 	Whether `sdocs dev` serves the [MCP server](/cli/commands#sdocs-mcp) — the
-	`/mcp` endpoint and the **MCP** button in the top bar (next to the theme
-	toggle), which opens the connection info: the HTTP endpoint, the stdio
-	command, and the tool list.
+	`/mcp` endpoint and the **MCP server** item in the top bar's ⋮ menu, which
+	opens the connection info: the HTTP endpoint, the stdio command, and the
+	tool list.
 
 	- **Type:** `boolean`
 	- **Default:** `true`
@@ -319,7 +319,7 @@
 	mcp: false
 	```
 
-	Turning it off removes the endpoint and the button. The explicit
+	Turning it off removes the endpoint and the menu item. The explicit
 	`npx sdocs mcp` command is unaffected, and built sites never serve an MCP
 	endpoint either way.
 
@@ -390,8 +390,9 @@
 	.card { padding: calc(8px * var(--scale, 1)); }
 	```
 
-	`presets` adds named stops — `[{ label: 'S', value: 0.875 }]` — as a
-	segmented control beside the slider; a value outside the range is refused.
+	`presets` adds named stops — `[{ label: 'S', value: 0.875 }]` — as buttons
+	inside the slider's control, right of its value; a value outside the range
+	is refused.
 
 	A property rather than an attribute because a range has no set of names to
 	key off: one rule reading a number beats a rule per step. Double-click the

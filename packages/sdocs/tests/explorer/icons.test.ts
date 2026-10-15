@@ -73,7 +73,6 @@ describe('the icon registry', () => {
 	it.each([
 		['explorer/views/ComponentView.svelte'],
 		['ui/Note/Note.svelte'],
-		['explorer/views/NoteControl.svelte'],
 		['explorer/views/Sidebar.svelte'],
 		['ui/Icon/Icon.sdoc'],
 	])('resolves every icon %s asks for', (file) => {

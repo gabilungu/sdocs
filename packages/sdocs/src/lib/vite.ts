@@ -1,13 +1,11 @@
 import type { Plugin, ViteDevServer } from 'vite';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, relative, resolve as resolvePath } from 'node:path';
 import { loadRawConfig, resolveAndFinalize } from './server/config.js';
 import { discoverDocFiles, globBase } from './server/discovery.js';
 import { parseComponent } from './server/prop-parser.js';
-import { writeNotes, writeTodos, toggleTodo, NoteTargetError } from './server/note-editor.js';
-import { isLocalOrigin } from './mcp/http.js';
 import { parseSdoc, offsetToPosition } from './language/index.js';
 import {
 	planEntitySnippets,
@@ -51,10 +49,6 @@ import type {
 const VIRTUAL_MODULE_ID = 'virtual:sdocs';
 const RESOLVED_VIRTUAL_ID = '\0virtual:sdocs';
 const IFRAME_PREFIX = '/@sdocs/iframe/';
-/** Where the Explorer posts a note edit. Dev server only. */
-const NOTES_ENDPOINT = '/__sdocs/notes';
-/** Where the Explorer posts a todo tick. Dev server only. */
-const TODO_ENDPOINT = '/__sdocs/todo';
 
 const PREVIEW_PREFIX = '/@sdocs/preview/';
 const MOUNT_PREFIX = '/@sdocs/mount/';
@@ -197,73 +191,6 @@ export function sdocsPlugin(
 
 		configureServer(devServer) {
 			server = devServer;
-
-			// Middleware: edit an entity's notes, or tick one of its todos,
-			// from the Explorer.
-			//
-			// These write to the project's source, so they live here and only
-			// here: `configureServer` runs for the dev server alone, so no
-			// build can carry them. The file has to be one this project already
-			// documents — a path from the request never reaches the disk.
-			server.middlewares.use(async (req, res, next) => {
-				const endpoint = req.url?.split('?')[0];
-				if (endpoint !== NOTES_ENDPOINT && endpoint !== TODO_ENDPOINT) return next();
-				const fail = (code: number, message: string) => {
-					res.statusCode = code;
-					res.setHeader('Content-Type', 'application/json');
-					res.end(JSON.stringify({ error: message }));
-				};
-				if (req.method !== 'POST') return fail(405, 'Use POST.');
-				// These endpoints edit files on disk, so a page on another origin
-				// must not be able to reach them through the browser. The /mcp
-				// route has carried this guard since it shipped; these did not.
-				const origin = req.headers.origin;
-				if (typeof origin === 'string' && origin && !isLocalOrigin(origin)) {
-					return fail(403, 'Cross-origin requests are not accepted here.');
-				}
-				try {
-					const chunks: Buffer[] = [];
-					let size = 0;
-					for await (const chunk of req) {
-						// A doc edit is kilobytes. Anything past a megabyte is not one,
-						// and buffering it unbounded is how a dev server falls over.
-						size += (chunk as Buffer).length;
-						if (size > 1_000_000) return fail(413, 'That edit is too large.');
-						chunks.push(chunk as Buffer);
-					}
-					const body = JSON.parse(Buffer.concat(chunks).toString('utf-8'));
-					const filePath = String(body.file ?? '');
-					const known = [...docEntries.values()].some((e) => e.filePath === filePath);
-					if (!known) return fail(400, 'That file is not part of this project.');
-
-					const source = await readFile(filePath, 'utf-8');
-					const target = {
-						entitySlug: String(body.entitySlug ?? ''),
-						exampleTitle: body.exampleTitle ?? null,
-					};
-					// A tick rewrites one character; anything that changes the list's
-					// shape sends the whole tree, because there is nothing smaller
-					// to rewrite.
-					const next =
-						endpoint === NOTES_ENDPOINT
-							? writeNotes(source, target, Array.isArray(body.notes) ? body.notes : [])
-							: Array.isArray(body.items)
-								? writeTodos(source, target, body.items)
-								: toggleTodo(
-										source,
-										target,
-										(Array.isArray(body.path) ? body.path : []).map(Number),
-										!!body.done,
-									);
-					if (next !== source) await writeFile(filePath, next, 'utf-8');
-					res.statusCode = 200;
-					res.setHeader('Content-Type', 'application/json');
-					res.end(JSON.stringify({ ok: true }));
-				} catch (err) {
-					const message = err instanceof Error ? err.message : String(err);
-					return fail(err instanceof NoteTargetError ? 404 : 400, message);
-				}
-			});
 
 			// Middleware: serve iframe preview HTML pages
 			server.middlewares.use((req, res, next) => {

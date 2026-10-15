@@ -14,11 +14,9 @@
 		 * them (effects never run server-side) and the built app's entry passes
 		 * the current route's, so hydration matches the static HTML. */
 		preloaded?: Record<string, Component>;
-		/** Dev only: the note editor writes to the project's source. */
-		dev?: boolean;
 	}
 
-	let { doc, pageModules = {}, preloaded = {}, dev = false }: Props = $props();
+	let { doc, pageModules = {}, preloaded = {} }: Props = $props();
 
 	// A PAGE body is plain Svelte compiled to its own component. It renders
 	// here in the docs context — sdocs CSS variables, no stage tooling, no
@@ -62,10 +60,6 @@
 </script>
 
 <div class="sdocs-svelte-page" style:padding={viewPadding}>
-	<!-- A [PAGE] shows no title either, so the button hides in the corner the
-	     way a layout's does. -->
-	<!-- No note button here: a [PAGE] body is Svelte markup, so a [NOTES]
-	     block written into it would render as literal text on the page. -->
 	<div class="sdocs-svelte-page-inner" style:max-width={doc.maxWidth} style:margin={containerMargin}>
 		<!-- A [PAGE] renders no title of its own, so the note opens the page
 		     rather than sitting under a heading that isn't there. It stays in
@@ -96,8 +90,6 @@
 		margin-bottom: 16px;
 	}
 	.sdocs-svelte-page {
-		/* The corner note button positions against this. */
-		position: relative;
 		/* padding comes from the doc entry (config/entity cascade) */
 		font-family: var(--sans);
 		color: var(--color-base-800);

@@ -11,7 +11,6 @@
 	import { Note } from '../../ui/Note/index.js';
 	import { nextTabIndex } from './tablist.js';
 	import { Glossary } from '../../ui/Glossary/index.js';
-	import NoteControl from './NoteControl.svelte';
 	import TodoList from './TodoList.svelte';
 	import NativeBody from './NativeBody.svelte';
 	import { copyCode } from '../copy-code.svelte.js';
@@ -38,8 +37,6 @@
 		doc: DocEntry;
 		/** If set, show only this example (full-page view) */
 		snippetName?: string;
-		/** Dev only: the note editor writes to the project's source. */
-		dev?: boolean;
 		activeStylesheet?: string;
 		/** [PROSE] bodies from `virtual:sdocs`, keyed like doc/page content. */
 		pageModules?: Record<string, () => Promise<{ default: unknown }>>;
@@ -52,7 +49,6 @@
 		doc,
 		snippetName,
 		activeStylesheet,
-		dev = false,
 		pageModules = {},
 		preloaded = {},
 	}: Props = $props();
@@ -444,13 +440,7 @@
 		{@render notes(example.notes)}
 	{/if}
 	{#if example.todos?.length}
-		<TodoList
-			items={example.todos}
-			{dev}
-			file={doc.filePath}
-			entitySlug={doc.entitySlug}
-			exampleTitle={example.name}
-		/>
+		<TodoList items={example.todos} />
 	{/if}
 	{#if example.proseHtml}
 		<div class="sdocs-prose sdocs-prose-block" {@attach copyCode()}>{@html example.proseHtml}</div>
@@ -525,18 +515,7 @@
 	{#if focusedSnippet}
 		<!-- Example full-page view -->
 		<div class="sdocs-view-header">
-			<div class="sdocs-title-row">
-				<h1 class="sdocs-view-title">{displayTitle(meta.title)} / {snippetName}</h1>
-				<NoteControl
-					{dev}
-					label="{displayTitle(meta.title)} / {snippetName}"
-					file={doc.filePath}
-					entitySlug={doc.entitySlug}
-					exampleTitle={snippetName}
-					notes={focusedSnippet.notes ?? []}
-					todos={focusedSnippet.todos ?? []}
-				/>
-			</div>
+			<h1 class="sdocs-view-title">{displayTitle(meta.title)} / {snippetName}</h1>
 			<!-- Opened on its own, an example is the whole page: everything it
 			     carries travels with it, or a warning only shows on the way in. -->
 			{@render exampleHeader(focusedSnippet)}
@@ -571,17 +550,7 @@
 	{:else}
 		<!-- Full component view -->
 		<div class="sdocs-view-header">
-			<div class="sdocs-title-row">
-				<h1 class="sdocs-view-title">{displayTitle(meta.title)}</h1>
-				<NoteControl
-					{dev}
-					label={displayTitle(meta.title)}
-					file={doc.filePath}
-					entitySlug={doc.entitySlug}
-					notes={meta.notes ?? []}
-					todos={meta.todos ?? []}
-				/>
-			</div>
+			<h1 class="sdocs-view-title">{displayTitle(meta.title)}</h1>
 			{#if meta.description}
 				<p class="sdocs-view-description">{@html renderInlineMarkdown(meta.description)}</p>
 			{/if}
@@ -589,12 +558,7 @@
 				{@render notes(meta.notes)}
 			{/if}
 			{#if meta.todos?.length}
-				<TodoList
-					items={meta.todos}
-					{dev}
-					file={doc.filePath}
-					entitySlug={doc.entitySlug}
-				/>
+				<TodoList items={meta.todos} />
 			{/if}
 		</div>
 
@@ -843,15 +807,6 @@
 				<h3 class="sdocs-example-title">
 					<Icon name="bookmark" --w="14px" --h="14px" --fill="var(--color-example-500)" />
 					{example.name || '⚠ title required'}
-					<NoteControl
-						{dev}
-						label="{displayTitle(meta.title)} / {example.name}"
-						file={doc.filePath}
-						entitySlug={doc.entitySlug}
-						exampleTitle={example.name}
-						notes={example.notes ?? []}
-						todos={example.todos ?? []}
-					/>
 				</h3>
 				{@render exampleHeader(example)}
 				{#snippet exampleContent()}
@@ -1177,12 +1132,6 @@
 	.sdocs-example > :global(.sdocs-todo),
 	.sdocs-example > :global(.sdocs-prose-block) {
 		max-width: var(--sdocs-content-max, 1200px);
-	}
-	/* The title and whatever rides at the end of its line. */
-	.sdocs-title-row {
-		display: flex;
-		align-items: center;
-		gap: 8px;
 	}
 	/* A [PROSE] block sits in the page flow like a paragraph of the entity's
 	   own, so its first and last elements do not add margin to the gap the

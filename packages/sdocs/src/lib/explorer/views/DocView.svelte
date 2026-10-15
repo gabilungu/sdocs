@@ -5,7 +5,6 @@
 	import { Icon } from '../../ui/Icon/index.js';
 	import { Note } from '../../ui/Note/index.js';
 	import { Glossary } from '../../ui/Glossary/index.js';
-	import NoteControl from './NoteControl.svelte';
 	import TodoList from './TodoList.svelte';
 	import ContentError from './ContentError.svelte';
 	import { copyCode } from '../copy-code.svelte.js';
@@ -24,11 +23,9 @@
 		 * them (effects never run server-side) and the built app's entry passes
 		 * the current route's, so hydration matches the static HTML. */
 		preloaded?: Record<string, Component>;
-		/** Dev only: the note editor writes to the project's source. */
-		dev?: boolean;
 	}
 
-	let { doc, activeStylesheet, pageModules = {}, preloaded = {}, dev = false }: Props = $props();
+	let { doc, activeStylesheet, pageModules = {}, preloaded = {} }: Props = $props();
 
 	const meta = $derived(doc.meta);
 	const toc = $derived(doc.toc ?? []);
@@ -186,13 +183,7 @@
 					<Note text={entry.note} type={entry.type} />
 				{/each}
 				{#if example.todos?.length}
-					<TodoList
-						items={example.todos}
-						{dev}
-						file={doc.filePath}
-						entitySlug={doc.entitySlug}
-						exampleTitle={example.name}
-					/>
+					<TodoList items={example.todos} />
 				{/if}
 				{#if example.proseHtml}
 					<div class="sdocs-prose sdocs-prose-block" {@attach copyCode()}>{@html example.proseHtml}</div>
@@ -237,17 +228,7 @@
 			<!-- Header: a body `#` heading takes over as the page title -->
 			{#if !doc.bodyTitle}
 				<div class="sdocs-view-header">
-					<div class="sdocs-title-row">
-						<h1 class="sdocs-view-title">{displayTitle(meta.title)}</h1>
-						<NoteControl
-							{dev}
-							label={displayTitle(meta.title)}
-							file={doc.filePath}
-							entitySlug={doc.entitySlug}
-							notes={meta.notes ?? []}
-							todos={meta.todos ?? []}
-						/>
-					</div>
+					<h1 class="sdocs-view-title">{displayTitle(meta.title)}</h1>
 					{#if meta.description}
 						<p class="sdocs-view-description">{@html renderInlineMarkdown(meta.description)}</p>
 					{/if}
@@ -255,22 +236,9 @@
 						<Note text={entry.note} type={entry.type} />
 					{/each}
 					{#if meta.todos?.length}
-						<TodoList items={meta.todos} {dev} file={doc.filePath} entitySlug={doc.entitySlug} />
+						<TodoList items={meta.todos} />
 					{/if}
 				</div>
-			{:else}
-				<!-- The body's own heading is the title, and it is inside the
-				     rendered markdown — nothing here to hang a button off, so
-				     it takes the corner instead. -->
-				<NoteControl
-					{dev}
-					variant="corner"
-					label={displayTitle(meta.title)}
-					file={doc.filePath}
-					entitySlug={doc.entitySlug}
-					notes={meta.notes ?? []}
-					todos={meta.todos ?? []}
-				/>
 			{/if}
 			{#if doc.bodyTitle && (meta.notes?.length || meta.todos?.length)}
 				<!-- The body's own `#` is the title here, and it lives inside the
@@ -281,7 +249,7 @@
 						<Note text={entry.note} type={entry.type} />
 					{/each}
 					{#if meta.todos?.length}
-						<TodoList items={meta.todos} {dev} file={doc.filePath} entitySlug={doc.entitySlug} />
+						<TodoList items={meta.todos} />
 					{/if}
 				</div>
 			{/if}
@@ -354,11 +322,6 @@
 	.sdocs-page-main {
 		flex: 1;
 		min-width: 0;
-		/* The containing block for the corner note control. Without it that
-		   control resolves `top: 0` against the app root and its 120×52 hover
-		   zone lands over the top bar, swallowing clicks meant for fullscreen
-		   and the kebab menu. */
-		position: relative;
 	}
 	.sdocs-view-header {
 		margin-bottom: 24px;
@@ -372,11 +335,6 @@
 	.sdocs-view-header :global(.Note),
 	.sdocs-doc-note {
 		margin: 10px 0 14px;
-	}
-	.sdocs-title-row {
-		display: flex;
-		align-items: center;
-		gap: 8px;
 	}
 	.sdocs-view-description {
 		font-size: 14px;

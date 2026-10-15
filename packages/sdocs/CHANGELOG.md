@@ -12,6 +12,20 @@ a breaking change written under any other heading is one an agent will miss.
 
 ## [Unreleased]
 
+## [0.0.175] - 2026-10-15
+
+### Removed
+
+- **Notes and todos are no longer edited from the Explorer.** `[NOTES]` and
+  `[TODO]` blocks still render exactly as before, but the dev server's note
+  button, note editor, "add a todo list" button and editable checklist are
+  gone, along with the `/__sdocs/notes` and `/__sdocs/todo` routes behind
+  them. A checklist now renders read-only everywhere. Edit the `.sdoc` file to
+  change either block; the MCP write tools (`set_notes`, `set_todos`,
+  `toggle_todo`) still do the same.
+- **The embedded Explorer's `dev` prop.** It existed only to turn the note
+  editor on; drop it from `<Explorer>`.
+
 ## [0.0.174] - 2026-08-22
 
 ### Breaking

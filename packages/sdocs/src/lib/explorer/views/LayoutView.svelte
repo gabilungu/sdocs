@@ -10,11 +10,9 @@
 	interface Props {
 		doc: DocEntry;
 		activeStylesheet?: string;
-		/** Dev only: the note editor writes to the project's source. */
-		dev?: boolean;
 	}
 
-	let { doc, activeStylesheet, dev = false }: Props = $props();
+	let { doc, activeStylesheet }: Props = $props();
 
 	const contentSnippet = $derived(doc.content);
 
@@ -41,11 +39,11 @@
 </script>
 
 <div class="sdocs-layout-view">
-	<!-- No note button here. A [LAYOUT] body is captured whole as Svelte
-	     markup, so a [NOTES] block written into it is never read back — it
-	     renders as literal text over the layout. The rendering below stays:
-	     the day the scanner captures blocks for [LAYOUT], notes arrive here
-	     with nothing else to change. -->
+	<!-- A [LAYOUT] body is captured whole as Svelte markup, so a [NOTES]
+	     block written into it is never read back — it renders as literal text
+	     over the layout. The rendering below stays: the day the scanner
+	     captures blocks for [LAYOUT], notes arrive here with nothing else to
+	     change. -->
 	{#if notes.length > dismissed.length}
 		<div class="sdocs-layout-note">
 			{#each notes as entry, i (i)}

@@ -66,9 +66,8 @@ export function mcpHttpHandler() {
 }
 
 /**
- * A same-machine Origin. The dev server's write endpoints share this with the
- * MCP route: both accept requests that edit the user's source, so both need
- * the same DNS-rebinding guard.
+ * A same-machine Origin. The MCP route accepts requests that edit the user's
+ * source, so it needs a DNS-rebinding guard.
  */
 export function isLocalOrigin(origin: string): boolean {
 	try {

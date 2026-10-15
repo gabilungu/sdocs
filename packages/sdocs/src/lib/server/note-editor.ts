@@ -1,8 +1,8 @@
 /**
  * Rewriting a `[NOTES]` or `[TODO]` block in `.sdoc` source.
  *
- * The dev server lets a reader add notes and tick todos from the Explorer,
- * which means editing the file they are reading. The edit is deliberately the
+ * The MCP write tools set notes and tick todos by editing the `.sdoc` file
+ * itself. The edit is deliberately the
  * smallest one that can be made: a note edit replaces the block's own span and
  * a tick rewrites one character, so a document keeps its formatting, its
  * comments, and every byte the author put there.
@@ -16,7 +16,7 @@ import { slugifyTitle } from '../language/parser.js';
 import type { DocNote, TodoItem } from '../types.js';
 
 export interface NoteTarget {
-	/** Slug of the entity to edit, as the Explorer knows it. */
+	/** Slug of the entity to edit. */
 	entitySlug: string;
 	/** Title of an `[example]` inside that entity, to edit its notes instead
 	 * of the entity's own. */
@@ -25,7 +25,7 @@ export interface NoteTarget {
 
 export class NoteTargetError extends Error {}
 
-/** The text blocks that can be written back from the Explorer. */
+/** The text blocks that can be written back. */
 type EditableBlock = 'notes' | 'todo';
 
 /**
@@ -80,8 +80,8 @@ function locate(
 	}
 	// A [PAGE] or [LAYOUT] body is captured whole as Svelte markup, so a block
 	// written into one is never read back — it renders as literal text on the
-	// page. Refusing here closes both write paths at once: the Explorer's note
-	// button and the MCP tools both arrive through this function. A [PATTERNS]
+	// page. Every MCP write tool arrives through this function, so refusing
+	// here closes them all at once. A [PATTERNS]
 	// is not in this list: it holds blocks, exactly as a [SHOWCASE] does.
 	if (entity.kind === 'PAGE' || entity.kind === 'LAYOUT') {
 		throw new NoteTargetError(

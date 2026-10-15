@@ -52,10 +52,6 @@
 		/** The dev server serves the MCP endpoint — shows the top-bar MCP
 		 * button. Only ever true in `sdocs dev` (config `mcp`, default on). */
 		mcp?: boolean;
-		/** Running under `sdocs dev`, whatever the config says about `mcp`.
-		 * Turns on the note editor, which writes to project source through an
-		 * endpoint only the dev server mounts. */
-		dev?: boolean;
 		/** Design-system dimensions the reader can switch between. Each renders
 		 * a dropdown and lands on every preview as `data-<id>`. */
 		axes?: Required<AxisConfig>[];
@@ -80,7 +76,6 @@
 		basePath = '',
 		sdocsVersion,
 		mcp = false,
-		dev = false,
 		axes = [],
 		scale = null
 	}: Props = $props();
@@ -452,11 +447,11 @@
 		>
 			{#if resolved}
 				{#if resolved.doc.kind === 'doc'}
-					<DocView doc={resolved.doc} {activeStylesheet} {pageModules} {preloaded} {dev} />
+					<DocView doc={resolved.doc} {activeStylesheet} {pageModules} {preloaded} />
 				{:else if resolved.doc.kind === 'page'}
-					<PageView doc={resolved.doc} {pageModules} {preloaded} {dev} />
+					<PageView doc={resolved.doc} {pageModules} {preloaded} />
 				{:else if resolved.doc.kind === 'layout'}
-					<LayoutView doc={resolved.doc} {activeStylesheet} {dev} />
+					<LayoutView doc={resolved.doc} {activeStylesheet} />
 				{:else}
 					<ComponentView
 						doc={resolved.doc}
@@ -464,7 +459,6 @@
 						{activeStylesheet}
 						{pageModules}
 						{preloaded}
-						{dev}
 					/>
 				{/if}
 			{:else if isChangelogRoute}

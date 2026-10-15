@@ -792,8 +792,7 @@ async function collectDocIndex() {
 /**
  * Resolve a write request to a real file in this project, and apply `edit`.
  *
- * The guard is the same one the dev server's endpoints use: the path has to be
- * a file the project's `include` globs already match. A write tool that would
+ * The path has to be a file the project's `include` globs already match. A write tool that would
  * touch any path it is handed is a write tool that can be pointed anywhere.
  *
  * `entity` is matched on its title or its slug, so a caller can pass back
@@ -809,8 +808,8 @@ async function collectDocIndex() {
  * same document does exactly that.
  *
  * A promise chain per path serialises them. It only covers this process, which
- * is the case that matters: the dev server's endpoints and these tools are the
- * two writers, and a chain is cheaper and less breakable than a lockfile.
+ * is the case that matters: these tools are the only writer, and a chain is
+ * cheaper and less breakable than a lockfile.
  */
 const fileLocks = new Map<string, Promise<unknown>>();
 
